@@ -121,7 +121,7 @@ const ru = {
     nissan: "Nissan",
     mercedes: "Mercedes",
     lexus: "Lexus",
-    lada: "Lada",
+    lada: "Лада",
   } as Record<string, string>,
   carModels: {
     camry: "Camry",
