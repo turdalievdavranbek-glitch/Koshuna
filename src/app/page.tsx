@@ -89,7 +89,7 @@ export default function FeedPage() {
               }}
               className="section-tile relative h-[110px] overflow-hidden rounded-[16px] text-left"
             >
-              <img src={s.art} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={s.art} alt="" className="absolute inset-0 h-full w-full origin-center scale-110 object-cover" />
               <span className="relative z-[1] block px-2 pt-2 text-[11px] font-semibold leading-[1.2] text-ink">
                 {t.sectionNames[s.id]}
               </span>

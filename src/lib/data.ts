@@ -15,14 +15,14 @@ export const CITIES = [
 ] as const;
 
 export const SECTIONS: { id: SectionId; icon: string; art: string }[] = [
-  { id: "rent", icon: "home", art: "/sections/rent.png?v=2" },
-  { id: "secondhand", icon: "bag", art: "/sections/secondhand.png" },
-  { id: "cars", icon: "car", art: "/sections/cars.png" },
-  { id: "stays", icon: "hotel", art: "/sections/stays.png" },
-  { id: "services", icon: "pen", art: "/sections/services.png" },
-  { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.png" },
-  { id: "construction", icon: "blocks", art: "/sections/construction.png" },
-  { id: "animals", icon: "animal", art: "/sections/animals.png?v=2" },
+  { id: "rent", icon: "home", art: "/sections/rent.png?v=3" },
+  { id: "secondhand", icon: "bag", art: "/sections/secondhand.png?v=3" },
+  { id: "cars", icon: "car", art: "/sections/cars.png?v=3" },
+  { id: "stays", icon: "hotel", art: "/sections/stays.png?v=3" },
+  { id: "services", icon: "pen", art: "/sections/services.png?v=3" },
+  { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.png?v=3" },
+  { id: "construction", icon: "blocks", art: "/sections/construction.png?v=3" },
+  { id: "animals", icon: "animal", art: "/sections/animals.png?v=3" },
 ];
 
 export const CATEGORIES = [
