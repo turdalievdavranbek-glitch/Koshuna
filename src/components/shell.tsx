@@ -42,7 +42,7 @@ export function TabBar() {
 
   return (
     <nav className="flex h-[78px] shrink-0 items-center border-t border-line bg-surface pb-2 px-1.5">
-      {item("/", t.feed, IconHome, path === "/")}
+      {item("/", t.feed, IconHome, path === "/" || path.startsWith("/section"))}
       {item("/map", t.map, IconPin, path === "/map")}
       <div className="flex flex-1 justify-center">
         <button

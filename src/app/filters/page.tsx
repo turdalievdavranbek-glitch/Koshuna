@@ -461,7 +461,7 @@ export default function FiltersPage() {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/")}
+          onClick={() => router.push(filters.section ? `/section/${filters.section}` : "/")}
           className="shadow-btn flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
         >
           {t.showN(count)}

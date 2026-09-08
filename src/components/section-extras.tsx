@@ -1,0 +1,154 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { CATEGORIES, SERVICE_CATEGORIES } from "@/lib/data";
+import { useApp } from "@/lib/store";
+import { StayCalendar } from "@/components/stay-calendar";
+import { Chip } from "@/components/ui";
+
+export function SectionExtras() {
+  const { t, filters, setFilters } = useApp();
+  const router = useRouter();
+  const section = filters.section;
+
+  if (section === "rent") {
+    return (
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["any", t.any],
+              ["long", t.dealLong],
+              ["short", t.dealShort],
+              ["buy", t.dealBuy],
+            ] as const
+          ).map(([id, label]) => (
+            <Chip
+              key={id}
+              active={filters.dealType === id}
+              onClick={() =>
+                setFilters({
+                  dealType: id,
+                  checkIn: id === "short" ? filters.checkIn : null,
+                  checkOut: id === "short" ? filters.checkOut : null,
+                })
+              }
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["any", t.any],
+              ["apartment", t.apartment],
+              ["house", t.house],
+            ] as const
+          ).map(([id, label]) => (
+            <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/map")}
+          className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+        >
+          <span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="mt-0.5 block text-[13px] font-semibold text-ink">
+              {filters.locLabel ?? t.pickOnMap}
+            </span>
+          </span>
+          <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
+        </button>
+        {filters.dealType === "short" ? (
+          <StayCalendar
+            checkIn={filters.checkIn}
+            checkOut={filters.checkOut}
+            onChange={(next) => setFilters(next)}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (section === "secondhand") {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
+          {t.allCategories}
+        </Chip>
+        {CATEGORIES.map((c) => (
+          <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+            {t.cats[c]}
+          </Chip>
+        ))}
+      </div>
+    );
+  }
+
+  if (section === "cars" || section === "car-rental") {
+    return (
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["any", t.any],
+              ["sedan", t.sedan],
+              ["suv", t.suv],
+            ] as const
+          ).map(([id, label]) => (
+            <Chip key={id} active={filters.bodyType === id} onClick={() => setFilters({ bodyType: id })}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+        {section === "car-rental" ? (
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["any", t.any],
+                ["auto", t.auto],
+                ["manual", t.manual],
+              ] as const
+            ).map(([id, label]) => (
+              <Chip key={id} active={filters.gear === id} onClick={() => setFilters({ gear: id })}>
+                {label}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (section === "stays") {
+    return (
+      <StayCalendar
+        checkIn={filters.checkIn}
+        checkOut={filters.checkOut}
+        onChange={(next) => setFilters(next)}
+      />
+    );
+  }
+
+  if (section === "services") {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
+          {t.allCategories}
+        </Chip>
+        {SERVICE_CATEGORIES.map((c) => (
+          <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+            {t.cats[c]}
+          </Chip>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+}

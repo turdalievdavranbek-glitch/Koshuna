@@ -8,8 +8,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (cityKey && cityKey !== "all" && item.city !== cityKey) return false;
     if (filters.section && item.section !== filters.section) return false;
     if (filters.category && filters.category !== "all") {
-      const categorySections = !filters.section || filters.section === "secondhand" || filters.section === "services";
-      if (categorySections && item.category !== filters.category) return false;
+      if (
+        (filters.section === "secondhand" || filters.section === "services") &&
+        item.category !== filters.category
+      ) {
+        return false;
+      }
     }
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
@@ -17,7 +21,13 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }
-    if (filters.locLng != null && filters.locLat != null && item.lng != null && item.lat != null) {
+    if (
+      filters.section === "rent" &&
+      filters.locLng != null &&
+      filters.locLat != null &&
+      item.lng != null &&
+      item.lat != null
+    ) {
       if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
     }
     const rentFilters = filters.section === "rent";

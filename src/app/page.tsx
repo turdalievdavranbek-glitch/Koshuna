@@ -3,27 +3,24 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CITIES, PROMOTED_IDS, SECTIONS, SERVICE_CATEGORIES, formatSom, listingById } from "@/lib/data";
+import { CITIES, PROMOTED_IDS, SECTIONS, formatSom, listingById } from "@/lib/data";
+import { applyFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
-import { formatStayDay, formatStayRange } from "@/lib/dates";
+import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
-import { StayCalendar } from "@/components/stay-calendar";
-import { Chip, ListingHero, ListingRow, Photo, useFiltered } from "@/components/ui";
+import { Chip, ListingHero, ListingRow, Photo } from "@/components/ui";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders, sectionIcon } from "@/components/icons";
 
 export default function FeedPage() {
-  const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav } = useApp();
+  const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
+    useApp();
   const router = useRouter();
-  const listings = useFiltered();
+  const listings = applyFilters(allListings, { ...filters, section: null }, city);
   const [cityOpen, setCityOpen] = useState(false);
   const featured = listings[0];
   const rest = listings.slice(1);
-  const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter((item) => {
-    if (!item) return false;
-    if (filters.section && item.section !== filters.section) return false;
-    return true;
-  });
+  const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter(Boolean);
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
@@ -67,7 +64,7 @@ export default function FeedPage() {
           <input
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
-            placeholder={searchPlaceholder(filters.section, t)}
+            placeholder={searchPlaceholder(null, t)}
             className="h-full flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted-2"
           />
           <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters}>
@@ -87,114 +84,16 @@ export default function FeedPage() {
               key={s.id}
               type="button"
               onClick={() => {
-                const next = filters.section === s.id ? null : s.id;
-                setFilters({
-                  section: next,
-                  category: null,
-                  rooms: next === "rent" ? filters.rooms : [],
-                  housingType: next === "rent" ? filters.housingType : "any",
-                  bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
-                  gear: next === "car-rental" ? filters.gear : "any",
-                  checkIn: next === "stays" || (next === "rent" && filters.dealType === "short") ? filters.checkIn : null,
-                  checkOut: next === "stays" || (next === "rent" && filters.dealType === "short") ? filters.checkOut : null,
-                  dealType: next === "rent" ? filters.dealType : "any",
-                  locLng: next === "rent" ? filters.locLng : null,
-                  locLat: next === "rent" ? filters.locLat : null,
-                  locLabel: next === "rent" ? filters.locLabel : null,
-                });
+                setFilters(patchForSection(s.id, filters));
+                router.push(`/section/${s.id}`);
               }}
-              className="rounded-[14px] border bg-surface px-2.5 py-3 text-left"
-              style={{
-                borderColor: filters.section === s.id ? "#17140F" : "#E4DCCE",
-              }}
+              className="rounded-[14px] border border-line bg-surface px-2.5 py-3 text-left"
             >
               {sectionIcon(s.id)}
               <div className="mt-2 text-xs font-semibold leading-[1.25] text-ink">{t.sectionNames[s.id]}</div>
             </button>
           ))}
         </div>
-        {filters.section === "rent" ? (
-          <div className="mt-3 flex flex-col gap-2.5">
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["any", t.any],
-                  ["long", t.dealLong],
-                  ["short", t.dealShort],
-                  ["buy", t.dealBuy],
-                ] as const
-              ).map(([id, label]) => (
-                <Chip
-                  key={id}
-                  active={filters.dealType === id}
-                  onClick={() =>
-                    setFilters({
-                      dealType: id,
-                      checkIn: id === "short" ? filters.checkIn : null,
-                      checkOut: id === "short" ? filters.checkOut : null,
-                    })
-                  }
-                >
-                  {label}
-                </Chip>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["any", t.any],
-                  ["apartment", t.apartment],
-                  ["house", t.house],
-                ] as const
-              ).map(([id, label]) => (
-                <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
-                  {label}
-                </Chip>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/map")}
-              className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
-            >
-              <span>
-                <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
-                <span className="mt-0.5 block text-[13px] font-semibold text-ink">
-                  {filters.locLabel ?? t.pickOnMap}
-                </span>
-              </span>
-              <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
-            </button>
-            {filters.dealType === "short" ? (
-              <StayCalendar
-                checkIn={filters.checkIn}
-                checkOut={filters.checkOut}
-                onChange={(next) => setFilters(next)}
-              />
-            ) : null}
-          </div>
-        ) : null}
-        {filters.section === "stays" ? (
-          <div className="mt-3">
-            <StayCalendar
-              checkIn={filters.checkIn}
-              checkOut={filters.checkOut}
-              onChange={(next) => setFilters(next)}
-            />
-          </div>
-        ) : null}
-        {filters.section === "services" ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
-              {t.allCategories}
-            </Chip>
-            {SERVICE_CATEGORIES.map((c) => (
-              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
-                {t.cats[c]}
-              </Chip>
-            ))}
-          </div>
-        ) : null}
 
         <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
@@ -254,20 +153,13 @@ export default function FeedPage() {
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
           <Chip onClick={() => router.push("/filters")}>
-            {filters.section ? t.sectionNames[filters.section] : t.allCategories}
+            {t.allCategories}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
           </Chip>
           <Chip onClick={() => router.push("/filters")}>
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
           </Chip>
-          {filters.section === "stays" && filters.checkIn ? (
-            <Chip onClick={() => router.push("/filters")}>
-              {filters.checkOut
-                ? formatStayRange(filters.checkIn, filters.checkOut, lang)
-                : formatStayDay(filters.checkIn, lang)}
-            </Chip>
-          ) : null}
           <button type="button" onClick={resetFilters} className="shrink-0 px-[13px] py-[7px] text-[13px] font-semibold text-accent">
             {t.resetFilters}
           </button>

@@ -179,7 +179,7 @@ export default function MapPage() {
               <div className="mb-3 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push(filters.section ? `/section/${filters.section}` : "/")}
                   className="shadow-btn flex h-11 flex-1 items-center justify-center rounded-2xl bg-accent text-sm font-semibold text-accent-on"
                 >
                   {t.searchHere}
