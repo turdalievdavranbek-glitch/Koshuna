@@ -95,6 +95,8 @@ export type Filters = {
   verifiedOnly: boolean;
   noAgents: boolean;
   sort: SortMode;
+  checkIn: string | null;
+  checkOut: string | null;
 };
 
 export type SavedSearch = {

@@ -74,6 +74,29 @@ const ru = {
   priceNight: "Цена, KGS / за ночь",
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Уборка, репетитор, ремонт…",
+  searchStays: "Иссык-Куль, Каракол, гостевой дом…",
+  checkIn: "Заезд",
+  checkOut: "Выезд",
+  pickCheckIn: "Дата",
+  pickCheckOut: "Дата",
+  pickCheckInHint: "Сначала нажмите день заезда",
+  pickCheckOutHint: "Теперь нажмите день выезда",
+  clearDates: "Сбросить даты",
+  nights: (n: number) => {
+    const n10 = n % 10;
+    const n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return `${n} ночь`;
+    if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return `${n} ночи`;
+    return `${n} ночей`;
+  },
+  stayTotal: "Итого за период",
+  bookStay: "Запросить бронь",
+  pickDatesFirst: "Сначала выберите даты в календаре",
+  bookRequest: (range: string, nights: string, total: string) =>
+    `Здравствуйте! Хочу забронировать на ${range} (${nights}). Итого около ${total} KGS.`,
+  prevMonth: "Предыдущий месяц",
+  nextMonth: "Следующий месяц",
+  weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
   rooms: "Комнаты",
   anyRooms: "Любые",
   photosOnly: "Только с фотографиями",
@@ -339,6 +362,23 @@ const ky: typeof ru = {
   priceNight: "Баа, KGS / түнүнө",
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Тазалоо, репетитор, оңдоо…",
+  searchStays: "Ысык-Көл, Каракол, конок үйү…",
+  checkIn: "Кирүү",
+  checkOut: "Чыгуу",
+  pickCheckIn: "Күн",
+  pickCheckOut: "Күн",
+  pickCheckInHint: "Адегенде кирүү күнүн басыңыз",
+  pickCheckOutHint: "Эми чыгуу күнүн басыңыз",
+  clearDates: "Күндөрдү тазалоо",
+  nights: (n: number) => `${n} түн`,
+  stayTotal: "Мөөнөт үчүн жыйынтык",
+  bookStay: "Брон суроо",
+  pickDatesFirst: "Адегенде календардан күндөрдү тандаңыз",
+  bookRequest: (range: string, nights: string, total: string) =>
+    `Саламатсызбы! ${range} күндөрүнө брондогум келет (${nights}). Болжол менен ${total} KGS.`,
+  prevMonth: "Мурунку ай",
+  nextMonth: "Кийинки ай",
+  weekdays: ["Дш", "Шш", "Шр", "Бш", "Жм", "Иш", "Жш"],
   rooms: "Бөлмөлөр",
   anyRooms: "Каалаган",
   photosOnly: "Сүрөтү бар гана",
@@ -519,6 +559,23 @@ const en: typeof ru = {
   priceNight: "Price, KGS / per night",
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Cleaning, tutor, repairs…",
+  searchStays: "Issyk-Kul, Karakol, guesthouse…",
+  checkIn: "Check-in",
+  checkOut: "Check-out",
+  pickCheckIn: "Date",
+  pickCheckOut: "Date",
+  pickCheckInHint: "First tap the check-in day",
+  pickCheckOutHint: "Now tap the check-out day",
+  clearDates: "Clear dates",
+  nights: (n: number) => (n === 1 ? "1 night" : `${n} nights`),
+  stayTotal: "Total for the stay",
+  bookStay: "Request to book",
+  pickDatesFirst: "Choose dates on the calendar first",
+  bookRequest: (range: string, nights: string, total: string) =>
+    `Hello! I’d like to book ${range} (${nights}). About ${total} KGS in total.`,
+  prevMonth: "Previous month",
+  nextMonth: "Next month",
+  weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
   rooms: "Rooms",
   anyRooms: "Any",
   photosOnly: "With photos only",
@@ -646,6 +703,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchCars;
     case "services":
       return t.searchServices;
+    case "stays":
+      return t.searchStays;
     default:
       return t.searchPh;
   }

@@ -83,11 +83,14 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
         {formatSom(listing.price)} {compact ? "" : "KGS"}
         {compact && listing.unit === "month" ? (
           <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
+        ) : compact && listing.unit === "night" ? (
+          <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
         ) : compact ? (
           <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
         ) : null}
       </span>
       {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
+      {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
     </div>
   );
 }

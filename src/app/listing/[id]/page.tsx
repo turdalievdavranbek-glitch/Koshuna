@@ -3,16 +3,19 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
+import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { listingDesc, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
+import { StayCalendar } from "@/components/stay-calendar";
 import { Eyebrow, Photo } from "@/components/ui";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread } = useApp();
+  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage } =
+    useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
   const [toast, setToast] = useState("");
@@ -44,6 +47,25 @@ export default function ListingPage() {
   const onChat = () => {
     if (!gate(`/chat/${listing.id}`)) return;
     const tid = ensureThread(listing.id);
+    router.push(`/chat/${tid}`);
+  };
+
+  const isStay = listing.section === "stays";
+  const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
+  const stayTotal = nights ? listing.price * nights : 0;
+
+  const onBook = () => {
+    if (!filters.checkIn || !filters.checkOut || !nights) {
+      setToast(t.pickDatesFirst);
+      setTimeout(() => setToast(""), 1800);
+      return;
+    }
+    if (!gate(`/chat/${listing.id}`)) return;
+    const tid = ensureThread(listing.id);
+    addMessage(
+      tid,
+      t.bookRequest(formatStayRange(filters.checkIn, filters.checkOut, lang), t.nights(nights), formatSom(stayTotal)),
+    );
     router.push(`/chat/${tid}`);
   };
 
@@ -142,6 +164,11 @@ export default function ListingPage() {
             </span>
             {listing.unit ? <span className="ml-2 text-sm text-muted">{t.units[listing.unit]}</span> : null}
           </div>
+          {isStay && nights ? (
+            <div className="mt-2 text-[15px] font-semibold text-ink">
+              {t.stayTotal}: {formatSom(stayTotal)} KGS · {t.nights(nights)}
+            </div>
+          ) : null}
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           {listing.rooms ? (
@@ -156,6 +183,21 @@ export default function ListingPage() {
                   <div className="mt-0.5 text-xs text-muted">{l}</div>
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {isStay ? (
+            <div className="mt-[22px]">
+              <Eyebrow>
+                {t.checkIn} / {t.checkOut}
+              </Eyebrow>
+              <div className="mt-2.5">
+                <StayCalendar
+                  checkIn={filters.checkIn}
+                  checkOut={filters.checkOut}
+                  onChange={(next) => setFilters(next)}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -224,11 +266,17 @@ export default function ListingPage() {
       <div className="absolute inset-x-0 bottom-0 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-[26px] pt-3.5">
         <button
           type="button"
-          onClick={onChat}
+          onClick={isStay ? onBook : onChat}
           className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
         >
-          <IconChat size={18} color="#FFF7F0" />
-          {listing.section === "secondhand" ? t.writeSeller : t.write}
+          {isStay ? (
+            t.bookStay
+          ) : (
+            <>
+              <IconChat size={18} color="#FFF7F0" />
+              {listing.section === "secondhand" ? t.writeSeller : t.write}
+            </>
+          )}
         </button>
         <a
           href={`tel:+996555123456`}

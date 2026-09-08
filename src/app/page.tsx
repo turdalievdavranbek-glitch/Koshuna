@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CITIES, PROMOTED_IDS, SECTIONS, SERVICE_CATEGORIES, formatSom, listingById } from "@/lib/data";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
+import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
+import { StayCalendar } from "@/components/stay-calendar";
 import { Chip, ListingHero, ListingRow, Photo, useFiltered } from "@/components/ui";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders, sectionIcon } from "@/components/icons";
 
@@ -93,6 +95,8 @@ export default function FeedPage() {
                   housingType: next === "rent" ? filters.housingType : "any",
                   bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
                   gear: next === "car-rental" ? filters.gear : "any",
+                  checkIn: next === "stays" ? filters.checkIn : null,
+                  checkOut: next === "stays" ? filters.checkOut : null,
                 });
               }}
               className="rounded-[14px] border bg-surface px-2.5 py-3 text-left"
@@ -118,6 +122,15 @@ export default function FeedPage() {
                 {label}
               </Chip>
             ))}
+          </div>
+        ) : null}
+        {filters.section === "stays" ? (
+          <div className="mt-3">
+            <StayCalendar
+              checkIn={filters.checkIn}
+              checkOut={filters.checkOut}
+              onChange={(next) => setFilters(next)}
+            />
           </div>
         ) : null}
         {filters.section === "services" ? (
@@ -198,6 +211,13 @@ export default function FeedPage() {
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
           </Chip>
+          {filters.section === "stays" && filters.checkIn ? (
+            <Chip onClick={() => router.push("/filters")}>
+              {filters.checkOut
+                ? formatStayRange(filters.checkIn, filters.checkOut, lang)
+                : formatStayDay(filters.checkIn, lang)}
+            </Chip>
+          ) : null}
           <button type="button" onClick={resetFilters} className="shrink-0 px-[13px] py-[7px] text-[13px] font-semibold text-accent">
             {t.resetFilters}
           </button>

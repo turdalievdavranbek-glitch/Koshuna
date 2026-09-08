@@ -30,6 +30,8 @@ const defaultFilters = (): Filters => ({
   verifiedOnly: false,
   noAgents: false,
   sort: "new",
+  checkIn: null,
+  checkOut: null,
 });
 
 const defaultDraft = (): DraftListing => ({

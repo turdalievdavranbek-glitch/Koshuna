@@ -9,6 +9,7 @@ import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
+import { StayCalendar } from "@/components/stay-calendar";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -36,6 +37,7 @@ export default function FiltersPage() {
   const isCars = filters.section === "cars";
   const isCarRental = filters.section === "car-rental";
   const isAuto = isCars || isCarRental;
+  const isStays = filters.section === "stays";
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
     if (filters.section === id) {
@@ -49,6 +51,8 @@ export default function FiltersPage() {
       housingType: id === "rent" ? filters.housingType : "any",
       bodyType: id === "cars" || id === "car-rental" ? filters.bodyType : "any",
       gear: id === "car-rental" ? filters.gear : "any",
+      checkIn: id === "stays" ? filters.checkIn : null,
+      checkOut: id === "stays" ? filters.checkOut : null,
     });
     setSectionPickerOpen(false);
   };
@@ -154,6 +158,19 @@ export default function FiltersPage() {
                   {label}
                 </Chip>
               ))}
+            </div>
+          </div>
+        ) : null}
+
+        {isStays ? (
+          <div>
+            <Eyebrow>{t.checkIn} / {t.checkOut}</Eyebrow>
+            <div className="mt-2.5">
+              <StayCalendar
+                checkIn={filters.checkIn}
+                checkOut={filters.checkOut}
+                onChange={(next) => setFilters(next)}
+              />
             </div>
           </div>
         ) : null}
