@@ -188,7 +188,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const listing: Listing = {
         id: `user-${Date.now()}`,
         section: d.section,
-        category: d.kind === "rent" ? "rent" : "furniture",
+        category:
+          d.section === "services"
+            ? d.category ?? "repairs-finish"
+            : d.kind === "rent"
+              ? "rent"
+              : "furniture",
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,

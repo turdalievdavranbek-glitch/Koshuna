@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, SECTIONS } from "@/lib/data";
+import { CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
-import { Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
+import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
 export default function PostPage() {
   const { t, user, draft, setDraft, publishDraft, setPendingPath } = useApp();
@@ -104,6 +104,19 @@ export default function PostPage() {
                   <div className="mt-2.5 text-[15px] font-semibold">{t.kindGoods}</div>
                 </button>
               </div>
+              {draft.section === "services" ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SERVICE_CATEGORIES.map((c) => (
+                    <Chip
+                      key={c}
+                      active={draft.category === c}
+                      onClick={() => setDraft({ category: c })}
+                    >
+                      {t.cats[c]}
+                    </Chip>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div>

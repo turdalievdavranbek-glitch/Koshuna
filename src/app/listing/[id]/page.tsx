@@ -115,7 +115,7 @@ export default function ListingPage() {
         <div className="px-5 pt-5">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
-              {listing.section === "secondhand" && listing.category
+              {listing.category && t.cats[listing.category]
                 ? t.cats[listing.category]
                 : t.sectionNames[listing.section]}
             </span>

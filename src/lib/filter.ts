@@ -7,9 +7,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (cityKey && cityKey !== "all" && item.city !== cityKey) return false;
     if (filters.section && item.section !== filters.section) return false;
     if (filters.category && filters.category !== "all") {
-      if (filters.section === "secondhand" || !filters.section) {
-        if (item.category !== filters.category) return false;
-      }
+      const categorySections = !filters.section || filters.section === "secondhand" || filters.section === "services";
+      if (categorySections && item.category !== filters.category) return false;
     }
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;

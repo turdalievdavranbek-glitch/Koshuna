@@ -135,4 +135,5 @@ export type DraftListing = {
   description: string;
   promote: boolean;
   photo?: string;
+  category?: string;
 };

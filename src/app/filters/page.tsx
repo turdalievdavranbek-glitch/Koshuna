@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CATEGORIES, CITIES, SECTIONS } from "@/lib/data";
+import { CATEGORIES, CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
@@ -25,6 +25,7 @@ export default function FiltersPage() {
 
   const isRent = filters.section === "rent";
   const isSecondhand = filters.section === "secondhand";
+  const isServices = filters.section === "services";
   const isCars = filters.section === "cars";
   const isCarRental = filters.section === "car-rental";
   const isAuto = isCars || isCarRental;
@@ -33,7 +34,7 @@ export default function FiltersPage() {
     const next = filters.section === id ? null : id;
     setFilters({
       section: next,
-      category: next === "secondhand" ? filters.category : null,
+      category: null,
       rooms: next === "rent" ? filters.rooms : [],
       housingType: next === "rent" ? filters.housingType : "any",
       bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
@@ -41,7 +42,7 @@ export default function FiltersPage() {
     });
   };
 
-  const searchPh = isAuto ? t.searchCars : t.searchPh;
+  const searchPh = isAuto ? t.searchCars : isServices ? t.searchServices : t.searchPh;
 
   const priceLabel = isRent
     ? t.priceMonth
@@ -174,6 +175,22 @@ export default function FiltersPage() {
               {t.allCategories}
             </Chip>
             {CATEGORIES.map((c) => (
+              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+                {t.cats[c]}
+              </Chip>
+            ))}
+          </div>
+        </div>
+        ) : null}
+
+        {isServices ? (
+        <div>
+          <Eyebrow>{t.category}</Eyebrow>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
+              {t.allCategories}
+            </Chip>
+            {SERVICE_CATEGORIES.map((c) => (
               <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
                 {t.cats[c]}
               </Chip>

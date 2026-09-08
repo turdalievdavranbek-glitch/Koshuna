@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CITIES, PROMOTED_IDS, SECTIONS, formatSom, listingById } from "@/lib/data";
+import { CITIES, PROMOTED_IDS, SECTIONS, SERVICE_CATEGORIES, formatSom, listingById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
@@ -83,21 +83,36 @@ export default function FeedPage() {
               onClick={() => {
                 setFilters({
                   section: s.id,
-                  category: s.id === "secondhand" ? filters.category : null,
+                  category: s.id === filters.section ? filters.category : null,
                   rooms: s.id === "rent" ? filters.rooms : [],
                   housingType: s.id === "rent" ? filters.housingType : "any",
                   bodyType: s.id === "cars" || s.id === "car-rental" ? filters.bodyType : "any",
                   gear: s.id === "car-rental" ? filters.gear : "any",
                 });
-                router.push("/filters");
+                if (s.id !== "services") router.push("/filters");
               }}
-              className="rounded-[14px] border border-line bg-surface px-2.5 py-3 text-left"
+              className="rounded-[14px] border bg-surface px-2.5 py-3 text-left"
+              style={{
+                borderColor: filters.section === s.id ? "#17140F" : "#E4DCCE",
+              }}
             >
               {sectionIcon(s.id)}
               <div className="mt-2 text-xs font-semibold leading-[1.25] text-ink">{t.sectionNames[s.id]}</div>
             </button>
           ))}
         </div>
+        {filters.section === "services" ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
+              {t.allCategories}
+            </Chip>
+            {SERVICE_CATEGORIES.map((c) => (
+              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+                {t.cats[c]}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
