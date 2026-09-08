@@ -38,6 +38,8 @@ const defaultFilters = (): Filters => ({
   autoType: "sale",
   carMake: "any",
   carModel: "any",
+  techBrand: "any",
+  techModel: "any",
   animalGroup: "pets",
   animalKind: "any",
   locLng: null,
@@ -113,18 +115,35 @@ type Store = State & {
 
 const Ctx = createContext<Store | null>(null);
 
+function migrateElectronicsCategory(filters: Filters): Filters {
+  if (filters.category !== "electronics") return filters;
+  if (filters.goodsKind === "laptop") {
+    return { ...filters, category: "laptops", goodsKind: "any" };
+  }
+  if (filters.goodsKind === "appliance") {
+    return { ...filters, category: "appliances", goodsKind: "any" };
+  }
+  if (filters.goodsKind === "phone") {
+    return { ...filters, category: "phones", goodsKind: "smartphone" };
+  }
+  return { ...filters, category: "phones", goodsKind: "any" };
+}
+
 function normalizeFilters(filters: Filters): Filters {
   if (filters.section === "car-rental") {
     return { ...filters, section: "cars", autoType: "rent" };
   }
+  const next = migrateElectronicsCategory(filters);
   return {
-    ...filters,
-    autoType: filters.autoType === "rent" ? "rent" : "sale",
-    goodsKind: filters.goodsKind && filters.goodsKind !== "any" ? filters.goodsKind : "any",
-    animalGroup: filters.animalGroup === "farm" ? "farm" : "pets",
-    animalKind: filters.animalKind && filters.animalKind !== "any" ? filters.animalKind : "any",
-    carMake: filters.carMake && filters.carMake !== "any" ? filters.carMake : "any",
-    carModel: filters.carModel && filters.carModel !== "any" ? filters.carModel : "any",
+    ...next,
+    autoType: next.autoType === "rent" ? "rent" : "sale",
+    goodsKind: next.goodsKind && next.goodsKind !== "any" ? next.goodsKind : "any",
+    animalGroup: next.animalGroup === "farm" ? "farm" : "pets",
+    animalKind: next.animalKind && next.animalKind !== "any" ? next.animalKind : "any",
+    carMake: next.carMake && next.carMake !== "any" ? next.carMake : "any",
+    carModel: next.carModel && next.carModel !== "any" ? next.carModel : "any",
+    techBrand: next.techBrand && next.techBrand !== "any" ? next.techBrand : "any",
+    techModel: next.techModel && next.techModel !== "any" ? next.techModel : "any",
   };
 }
 
@@ -230,6 +249,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         animalKind: d.section === "animals" ? d.animalKind : undefined,
         carMake: d.section === "cars" || d.section === "car-rental" ? d.carMake : undefined,
         carModel: d.section === "cars" || d.section === "car-rental" ? d.carModel : undefined,
+        techBrand: d.section === "secondhand" ? d.techBrand : undefined,
+        techModel: d.section === "secondhand" ? d.techModel : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,

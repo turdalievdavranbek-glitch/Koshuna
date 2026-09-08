@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -161,7 +161,7 @@ export default function PostPage() {
                       <Chip
                         key={c}
                         active={draft.category === c}
-                        onClick={() => setDraft({ category: c, goodsKind: undefined })}
+                        onClick={() => setDraft({ category: c, goodsKind: undefined, techBrand: undefined, techModel: undefined })}
                       >
                         {t.cats[c]}
                       </Chip>
@@ -176,6 +176,32 @@ export default function PostPage() {
                           onClick={() => setDraft({ goodsKind: id })}
                         >
                           {t.goodsKinds[id]}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                  {isTechCategory(draft.category) ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {techBrandsOf(draft.category).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.techBrand === id}
+                          onClick={() => setDraft({ techBrand: id, techModel: undefined })}
+                        >
+                          {t.techBrands[id]}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                  {techModelsOf(draft.category, draft.techBrand).length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {techModelsOf(draft.category, draft.techBrand).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.techModel === id}
+                          onClick={() => setDraft({ techModel: id })}
+                        >
+                          {t.techModels[id]}
                         </Chip>
                       ))}
                     </div>

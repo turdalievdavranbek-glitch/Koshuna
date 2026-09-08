@@ -75,6 +75,8 @@ export type Listing = {
   gearKind?: "auto" | "manual";
   carMake?: string;
   carModel?: string;
+  techBrand?: string;
+  techModel?: string;
   animalGroup?: AnimalGroup;
   animalKind?: string;
   year?: number;
@@ -123,6 +125,8 @@ export type Filters = {
   autoType: "sale" | "rent";
   carMake: string;
   carModel: string;
+  techBrand: string;
+  techModel: string;
   animalGroup: AnimalGroup;
   animalKind: string;
   locLng: number | null;
@@ -175,4 +179,6 @@ export type DraftListing = {
   animalKind?: string;
   carMake?: string;
   carModel?: string;
+  techBrand?: string;
+  techModel?: string;
 };

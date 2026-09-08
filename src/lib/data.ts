@@ -25,13 +25,32 @@ export const SECTIONS: { id: SectionId; icon: string }[] = [
   { id: "animals", icon: "animal" },
 ];
 
-export const CATEGORIES = ["furniture", "sport", "electronics", "kids", "home"] as const;
+export const CATEGORIES = [
+  "furniture",
+  "sport",
+  "phones",
+  "laptops",
+  "pcs",
+  "appliances",
+  "kids",
+  "home",
+] as const;
 export type GoodsCategory = (typeof CATEGORIES)[number];
+
+export const TECH_CATEGORIES = ["phones", "laptops", "pcs", "appliances"] as const;
+export type TechCategory = (typeof TECH_CATEGORIES)[number];
+
+export function isTechCategory(category: string | null | undefined): category is TechCategory {
+  return !!category && (TECH_CATEGORIES as readonly string[]).includes(category);
+}
 
 export const GOODS_KINDS: Record<GoodsCategory, readonly string[]> = {
   furniture: ["sofa", "bed", "wardrobe", "table", "kitchen-furniture"],
   sport: ["bike", "gym", "winter-sport", "tourism"],
-  electronics: ["phone", "laptop", "tv-audio", "appliance", "photo"],
+  phones: ["smartphone", "feature-phone", "tablet", "phone-acc"],
+  laptops: ["ultrabook", "gaming-laptop", "office-laptop"],
+  pcs: ["desktop", "all-in-one", "monitor", "pc-parts"],
+  appliances: ["fridge", "washer", "stove", "vacuum", "ac", "microwave"],
   kids: ["stroller", "kids-clothes", "toys", "car-seat", "kids-furniture"],
   home: ["dishes", "textile", "decor", "storage", "home-cleaning"],
 };
@@ -39,6 +58,59 @@ export const GOODS_KINDS: Record<GoodsCategory, readonly string[]> = {
 export function goodsKindsOf(category: string | null | undefined): readonly string[] {
   if (!category || !(CATEGORIES as readonly string[]).includes(category)) return [];
   return GOODS_KINDS[category as GoodsCategory];
+}
+
+export const TECH_BRANDS: Record<TechCategory, readonly string[]> = {
+  phones: ["apple", "samsung", "xiaomi", "huawei", "honor", "tecno"],
+  laptops: ["apple", "lenovo", "hp", "asus", "acer", "dell"],
+  pcs: ["apple", "lenovo", "hp", "samsung"],
+  appliances: ["samsung", "lg", "bosch", "indesit", "artel", "haier"],
+};
+
+export function techBrandsOf(category: string | null | undefined): readonly string[] {
+  if (!isTechCategory(category)) return [];
+  return TECH_BRANDS[category];
+}
+
+export const TECH_MODELS: Record<TechCategory, Record<string, readonly string[]>> = {
+  phones: {
+    apple: ["iphone-13", "iphone-14", "iphone-15", "iphone-se"],
+    samsung: ["galaxy-a54", "galaxy-s23", "galaxy-a15"],
+    xiaomi: ["redmi-note-12", "redmi-13", "poco-x5"],
+    huawei: ["huawei-p30", "nova-y70"],
+    honor: ["honor-x8", "honor-x9a"],
+    tecno: ["spark-10", "camon-20"],
+  },
+  laptops: {
+    apple: ["macbook-air-m1", "macbook-pro-14"],
+    lenovo: ["thinkpad-e14", "ideapad-3"],
+    hp: ["pavilion-15", "elitebook-840"],
+    asus: ["vivobook-15", "tuf-gaming"],
+    acer: ["aspire-5", "nitro-5"],
+    dell: ["inspiron-15", "latitude-5420"],
+  },
+  pcs: {
+    apple: ["imac-24", "mac-mini-m2"],
+    lenovo: ["legion-tower", "thinkcentre"],
+    hp: ["pavilion-desktop", "elite-desk"],
+    samsung: ["odyssey-g5", "smart-monitor-m8"],
+  },
+  appliances: {
+    samsung: ["samsung-rb33", "samsung-ww70"],
+    lg: ["lg-ga-b509", "lg-f2j"],
+    bosch: ["bosch-kgn39", "bosch-wan282"],
+    indesit: ["indesit-ds4180", "indesit-iwsc"],
+    artel: ["artel-hd", "artel-60c"],
+    haier: ["haier-c2f636", "haier-hw70"],
+  },
+};
+
+export function techModelsOf(
+  category: string | null | undefined,
+  brand: string | null | undefined,
+): readonly string[] {
+  if (!isTechCategory(category) || !brand || brand === "any") return [];
+  return TECH_MODELS[category][brand] ?? [];
 }
 
 export const PROPERTY_TYPES = [
@@ -308,8 +380,8 @@ export const LISTINGS: Listing[] = [
   {
     id: "camera-canon",
     section: "secondhand",
-    category: "electronics",
-    goodsKind: "photo",
+    category: "phones",
+    goodsKind: "phone-acc",
     title: "Canon DSLR с объективом",
     titleKy: "Объективи бар Canon DSLR",
     titleEn: "Canon DSLR with lens",
@@ -425,11 +497,13 @@ export const LISTINGS: Listing[] = [
   {
     id: "phone-used",
     section: "secondhand",
-    category: "electronics",
-    goodsKind: "phone",
-    title: "Смартфон 128 ГБ, без царапин на экране",
-    titleKy: "Смартфон 128 ГБ, экранда сызык жок",
-    titleEn: "128 GB smartphone, unmarked screen",
+    category: "phones",
+    goodsKind: "smartphone",
+    techBrand: "samsung",
+    techModel: "galaxy-a54",
+    title: "Samsung Galaxy A54, 128 ГБ, без царапин",
+    titleKy: "Samsung Galaxy A54, 128 ГБ, экранда сызык жок",
+    titleEn: "Samsung Galaxy A54, 128 GB, unmarked screen",
     price: 18500,
     city: "bishkek",
     postedAgo: "8h",
@@ -450,6 +524,130 @@ export const LISTINGS: Listing[] = [
     contact: "telegram",
     views: 112,
     favCount: 7,
+  },
+  {
+    id: "iphone-13",
+    section: "secondhand",
+    category: "phones",
+    goodsKind: "smartphone",
+    techBrand: "apple",
+    techModel: "iphone-13",
+    title: "iPhone 13, 128 ГБ, батарея 87%",
+    titleKy: "iPhone 13, 128 ГБ, батарея 87%",
+    titleEn: "iPhone 13, 128 GB, battery 87%",
+    price: 32000,
+    city: "bishkek",
+    postedAgo: "3h",
+    condition: "like-new",
+    photos: [img("photo-1510557880182-3d4d3cba35a5")],
+    photoCredit: "Unsplash",
+    description: "Чехол и стекло с первого дня. Face ID работает. Встреча в центре Бишкека.",
+    descriptionKy: "Чехол жана стекло биринчи күндөн. Face ID иштейт. Бишкектин борборунда жолугушабыз.",
+    descriptionEn: "Case and glass from day one. Face ID works. Meet in central Bishkek.",
+    ownerId: "asel",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 22,
+    mapY: 36,
+    contact: "whatsapp",
+    views: 94,
+    favCount: 8,
+  },
+  {
+    id: "laptop-lenovo",
+    section: "secondhand",
+    category: "laptops",
+    goodsKind: "office-laptop",
+    techBrand: "lenovo",
+    techModel: "ideapad-3",
+    title: "Lenovo IdeaPad 3, 8/256, для учёбы",
+    titleKy: "Lenovo IdeaPad 3, 8/256, окуу үчүн",
+    titleEn: "Lenovo IdeaPad 3, 8/256, for study",
+    price: 22000,
+    city: "osh",
+    postedAgo: "6h",
+    condition: "good",
+    photos: [img("photo-1496181133206-80ce9b88a853")],
+    photoCredit: "Unsplash",
+    description: "Экран 15 дюймов, зарядки хватает на день. Клавиатура кириллица. Самовывоз с центра Оша.",
+    descriptionKy: "Экран 15 дюйм, зарядка бир күнгө жетет. Оштун борборунан алып кетиңиз.",
+    descriptionEn: "15-inch screen, battery lasts a day. Cyrillic keyboard. Pickup in central Osh.",
+    ownerId: "nurbek",
+    verified: false,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 48,
+    mapY: 28,
+    contact: "telegram",
+    views: 61,
+    favCount: 3,
+  },
+  {
+    id: "pc-lenovo",
+    section: "secondhand",
+    category: "pcs",
+    goodsKind: "desktop",
+    techBrand: "lenovo",
+    techModel: "legion-tower",
+    title: "Lenovo Legion, игровой системный блок",
+    titleKy: "Lenovo Legion, оюн системдик блогу",
+    titleEn: "Lenovo Legion gaming desktop",
+    price: 45000,
+    city: "bishkek",
+    postedAgo: "1d",
+    condition: "good",
+    photos: [img("photo-1587831990711-23ca6441447b")],
+    photoCredit: "Unsplash",
+    description: "Собрали для игр и учёбы. Монитор не входит. Можно проверить на месте.",
+    descriptionKy: "Оюн жана окуу үчүн чогултулган. Монитор жок. Жерде текшерсеңиз болот.",
+    descriptionEn: "Built for games and study. Monitor not included. Check it in person.",
+    ownerId: "aida",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 18,
+    mapY: 42,
+    contact: "whatsapp",
+    views: 55,
+    favCount: 4,
+  },
+  {
+    id: "fridge-artel",
+    section: "secondhand",
+    category: "appliances",
+    goodsKind: "fridge",
+    techBrand: "artel",
+    techModel: "artel-hd",
+    title: "Холодильник Artel, два года, без шума",
+    titleKy: "Artel муздаткыч, эки жыл, ызы-чуусуз",
+    titleEn: "Artel fridge, two years, quiet",
+    price: 14000,
+    city: "jalal-abad",
+    postedAgo: "4h",
+    condition: "good",
+    photos: [img("photo-1571175443880-49e1d25b2bc5")],
+    photoCredit: "Unsplash",
+    description: "Двухкамерный, морозилка снизу. Отдаём из-за переезда. Поможем с погрузкой.",
+    descriptionKy: "Эки камералуу, тоңдургуч ылдыйда. Көчкөндүктөн беребиз. Жүктөөгө жардам беребиз.",
+    descriptionEn: "Two-door, freezer at the bottom. Selling because of a move. We can help load it.",
+    ownerId: "asel",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 40,
+    mapY: 58,
+    contact: "whatsapp",
+    views: 47,
+    favCount: 2,
   },
   {
     id: "apt-osh",

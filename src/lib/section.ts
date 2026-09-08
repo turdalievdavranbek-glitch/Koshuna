@@ -11,6 +11,8 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     section: id,
     category: id === prev.section ? prev.category : null,
     goodsKind: id === "secondhand" && id === prev.section ? prev.goodsKind : "any",
+    techBrand: id === "secondhand" && id === prev.section ? prev.techBrand : "any",
+    techModel: id === "secondhand" && id === prev.section ? prev.techModel : "any",
     rooms: id === "rent" ? prev.rooms : [],
     housingType: id === "rent" ? prev.housingType : "any",
     bodyType: id === "cars" ? prev.bodyType : "any",
