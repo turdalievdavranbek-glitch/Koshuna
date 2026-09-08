@@ -53,6 +53,10 @@ export default function FiltersPage() {
       gear: id === "car-rental" ? filters.gear : "any",
       checkIn: id === "stays" ? filters.checkIn : null,
       checkOut: id === "stays" ? filters.checkOut : null,
+      dealType: id === "rent" ? filters.dealType : "any",
+      locLng: id === "rent" ? filters.locLng : null,
+      locLat: id === "rent" ? filters.locLat : null,
+      locLabel: id === "rent" ? filters.locLabel : null,
     });
     setSectionPickerOpen(false);
   };
@@ -61,7 +65,13 @@ export default function FiltersPage() {
   const searchPh = searchPlaceholder(filters.section, t);
 
   const priceLabel = isRent
-    ? t.priceMonth
+    ? filters.dealType === "buy"
+      ? t.priceSale
+      : filters.dealType === "short"
+        ? t.priceDayStay
+        : filters.dealType === "long"
+          ? t.priceMonth
+          : t.priceKgs
     : isCarRental
       ? t.priceDay
       : filters.section === "stays"
@@ -145,6 +155,36 @@ export default function FiltersPage() {
 
         {isRent ? (
           <div>
+            <Eyebrow>{t.dealType}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["long", t.dealLong],
+                  ["short", t.dealShort],
+                  ["buy", t.dealBuy],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip
+                  key={id}
+                  active={filters.dealType === id}
+                  onClick={() =>
+                    setFilters({
+                      dealType: id,
+                      checkIn: id === "short" ? filters.checkIn : null,
+                      checkOut: id === "short" ? filters.checkOut : null,
+                    })
+                  }
+                >
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {isRent ? (
+          <div>
             <Eyebrow>{t.housingType}</Eyebrow>
             <div className="mt-2.5 flex flex-wrap gap-2">
               {(
@@ -158,6 +198,44 @@ export default function FiltersPage() {
                   {label}
                 </Chip>
               ))}
+            </div>
+          </div>
+        ) : null}
+
+        {isRent ? (
+          <div>
+            <Eyebrow>2ГИС</Eyebrow>
+            <button
+              type="button"
+              onClick={() => router.push("/map")}
+              className="mt-2.5 flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+            >
+              <span className="text-[15px] font-semibold text-ink">{filters.locLabel ?? t.pickOnMap}</span>
+              <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
+            </button>
+            {filters.locLabel ? (
+              <button
+                type="button"
+                onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null })}
+                className="mt-2 text-[13px] font-semibold text-accent"
+              >
+                {t.clearLocation}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {isRent && filters.dealType === "short" ? (
+          <div>
+            <Eyebrow>
+              {t.checkIn} / {t.checkOut}
+            </Eyebrow>
+            <div className="mt-2.5">
+              <StayCalendar
+                checkIn={filters.checkIn}
+                checkOut={filters.checkOut}
+                onChange={(next) => setFilters(next)}
+              />
             </div>
           </div>
         ) : null}

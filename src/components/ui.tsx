@@ -81,16 +81,19 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
     <div className="flex items-baseline gap-1.5">
       <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
         {formatSom(listing.price)} {compact ? "" : "KGS"}
-        {compact && listing.unit === "month" ? (
+        {        compact && listing.unit === "month" ? (
           <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
         ) : compact && listing.unit === "night" ? (
           <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
+        ) : compact && listing.unit === "day" ? (
+          <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
         ) : compact ? (
           <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
         ) : null}
       </span>
       {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
       {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
+      {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
     </div>
   );
 }
@@ -108,7 +111,13 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
       <div className="relative h-[186px]">
         <Photo src={listing.photos[0]} alt={title} />
         <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
-          {listing.section === "rent" ? t.rent : t.cats[listing.category ?? ""] ?? t.sectionNames[listing.section]}
+          {listing.section === "rent"
+            ? listing.dealKind === "buy"
+              ? t.dealBuy
+              : listing.dealKind === "short"
+                ? t.dealShort
+                : t.dealLong
+            : t.cats[listing.category ?? ""] ?? t.sectionNames[listing.section]}
         </span>
         <span
           role="button"
@@ -165,7 +174,11 @@ export function ListingRow({
   const title = listingTitle(listing, lang);
   const cat =
     listing.section === "rent"
-      ? t.rent
+      ? listing.dealKind === "buy"
+        ? t.dealBuy
+        : listing.dealKind === "short"
+          ? t.dealShort
+          : t.dealLong
       : listing.category
         ? (t.cats[listing.category] ?? t.sectionNames[listing.section])
         : t.sectionNames[listing.section];

@@ -95,8 +95,12 @@ export default function FeedPage() {
                   housingType: next === "rent" ? filters.housingType : "any",
                   bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
                   gear: next === "car-rental" ? filters.gear : "any",
-                  checkIn: next === "stays" ? filters.checkIn : null,
-                  checkOut: next === "stays" ? filters.checkOut : null,
+                  checkIn: next === "stays" || (next === "rent" && filters.dealType === "short") ? filters.checkIn : null,
+                  checkOut: next === "stays" || (next === "rent" && filters.dealType === "short") ? filters.checkOut : null,
+                  dealType: next === "rent" ? filters.dealType : "any",
+                  locLng: next === "rent" ? filters.locLng : null,
+                  locLat: next === "rent" ? filters.locLat : null,
+                  locLabel: next === "rent" ? filters.locLabel : null,
                 });
               }}
               className="rounded-[14px] border bg-surface px-2.5 py-3 text-left"
@@ -110,18 +114,64 @@ export default function FeedPage() {
           ))}
         </div>
         {filters.section === "rent" ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(
-              [
-                ["any", t.any],
-                ["apartment", t.apartment],
-                ["house", t.house],
-              ] as const
-            ).map(([id, label]) => (
-              <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
-                {label}
-              </Chip>
-            ))}
+          <div className="mt-3 flex flex-col gap-2.5">
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["long", t.dealLong],
+                  ["short", t.dealShort],
+                  ["buy", t.dealBuy],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip
+                  key={id}
+                  active={filters.dealType === id}
+                  onClick={() =>
+                    setFilters({
+                      dealType: id,
+                      checkIn: id === "short" ? filters.checkIn : null,
+                      checkOut: id === "short" ? filters.checkOut : null,
+                    })
+                  }
+                >
+                  {label}
+                </Chip>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["apartment", t.apartment],
+                  ["house", t.house],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/map")}
+              className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+            >
+              <span>
+                <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+                <span className="mt-0.5 block text-[13px] font-semibold text-ink">
+                  {filters.locLabel ?? t.pickOnMap}
+                </span>
+              </span>
+              <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
+            </button>
+            {filters.dealType === "short" ? (
+              <StayCalendar
+                checkIn={filters.checkIn}
+                checkOut={filters.checkOut}
+                onChange={(next) => setFilters(next)}
+              />
+            ) : null}
           </div>
         ) : null}
         {filters.section === "stays" ? (

@@ -55,6 +55,9 @@ export type Listing = {
   rooms?: number;
   area?: number;
   housingKind?: "apartment" | "house";
+  dealKind?: "long" | "short" | "buy";
+  lng?: number;
+  lat?: number;
   bodyKind?: "sedan" | "suv";
   gearKind?: "auto" | "manual";
   year?: number;
@@ -97,6 +100,10 @@ export type Filters = {
   sort: SortMode;
   checkIn: string | null;
   checkOut: string | null;
+  dealType: "any" | "long" | "short" | "buy";
+  locLng: number | null;
+  locLat: number | null;
+  locLabel: string | null;
 };
 
 export type SavedSearch = {

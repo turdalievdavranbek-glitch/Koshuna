@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
+import { twoGisUrl } from "@/lib/geo";
 import { listingDesc, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
@@ -50,7 +51,7 @@ export default function ListingPage() {
     router.push(`/chat/${tid}`);
   };
 
-  const isStay = listing.section === "stays";
+  const isStay = listing.section === "stays" || listing.dealKind === "short";
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
   const stayTotal = nights ? listing.price * nights : 0;
 
@@ -137,9 +138,15 @@ export default function ListingPage() {
         <div className="px-5 pt-5">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
-              {listing.category && t.cats[listing.category]
-                ? t.cats[listing.category]
-                : t.sectionNames[listing.section]}
+              {listing.section === "rent"
+                ? listing.dealKind === "buy"
+                  ? t.dealBuy
+                  : listing.dealKind === "short"
+                    ? t.dealShort
+                    : t.dealLong
+                : listing.category && t.cats[listing.category]
+                  ? t.cats[listing.category]
+                  : t.sectionNames[listing.section]}
             </span>
             {listing.condition ? (
               <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
@@ -158,6 +165,16 @@ export default function ListingPage() {
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${t.ago[listing.postedAgo]}`}
           </div>
+          {listing.lng != null && listing.lat != null ? (
+            <a
+              href={twoGisUrl(listing.city, listing.lng, listing.lat)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex text-[13px] font-semibold text-accent"
+            >
+              {t.open2gis}
+            </a>
+          ) : null}
           <div className="mt-4">
             <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
               {formatSom(listing.price)} KGS
@@ -176,7 +193,11 @@ export default function ListingPage() {
               {[
                 [String(listing.rooms), t.roomWord],
                 [String(listing.area), "м²"],
-                ["мес", t.monthRent],
+                listing.dealKind === "buy"
+                  ? [t.dealBuy, t.dealType]
+                  : listing.dealKind === "short" || listing.unit === "day"
+                    ? ["сут", t.units.day.replace("/ ", "")]
+                    : ["мес", t.monthRent],
               ].map(([v, l]) => (
                 <div key={l} className="rounded-[14px] border border-line bg-white px-3 py-3">
                   <div className="font-display text-[19px] font-bold text-ink">{v}</div>

@@ -32,6 +32,10 @@ const defaultFilters = (): Filters => ({
   sort: "new",
   checkIn: null,
   checkOut: null,
+  dealType: "any",
+  locLng: null,
+  locLat: null,
+  locLabel: null,
 });
 
 const defaultDraft = (): DraftListing => ({
@@ -164,8 +168,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     logout: () => update({ user: null }),
     setLang: (lang) => update({ lang }),
-    setCity: (city) => update({ city, filters: { ...state.filters, city } }),
-    setFilters: (patch) => update({ filters: { ...state.filters, ...patch } }),
+    setCity: (city) => update((s) => ({ ...s, city, filters: { ...s.filters, city } })),
+    setFilters: (patch) => update((s) => ({ ...s, filters: { ...s.filters, ...patch } })),
     resetFilters: () =>
       update({
         filters: { ...defaultFilters(), city: "all" },

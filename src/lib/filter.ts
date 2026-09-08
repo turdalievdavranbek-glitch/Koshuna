@@ -1,4 +1,5 @@
 import type { Filters, Listing } from "./types";
+import { haversineKm } from "./geo";
 
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   const cityKey = filters.city !== "all" ? filters.city : city;
@@ -13,7 +14,13 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
-    const rentFilters = !filters.section || filters.section === "rent";
+    if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
+      if (item.dealKind !== filters.dealType) return false;
+    }
+    if (filters.locLng != null && filters.locLat != null && item.lng != null && item.lat != null) {
+      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
+    }
+    const rentFilters = filters.section === "rent";
     if (rentFilters && filters.housingType && filters.housingType !== "any") {
       if (item.section !== "rent" || item.housingKind !== filters.housingType) return false;
     }
