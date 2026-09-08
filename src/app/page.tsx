@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CITIES, PROMOTED_IDS, SECTIONS, SERVICE_CATEGORIES, formatSom, listingById } from "@/lib/data";
-import { listingTitle } from "@/lib/i18n";
+import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip, ListingHero, ListingRow, Photo, useFiltered } from "@/components/ui";
@@ -17,7 +17,11 @@ export default function FeedPage() {
   const [cityOpen, setCityOpen] = useState(false);
   const featured = listings[0];
   const rest = listings.slice(1);
-  const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter(Boolean);
+  const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter((item) => {
+    if (!item) return false;
+    if (filters.section && item.section !== filters.section) return false;
+    return true;
+  });
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
@@ -61,7 +65,7 @@ export default function FeedPage() {
           <input
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
-            placeholder={t.searchPh}
+            placeholder={searchPlaceholder(filters.section, t)}
             className="h-full flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted-2"
           />
           <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters}>
@@ -81,15 +85,15 @@ export default function FeedPage() {
               key={s.id}
               type="button"
               onClick={() => {
+                const next = filters.section === s.id ? null : s.id;
                 setFilters({
-                  section: s.id,
-                  category: s.id === filters.section ? filters.category : null,
-                  rooms: s.id === "rent" ? filters.rooms : [],
-                  housingType: s.id === "rent" ? filters.housingType : "any",
-                  bodyType: s.id === "cars" || s.id === "car-rental" ? filters.bodyType : "any",
-                  gear: s.id === "car-rental" ? filters.gear : "any",
+                  section: next,
+                  category: null,
+                  rooms: next === "rent" ? filters.rooms : [],
+                  housingType: next === "rent" ? filters.housingType : "any",
+                  bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
+                  gear: next === "car-rental" ? filters.gear : "any",
                 });
-                if (s.id !== "services") router.push("/filters");
               }}
               className="rounded-[14px] border bg-surface px-2.5 py-3 text-left"
               style={{
@@ -101,6 +105,21 @@ export default function FeedPage() {
             </button>
           ))}
         </div>
+        {filters.section === "rent" ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(
+              [
+                ["any", t.any],
+                ["apartment", t.apartment],
+                ["house", t.house],
+              ] as const
+            ).map(([id, label]) => (
+              <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
+                {label}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
         {filters.section === "services" ? (
           <div className="mt-3 flex flex-wrap gap-2">
             <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>

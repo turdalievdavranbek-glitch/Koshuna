@@ -28,6 +28,9 @@ const ru = {
   confirm: "Войти",
   resend: "Отправить ещё раз",
   searchPh: "Квартира, диван, велосипед…",
+  searchRent: "Квартира, дом, 2 комнаты…",
+  searchSecondhand: "Диван, велосипед, телефон…",
+  changeSection: "Сменить раздел",
   sections: "Разделы",
   nSections: "9 разделов",
   promoted: "Продвигаемые",
@@ -293,6 +296,9 @@ const ky: typeof ru = {
   confirm: "Кирүү",
   resend: "Кайра жөнөтүү",
   searchPh: "Батир, диван, велосипед…",
+  searchRent: "Батир, үй, 2 бөлмө…",
+  searchSecondhand: "Диван, велосипед, телефон…",
+  changeSection: "Бөлүмдү өзгөртүү",
   sections: "Бөлүмдөр",
   nSections: "9 бөлүм",
   promoted: "Жарнамаланган",
@@ -470,6 +476,9 @@ const en: typeof ru = {
   confirm: "Sign in",
   resend: "Send again",
   searchPh: "Apartment, sofa, bicycle…",
+  searchRent: "Apartment, house, 2 rooms…",
+  searchSecondhand: "Sofa, bicycle, phone…",
+  changeSection: "Change section",
   sections: "Sections",
   nSections: "9 sections",
   promoted: "Promoted",
@@ -625,6 +634,22 @@ const en: typeof ru = {
 export const DICT = { ru, ky, en };
 
 export type Dict = typeof ru;
+
+export function searchPlaceholder(section: SectionId | null | undefined, t: Dict): string {
+  switch (section) {
+    case "rent":
+      return t.searchRent;
+    case "secondhand":
+      return t.searchSecondhand;
+    case "cars":
+    case "car-rental":
+      return t.searchCars;
+    case "services":
+      return t.searchServices;
+    default:
+      return t.searchPh;
+  }
+}
 
 export function listingTitle(listing: { title: string; titleKy: string; titleEn: string }, lang: Lang) {
   if (lang === "ky") return listing.titleKy;

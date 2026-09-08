@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { CATEGORIES, CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
+import { searchPlaceholder } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -13,6 +15,11 @@ export default function FiltersPage() {
     useApp();
   const router = useRouter();
   const count = applyFilters(allListings, filters, city).length;
+  const [sectionPickerOpen, setSectionPickerOpen] = useState(!filters.section);
+
+  useEffect(() => {
+    setSectionPickerOpen(!filters.section);
+  }, [filters.section]);
 
   const setRooms = (n: number | 0) => {
     if (n === 0) {
@@ -31,18 +38,23 @@ export default function FiltersPage() {
   const isAuto = isCars || isCarRental;
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
-    const next = filters.section === id ? null : id;
+    if (filters.section === id) {
+      setSectionPickerOpen(false);
+      return;
+    }
     setFilters({
-      section: next,
+      section: id,
       category: null,
-      rooms: next === "rent" ? filters.rooms : [],
-      housingType: next === "rent" ? filters.housingType : "any",
-      bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
-      gear: next === "car-rental" ? filters.gear : "any",
+      rooms: id === "rent" ? filters.rooms : [],
+      housingType: id === "rent" ? filters.housingType : "any",
+      bodyType: id === "cars" || id === "car-rental" ? filters.bodyType : "any",
+      gear: id === "car-rental" ? filters.gear : "any",
     });
+    setSectionPickerOpen(false);
   };
 
-  const searchPh = isAuto ? t.searchCars : isServices ? t.searchServices : t.searchPh;
+  const showAllSections = !filters.section || sectionPickerOpen;
+  const searchPh = searchPlaceholder(filters.section, t);
 
   const priceLabel = isRent
     ? t.priceMonth
@@ -87,44 +99,64 @@ export default function FiltersPage() {
         </div>
 
         <div>
-          <Eyebrow>{t.section}</Eyebrow>
-          <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-            {SECTIONS.map((s) => (
+          <div className="flex items-baseline justify-between gap-3">
+            <Eyebrow>{t.section}</Eyebrow>
+            {filters.section && !showAllSections ? (
               <button
-                key={s.id}
                 type="button"
-                onClick={() => pickSection(s.id)}
-                className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm"
-                style={{
-                  background: filters.section === s.id ? "#17140F" : "#FFFFFF",
-                  color: filters.section === s.id ? "#F7F3EC" : "#17140F",
-                  border: filters.section === s.id ? "none" : "1px solid #E4DCCE",
-                  fontWeight: filters.section === s.id ? 600 : 500,
-                }}
+                onClick={() => setSectionPickerOpen(true)}
+                className="text-[13px] font-semibold text-accent"
               >
-                {t.sectionNames[s.id]}
+                {t.changeSection}
               </button>
-            ))}
+            ) : null}
           </div>
-          {isRent ? (
-            <div className="mt-3">
-              <div className="mb-2 text-[13px] font-semibold text-muted">{t.housingType}</div>
-              <div className="flex gap-2">
-                {(
-                  [
-                    ["any", t.any],
-                    ["apartment", t.apartment],
-                    ["house", t.house],
-                  ] as const
-                ).map(([id, label]) => (
-                  <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
-                    {label}
-                  </Chip>
-                ))}
-              </div>
+          {showAllSections ? (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {SECTIONS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => pickSection(s.id)}
+                  className="rounded-xl px-3.5 py-2.5 text-sm"
+                  style={{
+                    background: filters.section === s.id ? "#17140F" : "#FFFFFF",
+                    color: filters.section === s.id ? "#F7F3EC" : "#17140F",
+                    border: filters.section === s.id ? "none" : "1px solid #E4DCCE",
+                    fontWeight: filters.section === s.id ? 600 : 500,
+                  }}
+                >
+                  {t.sectionNames[s.id]}
+                </button>
+              ))}
             </div>
-          ) : null}
+          ) : (
+            <div className="mt-2.5">
+              <Chip active onClick={() => setSectionPickerOpen(true)}>
+                {t.sectionNames[filters.section!]}
+              </Chip>
+            </div>
+          )}
         </div>
+
+        {isRent ? (
+          <div>
+            <Eyebrow>{t.housingType}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["apartment", t.apartment],
+                  ["house", t.house],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {isAuto ? (
           <div>
