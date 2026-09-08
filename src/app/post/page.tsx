@@ -1,0 +1,319 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { CITIES, SECTIONS } from "@/lib/data";
+import { useApp } from "@/lib/store";
+import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
+import { PhoneShell } from "@/components/shell";
+import { Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
+
+export default function PostPage() {
+  const { t, user, draft, setDraft, publishDraft, setPendingPath } = useApp();
+  const router = useRouter();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [error, setError] = useState("");
+  const [publishedId, setPublishedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setPendingPath("/post");
+      router.replace("/login");
+    }
+  }, [user, router, setPendingPath]);
+
+  if (!user) return null;
+
+  const bars = [step >= 1, step >= 2, step >= 3];
+
+  return (
+    <PhoneShell>
+      <div className="px-5 pb-3.5 pt-1">
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => (step === 1 ? router.back() : setStep((s) => (s === 3 ? 1 : ((s - 1) as 1))))} className="text-base text-muted">
+            ×
+          </button>
+          <span className="font-display text-lg font-bold text-ink">{t.newListing}</span>
+          <span className="text-[13px] font-semibold text-accent">{t.draft}</span>
+        </div>
+        <div className="mt-3.5 flex items-center gap-2">
+          {bars.map((on, i) => (
+            <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#B8452F" : "#E4DCCE" }} />
+          ))}
+          <span className="ml-1 text-xs font-semibold text-muted">
+            {step === 1 ? t.step1 : step === 2 ? t.step2 : t.step3}
+          </span>
+        </div>
+      </div>
+
+      {step === 1 ? (
+        <>
+          <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-5">
+            <div className="flex items-center gap-2.5 rounded-[14px] bg-success-tint px-3.5 py-3">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="#2A6B57">
+                <circle cx="9" cy="9" r="9" />
+                <path d="m4.6 9.3 3.1 3L13.4 6" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+              <div className="text-[13px] leading-[1.4] text-success-ink">
+                {t.loggedInAs}{" "}
+                <strong>
+                  {user.name} · {user.phone}
+                </strong>
+                . {t.phoneNote}
+              </div>
+            </div>
+
+            <div>
+              <Eyebrow>{t.whatPost}</Eyebrow>
+              <div className="mt-2.5">
+                <SelectRow
+                  label={t.listingType}
+                  value={t.sectionNames[draft.section]}
+                  onClick={() => {
+                    const ids = SECTIONS.map((s) => s.id);
+                    const i = ids.indexOf(draft.section);
+                    setDraft({ section: ids[(i + 1) % ids.length] });
+                  }}
+                />
+              </div>
+              <div className="mt-2.5 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDraft({ kind: "rent", section: "rent" })}
+                  className="flex-1 rounded-2xl p-3.5 text-left"
+                  style={{
+                    background: draft.kind === "rent" ? "#17140F" : "#FFFFFF",
+                    color: draft.kind === "rent" ? "#F7F3EC" : "#17140F",
+                    border: draft.kind === "rent" ? "none" : "1px solid #E4DCCE",
+                  }}
+                >
+                  {sectionIcon("rent", draft.kind === "rent" ? "#F7F3EC" : "#17140F", 20)}
+                  <div className="mt-2.5 text-[15px] font-semibold">{t.kindRent}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft({ kind: "goods", section: "secondhand" })}
+                  className="flex-1 rounded-2xl p-3.5 text-left"
+                  style={{
+                    background: draft.kind === "goods" ? "#17140F" : "#FFFFFF",
+                    color: draft.kind === "goods" ? "#F7F3EC" : "#17140F",
+                    border: draft.kind === "goods" ? "none" : "1px solid #E4DCCE",
+                  }}
+                >
+                  {sectionIcon("secondhand", draft.kind === "goods" ? "#F7F3EC" : "#17140F", 20)}
+                  <div className="mt-2.5 text-[15px] font-semibold">{t.kindGoods}</div>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-baseline justify-between">
+                <Eyebrow>{t.photos}</Eyebrow>
+                <span className="text-xs text-muted">{draft.photo ? "1" : "0"} {t.of10}</span>
+              </div>
+              <div className="mt-2.5 grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft({
+                      photo:
+                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70",
+                    })
+                  }
+                  className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
+                >
+                  {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
+                  <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
+                    {t.mainPhoto}
+                  </span>
+                </button>
+                <div className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white">
+                  <IconCamera size={22} color="#B8452F" />
+                  <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft({
+                      photo:
+                        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=70",
+                    })
+                  }
+                  className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
+                >
+                  <IconImage size={22} color="#6E6558" />
+                  <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              <Field label={t.title}>
+                <Input value={draft.title} onChange={(v) => setDraft({ title: v })} placeholder={t.title} />
+              </Field>
+              <div className="flex gap-2.5">
+                <div className="flex-1">
+                  <Field label={t.city}>
+                    <select
+                      value={draft.city}
+                      onChange={(e) => setDraft({ city: e.target.value })}
+                      className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
+                    >
+                      {CITIES.filter((c) => c !== "all").map((c) => (
+                        <option key={c} value={c}>
+                          {t.cities[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <div className="flex-1">
+                  <Field label={t.priceMonthField}>
+                    <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
+                  </Field>
+                </div>
+              </div>
+              {draft.kind === "rent" ? (
+                <div className="flex gap-2.5">
+                  <div className="flex-1">
+                    <Field label={t.roomsField}>
+                      <Input value={draft.rooms} onChange={(v) => setDraft({ rooms: v })} placeholder="2" />
+                    </Field>
+                  </div>
+                  <div className="flex-1">
+                    <Field label={t.areaField}>
+                      <Input value={draft.area} onChange={(v) => setDraft({ area: v })} placeholder="62" />
+                    </Field>
+                  </div>
+                </div>
+              ) : null}
+              <div className="flex gap-2.5">
+                <div className="flex-1">
+                  <Field label={t.yourName}>
+                    <Input value={draft.name} onChange={(v) => setDraft({ name: v })} />
+                  </Field>
+                </div>
+                <div className="flex-1">
+                  <Field label={t.phone}>
+                    <Input value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
+                  </Field>
+                </div>
+              </div>
+              <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
+              <Field label={t.description}>
+                <textarea
+                  value={draft.description}
+                  onChange={(e) => setDraft({ description: e.target.value })}
+                  placeholder={t.descPh}
+                  className="min-h-[88px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
+                />
+              </Field>
+              <Field label={t.mapPoint}>
+                <div className="relative h-24 overflow-hidden rounded-[14px] border border-line">
+                  <MapSketch />
+                  <span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-white px-3 py-[7px] text-xs font-semibold text-ink shadow-[0_4px_12px_rgba(23,20,15,.16)]">
+                    <IconPin size={13} color="#B8452F" />
+                    {t.setPlace}
+                  </span>
+                </div>
+              </Field>
+            </div>
+
+            <div className="rounded-[18px] bg-ink p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
+                <Toggle on={draft.promote} onChange={() => setDraft({ promote: !draft.promote })} />
+              </div>
+              <p className="mt-2 text-[13px] leading-[1.5] text-[rgba(247,243,236,.72)]">{t.promoteHint}</p>
+            </div>
+            {error ? <p className="text-[13px] text-accent">{error}</p> : null}
+          </div>
+          <div className="flex shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
+            <button type="button" className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold text-ink">
+              {t.save}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!draft.title.trim() || !draft.price.trim()) {
+                  setError(t.needFields);
+                  return;
+                }
+                setError("");
+                setStep(2);
+              }}
+              className="shadow-btn h-[54px] flex-1 rounded-2xl bg-accent text-base font-semibold text-accent-on"
+            >
+              {t.nextReview}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {step === 2 ? (
+        <>
+          <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+            <div className="overflow-hidden rounded-[20px] border border-line bg-white">
+              {draft.photo ? (
+                <div className="h-44">
+                  <Photo src={draft.photo} alt="" />
+                </div>
+              ) : (
+                <div className="flex h-44 items-center justify-center bg-chip text-sm text-muted">{t.photos}</div>
+              )}
+              <div className="p-4">
+                <div className="font-display text-[21px] font-bold text-ink">
+                  {draft.price} KGS {draft.kind === "rent" ? t.perMonth : ""}
+                </div>
+                <div className="mt-1 text-[15px] font-medium text-ink">{draft.title}</div>
+                <div className="mt-1 text-[13px] text-muted">
+                  {t.cities[draft.city]}
+                  {draft.rooms ? ` · ${draft.rooms} ${t.roomWord} · ${draft.area} м²` : ""}
+                </div>
+                {draft.description ? <p className="mt-3 text-sm leading-[1.5] text-ink-2">{draft.description}</p> : null}
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2.5 border-t border-line px-5 pb-[26px] pt-3.5">
+            <button type="button" onClick={() => setStep(1)} className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold">
+              {t.edit}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const item = publishDraft();
+                if (!item) {
+                  setError(t.needFields);
+                  return;
+                }
+                setPublishedId(item.id);
+                setStep(3);
+              }}
+              className="shadow-btn h-[54px] flex-1 rounded-2xl bg-accent text-base font-semibold text-accent-on"
+            >
+              {t.publish}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {step === 3 ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-tint text-2xl text-success">✓</div>
+          <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
+          <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.publishedHint}</p>
+          <button
+            type="button"
+            onClick={() => router.push(publishedId ? `/listing/${publishedId}` : "/")}
+            className="shadow-btn mt-8 h-[54px] w-full rounded-2xl bg-accent text-base font-semibold text-accent-on"
+          >
+            {t.viewListing}
+          </button>
+          <button type="button" onClick={() => setStep(1)} className="mt-3 h-[54px] w-full rounded-2xl border border-line bg-white text-[15px] font-semibold">
+            {t.postAnother}
+          </button>
+        </div>
+      ) : null}
+    </PhoneShell>
+  );
+}
