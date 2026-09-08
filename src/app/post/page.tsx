@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
+import { CITIES, CATEGORIES, SECTIONS, SERVICE_CATEGORIES, goodsKindsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -103,7 +103,7 @@ export default function PostPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDraft({ kind: "goods", section: "secondhand" })}
+                  onClick={() => setDraft({ kind: "goods", section: "secondhand", category: "furniture" })}
                   className="flex-1 rounded-2xl p-3.5 text-left"
                   style={{
                     background: draft.kind === "goods" ? "#17140F" : "#FFFFFF",
@@ -115,6 +115,34 @@ export default function PostPage() {
                   <div className="mt-2.5 text-[15px] font-semibold">{t.kindGoods}</div>
                 </button>
               </div>
+              {draft.section === "secondhand" ? (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {CATEGORIES.map((c) => (
+                      <Chip
+                        key={c}
+                        active={draft.category === c}
+                        onClick={() => setDraft({ category: c, goodsKind: undefined })}
+                      >
+                        {t.cats[c]}
+                      </Chip>
+                    ))}
+                  </div>
+                  {goodsKindsOf(draft.category).length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {goodsKindsOf(draft.category).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.goodsKind === id}
+                          onClick={() => setDraft({ goodsKind: id })}
+                        >
+                          {t.goodsKinds[id]}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               {draft.section === "services" ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SERVICE_CATEGORIES.map((c) => (

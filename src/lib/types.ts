@@ -43,6 +43,7 @@ export type Listing = {
   id: string;
   section: SectionId;
   category?: string;
+  goodsKind?: string;
   title: string;
   titleKy: string;
   titleEn: string;
@@ -88,6 +89,7 @@ export type Filters = {
   query: string;
   section: SectionId | null;
   category: string | null;
+  goodsKind: string;
   housingType: string;
   city: string;
   priceMin: number | null;
@@ -148,4 +150,5 @@ export type DraftListing = {
   promote: boolean;
   photo?: string;
   category?: string;
+  goodsKind?: string;
 };

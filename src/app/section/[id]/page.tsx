@@ -119,6 +119,7 @@ export default function SectionPage() {
               setFilters({
                 query: "",
                 category: null,
+                goodsKind: "any",
                 housingType: "any",
                 priceMin: null,
                 priceMax: null,
@@ -156,6 +157,7 @@ export default function SectionPage() {
                 setFilters({
                   query: "",
                   category: null,
+                  goodsKind: "any",
                   housingType: "any",
                   priceMin: null,
                   priceMax: null,

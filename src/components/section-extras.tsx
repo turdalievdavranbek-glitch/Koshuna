@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CATEGORIES, SERVICE_CATEGORIES } from "@/lib/data";
+import { SERVICE_CATEGORIES } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { StayCalendar } from "@/components/stay-calendar";
+import { SecondhandChips } from "@/components/secondhand-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -92,18 +93,7 @@ export function SectionExtras() {
   }
 
   if (section === "secondhand") {
-    return (
-      <div className="flex flex-wrap gap-2">
-        <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
-          {t.allCategories}
-        </Chip>
-        {CATEGORIES.map((c) => (
-          <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
-            {t.cats[c]}
-          </Chip>
-        ))}
-      </div>
-    );
+    return <SecondhandChips />;
   }
 
   if (section === "cars") {

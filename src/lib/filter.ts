@@ -20,6 +20,9 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
         return false;
       }
     }
+    if (filters.section === "secondhand" && filters.goodsKind && filters.goodsKind !== "any") {
+      if (item.goodsKind !== filters.goodsKind) return false;
+    }
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;

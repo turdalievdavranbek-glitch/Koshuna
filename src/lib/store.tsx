@@ -19,6 +19,7 @@ const defaultFilters = (): Filters => ({
   query: "",
   section: null,
   category: null,
+  goodsKind: "any",
   housingType: "any",
   city: "all",
   priceMin: null,
@@ -115,6 +116,7 @@ function normalizeFilters(filters: Filters): Filters {
   return {
     ...filters,
     autoType: filters.autoType === "rent" ? "rent" : "sale",
+    goodsKind: filters.goodsKind && filters.goodsKind !== "any" ? filters.goodsKind : "any",
   };
 }
 
@@ -209,9 +211,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         category:
           d.section === "services"
             ? d.category ?? "repairs-finish"
-            : d.kind === "rent"
-              ? "rent"
-              : "furniture",
+            : d.section === "secondhand"
+              ? d.category ?? "furniture"
+              : d.kind === "rent"
+                ? "rent"
+                : "furniture",
+        goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,

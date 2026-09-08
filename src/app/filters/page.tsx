@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CATEGORIES, CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
+import { CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
@@ -11,6 +11,7 @@ import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
+import { SecondhandChips } from "@/components/secondhand-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -321,24 +322,7 @@ export default function FiltersPage() {
           </div>
         ) : null}
 
-        {isSecondhand ? (
-        <div>
-          <Eyebrow>{t.category}</Eyebrow>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            <Chip
-              active={!filters.category}
-              onClick={() => setFilters({ category: null })}
-            >
-              {t.allCategories}
-            </Chip>
-            {CATEGORIES.map((c) => (
-              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
-                {t.cats[c]}
-              </Chip>
-            ))}
-          </div>
-        </div>
-        ) : null}
+        {isSecondhand ? <SecondhandChips labeled /> : null}
 
         {isServices ? (
         <div>
