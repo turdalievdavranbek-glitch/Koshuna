@@ -35,6 +35,7 @@ export const SERVICE_CATEGORIES = [
   "beauty",
   "education",
   "cleaning",
+  "other",
 ] as const;
 
 const img = (id: string, extra = "") =>
@@ -568,6 +569,37 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 119,
     favCount: 5,
+  },
+  {
+    id: "service-photo-osh",
+    section: "services",
+    category: "other",
+    title: "Фотосъёмка мероприятий в Оше",
+    titleKy: "Ошто иш-чараларды сүрөткө тартуу",
+    titleEn: "Event photography in Osh",
+    price: 4500,
+    unit: "service",
+    city: "osh",
+    postedAgo: "6h",
+    photos: [img("photo-1516035069371-29a1b244cc32")],
+    photoCredit: "Unsplash / Benjamin Sow",
+    description:
+      "Свадьбы, дни рождения, корпоративы. Отдаю готовые фото в тот же день. Своя студия не нужна — выезжаю к вам.",
+    descriptionKy:
+      "Тойлор, туулган күндөр. Сүрөттөрдү ошол эле күнү берем. Студия керек эмес — өзүңөргө барам.",
+    descriptionEn:
+      "Weddings, birthdays, corporate events. Photos the same day. I come to you — no studio needed.",
+    ownerId: "aida",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 71,
+    mapY: 63,
+    contact: "whatsapp",
+    views: 64,
+    favCount: 3,
   },
   {
     id: "job-receptionist",

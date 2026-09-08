@@ -227,6 +227,7 @@ const ru = {
     beauty: "Красота",
     education: "Образование",
     cleaning: "Уборка",
+    other: "Другое",
   } as Record<string, string>,
   conditions: {
     good: "Хорошее состояние",
@@ -437,6 +438,7 @@ const ky: typeof ru = {
     beauty: "Сулуулук",
     education: "Билим берүү",
     cleaning: "Тазалоо",
+    other: "Башка",
   },
   conditions: { good: "Жакшы абал", "like-new": "Жаңыдай" },
   langName: { ru: "Орусча", ky: "Кыргызча", en: "English" },
@@ -614,6 +616,7 @@ const en: typeof ru = {
     beauty: "Beauty",
     education: "Education",
     cleaning: "Cleaning",
+    other: "Other",
   },
   conditions: { good: "Good condition", "like-new": "Like new" },
   langName: { ru: "Russian", ky: "Kyrgyz", en: "English" },
