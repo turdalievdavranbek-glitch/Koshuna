@@ -17,13 +17,13 @@ export const CITIES = [
 export const SECTIONS: { id: SectionId; icon: string }[] = [
   { id: "rent", icon: "home" },
   { id: "secondhand", icon: "bag" },
-  { id: "animals", icon: "animal" },
   { id: "cars", icon: "car" },
   { id: "car-rental", icon: "car-rent" },
   { id: "stays", icon: "hotel" },
   { id: "services", icon: "pen" },
   { id: "vacancies", icon: "briefcase" },
   { id: "construction", icon: "blocks" },
+  { id: "animals", icon: "animal" },
 ];
 
 export const CATEGORIES = ["furniture", "sport", "electronics"] as const;
