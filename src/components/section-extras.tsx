@@ -17,10 +17,10 @@ export function SectionExtras() {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              ["any", t.any],
-              ["long", t.dealLong],
-              ["short", t.dealShort],
               ["buy", t.dealBuy],
+              ["short", t.dealShort],
+              ["long", t.dealLong],
+              ["any", t.any],
             ] as const
           ).map(([id, label]) => (
             <Chip
@@ -31,6 +31,7 @@ export function SectionExtras() {
                   dealType: id,
                   checkIn: id === "short" ? filters.checkIn : null,
                   checkOut: id === "short" ? filters.checkOut : null,
+                  stockType: id === "buy" ? filters.stockType : "any",
                 })
               }
             >
@@ -38,6 +39,21 @@ export function SectionExtras() {
             </Chip>
           ))}
         </div>
+        {filters.dealType === "buy" ? (
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["any", t.any],
+                ["newbuild", t.stockNew],
+                ["resale", t.stockResale],
+              ] as const
+            ).map(([id, label]) => (
+              <Chip key={id} active={filters.stockType === id} onClick={() => setFilters({ stockType: id })}>
+                {label}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           {(
             [

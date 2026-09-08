@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
-import { listingTitle } from "@/lib/i18n";
+import { housingDealLabel, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
@@ -112,11 +112,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
         <Photo src={listing.photos[0]} alt={title} />
         <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
           {listing.section === "rent"
-            ? listing.dealKind === "buy"
-              ? t.dealBuy
-              : listing.dealKind === "short"
-                ? t.dealShort
-                : t.dealLong
+            ? housingDealLabel(listing, t)
             : t.cats[listing.category ?? ""] ?? t.sectionNames[listing.section]}
         </span>
         <span
@@ -174,11 +170,7 @@ export function ListingRow({
   const title = listingTitle(listing, lang);
   const cat =
     listing.section === "rent"
-      ? listing.dealKind === "buy"
-        ? t.dealBuy
-        : listing.dealKind === "short"
-          ? t.dealShort
-          : t.dealLong
+      ? housingDealLabel(listing, t)
       : listing.category
         ? (t.cats[listing.category] ?? t.sectionNames[listing.section])
         : t.sectionNames[listing.section];

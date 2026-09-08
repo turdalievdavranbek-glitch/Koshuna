@@ -56,6 +56,7 @@ export type Listing = {
   area?: number;
   housingKind?: "apartment" | "house";
   dealKind?: "long" | "short" | "buy";
+  stockKind?: "newbuild" | "resale";
   lng?: number;
   lat?: number;
   bodyKind?: "sedan" | "suv";
@@ -101,6 +102,7 @@ export type Filters = {
   checkIn: string | null;
   checkOut: string | null;
   dealType: "any" | "long" | "short" | "buy";
+  stockType: "any" | "newbuild" | "resale";
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;

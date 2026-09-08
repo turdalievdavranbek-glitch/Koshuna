@@ -54,6 +54,7 @@ export default function FiltersPage() {
       checkIn: id === "stays" ? filters.checkIn : null,
       checkOut: id === "stays" ? filters.checkOut : null,
       dealType: id === "rent" ? filters.dealType : "any",
+      stockType: id === "rent" ? filters.stockType : "any",
       locLng: id === "rent" ? filters.locLng : null,
       locLat: id === "rent" ? filters.locLat : null,
       locLabel: id === "rent" ? filters.locLabel : null,
@@ -159,10 +160,10 @@ export default function FiltersPage() {
             <div className="mt-2.5 flex flex-wrap gap-2">
               {(
                 [
-                  ["any", t.any],
-                  ["long", t.dealLong],
-                  ["short", t.dealShort],
                   ["buy", t.dealBuy],
+                  ["short", t.dealShort],
+                  ["long", t.dealLong],
+                  ["any", t.any],
                 ] as const
               ).map(([id, label]) => (
                 <Chip
@@ -173,6 +174,7 @@ export default function FiltersPage() {
                       dealType: id,
                       checkIn: id === "short" ? filters.checkIn : null,
                       checkOut: id === "short" ? filters.checkOut : null,
+                      stockType: id === "buy" ? filters.stockType : "any",
                     })
                   }
                 >
@@ -180,6 +182,21 @@ export default function FiltersPage() {
                 </Chip>
               ))}
             </div>
+            {filters.dealType === "buy" ? (
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {(
+                  [
+                    ["any", t.any],
+                    ["newbuild", t.stockNew],
+                    ["resale", t.stockResale],
+                  ] as const
+                ).map(([id, label]) => (
+                  <Chip key={id} active={filters.stockType === id} onClick={() => setFilters({ stockType: id })}>
+                    {label}
+                  </Chip>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
 

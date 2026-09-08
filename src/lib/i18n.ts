@@ -57,6 +57,8 @@ const ru = {
   dealLong: "Долгосрочная аренда",
   dealShort: "Краткосрочная аренда",
   dealBuy: "Покупка",
+  stockNew: "Новостройка",
+  stockResale: "Вторичка",
   pickOnMap: "Выбрать на карте 2ГИС",
   searchHere: "Искать здесь",
   open2gis: "Открыть в 2ГИС",
@@ -357,6 +359,8 @@ const ky: typeof ru = {
   dealLong: "Узак мөөнөттүү ижара",
   dealShort: "Кыска мөөнөттүү ижара",
   dealBuy: "Сатып алуу",
+  stockNew: "Жаңы үй",
+  stockResale: "Экинчи рынок",
   pickOnMap: "2ГИС картасынан тандоо",
   searchHere: "Ушул жерден издөө",
   open2gis: "2ГИС'те ачуу",
@@ -566,6 +570,8 @@ const en: typeof ru = {
   dealLong: "Long-term rent",
   dealShort: "Short-term rent",
   dealBuy: "Buy",
+  stockNew: "New build",
+  stockResale: "Resale",
   pickOnMap: "Pick on the 2GIS map",
   searchHere: "Search here",
   open2gis: "Open in 2GIS",
@@ -750,6 +756,19 @@ export function listingTitle(listing: { title: string; titleKy: string; titleEn:
   if (lang === "ky") return listing.titleKy;
   if (lang === "en") return listing.titleEn;
   return listing.title;
+}
+
+export function housingDealLabel(
+  listing: { dealKind?: string; stockKind?: string },
+  t: Dict,
+): string {
+  if (listing.dealKind === "buy") {
+    if (listing.stockKind === "newbuild") return `${t.dealBuy} · ${t.stockNew}`;
+    if (listing.stockKind === "resale") return `${t.dealBuy} · ${t.stockResale}`;
+    return t.dealBuy;
+  }
+  if (listing.dealKind === "short") return t.dealShort;
+  return t.dealLong;
 }
 
 export function listingDesc(

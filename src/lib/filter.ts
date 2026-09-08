@@ -21,6 +21,9 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }
+    if (filters.section === "rent" && filters.stockType && filters.stockType !== "any") {
+      if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
+    }
     if (
       filters.section === "rent" &&
       filters.locLng != null &&

@@ -33,6 +33,7 @@ const defaultFilters = (): Filters => ({
   checkIn: null,
   checkOut: null,
   dealType: "any",
+  stockType: "any",
   locLng: null,
   locLat: null,
   locLabel: null,

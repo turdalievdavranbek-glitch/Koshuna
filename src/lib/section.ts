@@ -16,6 +16,7 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     checkIn: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkIn : null,
     checkOut: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkOut : null,
     dealType: id === "rent" ? prev.dealType : "any",
+    stockType: id === "rent" ? prev.stockType : "any",
     locLng: id === "rent" ? prev.locLng : null,
     locLat: id === "rent" ? prev.locLat : null,
     locLabel: id === "rent" ? prev.locLabel : null,
