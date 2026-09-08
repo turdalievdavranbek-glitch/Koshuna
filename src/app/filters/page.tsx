@@ -23,6 +23,19 @@ export default function FiltersPage() {
     setFilters({ rooms: has ? filters.rooms.filter((r) => r !== n) : [...filters.rooms, n] });
   };
 
+  const isRent = filters.section === "rent";
+  const isSecondhand = filters.section === "secondhand";
+
+  const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
+    const next = filters.section === id ? null : id;
+    setFilters({
+      section: next,
+      category: next === "secondhand" ? filters.category : null,
+      rooms: next === "rent" ? filters.rooms : [],
+      housingType: next === "rent" ? filters.housingType : "any",
+    });
+  };
+
   return (
     <PhoneShell>
       <div className="flex items-center justify-between px-5 pb-3.5 pt-1">
@@ -64,7 +77,7 @@ export default function FiltersPage() {
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setFilters({ section: filters.section === s.id ? null : s.id })}
+                onClick={() => pickSection(s.id)}
                 className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm"
                 style={{
                   background: filters.section === s.id ? "#17140F" : "#FFFFFF",
@@ -77,14 +90,27 @@ export default function FiltersPage() {
               </button>
             ))}
           </div>
-          <div className="mt-3 flex h-12 items-center justify-between rounded-[14px] border border-line bg-white px-[15px]">
-            <span className="text-sm text-muted">{t.housingType}</span>
-            <span className="text-sm font-semibold text-ink">
-              {t.any} <span className="text-[11px] text-muted-2">▾</span>
-            </span>
-          </div>
+          {isRent ? (
+            <div className="mt-3">
+              <div className="mb-2 text-[13px] font-semibold text-muted">{t.housingType}</div>
+              <div className="flex gap-2">
+                {(
+                  [
+                    ["any", t.any],
+                    ["apartment", t.apartment],
+                    ["house", t.house],
+                  ] as const
+                ).map(([id, label]) => (
+                  <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
+                    {label}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
+        {isSecondhand ? (
         <div>
           <Eyebrow>{t.category}</Eyebrow>
           <div className="mt-2.5 flex flex-wrap gap-2">
@@ -101,6 +127,7 @@ export default function FiltersPage() {
             ))}
           </div>
         </div>
+        ) : null}
 
         <div>
           <Eyebrow>{t.sort}</Eyebrow>
@@ -147,7 +174,7 @@ export default function FiltersPage() {
 
         <div>
           <div className="flex items-baseline justify-between">
-            <Eyebrow>{t.priceMonth}</Eyebrow>
+            <Eyebrow>{isRent ? t.priceMonth : t.priceKgs}</Eyebrow>
             <span className="text-[13px] font-semibold text-ink">
               {filters.priceMin ?? 0} — {filters.priceMax ?? "∞"}
             </span>
@@ -170,6 +197,7 @@ export default function FiltersPage() {
           </div>
         </div>
 
+        {isRent ? (
         <div>
           <Eyebrow>{t.rooms}</Eyebrow>
           <div className="mt-2.5 flex gap-2">
@@ -199,6 +227,7 @@ export default function FiltersPage() {
             })}
           </div>
         </div>
+        ) : null}
 
         <div className="flex flex-col">
           {(

@@ -83,6 +83,7 @@ export const LISTINGS: Listing[] = [
     postedAgo: "2h",
     rooms: 2,
     area: 62,
+    housingKind: "apartment",
     photos: [
       img("photo-1502672260266-1c1ef2d93688"),
       img("photo-1560448204-e02f11c3d0e2"),
@@ -220,6 +221,7 @@ export const LISTINGS: Listing[] = [
     postedAgo: "6h",
     rooms: 1,
     area: 40,
+    housingKind: "apartment",
     photos: [img("photo-1522708323590-d24dbb6b0267")],
     photoCredit: "Unsplash / Anna Hunko",
     description: "Уютная однокомнатная квартира с мебелью. Рядом рынок и остановки.",
@@ -250,6 +252,7 @@ export const LISTINGS: Listing[] = [
     postedAgo: "8h",
     rooms: 3,
     area: 78,
+    housingKind: "house",
     photos: [img("photo-1568605114967-8130f5cd86c8")],
     photoCredit: "Unsplash / Adrian Newell",
     description: "Дом с двором у подножия гор. Подходит для семьи.",

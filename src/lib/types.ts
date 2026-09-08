@@ -54,6 +54,7 @@ export type Listing = {
   postedAgo: string;
   rooms?: number;
   area?: number;
+  housingKind?: "apartment" | "house";
   condition?: string;
   photos: string[];
   photoCredit: string;
