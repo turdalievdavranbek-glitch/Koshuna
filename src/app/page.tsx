@@ -10,7 +10,7 @@ import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip, ListingHero, ListingRow, Photo } from "@/components/ui";
-import { Flag, IconBell, IconPin, IconSearch, IconSliders, sectionIcon } from "@/components/icons";
+import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 
 export default function FeedPage() {
   const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
@@ -78,7 +78,7 @@ export default function FeedPage() {
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
           <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {SECTIONS.map((s) => (
             <button
               key={s.id}
@@ -87,10 +87,16 @@ export default function FeedPage() {
                 setFilters(patchForSection(s.id, filters));
                 router.push(`/section/${s.id}`);
               }}
-              className="rounded-[14px] border border-line bg-surface px-2.5 py-3 text-left"
+              className="relative h-[112px] overflow-hidden rounded-[18px] border border-line bg-surface text-left"
             >
-              {sectionIcon(s.id)}
-              <div className="mt-2 text-xs font-semibold leading-[1.25] text-ink">{t.sectionNames[s.id]}</div>
+              <span className="relative z-[1] block max-w-[58%] px-3 pt-2.5 text-[13px] font-semibold leading-[1.25] text-ink">
+                {t.sectionNames[s.id]}
+              </span>
+              <img
+                src={s.art}
+                alt=""
+                className="pointer-events-none absolute -bottom-3 -right-2 h-[92px] w-[92px] object-contain"
+              />
             </button>
           ))}
         </div>

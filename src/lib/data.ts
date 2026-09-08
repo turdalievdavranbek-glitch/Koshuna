@@ -14,15 +14,15 @@ export const CITIES = [
   "kochkor",
 ] as const;
 
-export const SECTIONS: { id: SectionId; icon: string }[] = [
-  { id: "rent", icon: "home" },
-  { id: "secondhand", icon: "bag" },
-  { id: "cars", icon: "car" },
-  { id: "stays", icon: "hotel" },
-  { id: "services", icon: "pen" },
-  { id: "vacancies", icon: "briefcase" },
-  { id: "construction", icon: "blocks" },
-  { id: "animals", icon: "animal" },
+export const SECTIONS: { id: SectionId; icon: string; art: string }[] = [
+  { id: "rent", icon: "home", art: "/sections/rent.png" },
+  { id: "secondhand", icon: "bag", art: "/sections/secondhand.png" },
+  { id: "cars", icon: "car", art: "/sections/cars.png" },
+  { id: "stays", icon: "hotel", art: "/sections/stays.png" },
+  { id: "services", icon: "pen", art: "/sections/services.png" },
+  { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.png" },
+  { id: "construction", icon: "blocks", art: "/sections/construction.png" },
+  { id: "animals", icon: "animal", art: "/sections/animals.png" },
 ];
 
 export const CATEGORIES = [
