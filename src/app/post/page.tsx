@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, SECTIONS, SERVICE_CATEGORIES, goodsKindsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, animalKindsOf, goodsKindsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -154,6 +154,32 @@ export default function PostPage() {
                       ))}
                     </div>
                   ) : null}
+                </>
+              ) : null}
+              {draft.section === "animals" ? (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {ANIMAL_GROUPS.map((id) => (
+                      <Chip
+                        key={id}
+                        active={(draft.animalGroup ?? "pets") === id}
+                        onClick={() => setDraft({ animalGroup: id, animalKind: undefined })}
+                      >
+                        {id === "pets" ? t.animalPets : t.animalFarm}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {animalKindsOf(draft.animalGroup ?? "pets").map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.animalKind === id}
+                        onClick={() => setDraft({ animalKind: id })}
+                      >
+                        {t.animalKinds[id]}
+                      </Chip>
+                    ))}
+                  </div>
                 </>
               ) : null}
               {draft.section === "services" ? (

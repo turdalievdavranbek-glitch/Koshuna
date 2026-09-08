@@ -24,6 +24,8 @@ export type PropertyType =
   | "land"
   | "dacha";
 
+export type AnimalGroup = "pets" | "farm";
+
 export type User = {
   name: string;
   phone: string;
@@ -71,6 +73,8 @@ export type Listing = {
   lat?: number;
   bodyKind?: "sedan" | "suv";
   gearKind?: "auto" | "manual";
+  animalGroup?: AnimalGroup;
+  animalKind?: string;
   year?: number;
   condition?: string;
   photos: string[];
@@ -115,6 +119,8 @@ export type Filters = {
   dealType: "any" | "long" | "short" | "buy";
   stockType: "any" | "newbuild" | "resale";
   autoType: "sale" | "rent";
+  animalGroup: AnimalGroup;
+  animalKind: string;
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
@@ -161,4 +167,6 @@ export type DraftListing = {
   category?: string;
   goodsKind?: string;
   housingKind?: PropertyType;
+  animalGroup?: AnimalGroup;
+  animalKind?: string;
 };

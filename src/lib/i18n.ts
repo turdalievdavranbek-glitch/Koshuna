@@ -59,6 +59,9 @@ const ru = {
   dealBuy: "Покупка",
   autoSale: "Продажа",
   autoRent: "Аренда",
+  animalPets: "Питомцы",
+  animalFarm: "Сельскохозяйственные",
+  animalKindLabel: "Вид",
   stockNew: "Новостройка",
   stockResale: "Вторичка",
   pickOnMap: "Выбрать на карте 2ГИС",
@@ -90,6 +93,24 @@ const ru = {
     land: "Участок",
     dacha: "Дача",
   } as Record<string, string>,
+  animalKinds: {
+    dogs: "Собаки",
+    cats: "Кошки",
+    fish: "Аквариумные рыбы",
+    "pet-food": "Корм",
+    birds: "Птицы",
+    rodents: "Грызуны",
+    "pet-goods": "Товары для животных",
+    "other-pets": "Другое",
+    cattle: "Крупный рогатый скот",
+    horses: "Лошади",
+    sheep: "Бараны",
+    goats: "Козы",
+    chickens: "Курицы",
+    rabbits: "Кролики",
+    pigs: "Свиньи",
+    "other-farm": "Другое",
+  } as Record<string, string>,
   bodyType: "Тип кузова",
   sedan: "Седан",
   suv: "SUV",
@@ -101,6 +122,7 @@ const ru = {
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Уборка, репетитор, ремонт…",
   searchStays: "Иссык-Куль, Каракол, гостевой дом…",
+  searchAnimals: "Щенок, кошка, куры…",
   checkIn: "Заезд",
   checkOut: "Выезд",
   pickCheckIn: "Дата",
@@ -260,7 +282,7 @@ const ru = {
   sectionNames: {
     rent: "Недвижимость",
     secondhand: "Секонд-хенд",
-    animals: "Скот и животные",
+    animals: "Животные",
     cars: "Авто",
     "car-rental": "Аренда авто",
     stays: "Отели и гостевые дома",
@@ -401,6 +423,9 @@ const ky: typeof ru = {
   dealBuy: "Сатып алуу",
   autoSale: "Сатуу",
   autoRent: "Ижара",
+  animalPets: "Үй жаныбарлары",
+  animalFarm: "Айыл чарба",
+  animalKindLabel: "Түрү",
   stockNew: "Жаңы үй",
   stockResale: "Экинчи рынок",
   pickOnMap: "2ГИС картасынан тандоо",
@@ -432,6 +457,24 @@ const ky: typeof ru = {
     land: "Участок",
     dacha: "Дача",
   },
+  animalKinds: {
+    dogs: "Иттер",
+    cats: "Мышыктар",
+    fish: "Аквариум балыктары",
+    "pet-food": "Тоют",
+    birds: "Канаттуулар",
+    rodents: "Кемирүүчүлөр",
+    "pet-goods": "Жаныбар буюмдары",
+    "other-pets": "Башка",
+    cattle: "Ири мүйүздүү мал",
+    horses: "Жылкылар",
+    sheep: "Кочкорлор",
+    goats: "Эчкилер",
+    chickens: "Тооктор",
+    rabbits: "Коёндор",
+    pigs: "Чочколор",
+    "other-farm": "Башка",
+  },
   bodyType: "Кузов түрү",
   sedan: "Седан",
   suv: "SUV",
@@ -443,6 +486,7 @@ const ky: typeof ru = {
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Тазалоо, репетитор, оңдоо…",
   searchStays: "Ысык-Көл, Каракол, конок үйү…",
+  searchAnimals: "Күчүк, мышык, тоок…",
   checkIn: "Кирүү",
   checkOut: "Чыгуу",
   pickCheckIn: "Күн",
@@ -545,7 +589,7 @@ const ky: typeof ru = {
   sectionNames: {
     rent: "Кыймылсыз мүлк",
     secondhand: "Секонд-хенд",
-    animals: "Мал жана жаныбарлар",
+    animals: "Жаныбарлар",
     cars: "Авто",
     "car-rental": "Авто ижара",
     stays: "Мейманканалар",
@@ -652,6 +696,9 @@ const en: typeof ru = {
   dealBuy: "Buy",
   autoSale: "Sale",
   autoRent: "Rent",
+  animalPets: "Pets",
+  animalFarm: "Farm animals",
+  animalKindLabel: "Kind",
   stockNew: "New build",
   stockResale: "Resale",
   pickOnMap: "Pick on the 2GIS map",
@@ -683,6 +730,24 @@ const en: typeof ru = {
     land: "Land",
     dacha: "Dacha",
   },
+  animalKinds: {
+    dogs: "Dogs",
+    cats: "Cats",
+    fish: "Aquarium fish",
+    "pet-food": "Pet food",
+    birds: "Birds",
+    rodents: "Rodents",
+    "pet-goods": "Pet supplies",
+    "other-pets": "Other",
+    cattle: "Cattle",
+    horses: "Horses",
+    sheep: "Sheep",
+    goats: "Goats",
+    chickens: "Chickens",
+    rabbits: "Rabbits",
+    pigs: "Pigs",
+    "other-farm": "Other",
+  },
   bodyType: "Body type",
   sedan: "Sedan",
   suv: "SUV",
@@ -694,6 +759,7 @@ const en: typeof ru = {
   searchCars: "Camry, Honda, RAV4…",
   searchServices: "Cleaning, tutor, repairs…",
   searchStays: "Issyk-Kul, Karakol, guesthouse…",
+  searchAnimals: "Puppy, cat, hens…",
   checkIn: "Check-in",
   checkOut: "Check-out",
   pickCheckIn: "Date",
@@ -797,7 +863,7 @@ const en: typeof ru = {
   sectionNames: {
     rent: "Real estate",
     secondhand: "Secondhand",
-    animals: "Livestock & pets",
+    animals: "Animals",
     cars: "Cars",
     "car-rental": "Car rental",
     stays: "Hotels & guesthouses",
@@ -867,6 +933,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchServices;
     case "stays":
       return t.searchStays;
+    case "animals":
+      return t.searchAnimals;
     default:
       return t.searchPh;
   }
@@ -897,6 +965,7 @@ export function listingChipLabel(
     category?: string;
     goodsKind?: string;
     housingKind?: string;
+    animalKind?: string;
     dealKind?: string;
     stockKind?: string;
   },
@@ -910,6 +979,9 @@ export function listingChipLabel(
   }
   if (listing.section === "cars") return t.autoSale;
   if (listing.section === "car-rental") return t.autoRent;
+  if (listing.section === "animals" && listing.animalKind && t.animalKinds[listing.animalKind]) {
+    return t.animalKinds[listing.animalKind];
+  }
   if (listing.goodsKind && t.goodsKinds[listing.goodsKind]) return t.goodsKinds[listing.goodsKind];
   if (listing.category && t.cats[listing.category]) return t.cats[listing.category];
   return t.sectionNames[listing.section];

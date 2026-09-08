@@ -36,6 +36,8 @@ const defaultFilters = (): Filters => ({
   dealType: "any",
   stockType: "any",
   autoType: "sale",
+  animalGroup: "pets",
+  animalKind: "any",
   locLng: null,
   locLat: null,
   locLabel: null,
@@ -117,6 +119,8 @@ function normalizeFilters(filters: Filters): Filters {
     ...filters,
     autoType: filters.autoType === "rent" ? "rent" : "sale",
     goodsKind: filters.goodsKind && filters.goodsKind !== "any" ? filters.goodsKind : "any",
+    animalGroup: filters.animalGroup === "farm" ? "farm" : "pets",
+    animalKind: filters.animalKind && filters.animalKind !== "any" ? filters.animalKind : "any",
   };
 }
 
@@ -218,6 +222,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
+        animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
+        animalKind: d.section === "animals" ? d.animalKind : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,

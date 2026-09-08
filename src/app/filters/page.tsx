@@ -13,6 +13,7 @@ import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
+import { AnimalChips } from "@/components/animal-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -37,6 +38,7 @@ export default function FiltersPage() {
   const isRent = filters.section === "rent";
   const isSecondhand = filters.section === "secondhand";
   const isServices = filters.section === "services";
+  const isAnimals = filters.section === "animals";
   const isAuto = filters.section === "cars";
   const isCarRental = isAuto && filters.autoType === "rent";
   const isStays = filters.section === "stays";
@@ -314,6 +316,8 @@ export default function FiltersPage() {
         ) : null}
 
         {isSecondhand ? <SecondhandChips labeled /> : null}
+
+        {isAnimals ? <AnimalChips labeled /> : null}
 
         {isServices ? (
         <div>

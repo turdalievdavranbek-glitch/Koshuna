@@ -6,6 +6,7 @@ import { useApp } from "@/lib/store";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
+import { AnimalChips } from "@/components/animal-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -149,6 +150,10 @@ export function SectionExtras() {
         onChange={(next) => setFilters(next)}
       />
     );
+  }
+
+  if (section === "animals") {
+    return <AnimalChips />;
   }
 
   if (section === "services") {

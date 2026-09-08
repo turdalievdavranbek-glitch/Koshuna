@@ -23,6 +23,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.section === "secondhand" && filters.goodsKind && filters.goodsKind !== "any") {
       if (item.goodsKind !== filters.goodsKind) return false;
     }
+    if (filters.section === "animals") {
+      if (item.animalGroup !== filters.animalGroup) return false;
+      if (filters.animalKind && filters.animalKind !== "any" && item.animalKind !== filters.animalKind) {
+        return false;
+      }
+    }
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
