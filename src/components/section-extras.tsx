@@ -7,6 +7,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
 import { AnimalChips } from "@/components/animal-chips";
+import { CarMakeChips } from "@/components/car-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -110,6 +111,7 @@ export function SectionExtras() {
             </Chip>
           ))}
         </div>
+        <CarMakeChips />
         <div className="flex flex-wrap gap-2">
           {(
             [

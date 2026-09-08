@@ -14,6 +14,8 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     rooms: id === "rent" ? prev.rooms : [],
     housingType: id === "rent" ? prev.housingType : "any",
     bodyType: id === "cars" ? prev.bodyType : "any",
+    carMake: id === "cars" && stayingOnCars ? prev.carMake : "any",
+    carModel: id === "cars" && stayingOnCars ? prev.carModel : "any",
     gear: stayingOnCars && prev.autoType === "rent" ? prev.gear : "any",
     autoType: id === "cars" ? (stayingOnCars ? prev.autoType : "sale") : "sale",
     animalGroup: id === "animals" ? (prev.section === "animals" ? prev.animalGroup : "pets") : "pets",

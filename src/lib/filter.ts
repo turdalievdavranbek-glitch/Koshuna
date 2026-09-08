@@ -57,6 +57,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (!match) return false;
     }
     const carFilters = filters.section === "cars";
+    if (carFilters && filters.carMake && filters.carMake !== "any") {
+      if (item.carMake !== filters.carMake) return false;
+    }
+    if (carFilters && filters.carModel && filters.carModel !== "any") {
+      if (item.carModel !== filters.carModel) return false;
+    }
     if (carFilters && filters.bodyType && filters.bodyType !== "any") {
       if (item.bodyKind !== filters.bodyType) return false;
     }

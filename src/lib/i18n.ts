@@ -59,6 +59,8 @@ const ru = {
   dealBuy: "Покупка",
   autoSale: "Продажа",
   autoRent: "Аренда",
+  carMake: "Марка",
+  carModel: "Модель",
   animalPets: "Питомцы",
   animalFarm: "Сельскохозяйственные",
   animalKindLabel: "Вид",
@@ -110,6 +112,44 @@ const ru = {
     rabbits: "Кролики",
     pigs: "Свиньи",
     "other-farm": "Другое",
+  } as Record<string, string>,
+  carMakes: {
+    toyota: "Toyota",
+    honda: "Honda",
+    hyundai: "Hyundai",
+    kia: "Kia",
+    nissan: "Nissan",
+    mercedes: "Mercedes",
+    lexus: "Lexus",
+    lada: "Lada",
+  } as Record<string, string>,
+  carModels: {
+    camry: "Camry",
+    corolla: "Corolla",
+    rav4: "RAV4",
+    "land-cruiser": "Land Cruiser",
+    prado: "Prado",
+    civic: "Civic",
+    accord: "Accord",
+    "cr-v": "CR-V",
+    sonata: "Sonata",
+    tucson: "Tucson",
+    elantra: "Elantra",
+    sportage: "Sportage",
+    rio: "Rio",
+    k5: "K5",
+    "x-trail": "X-Trail",
+    qashqai: "Qashqai",
+    patrol: "Patrol",
+    "e-class": "E-Class",
+    "c-class": "C-Class",
+    gle: "GLE",
+    rx: "RX",
+    lx: "LX",
+    es: "ES",
+    vesta: "Vesta",
+    granta: "Granta",
+    niva: "Niva",
   } as Record<string, string>,
   bodyType: "Тип кузова",
   sedan: "Седан",
@@ -423,6 +463,8 @@ const ky: typeof ru = {
   dealBuy: "Сатып алуу",
   autoSale: "Сатуу",
   autoRent: "Ижара",
+  carMake: "Марка",
+  carModel: "Модель",
   animalPets: "Үй жаныбарлары",
   animalFarm: "Айыл чарба",
   animalKindLabel: "Түрү",
@@ -474,6 +516,44 @@ const ky: typeof ru = {
     rabbits: "Коёндор",
     pigs: "Чочколор",
     "other-farm": "Башка",
+  },
+  carMakes: {
+    toyota: "Toyota",
+    honda: "Honda",
+    hyundai: "Hyundai",
+    kia: "Kia",
+    nissan: "Nissan",
+    mercedes: "Mercedes",
+    lexus: "Lexus",
+    lada: "Lada",
+  },
+  carModels: {
+    camry: "Camry",
+    corolla: "Corolla",
+    rav4: "RAV4",
+    "land-cruiser": "Land Cruiser",
+    prado: "Prado",
+    civic: "Civic",
+    accord: "Accord",
+    "cr-v": "CR-V",
+    sonata: "Sonata",
+    tucson: "Tucson",
+    elantra: "Elantra",
+    sportage: "Sportage",
+    rio: "Rio",
+    k5: "K5",
+    "x-trail": "X-Trail",
+    qashqai: "Qashqai",
+    patrol: "Patrol",
+    "e-class": "E-Class",
+    "c-class": "C-Class",
+    gle: "GLE",
+    rx: "RX",
+    lx: "LX",
+    es: "ES",
+    vesta: "Vesta",
+    granta: "Granta",
+    niva: "Niva",
   },
   bodyType: "Кузов түрү",
   sedan: "Седан",
@@ -696,6 +776,8 @@ const en: typeof ru = {
   dealBuy: "Buy",
   autoSale: "Sale",
   autoRent: "Rent",
+  carMake: "Make",
+  carModel: "Model",
   animalPets: "Pets",
   animalFarm: "Farm animals",
   animalKindLabel: "Kind",
@@ -965,6 +1047,8 @@ export function listingChipLabel(
     category?: string;
     goodsKind?: string;
     housingKind?: string;
+    carMake?: string;
+    carModel?: string;
     animalKind?: string;
     dealKind?: string;
     stockKind?: string;
@@ -977,8 +1061,13 @@ export function listingChipLabel(
     }
     return housingDealLabel(listing, t);
   }
-  if (listing.section === "cars") return t.autoSale;
-  if (listing.section === "car-rental") return t.autoRent;
+  if (listing.section === "cars" || listing.section === "car-rental") {
+    const make = listing.carMake ? t.carMakes[listing.carMake] : "";
+    const model = listing.carModel ? t.carModels[listing.carModel] : "";
+    const name = [make, model].filter(Boolean).join(" ");
+    if (name) return name;
+    return listing.section === "car-rental" ? t.autoRent : t.autoSale;
+  }
   if (listing.section === "animals" && listing.animalKind && t.animalKinds[listing.animalKind]) {
     return t.animalKinds[listing.animalKind];
   }

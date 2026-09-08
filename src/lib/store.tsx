@@ -36,6 +36,8 @@ const defaultFilters = (): Filters => ({
   dealType: "any",
   stockType: "any",
   autoType: "sale",
+  carMake: "any",
+  carModel: "any",
   animalGroup: "pets",
   animalKind: "any",
   locLng: null,
@@ -121,6 +123,8 @@ function normalizeFilters(filters: Filters): Filters {
     goodsKind: filters.goodsKind && filters.goodsKind !== "any" ? filters.goodsKind : "any",
     animalGroup: filters.animalGroup === "farm" ? "farm" : "pets",
     animalKind: filters.animalKind && filters.animalKind !== "any" ? filters.animalKind : "any",
+    carMake: filters.carMake && filters.carMake !== "any" ? filters.carMake : "any",
+    carModel: filters.carModel && filters.carModel !== "any" ? filters.carModel : "any",
   };
 }
 
@@ -224,6 +228,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
         animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
         animalKind: d.section === "animals" ? d.animalKind : undefined,
+        carMake: d.section === "cars" || d.section === "car-rental" ? d.carMake : undefined,
+        carModel: d.section === "cars" || d.section === "car-rental" ? d.carModel : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, animalKindsOf, goodsKindsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -78,14 +78,40 @@ export default function PostPage() {
                 />
               </div>
               {(draft.section === "cars" || draft.section === "car-rental") ? (
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <Chip active={draft.section === "cars"} onClick={() => setDraft({ section: "cars" })}>
-                    {t.autoSale}
-                  </Chip>
-                  <Chip active={draft.section === "car-rental"} onClick={() => setDraft({ section: "car-rental" })}>
-                    {t.autoRent}
-                  </Chip>
-                </div>
+                <>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    <Chip active={draft.section === "cars"} onClick={() => setDraft({ section: "cars" })}>
+                      {t.autoSale}
+                    </Chip>
+                    <Chip active={draft.section === "car-rental"} onClick={() => setDraft({ section: "car-rental" })}>
+                      {t.autoRent}
+                    </Chip>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {CAR_MAKES.map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.carMake === id}
+                        onClick={() => setDraft({ carMake: id, carModel: undefined })}
+                      >
+                        {t.carMakes[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  {carModelsOf(draft.carMake).length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {carModelsOf(draft.carMake).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.carModel === id}
+                          onClick={() => setDraft({ carModel: id })}
+                        >
+                          {t.carModels[id]}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               <div className="mt-2.5 flex gap-2.5">
                 <button

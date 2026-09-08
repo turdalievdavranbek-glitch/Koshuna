@@ -14,6 +14,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
 import { AnimalChips } from "@/components/animal-chips";
+import { CarMakeChips } from "@/components/car-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -276,6 +277,8 @@ export default function FiltersPage() {
             </div>
           </div>
         ) : null}
+
+        {isAuto ? <CarMakeChips labeled /> : null}
 
         {isAuto ? (
           <div>
