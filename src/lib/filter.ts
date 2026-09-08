@@ -23,6 +23,13 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       const match = filters.rooms.some((r) => (r >= 4 ? item.rooms! >= 4 : item.rooms === r));
       if (!match) return false;
     }
+    const carFilters = filters.section === "cars" || filters.section === "car-rental";
+    if (carFilters && filters.bodyType && filters.bodyType !== "any") {
+      if (item.bodyKind !== filters.bodyType) return false;
+    }
+    if (filters.section === "car-rental" && filters.gear && filters.gear !== "any") {
+      if (item.gearKind !== filters.gear) return false;
+    }
     if (filters.priceMin != null && item.price < filters.priceMin) return false;
     if (filters.priceMax != null && item.price > filters.priceMax) return false;
     if (filters.query.trim()) {

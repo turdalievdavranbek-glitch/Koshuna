@@ -55,6 +55,9 @@ export type Listing = {
   rooms?: number;
   area?: number;
   housingKind?: "apartment" | "house";
+  bodyKind?: "sedan" | "suv";
+  gearKind?: "auto" | "manual";
+  year?: number;
   condition?: string;
   photos: string[];
   photoCredit: string;
@@ -86,6 +89,8 @@ export type Filters = {
   priceMin: number | null;
   priceMax: number | null;
   rooms: number[];
+  bodyType: string;
+  gear: string;
   photosOnly: boolean;
   verifiedOnly: boolean;
   noAgents: boolean;

@@ -24,6 +24,8 @@ const defaultFilters = (): Filters => ({
   priceMin: null,
   priceMax: null,
   rooms: [],
+  bodyType: "any",
+  gear: "any",
   photosOnly: false,
   verifiedOnly: false,
   noAgents: false,
@@ -103,7 +105,8 @@ function load(): State {
   try {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
-    return { ...initial, ...JSON.parse(raw) };
+    const saved = JSON.parse(raw) as Partial<State>;
+    return { ...initial, ...saved, filters: { ...defaultFilters(), ...saved.filters } };
   } catch {
     return initial;
   }

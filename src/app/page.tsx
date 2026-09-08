@@ -81,7 +81,14 @@ export default function FeedPage() {
               key={s.id}
               type="button"
               onClick={() => {
-                setFilters({ section: s.id });
+                setFilters({
+                  section: s.id,
+                  category: s.id === "secondhand" ? filters.category : null,
+                  rooms: s.id === "rent" ? filters.rooms : [],
+                  housingType: s.id === "rent" ? filters.housingType : "any",
+                  bodyType: s.id === "cars" || s.id === "car-rental" ? filters.bodyType : "any",
+                  gear: s.id === "car-rental" ? filters.gear : "any",
+                });
                 router.push("/filters");
               }}
               className="rounded-[14px] border border-line bg-surface px-2.5 py-3 text-left"

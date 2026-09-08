@@ -317,6 +317,8 @@ export const LISTINGS: Listing[] = [
     hasPhoto: true,
     noAgent: false,
     status: "active",
+    bodyKind: "sedan",
+    year: 2018,
     specs: [
       { label: "year", value: "2018" },
       { label: "mileage", value: "92 000 км" },
@@ -349,6 +351,8 @@ export const LISTINGS: Listing[] = [
     hasPhoto: true,
     noAgent: true,
     status: "active",
+    bodyKind: "suv",
+    gearKind: "auto",
     specs: [
       { label: "body", value: "SUV" },
       { label: "gear", value: "Автомат" },

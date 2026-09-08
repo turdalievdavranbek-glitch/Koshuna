@@ -25,6 +25,9 @@ export default function FiltersPage() {
 
   const isRent = filters.section === "rent";
   const isSecondhand = filters.section === "secondhand";
+  const isCars = filters.section === "cars";
+  const isCarRental = filters.section === "car-rental";
+  const isAuto = isCars || isCarRental;
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
     const next = filters.section === id ? null : id;
@@ -33,8 +36,20 @@ export default function FiltersPage() {
       category: next === "secondhand" ? filters.category : null,
       rooms: next === "rent" ? filters.rooms : [],
       housingType: next === "rent" ? filters.housingType : "any",
+      bodyType: next === "cars" || next === "car-rental" ? filters.bodyType : "any",
+      gear: next === "car-rental" ? filters.gear : "any",
     });
   };
+
+  const searchPh = isAuto ? t.searchCars : t.searchPh;
+
+  const priceLabel = isRent
+    ? t.priceMonth
+    : isCarRental
+      ? t.priceDay
+      : filters.section === "stays"
+        ? t.priceNight
+        : t.priceKgs;
 
   return (
     <PhoneShell>
@@ -60,7 +75,7 @@ export default function FiltersPage() {
           <input
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
-            placeholder={t.searchPh}
+            placeholder={searchPh}
             className="h-full flex-1 bg-transparent text-[15px] outline-none"
           />
           {filters.query ? (
@@ -109,6 +124,44 @@ export default function FiltersPage() {
             </div>
           ) : null}
         </div>
+
+        {isAuto ? (
+          <div>
+            <Eyebrow>{t.bodyType}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["sedan", t.sedan],
+                  ["suv", t.suv],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip key={id} active={filters.bodyType === id} onClick={() => setFilters({ bodyType: id })}>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {isCarRental ? (
+          <div>
+            <Eyebrow>{t.gear}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {(
+                [
+                  ["any", t.any],
+                  ["auto", t.auto],
+                  ["manual", t.manual],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip key={id} active={filters.gear === id} onClick={() => setFilters({ gear: id })}>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {isSecondhand ? (
         <div>
@@ -174,7 +227,7 @@ export default function FiltersPage() {
 
         <div>
           <div className="flex items-baseline justify-between">
-            <Eyebrow>{isRent ? t.priceMonth : t.priceKgs}</Eyebrow>
+            <Eyebrow>{priceLabel}</Eyebrow>
             <span className="text-[13px] font-semibold text-ink">
               {filters.priceMin ?? 0} — {filters.priceMax ?? "∞"}
             </span>
