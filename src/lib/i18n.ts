@@ -28,7 +28,7 @@ const ru = {
   confirm: "Войти",
   resend: "Отправить ещё раз",
   searchPh: "Квартира, диван, велосипед…",
-  searchRent: "Квартира, дом, 2 комнаты…",
+  searchRent: "Квартира, дача, участок…",
   searchSecondhand: "Диван, коляска, посуда…",
   changeSection: "Сменить раздел",
   sections: "Разделы",
@@ -81,6 +81,15 @@ const ru = {
   priceKgs: "Цена, KGS",
   apartment: "Квартира",
   house: "Дом",
+  propertyTypes: {
+    apartment: "Квартира",
+    house: "Дом",
+    room: "Комната",
+    parking: "Автостоянка",
+    commercial: "Коммерческая недвижимость",
+    land: "Участок",
+    dacha: "Дача",
+  } as Record<string, string>,
   bodyType: "Тип кузова",
   sedan: "Седан",
   suv: "SUV",
@@ -165,7 +174,7 @@ const ru = {
   phoneNote: "Номер увидят только те, кому вы ответите.",
   whatPost: "Что размещаете",
   listingType: "Тип объявления",
-  kindRent: "Аренда квартиры",
+  kindRent: "Недвижимость",
   kindGoods: "Товар",
   photos: "Фотографии",
   of10: "из 10",
@@ -249,7 +258,7 @@ const ru = {
     kochkor: "Кочкор",
   } as Record<string, string>,
   sectionNames: {
-    rent: "Квартиры и дома",
+    rent: "Недвижимость",
     secondhand: "Секонд-хенд",
     animals: "Скот и животные",
     cars: "Авто",
@@ -364,7 +373,7 @@ const ky: typeof ru = {
   confirm: "Кирүү",
   resend: "Кайра жөнөтүү",
   searchPh: "Батир, диван, велосипед…",
-  searchRent: "Батир, үй, 2 бөлмө…",
+  searchRent: "Батир, дача, участок…",
   searchSecondhand: "Диван, коляска, идиш-аяк…",
   changeSection: "Бөлүмдү өзгөртүү",
   sections: "Бөлүмдөр",
@@ -414,6 +423,15 @@ const ky: typeof ru = {
   priceKgs: "Баа, KGS",
   apartment: "Батир",
   house: "Үй",
+  propertyTypes: {
+    apartment: "Батир",
+    house: "Үй",
+    room: "Бөлмө",
+    parking: "Автотоктоо",
+    commercial: "Коммерциялык",
+    land: "Участок",
+    dacha: "Дача",
+  },
   bodyType: "Кузов түрү",
   sedan: "Седан",
   suv: "SUV",
@@ -478,7 +496,7 @@ const ky: typeof ru = {
   newListing: "Жаңы жарнама",
   draft: "Черновик",
   loggedInAs: "Сиз кирдиңиз",
-  kindRent: "Батир ижарасы",
+  kindRent: "Кыймылсыз мүлк",
   kindGoods: "Товар",
   photos: "Сүрөттөр",
   mainPhoto: "Негизги",
@@ -525,7 +543,7 @@ const ky: typeof ru = {
     kochkor: "Кочкор",
   },
   sectionNames: {
-    rent: "Батирлер жана үйлөр",
+    rent: "Кыймылсыз мүлк",
     secondhand: "Секонд-хенд",
     animals: "Мал жана жаныбарлар",
     cars: "Авто",
@@ -606,7 +624,7 @@ const en: typeof ru = {
   confirm: "Sign in",
   resend: "Send again",
   searchPh: "Apartment, sofa, bicycle…",
-  searchRent: "Apartment, house, 2 rooms…",
+  searchRent: "Apartment, dacha, plot…",
   searchSecondhand: "Sofa, stroller, dishes…",
   changeSection: "Change section",
   sections: "Sections",
@@ -656,6 +674,15 @@ const en: typeof ru = {
   priceKgs: "Price, KGS",
   apartment: "Apartment",
   house: "House",
+  propertyTypes: {
+    apartment: "Apartment",
+    house: "House",
+    room: "Room",
+    parking: "Parking",
+    commercial: "Commercial",
+    land: "Land",
+    dacha: "Dacha",
+  },
   bodyType: "Body type",
   sedan: "Sedan",
   suv: "SUV",
@@ -721,7 +748,7 @@ const en: typeof ru = {
   newListing: "New listing",
   draft: "Draft",
   loggedInAs: "Signed in as",
-  kindRent: "Apartment rental",
+  kindRent: "Real estate",
   kindGoods: "Goods",
   photos: "Photos",
   mainPhoto: "Cover",
@@ -768,7 +795,7 @@ const en: typeof ru = {
     kochkor: "Kochkor",
   },
   sectionNames: {
-    rent: "Apartments & houses",
+    rent: "Real estate",
     secondhand: "Secondhand",
     animals: "Livestock & pets",
     cars: "Cars",
@@ -865,10 +892,22 @@ export function housingDealLabel(
 }
 
 export function listingChipLabel(
-  listing: { section: SectionId; category?: string; goodsKind?: string; dealKind?: string; stockKind?: string },
+  listing: {
+    section: SectionId;
+    category?: string;
+    goodsKind?: string;
+    housingKind?: string;
+    dealKind?: string;
+    stockKind?: string;
+  },
   t: Dict,
 ): string {
-  if (listing.section === "rent") return housingDealLabel(listing, t);
+  if (listing.section === "rent") {
+    if (listing.housingKind && t.propertyTypes[listing.housingKind]) {
+      return t.propertyTypes[listing.housingKind];
+    }
+    return housingDealLabel(listing, t);
+  }
   if (listing.section === "cars") return t.autoSale;
   if (listing.section === "car-rental") return t.autoRent;
   if (listing.goodsKind && t.goodsKinds[listing.goodsKind]) return t.goodsKinds[listing.goodsKind];

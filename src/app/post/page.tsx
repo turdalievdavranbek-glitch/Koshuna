@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, SECTIONS, SERVICE_CATEGORIES, goodsKindsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, SECTIONS, SERVICE_CATEGORIES, goodsKindsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -90,7 +90,7 @@ export default function PostPage() {
               <div className="mt-2.5 flex gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setDraft({ kind: "rent", section: "rent" })}
+                  onClick={() => setDraft({ kind: "rent", section: "rent", housingKind: "apartment" })}
                   className="flex-1 rounded-2xl p-3.5 text-left"
                   style={{
                     background: draft.kind === "rent" ? "#17140F" : "#FFFFFF",
@@ -115,6 +115,19 @@ export default function PostPage() {
                   <div className="mt-2.5 text-[15px] font-semibold">{t.kindGoods}</div>
                 </button>
               </div>
+              {draft.section === "rent" ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {PROPERTY_TYPES.map((id) => (
+                    <Chip
+                      key={id}
+                      active={draft.housingKind === id}
+                      onClick={() => setDraft({ housingKind: id })}
+                    >
+                      {t.propertyTypes[id]}
+                    </Chip>
+                  ))}
+                </div>
+              ) : null}
               {draft.section === "secondhand" ? (
                 <>
                   <div className="mt-3 flex flex-wrap gap-2">

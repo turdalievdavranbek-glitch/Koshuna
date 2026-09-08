@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
+import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms, propertyShowsStock } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
@@ -12,6 +12,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
+import { PropertyTypeChips } from "@/components/property-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -169,7 +170,7 @@ export default function FiltersPage() {
                 </Chip>
               ))}
             </div>
-            {filters.dealType === "buy" ? (
+            {filters.dealType === "buy" && propertyShowsStock(filters.housingType) ? (
               <div className="mt-2.5 flex flex-wrap gap-2">
                 {(
                   [
@@ -189,19 +190,9 @@ export default function FiltersPage() {
 
         {isRent ? (
           <div>
-            <Eyebrow>{t.housingType}</Eyebrow>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {(
-                [
-                  ["any", t.any],
-                  ["apartment", t.apartment],
-                  ["house", t.house],
-                ] as const
-              ).map(([id, label]) => (
-                <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
-                  {label}
-                </Chip>
-              ))}
+            <Eyebrow>{t.category}</Eyebrow>
+            <div className="mt-2.5">
+              <PropertyTypeChips />
             </div>
           </div>
         ) : null}
@@ -229,7 +220,7 @@ export default function FiltersPage() {
           </div>
         ) : null}
 
-        {isRent && filters.dealType === "short" ? (
+        {isRent && filters.dealType === "short" && propertyIsLiving(filters.housingType) ? (
           <div>
             <Eyebrow>
               {t.checkIn} / {t.checkOut}
@@ -408,7 +399,7 @@ export default function FiltersPage() {
           </div>
         </div>
 
-        {isRent ? (
+        {isRent && propertyShowsRooms(filters.housingType) ? (
         <div>
           <Eyebrow>{t.rooms}</Eyebrow>
           <div className="mt-2.5 flex gap-2">

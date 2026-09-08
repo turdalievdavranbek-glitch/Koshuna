@@ -15,6 +15,15 @@ export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted";
 
 export type SortMode = "new" | "price-asc" | "price-desc";
 
+export type PropertyType =
+  | "apartment"
+  | "house"
+  | "room"
+  | "parking"
+  | "commercial"
+  | "land"
+  | "dacha";
+
 export type User = {
   name: string;
   phone: string;
@@ -55,7 +64,7 @@ export type Listing = {
   postedAgo: string;
   rooms?: number;
   area?: number;
-  housingKind?: "apartment" | "house";
+  housingKind?: PropertyType;
   dealKind?: "long" | "short" | "buy";
   stockKind?: "newbuild" | "resale";
   lng?: number;
@@ -151,4 +160,5 @@ export type DraftListing = {
   photo?: string;
   category?: string;
   goodsKind?: string;
+  housingKind?: PropertyType;
 };

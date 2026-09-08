@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SERVICE_CATEGORIES } from "@/lib/data";
+import { SERVICE_CATEGORIES, propertyIsLiving, propertyShowsStock } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
+import { PropertyTypeChips } from "@/components/property-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -15,6 +16,7 @@ export function SectionExtras() {
   if (section === "rent") {
     return (
       <div className="flex flex-col gap-2.5">
+        <PropertyTypeChips />
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -30,8 +32,8 @@ export function SectionExtras() {
               onClick={() =>
                 setFilters({
                   dealType: id,
-                  checkIn: id === "short" ? filters.checkIn : null,
-                  checkOut: id === "short" ? filters.checkOut : null,
+                  checkIn: id === "short" && propertyIsLiving(filters.housingType) ? filters.checkIn : null,
+                  checkOut: id === "short" && propertyIsLiving(filters.housingType) ? filters.checkOut : null,
                   stockType: id === "buy" ? filters.stockType : "any",
                 })
               }
@@ -40,7 +42,7 @@ export function SectionExtras() {
             </Chip>
           ))}
         </div>
-        {filters.dealType === "buy" ? (
+        {filters.dealType === "buy" && propertyShowsStock(filters.housingType) ? (
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -55,19 +57,6 @@ export function SectionExtras() {
             ))}
           </div>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["any", t.any],
-              ["apartment", t.apartment],
-              ["house", t.house],
-            ] as const
-          ).map(([id, label]) => (
-            <Chip key={id} active={filters.housingType === id} onClick={() => setFilters({ housingType: id })}>
-              {label}
-            </Chip>
-          ))}
-        </div>
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -81,7 +70,7 @@ export function SectionExtras() {
           </span>
           <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
         </button>
-        {filters.dealType === "short" ? (
+        {filters.dealType === "short" && propertyIsLiving(filters.housingType) ? (
           <StayCalendar
             checkIn={filters.checkIn}
             checkOut={filters.checkOut}

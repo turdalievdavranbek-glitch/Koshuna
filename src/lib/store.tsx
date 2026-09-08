@@ -217,6 +217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ? "rent"
                 : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
+        housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,
