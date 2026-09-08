@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CATEGORIES, CITIES, SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
+import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -34,9 +35,8 @@ export default function FiltersPage() {
   const isRent = filters.section === "rent";
   const isSecondhand = filters.section === "secondhand";
   const isServices = filters.section === "services";
-  const isCars = filters.section === "cars";
-  const isCarRental = filters.section === "car-rental";
-  const isAuto = isCars || isCarRental;
+  const isAuto = filters.section === "cars";
+  const isCarRental = isAuto && filters.autoType === "rent";
   const isStays = filters.section === "stays";
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
@@ -44,21 +44,7 @@ export default function FiltersPage() {
       setSectionPickerOpen(false);
       return;
     }
-    setFilters({
-      section: id,
-      category: null,
-      rooms: id === "rent" ? filters.rooms : [],
-      housingType: id === "rent" ? filters.housingType : "any",
-      bodyType: id === "cars" || id === "car-rental" ? filters.bodyType : "any",
-      gear: id === "car-rental" ? filters.gear : "any",
-      checkIn: id === "stays" ? filters.checkIn : null,
-      checkOut: id === "stays" ? filters.checkOut : null,
-      dealType: id === "rent" ? filters.dealType : "any",
-      stockType: id === "rent" ? filters.stockType : "any",
-      locLng: id === "rent" ? filters.locLng : null,
-      locLat: id === "rent" ? filters.locLat : null,
-      locLabel: id === "rent" ? filters.locLabel : null,
-    });
+    setFilters(patchForSection(id, filters));
     setSectionPickerOpen(false);
   };
 
@@ -266,6 +252,33 @@ export default function FiltersPage() {
                 checkOut={filters.checkOut}
                 onChange={(next) => setFilters(next)}
               />
+            </div>
+          </div>
+        ) : null}
+
+        {isAuto ? (
+          <div>
+            <Eyebrow>{t.dealType}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {(
+                [
+                  ["sale", t.autoSale],
+                  ["rent", t.autoRent],
+                ] as const
+              ).map(([id, label]) => (
+                <Chip
+                  key={id}
+                  active={filters.autoType === id}
+                  onClick={() =>
+                    setFilters({
+                      autoType: id,
+                      gear: id === "rent" ? filters.gear : "any",
+                    })
+                  }
+                >
+                  {label}
+                </Chip>
+              ))}
             </div>
           </div>
         ) : null}

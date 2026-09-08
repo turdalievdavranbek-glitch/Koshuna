@@ -6,13 +6,15 @@ export function isSectionId(id: string): id is SectionId {
 }
 
 export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> {
+  const stayingOnCars = id === "cars" && prev.section === "cars";
   return {
     section: id,
     category: id === prev.section ? prev.category : null,
     rooms: id === "rent" ? prev.rooms : [],
     housingType: id === "rent" ? prev.housingType : "any",
-    bodyType: id === "cars" || id === "car-rental" ? prev.bodyType : "any",
-    gear: id === "car-rental" ? prev.gear : "any",
+    bodyType: id === "cars" ? prev.bodyType : "any",
+    gear: stayingOnCars && prev.autoType === "rent" ? prev.gear : "any",
+    autoType: id === "cars" ? (stayingOnCars ? prev.autoType : "sale") : "sale",
     checkIn: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkIn : null,
     checkOut: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkOut : null,
     dealType: id === "rent" ? prev.dealType : "any",

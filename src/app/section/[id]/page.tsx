@@ -21,11 +21,24 @@ export default function SectionPage() {
   const rest = listings.slice(1);
 
   useEffect(() => {
+    if (id === "car-rental") {
+      setFilters({ ...patchForSection("cars", filters), autoType: "rent" });
+      router.replace("/section/cars");
+      return;
+    }
     if (!isSectionId(id)) return;
     setFilters(patchForSection(id, filters));
     // Sync from the URL once per section id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  if (id === "car-rental") {
+    return (
+      <PhoneShell tab>
+        <div className="p-6" />
+      </PhoneShell>
+    );
+  }
 
   if (!isSectionId(id)) {
     return (
@@ -123,6 +136,7 @@ export default function SectionPage() {
                 locLng: null,
                 locLat: null,
                 locLabel: null,
+                autoType: "sale",
                 section: id,
               });
             }}
@@ -159,6 +173,7 @@ export default function SectionPage() {
                   locLng: null,
                   locLat: null,
                   locLabel: null,
+                  autoType: "sale",
                   section: id,
                 });
               }}

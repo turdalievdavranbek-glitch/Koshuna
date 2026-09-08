@@ -103,6 +103,7 @@ export type Filters = {
   checkOut: string | null;
   dealType: "any" | "long" | "short" | "buy";
   stockType: "any" | "newbuild" | "resale";
+  autoType: "sale" | "rent";
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;

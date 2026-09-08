@@ -32,7 +32,7 @@ const ru = {
   searchSecondhand: "Диван, велосипед, телефон…",
   changeSection: "Сменить раздел",
   sections: "Разделы",
-  nSections: "9 разделов",
+  nSections: "8 разделов",
   promoted: "Продвигаемые",
   ad: "Реклама",
   promoteYours: "Продвинуть своё",
@@ -57,6 +57,8 @@ const ru = {
   dealLong: "Долгосрочная аренда",
   dealShort: "Краткосрочная аренда",
   dealBuy: "Покупка",
+  autoSale: "Продажа",
+  autoRent: "Аренда",
   stockNew: "Новостройка",
   stockResale: "Вторичка",
   pickOnMap: "Выбрать на карте 2ГИС",
@@ -337,7 +339,7 @@ const ky: typeof ru = {
   searchSecondhand: "Диван, велосипед, телефон…",
   changeSection: "Бөлүмдү өзгөртүү",
   sections: "Бөлүмдөр",
-  nSections: "9 бөлүм",
+  nSections: "8 бөлүм",
   promoted: "Жарнамаланган",
   ad: "Жарнама",
   promoteYours: "Өзүңүздү көтөрүңүз",
@@ -359,6 +361,8 @@ const ky: typeof ru = {
   dealLong: "Узак мөөнөттүү ижара",
   dealShort: "Кыска мөөнөттүү ижара",
   dealBuy: "Сатып алуу",
+  autoSale: "Сатуу",
+  autoRent: "Ижара",
   stockNew: "Жаңы үй",
   stockResale: "Экинчи рынок",
   pickOnMap: "2ГИС картасынан тандоо",
@@ -548,7 +552,7 @@ const en: typeof ru = {
   searchSecondhand: "Sofa, bicycle, phone…",
   changeSection: "Change section",
   sections: "Sections",
-  nSections: "9 sections",
+  nSections: "8 sections",
   promoted: "Promoted",
   ad: "Ad",
   promoteYours: "Promote yours",
@@ -570,6 +574,8 @@ const en: typeof ru = {
   dealLong: "Long-term rent",
   dealShort: "Short-term rent",
   dealBuy: "Buy",
+  autoSale: "Sale",
+  autoRent: "Rent",
   stockNew: "New build",
   stockResale: "Resale",
   pickOnMap: "Pick on the 2GIS map",
@@ -769,6 +775,17 @@ export function housingDealLabel(
   }
   if (listing.dealKind === "short") return t.dealShort;
   return t.dealLong;
+}
+
+export function listingChipLabel(
+  listing: { section: SectionId; category?: string; dealKind?: string; stockKind?: string },
+  t: Dict,
+): string {
+  if (listing.section === "rent") return housingDealLabel(listing, t);
+  if (listing.section === "cars") return t.autoSale;
+  if (listing.section === "car-rental") return t.autoRent;
+  if (listing.category && t.cats[listing.category]) return t.cats[listing.category];
+  return t.sectionNames[listing.section];
 }
 
 export function listingDesc(

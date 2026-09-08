@@ -68,14 +68,25 @@ export default function PostPage() {
               <div className="mt-2.5">
                 <SelectRow
                   label={t.listingType}
-                  value={t.sectionNames[draft.section]}
+                  value={t.sectionNames[draft.section === "car-rental" ? "cars" : draft.section]}
                   onClick={() => {
                     const ids = SECTIONS.map((s) => s.id);
-                    const i = ids.indexOf(draft.section);
+                    const visual = draft.section === "car-rental" ? "cars" : draft.section;
+                    const i = Math.max(0, ids.indexOf(visual));
                     setDraft({ section: ids[(i + 1) % ids.length] });
                   }}
                 />
               </div>
+              {(draft.section === "cars" || draft.section === "car-rental") ? (
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <Chip active={draft.section === "cars"} onClick={() => setDraft({ section: "cars" })}>
+                    {t.autoSale}
+                  </Chip>
+                  <Chip active={draft.section === "car-rental"} onClick={() => setDraft({ section: "car-rental" })}>
+                    {t.autoRent}
+                  </Chip>
+                </div>
+              ) : null}
               <div className="mt-2.5 flex gap-2.5">
                 <button
                   type="button"

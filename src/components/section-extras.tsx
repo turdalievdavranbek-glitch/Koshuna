@@ -106,9 +106,30 @@ export function SectionExtras() {
     );
   }
 
-  if (section === "cars" || section === "car-rental") {
+  if (section === "cars") {
     return (
       <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["sale", t.autoSale],
+              ["rent", t.autoRent],
+            ] as const
+          ).map(([id, label]) => (
+            <Chip
+              key={id}
+              active={filters.autoType === id}
+              onClick={() =>
+                setFilters({
+                  autoType: id,
+                  gear: id === "rent" ? filters.gear : "any",
+                })
+              }
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -122,7 +143,7 @@ export function SectionExtras() {
             </Chip>
           ))}
         </div>
-        {section === "car-rental" ? (
+        {filters.autoType === "rent" ? (
           <div className="flex flex-wrap gap-2">
             {(
               [

@@ -6,7 +6,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
   let out = list.filter((item) => {
     if (item.status === "draft") return false;
     if (cityKey && cityKey !== "all" && item.city !== cityKey) return false;
-    if (filters.section && item.section !== filters.section) return false;
+    if (filters.section === "cars") {
+      const want = filters.autoType === "rent" ? "car-rental" : "cars";
+      if (item.section !== want) return false;
+    } else if (filters.section && item.section !== filters.section) {
+      return false;
+    }
     if (filters.category && filters.category !== "all") {
       if (
         (filters.section === "secondhand" || filters.section === "services") &&
@@ -42,11 +47,11 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       const match = filters.rooms.some((r) => (r >= 4 ? item.rooms! >= 4 : item.rooms === r));
       if (!match) return false;
     }
-    const carFilters = filters.section === "cars" || filters.section === "car-rental";
+    const carFilters = filters.section === "cars";
     if (carFilters && filters.bodyType && filters.bodyType !== "any") {
       if (item.bodyKind !== filters.bodyType) return false;
     }
-    if (filters.section === "car-rental" && filters.gear && filters.gear !== "any") {
+    if (carFilters && filters.autoType === "rent" && filters.gear && filters.gear !== "any") {
       if (item.gearKind !== filters.gear) return false;
     }
     if (filters.priceMin != null && item.price < filters.priceMin) return false;

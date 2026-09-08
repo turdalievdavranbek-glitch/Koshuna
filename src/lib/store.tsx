@@ -34,6 +34,7 @@ const defaultFilters = (): Filters => ({
   checkOut: null,
   dealType: "any",
   stockType: "any",
+  autoType: "sale",
   locLng: null,
   locLat: null,
   locLabel: null,
@@ -107,13 +108,23 @@ type Store = State & {
 
 const Ctx = createContext<Store | null>(null);
 
+function normalizeFilters(filters: Filters): Filters {
+  if (filters.section === "car-rental") {
+    return { ...filters, section: "cars", autoType: "rent" };
+  }
+  return {
+    ...filters,
+    autoType: filters.autoType === "rent" ? "rent" : "sale",
+  };
+}
+
 function load(): State {
   if (typeof window === "undefined") return initial;
   try {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
     const saved = JSON.parse(raw) as Partial<State>;
-    return { ...initial, ...saved, filters: { ...defaultFilters(), ...saved.filters } };
+    return { ...initial, ...saved, filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }) };
   } catch {
     return initial;
   }
@@ -205,7 +216,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         titleKy: d.title,
         titleEn: d.title,
         price: Number(d.price.replace(/\s/g, "")) || 0,
-        unit: d.kind === "rent" ? "month" : undefined,
+        unit: d.section === "car-rental" ? "day" : d.kind === "rent" ? "month" : undefined,
         city: d.city,
         postedAgo: "2h",
         rooms: d.rooms ? Number(d.rooms) : undefined,

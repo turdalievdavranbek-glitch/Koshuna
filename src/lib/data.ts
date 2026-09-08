@@ -18,7 +18,6 @@ export const SECTIONS: { id: SectionId; icon: string }[] = [
   { id: "rent", icon: "home" },
   { id: "secondhand", icon: "bag" },
   { id: "cars", icon: "car" },
-  { id: "car-rental", icon: "car-rent" },
   { id: "stays", icon: "hotel" },
   { id: "services", icon: "pen" },
   { id: "vacancies", icon: "briefcase" },

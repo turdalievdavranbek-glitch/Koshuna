@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
-import { housingDealLabel, listingTitle } from "@/lib/i18n";
+import { listingChipLabel, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
@@ -111,9 +111,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
       <div className="relative h-[186px]">
         <Photo src={listing.photos[0]} alt={title} />
         <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
-          {listing.section === "rent"
-            ? housingDealLabel(listing, t)
-            : t.cats[listing.category ?? ""] ?? t.sectionNames[listing.section]}
+          {listingChipLabel(listing, t)}
         </span>
         <span
           role="button"
@@ -168,12 +166,7 @@ export function ListingRow({
   const { t, lang, isFav, user } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
-  const cat =
-    listing.section === "rent"
-      ? housingDealLabel(listing, t)
-      : listing.category
-        ? (t.cats[listing.category] ?? t.sectionNames[listing.section])
-        : t.sectionNames[listing.section];
+  const cat = listingChipLabel(listing, t);
   return (
     <button
       type="button"
