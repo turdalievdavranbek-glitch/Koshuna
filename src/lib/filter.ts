@@ -14,7 +14,9 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (filters.category && filters.category !== "all") {
       if (
-        (filters.section === "secondhand" || filters.section === "services") &&
+        (filters.section === "secondhand" ||
+          filters.section === "services" ||
+          filters.section === "construction") &&
         item.category !== filters.category
       ) {
         return false;

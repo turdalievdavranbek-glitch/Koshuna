@@ -240,9 +240,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? d.category ?? "repairs-finish"
             : d.section === "secondhand"
               ? d.category ?? "furniture"
-              : d.kind === "rent"
-                ? "rent"
-                : "furniture",
+              : d.section === "construction"
+                ? d.category ?? "cement"
+                : d.kind === "rent"
+                  ? "rent"
+                  : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
         animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,

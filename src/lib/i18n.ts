@@ -164,6 +164,7 @@ const ru = {
   searchServices: "Уборка, репетитор, ремонт…",
   searchStays: "Иссык-Куль, Каракол, гостевой дом…",
   searchAnimals: "Щенок, кошка, куры…",
+  searchConstruction: "Цемент, кирпич, кровля…",
   checkIn: "Заезд",
   checkOut: "Выезд",
   pickCheckIn: "Дата",
@@ -349,6 +350,14 @@ const ru = {
     education: "Образование",
     cleaning: "Уборка",
     other: "Другое",
+    cement: "Цемент и бетон",
+    brick: "Кирпич и блоки",
+    timber: "Пиломатериалы",
+    metal: "Металл",
+    roofing: "Кровля",
+    bulk: "Сыпучие",
+    paint: "Краски и отделка",
+    insulation: "Утеплитель",
   } as Record<string, string>,
   goodsKinds: {
     sofa: "Диваны",
@@ -658,6 +667,7 @@ const ky: typeof ru = {
   searchServices: "Тазалоо, репетитор, оңдоо…",
   searchStays: "Ысык-Көл, Каракол, конок үйү…",
   searchAnimals: "Күчүк, мышык, тоок…",
+  searchConstruction: "Цемент, кирпич, чатыр…",
   checkIn: "Кирүү",
   checkOut: "Чыгуу",
   pickCheckIn: "Күн",
@@ -786,6 +796,14 @@ const ky: typeof ru = {
     education: "Билим берүү",
     cleaning: "Тазалоо",
     other: "Башка",
+    cement: "Цемент жана бетон",
+    brick: "Кирпич жана блоктор",
+    timber: "Жыгач материалдар",
+    metal: "Металл",
+    roofing: "Чатыр",
+    bulk: "Шагыл жана кум",
+    paint: "Боёк жана жасалгалоо",
+    insulation: "Жылуулоо",
   },
   goodsKinds: {
     sofa: "Дивандар",
@@ -955,6 +973,7 @@ const en: typeof ru = {
   searchServices: "Cleaning, tutor, repairs…",
   searchStays: "Issyk-Kul, Karakol, guesthouse…",
   searchAnimals: "Puppy, cat, hens…",
+  searchConstruction: "Cement, brick, roofing…",
   checkIn: "Check-in",
   checkOut: "Check-out",
   pickCheckIn: "Date",
@@ -1084,6 +1103,14 @@ const en: typeof ru = {
     education: "Education",
     cleaning: "Cleaning",
     other: "Other",
+    cement: "Cement & concrete",
+    brick: "Brick & blocks",
+    timber: "Timber",
+    metal: "Metal",
+    roofing: "Roofing",
+    bulk: "Bulk materials",
+    paint: "Paint & finish",
+    insulation: "Insulation",
   },
   goodsKinds: {
     sofa: "Sofas",
@@ -1151,6 +1178,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchStays;
     case "animals":
       return t.searchAnimals;
+    case "construction":
+      return t.searchConstruction;
     default:
       return t.searchPh;
   }

@@ -8,6 +8,7 @@ import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
+import { ConstructionChips } from "@/components/construction-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -171,6 +172,10 @@ export function SectionExtras() {
         ))}
       </div>
     );
+  }
+
+  if (section === "construction") {
+    return <ConstructionChips />;
   }
 
   return null;
