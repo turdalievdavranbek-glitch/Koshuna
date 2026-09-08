@@ -321,7 +321,7 @@ const ru = {
   } as Record<string, string>,
   sectionNames: {
     rent: "Недвижимость",
-    secondhand: "Секонд-хенд",
+    secondhand: "Личные вещи",
     animals: "Животные",
     cars: "Авто",
     "car-rental": "Аренда авто",
@@ -668,7 +668,7 @@ const ky: typeof ru = {
   },
   sectionNames: {
     rent: "Кыймылсыз мүлк",
-    secondhand: "Секонд-хенд",
+    secondhand: "Жеке буюмдар",
     animals: "Жаныбарлар",
     cars: "Авто",
     "car-rental": "Авто ижара",
@@ -944,7 +944,7 @@ const en: typeof ru = {
   },
   sectionNames: {
     rent: "Real estate",
-    secondhand: "Secondhand",
+    secondhand: "Personal items",
     animals: "Animals",
     cars: "Cars",
     "car-rental": "Car rental",
