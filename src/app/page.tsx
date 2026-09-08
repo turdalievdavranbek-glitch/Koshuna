@@ -78,7 +78,7 @@ export default function FeedPage() {
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
           <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2.5">
           {SECTIONS.map((s) => (
             <button
               key={s.id}
@@ -87,15 +87,15 @@ export default function FeedPage() {
                 setFilters(patchForSection(s.id, filters));
                 router.push(`/section/${s.id}`);
               }}
-              className="relative h-[112px] overflow-hidden rounded-[18px] border border-line bg-surface text-left"
+              className="section-tile flex h-[110px] flex-col items-center overflow-hidden rounded-[16px] px-1.5 pb-2 pt-1.5 text-center"
             >
-              <span className="relative z-[1] block max-w-[58%] px-3 pt-2.5 text-[13px] font-semibold leading-[1.25] text-ink">
+              <span className="line-clamp-3 min-h-[34px] w-full text-[11px] font-semibold leading-[1.2] text-ink">
                 {t.sectionNames[s.id]}
               </span>
               <img
                 src={s.art}
                 alt=""
-                className="pointer-events-none absolute -bottom-3 -right-2 h-[92px] w-[92px] object-contain"
+                className="mt-auto h-[48px] w-[48px] shrink-0 object-contain"
               />
             </button>
           ))}
