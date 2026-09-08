@@ -87,11 +87,13 @@ export default function FeedPage() {
                 setFilters(patchForSection(s.id, filters));
                 router.push(`/section/${s.id}`);
               }}
-              className="section-tile relative h-[110px] overflow-hidden rounded-[16px] text-left"
+              className="section-tile flex h-[118px] flex-col overflow-hidden rounded-[16px] text-center"
             >
-              <img src={s.art} alt="" className="absolute inset-0 h-full w-full origin-center scale-110 object-cover" />
-              <span className="relative z-[1] block px-2 pt-2 text-[11px] font-semibold leading-[1.2] text-ink">
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1.5 py-1.5 text-[11px] font-semibold leading-[1.2] text-ink">
                 {t.sectionNames[s.id]}
+              </span>
+              <span className="flex min-h-0 flex-1 items-center justify-center bg-[#f3eee4] px-1 pb-1.5">
+                <img src={s.art} alt="" className="h-full w-full object-contain" />
               </span>
             </button>
           ))}
