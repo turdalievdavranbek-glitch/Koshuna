@@ -143,7 +143,7 @@ export default function FeedPage() {
           </div>
         </div>
 
-        <div className="sc mt-[22px] flex gap-2 overflow-x-auto pb-0.5">
+        <div className="mt-[22px] flex flex-wrap gap-2">
           {CITIES.map((id) => (
             <Chip key={id} active={city === id} onClick={() => setCity(id)}>
               {t.cities[id]}

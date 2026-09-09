@@ -89,7 +89,7 @@ export default function SectionPage() {
           <SectionExtras />
         </div>
 
-        <div className="sc mt-3.5 flex gap-2 overflow-x-auto pb-0.5">
+        <div className="mt-3.5 flex flex-wrap gap-2">
           {CITIES.map((cityId) => (
             <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
               {t.cities[cityId]}
