@@ -76,6 +76,16 @@ export function IconBlocks(p: P) {
     </svg>
   );
 }
+export function IconFork(p: P) {
+  return (
+    <svg {...base(p)} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.2 2.8v5.2c0 1 .8 1.8 1.8 1.8V15.2" />
+      <path d="M3.2 2.8v4.2M5.1 2.8v4.2M7 2.8v4.2" />
+      <path d="M13.6 2.8c0 2.2-1.6 3.2-1.6 5.2V15.2" />
+      <path d="M12 8h3.2" />
+    </svg>
+  );
+}
 export function IconPin(p: P) {
   return (
     <svg {...base(p)} strokeWidth="1.7" strokeLinecap="round">
@@ -249,6 +259,7 @@ export function sectionIcon(id: string, color = "#B8452F", size = 19) {
     services: IconPen,
     vacancies: IconBriefcase,
     construction: IconBlocks,
+    restaurants: IconFork,
     home: IconHome,
     bag: IconBag,
   };

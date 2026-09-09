@@ -22,6 +22,7 @@ export const SECTIONS: { id: SectionId; icon: string; art: string }[] = [
   { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.jpg" },
   { id: "services", icon: "pen", art: "/sections/services.jpg" },
   { id: "stays", icon: "hotel", art: "/sections/stays.jpg" },
+  { id: "restaurants", icon: "fork", art: "/sections/restaurants.jpg" },
   { id: "animals", icon: "animal", art: "/sections/animals.jpg" },
 ];
 

@@ -9,7 +9,8 @@ export type SectionId =
   | "stays"
   | "services"
   | "vacancies"
-  | "construction";
+  | "construction"
+  | "restaurants";
 
 export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted";
 

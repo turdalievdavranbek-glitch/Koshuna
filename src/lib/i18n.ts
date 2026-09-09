@@ -32,7 +32,7 @@ const ru = {
   searchSecondhand: "Диван, iPhone, холодильник…",
   changeSection: "Сменить раздел",
   sections: "Разделы",
-  nSections: "8 разделов",
+  nSections: "9 разделов",
   promoted: "Продвигаемые",
   ad: "Реклама",
   promoteYours: "Продвинуть своё",
@@ -165,6 +165,7 @@ const ru = {
   searchStays: "Иссык-Куль, Каракол, гостевой дом…",
   searchAnimals: "Щенок, кошка, куры…",
   searchConstruction: "Цемент, кирпич, кровля…",
+  searchRestaurants: "Кафе, ресторан, чайхана…",
   checkIn: "Заезд",
   checkOut: "Выезд",
   pickCheckIn: "Дата",
@@ -331,6 +332,7 @@ const ru = {
     services: "Услуги",
     vacancies: "Вакансии",
     construction: "Стройматериалы",
+    restaurants: "Рестораны, кафе",
   } as Record<SectionId, string>,
   cats: {
     furniture: "Мебель",
@@ -538,7 +540,7 @@ const ky: typeof ru = {
   searchSecondhand: "Диван, iPhone, муздаткыч…",
   changeSection: "Бөлүмдү өзгөртүү",
   sections: "Бөлүмдөр",
-  nSections: "8 бөлүм",
+  nSections: "9 бөлүм",
   promoted: "Жарнамаланган",
   ad: "Жарнама",
   promoteYours: "Өзүңүздү көтөрүңүз",
@@ -668,6 +670,7 @@ const ky: typeof ru = {
   searchStays: "Ысык-Көл, Каракол, конок үйү…",
   searchAnimals: "Күчүк, мышык, тоок…",
   searchConstruction: "Цемент, кирпич, чатыр…",
+  searchRestaurants: "Кафе, ресторан, чайкана…",
   checkIn: "Кирүү",
   checkOut: "Чыгуу",
   pickCheckIn: "Күн",
@@ -777,6 +780,7 @@ const ky: typeof ru = {
     services: "Кызматтар",
     vacancies: "Бош орундар",
     construction: "Курулуш материалдары",
+    restaurants: "Ресторандар, кафелер",
   },
   cats: {
     furniture: "Эмерек",
@@ -882,7 +886,7 @@ const en: typeof ru = {
   searchSecondhand: "Sofa, iPhone, fridge…",
   changeSection: "Change section",
   sections: "Sections",
-  nSections: "8 sections",
+  nSections: "9 sections",
   promoted: "Promoted",
   ad: "Ad",
   promoteYours: "Promote yours",
@@ -974,6 +978,7 @@ const en: typeof ru = {
   searchStays: "Issyk-Kul, Karakol, guesthouse…",
   searchAnimals: "Puppy, cat, hens…",
   searchConstruction: "Cement, brick, roofing…",
+  searchRestaurants: "Cafe, restaurant, teahouse…",
   checkIn: "Check-in",
   checkOut: "Check-out",
   pickCheckIn: "Date",
@@ -1084,6 +1089,7 @@ const en: typeof ru = {
     services: "Services",
     vacancies: "Jobs",
     construction: "Building materials",
+    restaurants: "Restaurants & cafes",
   },
   cats: {
     furniture: "Furniture",
@@ -1180,6 +1186,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchAnimals;
     case "construction":
       return t.searchConstruction;
+    case "restaurants":
+      return t.searchRestaurants;
     default:
       return t.searchPh;
   }
