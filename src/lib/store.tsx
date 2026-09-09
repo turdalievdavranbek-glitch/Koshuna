@@ -378,7 +378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           {
             id: "sys",
             from: "system",
-            text: t.meetHome,
+            text: listing?.safetyKind === "goods" ? t.meetGoods : t.meetHome,
             time: "",
           },
         ],
