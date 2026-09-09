@@ -8,11 +8,12 @@ import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconPin, sectionIcon } from "@/components/icons";
 import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
+import { ShareToSocial } from "@/components/share-to-social";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
 export default function PostPage() {
-  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath } = useApp();
+  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, allListings } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
@@ -26,6 +27,8 @@ export default function PostPage() {
   }, [user, router, setPendingPath]);
 
   if (!user) return null;
+
+  const published = publishedId ? allListings.find((item) => item.id === publishedId) : undefined;
 
   const bars = [step >= 1, step >= 2, step >= 3];
 
@@ -503,14 +506,21 @@ export default function PostPage() {
       ) : null}
 
       {step === 3 ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-tint text-2xl text-success">✓</div>
-          <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
-          <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.publishedHint}</p>
+        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-2">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-tint text-2xl text-success">✓</div>
+            <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
+            <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.publishedHint}</p>
+          </div>
+          {published ? (
+            <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
+              <ShareToSocial listing={published} />
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={() => router.push(publishedId ? `/listing/${publishedId}` : "/")}
-            className="shadow-btn mt-8 h-[54px] w-full rounded-2xl bg-accent text-base font-semibold text-accent-on"
+            className="shadow-btn mt-6 h-[54px] w-full rounded-2xl bg-accent text-base font-semibold text-accent-on"
           >
             {t.viewListing}
           </button>

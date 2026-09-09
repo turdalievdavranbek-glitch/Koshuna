@@ -18,6 +18,7 @@ import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ReportListing } from "@/components/report-listing";
+import { ShareToSocial } from "@/components/share-to-social";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 
@@ -222,6 +223,9 @@ export default function ListingPage() {
             >
               {isAbroad(viewerPlace) ? t.showFamily : t.showApa}
             </a>
+          </div>
+          <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
+            <ShareToSocial listing={listing} />
           </div>
 
           {listing.rooms ? (
