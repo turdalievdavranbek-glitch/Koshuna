@@ -118,6 +118,9 @@ export default function SectionPage() {
           >
             {t.priceDropped}
           </Chip>
+          <Chip active={filters.videoOnly} onClick={() => setFilters({ videoOnly: !filters.videoOnly })}>
+            {t.videoOnly}
+          </Chip>
           <Chip onClick={() => router.push("/filters")}>
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
@@ -164,6 +167,7 @@ export default function SectionPage() {
                 settlement: "any",
                 aiylOnly: false,
                 priceDroppedOnly: false,
+                videoOnly: false,
                 section: id,
               });
             }}
@@ -212,6 +216,7 @@ export default function SectionPage() {
                   settlement: "any",
                   aiylOnly: false,
                   priceDroppedOnly: false,
+                  videoOnly: false,
                   section: id,
                 });
               }}

@@ -338,3 +338,12 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   if (guess.meetupSpot) patch.meetupSpot = guess.meetupSpot;
   return patch;
 }
+
+export function isSpokenListing(listing: { mediaKind?: string; videoUrl?: string; voiceUrl?: string }) {
+  return listing.mediaKind === "video" || listing.mediaKind === "voice" || Boolean(listing.videoUrl);
+}
+
+export function isVoiceListing(listing: { mediaKind?: string; voiceUrl?: string; videoUrl?: string }) {
+  if (listing.mediaKind === "voice") return true;
+  return Boolean(listing.voiceUrl) && !listing.videoUrl && listing.mediaKind !== "video";
+}

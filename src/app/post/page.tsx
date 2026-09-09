@@ -12,7 +12,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
 export default function PostPage() {
-  const { t, user, draft, setDraft, publishDraft, setPendingPath } = useApp();
+  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
@@ -307,7 +307,7 @@ export default function PostPage() {
                   </Field>
                 </div>
                 <div className="flex-1">
-                  <Field label={t.priceMonthField}>
+                  <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                     <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
                   </Field>
                 </div>
@@ -470,7 +470,8 @@ export default function PostPage() {
             <button
               type="button"
               onClick={() => {
-                if ((draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed) {
+                const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
+                if (spoken && !draft.aiConfirmed) {
                   setError(t.needConfirm);
                   return;
                 }
@@ -479,10 +480,21 @@ export default function PostPage() {
                   setError(t.needFields);
                   return;
                 }
+                clearPostedDraft();
                 setPublishedId(item.id);
                 setStep(3);
               }}
-              className="shadow-btn h-[54px] flex-1 rounded-2xl bg-accent text-base font-semibold text-accent-on"
+              className="shadow-btn h-[54px] flex-1 rounded-2xl text-base font-semibold"
+              style={{
+                background:
+                  (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
+                    ? "#DCD3C4"
+                    : "#B8452F",
+                color:
+                  (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
+                    ? "#6E6558"
+                    : "#FFF7F0",
+              }}
             >
               {t.publish}
             </button>

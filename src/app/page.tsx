@@ -11,6 +11,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Photo } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
+import { isVideoListing, PlayBadge } from "@/components/listing-media";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { AbroadBanner, KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
@@ -130,8 +131,9 @@ export default function FeedPage() {
                   onClick={() => router.push(`/listing/${item.id}`)}
                   className="w-[148px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface text-left"
                 >
-                  <div className="h-24">
+                  <div className="relative h-24">
                     <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
+                    {isVideoListing(item) ? <PlayBadge compact /> : null}
                   </div>
                   <div className="px-[11px] pb-[11px] pt-[9px]">
                     <div className="font-display text-[15px] font-bold text-ink">
@@ -187,6 +189,9 @@ export default function FeedPage() {
             onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
           >
             {t.priceDropped}
+          </Chip>
+          <Chip active={filters.videoOnly} onClick={() => setFilters({ videoOnly: !filters.videoOnly })}>
+            {t.videoOnly}
           </Chip>
           <Chip onClick={openSearch}>
             {t.allCategories}

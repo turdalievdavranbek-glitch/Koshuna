@@ -33,6 +33,7 @@ const defaultFilters = (): Filters => ({
   verifiedOnly: false,
   noAgents: false,
   neighborOnly: false,
+  videoOnly: false,
   sort: "new",
   checkIn: null,
   checkOut: null,
@@ -129,6 +130,7 @@ type Store = State & {
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
   publishDraft: () => Listing | null;
+  clearPostedDraft: () => void;
   saveDraft: () => void;
   addMessage: (threadId: string, text: string) => void;
   ensureThread: (listingId: string) => string;
@@ -171,6 +173,7 @@ function normalizeFilters(filters: Filters): Filters {
     neighborOnly: Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
+    videoOnly: Boolean(next.videoOnly),
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
   };
 }
@@ -368,6 +371,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       update({ extraListings: [listing, ...state.extraListings] });
       return listing;
     },
+    clearPostedDraft: () =>
+      update((s) => ({
+        ...s,
+        draft: {
+          ...defaultDraft(),
+          name: s.draft.name,
+          phone: s.draft.phone,
+        },
+      })),
     addMessage: (threadId, text) => {
       update((s) => ({
         ...s,

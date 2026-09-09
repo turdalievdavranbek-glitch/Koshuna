@@ -415,6 +415,46 @@ export const LISTINGS: Listing[] = [
     lat: 42.8766,
   },
   {
+    id: "voice-sofa",
+    section: "secondhand",
+    category: "furniture",
+    goodsKind: "sofa",
+    mediaKind: "voice",
+    transcript:
+      "Продаю кожаный диван, Ош, восемнадцать тысяч пятьсот сом. Самовывоз, поможем спустить. Предоплату не прошу.",
+    title: "Кожаный диван — голос хозяина",
+    titleKy: "Тери диван — ээсинин үнү",
+    titleEn: "Leather sofa — owner’s voice",
+    price: 18500,
+    city: "osh",
+    postedAgo: "2h",
+    condition: "good",
+    photos: [img("photo-1555041469-a586c61ea9bc")],
+    photoCredit: "Unsplash / Martin Péchy",
+    description:
+      "Продаю кожаный диван, Ош, восемнадцать тысяч пятьсот сом. Самовывоз, поможем спустить. Предоплату не прошу.",
+    descriptionKy: "Тери диван сатам, Ош, он сегиз миң беш жүз сом. Өзүңүз алып кетесиз, түшүрүүгө жардам беребиз. Алдын ала акча сурабайм.",
+    descriptionEn: "Selling a leather sofa, Osh, eighteen thousand five hundred som. Pickup, we will help carry it down. I do not ask for a deposit.",
+    voiceText:
+      "Продаю кожаный диван, Ош, восемнадцать тысяч пятьсот сом. Самовывоз, поможем спустить. Предоплату не прошу.",
+    voiceTextKy: "Тери диван сатам, Ош, он сегиз миң беш жүз сом. Өзүңүз алып кетесиз, түшүрүүгө жардам беребиз. Алдын ала акча сурабайм.",
+    voiceTextEn: "Selling a leather sofa, Osh, eighteen thousand five hundred som. Pickup, we will help carry it down. I do not ask for a deposit.",
+    voiceSec: 9,
+    ownerId: "nurbek",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "goods",
+    mapX: 62,
+    mapY: 48,
+    contact: "whatsapp",
+    views: 41,
+    favCount: 3,
+    meetupSpot: "osh-bazaar",
+    payAfter: ["cash", "odengi"],
+  },
+  {
     id: "sofa-leather",
     section: "secondhand",
     category: "furniture",
@@ -2197,7 +2237,7 @@ export const DEFAULT_THREADS: Thread[] = [
 
 export const MY_LISTING_IDS = ["apt-sunny", "house-karakol", "bike-blue", "guesthouse-karakol"];
 
-export const PROMOTED_IDS = ["house-karakol", "bike-blue"];
+export const PROMOTED_IDS = ["video-iphone", "house-karakol", "bike-blue"];
 
 export function listingById(id: string) {
   return LISTINGS.find((item) => item.id === id);

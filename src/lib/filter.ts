@@ -3,6 +3,7 @@ import { isAiylListing } from "./data";
 import { hasPriceDrop } from "./deal";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
+import { isSpokenListing } from "./video-ai";
 
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   const cityKey = filters.city !== "all" ? filters.city : city;
@@ -46,6 +47,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.noAgents && !item.noAgent) return false;
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
     if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
+    if (filters.videoOnly && !isSpokenListing(item)) return false;
     if (filters.settlement && filters.settlement !== "any") {
       if (item.settlement !== filters.settlement) return false;
     } else if (filters.aiylOnly && !isAiylListing(item)) {

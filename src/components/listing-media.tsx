@@ -7,12 +7,30 @@ export function isVideoListing(listing: { mediaKind?: string; videoUrl?: string 
   return listing.mediaKind === "video" || Boolean(listing.videoUrl);
 }
 
+export function isVoiceListing(listing: { mediaKind?: string; voiceUrl?: string; videoUrl?: string }) {
+  if (listing.mediaKind === "voice") return true;
+  return Boolean(listing.voiceUrl) && listing.mediaKind !== "video" && !listing.videoUrl;
+}
+
 export function PlayBadge({ compact }: { compact?: boolean }) {
   const size = compact ? "h-7 w-7" : "h-9 w-9";
   return (
-    <span className={`pointer-events-none absolute inset-0 flex items-center justify-center`}>
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
       <span className={`flex ${size} items-center justify-center rounded-full bg-[rgba(23,20,15,.72)] pl-0.5 text-white`}>
         ▶
+      </span>
+    </span>
+  );
+}
+
+export function VoiceBadge({ compact }: { compact?: boolean }) {
+  const size = compact ? "h-7 w-7" : "h-9 w-9";
+  return (
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <span className={`flex ${size} items-end justify-center gap-0.5 rounded-full bg-[rgba(23,20,15,.72)] pb-2`}>
+        <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 6 : 8 }} />
+        <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 11 : 14 }} />
+        <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 8 : 10 }} />
       </span>
     </span>
   );

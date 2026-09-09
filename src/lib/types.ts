@@ -168,6 +168,7 @@ export type Filters = {
   verifiedOnly: boolean;
   noAgents: boolean;
   neighborOnly: boolean;
+  videoOnly: boolean;
   sort: SortMode;
   checkIn: string | null;
   checkOut: string | null;
