@@ -92,8 +92,8 @@ export default function FeedPage() {
               <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1.5 py-1.5 text-[11px] font-semibold leading-[1.2] text-ink">
                 {t.sectionNames[s.id]}
               </span>
-              <span className="flex min-h-0 flex-1 items-center justify-center bg-[#f3eee4] px-1 pb-1.5">
-                <img src={s.art} alt="" className="h-full w-full object-contain" />
+              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
+                <img src={s.art} alt="" className="h-full w-full object-cover" />
               </span>
             </button>
           ))}
