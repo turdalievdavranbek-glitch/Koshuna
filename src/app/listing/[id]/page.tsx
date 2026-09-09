@@ -1,9 +1,10 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
+import { goLookKind, similarListings } from "@/lib/deal";
 import { twoGisUrl } from "@/lib/geo";
 import { listingChipLabel, listingDesc, listingTitle } from "@/lib/i18n";
 import { familyShareText } from "@/lib/share";
@@ -14,16 +15,24 @@ import { NeighborCard } from "@/components/neighbor-seal";
 import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
-import { Eyebrow, Photo } from "@/components/ui";
+import { GoLookCard, PayAfterNote } from "@/components/go-look";
+import { ReportListing } from "@/components/report-listing";
+import { Eyebrow, Photo, Price } from "@/components/ui";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode } =
+  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    if (listing) markViewed(listing.id);
+    // Record the visit once per listing id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing?.id]);
 
   if (!listing) {
     return (
@@ -55,7 +64,9 @@ export default function ListingPage() {
     router.push(`/chat/${tid}`);
   };
 
+  const similar = similarListings(listing, allListings);
   const isStay = listing.section === "stays" || listing.dealKind === "short";
+  const look = goLookKind(listing);
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
   const stayTotal = nights ? listing.price * nights : 0;
 
@@ -164,11 +175,9 @@ export default function ListingPage() {
             </a>
           ) : null}
           <div className="mt-4">
-            <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-              {formatSom(listing.price)} KGS
-            </span>
-            {listing.unit ? <span className="ml-2 text-sm text-muted">{t.units[listing.unit]}</span> : null}
+            <Price listing={listing} large />
           </div>
+          <PayAfterNote listing={listing} />
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
               {t.stayTotal}: {formatSom(stayTotal)} KGS · {t.nights(nights)}
@@ -177,6 +186,7 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
+          <GoLookCard listing={listing} />
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />
 
@@ -290,6 +300,34 @@ export default function ListingPage() {
               {listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
             </p>
           </div>
+
+          {similar.length ? (
+            <div className="mt-6">
+              <Eyebrow>{t.similar}</Eyebrow>
+              <div className="sc mt-2.5 flex gap-2.5 overflow-x-auto pb-0.5">
+                {similar.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => router.push(`/listing/${item.id}`)}
+                    className="w-[148px] shrink-0 overflow-hidden rounded-2xl border border-line bg-white text-left"
+                  >
+                    <div className="h-24">
+                      <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
+                    </div>
+                    <div className="px-[11px] pb-[11px] pt-[9px]">
+                      <div className="font-display text-[15px] font-bold text-ink">{formatSom(item.price)} KGS</div>
+                      <div className="mt-[3px] line-clamp-2 text-xs leading-[1.3] text-muted">
+                        {listingTitle(item, lang)}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <ReportListing listing={listing} />
           <div className="h-[120px]" />
         </div>
       </div>
@@ -322,11 +360,23 @@ export default function ListingPage() {
           <>
         <button
           type="button"
-          onClick={isStay ? onBook : onChat}
+          onClick={() => {
+            if (isStay) {
+              onBook();
+              return;
+            }
+            if (look !== "none") {
+              document.getElementById("go-look")?.scrollIntoView({ behavior: "smooth", block: "center" });
+              return;
+            }
+            onChat();
+          }}
           className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
         >
           {isStay ? (
             t.bookStay
+          ) : look !== "none" ? (
+            look === "meet" ? t.goMeet : t.goLook
           ) : (
             <>
               <IconChat size={18} color="#FFF7F0" />
@@ -334,6 +384,15 @@ export default function ListingPage() {
             </>
           )}
         </button>
+        {!isStay && look !== "none" ? (
+          <button
+            type="button"
+            onClick={onChat}
+            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
+          >
+            <IconChat size={18} color="#FFF7F0" />
+          </button>
+        ) : null}
         <a
           href={`tel:+996555123456`}
           onClick={(e) => {

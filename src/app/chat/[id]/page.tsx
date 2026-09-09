@@ -110,7 +110,7 @@ export default function ChatPage() {
       </div>
 
       <div className="sc flex gap-2 overflow-x-auto px-4 pb-2">
-        {[t.qView, t.qBargain, t.qAddress].map((q) => (
+        {[t.qView, t.qBargain, t.qAddress, t.qGoLook].map((q) => (
           <button
             key={q}
             type="button"

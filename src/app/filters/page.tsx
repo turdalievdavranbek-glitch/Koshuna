@@ -387,6 +387,7 @@ export default function FiltersPage() {
               ["verifiedOnly", t.verifiedOwners],
               ["noAgents", t.noAgents],
               ["neighborOnly", t.neighborOnly],
+              ["priceDroppedOnly", t.priceDropped],
               ["aiylOnly", t.bridgeAiyl],
             ] as const
           ).map(([key, label]) => (

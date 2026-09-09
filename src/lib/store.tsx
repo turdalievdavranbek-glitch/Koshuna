@@ -48,6 +48,7 @@ const defaultFilters = (): Filters => ({
   locLabel: null,
   settlement: "any",
   aiylOnly: false,
+  priceDroppedOnly: false,
 });
 
 const defaultDraft = (): DraftListing => ({
@@ -79,6 +80,8 @@ type State = {
   notificationsOn: boolean;
   listingLayout: ListingLayout;
   elderMode: boolean;
+  viewedIds: string[];
+  reports: Record<string, string>;
 };
 
 const initial: State = {
@@ -95,6 +98,8 @@ const initial: State = {
   notificationsOn: true,
   listingLayout: "medium",
   elderMode: false,
+  viewedIds: [],
+  reports: {},
 };
 
 type Store = State & {
@@ -107,6 +112,8 @@ type Store = State & {
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
   setElderMode: (on: boolean) => void;
+  markViewed: (id: string) => void;
+  reportListing: (id: string, reason: string) => void;
   setFilters: (patch: Partial<Filters>) => void;
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
@@ -156,6 +163,7 @@ function normalizeFilters(filters: Filters): Filters {
     techModel: next.techModel && next.techModel !== "any" ? next.techModel : "any",
     neighborOnly: Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
+    priceDroppedOnly: Boolean(next.priceDroppedOnly),
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
   };
 }
@@ -171,6 +179,8 @@ function load(): State {
       ...saved,
       listingLayout:
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
+      viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
+      reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
   } catch {
@@ -239,6 +249,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
+    markViewed: (id) =>
+      update((s) => ({
+        ...s,
+        viewedIds: [id, ...s.viewedIds.filter((x) => x !== id)].slice(0, 12),
+      })),
+    reportListing: (id, reason) =>
+      update((s) => ({
+        ...s,
+        reports: { ...s.reports, [id]: reason },
+      })),
     setCity: (city) => update((s) => ({ ...s, city, filters: { ...s.filters, city } })),
     setFilters: (patch) => update((s) => ({ ...s, filters: { ...s.filters, ...patch } })),
     resetFilters: () =>
@@ -312,6 +332,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         favCount: 0,
         lat: GIS_CITIES[d.city]?.lat,
         lng: GIS_CITIES[d.city]?.lng,
+        meetupSpot: d.meetupSpot,
       };
       update({ extraListings: [listing, ...state.extraListings] });
       return listing;

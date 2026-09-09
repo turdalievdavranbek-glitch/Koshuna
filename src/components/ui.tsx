@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
+import { dropAmount, hasPriceDrop } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
 import { listingChipLabel, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
@@ -67,33 +68,60 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
 export function Price({ listing, large, compact }: { listing: Listing; large?: boolean; compact?: boolean }) {
   const { t } = useApp();
   const unit = listing.unit ? t.units[listing.unit] : "";
+  const dropped = hasPriceDrop(listing);
   if (large) {
     return (
-      <div className="flex items-baseline gap-2">
-        <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-          {formatSom(listing.price)} KGS
-        </span>
-        {unit ? <span className="text-sm text-muted">{unit}</span> : null}
+      <div>
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
+            {formatSom(listing.price)} KGS
+          </span>
+          {unit ? <span className="text-sm text-muted">{unit}</span> : null}
+        </div>
+        {dropped && listing.previousPrice ? (
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-sm text-muted-2 line-through">{formatSom(listing.previousPrice)} KGS</span>
+            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[11px] font-bold text-success">
+              −{formatSom(dropAmount(listing))}
+            </span>
+          </div>
+        ) : null}
       </div>
     );
   }
   return (
-    <div className="flex items-baseline gap-1.5">
-      <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
-        {formatSom(listing.price)} {compact ? "" : "KGS"}
-        {        compact && listing.unit === "month" ? (
-          <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
-        ) : compact && listing.unit === "night" ? (
-          <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
-        ) : compact && listing.unit === "day" ? (
-          <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
-        ) : compact ? (
-          <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
-        ) : null}
-      </span>
-      {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
-      {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
-      {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
+    <div>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
+          {formatSom(listing.price)} {compact ? "" : "KGS"}
+          {compact && listing.unit === "month" ? (
+            <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
+          ) : compact && listing.unit === "night" ? (
+            <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
+          ) : compact && listing.unit === "day" ? (
+            <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
+          ) : compact ? (
+            <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
+          ) : null}
+        </span>
+        {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
+        {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
+        {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
+      </div>
+      {dropped && listing.previousPrice ? (
+        <div className={`flex items-center gap-1.5 ${compact ? "mt-0.5" : "mt-1"}`}>
+          <span className={`text-muted-2 line-through ${compact ? "text-[10px]" : "text-xs"}`}>
+            {formatSom(listing.previousPrice)}
+          </span>
+          {compact ? (
+            <span className="text-[10px] font-bold text-success">−{formatSom(dropAmount(listing))}</span>
+          ) : (
+            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[10px] font-bold text-success">
+              {t.priceDropped}
+            </span>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -152,7 +180,6 @@ export function ListingRow({
   listing,
   onOpen,
   overlay,
-  priceDrop,
   heart,
   dim,
 }: {
@@ -176,9 +203,9 @@ export function ListingRow({
     >
       <div className="relative h-full w-[118px] shrink-0 self-stretch">
         <Photo src={listing.photos[0]} alt={title} className="min-h-[118px]" />
-        {priceDrop ? (
+        {hasPriceDrop(listing) ? (
           <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[10px] font-bold text-screen">
-            −3 000
+            −{formatSom(dropAmount(listing))}
           </span>
         ) : null}
         {overlay ? (
@@ -189,16 +216,9 @@ export function ListingRow({
       </div>
       <div className="flex-1 px-3.5 py-3">
         <span className="inline-block rounded-md bg-chip px-2 py-0.5 text-[11px] font-semibold text-muted">{cat}</span>
-        {priceDrop ? (
-          <div className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="font-display text-[19px] font-bold text-ink">35 000</span>
-            <span className="text-xs text-muted-2 line-through">38 000</span>
-          </div>
-        ) : (
-          <div className="mt-1.5">
-            <Price listing={listing} compact />
-          </div>
-        )}
+        <div className="mt-1.5">
+          <Price listing={listing} compact />
+        </div>
         <div className="mt-1 text-sm leading-[1.3] text-ink">{title}</div>
         <div className="mt-1.5 text-xs text-muted-2">
           {t.cities[listing.city]}

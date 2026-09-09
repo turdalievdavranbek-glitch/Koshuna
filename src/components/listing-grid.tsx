@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle } from "@/lib/i18n";
-import { settlementById, settlementLabel } from "@/lib/data";
+import { formatSom, settlementById, settlementLabel } from "@/lib/data";
+import { dropAmount, hasPriceDrop } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
@@ -68,6 +69,11 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
+        {hasPriceDrop(listing) ? (
+          <span className="pointer-events-none absolute right-1.5 bottom-2 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen">
+            −{formatSom(dropAmount(listing))}
+          </span>
+        ) : null}
         <span className="pointer-events-none absolute bottom-2 left-2">
           <NeighborMark listing={listing} compact={layout === "small"} />
         </span>
@@ -125,6 +131,38 @@ export function ListingGrid({
       {listings.map((item) => (
         <ListingCard key={item.id} listing={item} layout={listingLayout} onFav={onFav} />
       ))}
+    </div>
+  );
+}
+
+export function RecentlyViewed() {
+  const { t, lang, viewedIds, allListings } = useApp();
+  const router = useRouter();
+  const items = viewedIds
+    .map((id) => allListings.find((l) => l.id === id))
+    .filter((item): item is Listing => Boolean(item));
+  if (items.length < 1) return null;
+  return (
+    <div className="mt-[22px]">
+      <div className="font-display text-[17px] font-bold text-ink">{t.viewed}</div>
+      <div className="sc mt-2.5 flex gap-2.5 overflow-x-auto pb-0.5">
+        {items.slice(0, 8).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => router.push(`/listing/${item.id}`)}
+            className="w-[132px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface text-left"
+          >
+            <div className="h-20">
+              <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
+            </div>
+            <div className="px-2.5 pb-2.5 pt-2">
+              <div className="font-display text-[14px] font-bold text-ink">{formatSom(item.price)} KGS</div>
+              <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

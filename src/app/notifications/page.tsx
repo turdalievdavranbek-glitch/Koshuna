@@ -12,6 +12,7 @@ export default function NotificationsPage() {
   const items = [
     { id: "1", text: t.notif1, time: "09:20" },
     { id: "2", text: t.notif2, time: "09:16" },
+    { id: "3", text: t.notif3, time: "08:41" },
   ];
   return (
     <PhoneShell>

@@ -1,5 +1,6 @@
 import type { Filters, Listing } from "./types";
 import { isAiylListing } from "./data";
+import { hasPriceDrop } from "./deal";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 
@@ -44,6 +45,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
+    if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
     if (filters.settlement && filters.settlement !== "any") {
       if (item.settlement !== filters.settlement) return false;
     } else if (filters.aiylOnly && !isAiylListing(item)) {

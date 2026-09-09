@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import { meetupSpotsFor } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -382,6 +383,24 @@ export default function PostPage() {
                   onChange={() => setDraft({ neighborPledge: draft.neighborPledge === false })}
                 />
               </div>
+              {draft.section === "secondhand" || draft.section === "animals" || draft.section === "construction" ? (
+                <div>
+                  <Eyebrow>{t.goMeetTitle}</Eyebrow>
+                  <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.goMeetHint}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {meetupSpotsFor(draft.city).map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.meetupSpot === id}
+                        accent={draft.meetupSpot === id}
+                        onClick={() => setDraft({ meetupSpot: id })}
+                      >
+                        {t.meetupSpots[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <Field label={t.description}>
                 <textarea
                   value={draft.description}

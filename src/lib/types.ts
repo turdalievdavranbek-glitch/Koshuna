@@ -29,6 +29,25 @@ export type SortMode = "new" | "price-asc" | "price-desc";
 
 export type ListingLayout = "large" | "medium" | "small";
 
+export type ViewSlot = "now" | "today-eve" | "tomorrow-am" | "weekend";
+
+export type MeetupSpot =
+  | "tsum"
+  | "philharmonic"
+  | "dordoi"
+  | "ala-too"
+  | "globus"
+  | "osh-bazaar"
+  | "navoi"
+  | "market"
+  | "home";
+
+export type PayAfter = "cash" | "mbank" | "odengi" | "elsom";
+
+export type ReportReason = "agent" | "prepay" | "currency" | "photos" | "other";
+
+export type GoLookKind = "view" | "meet" | "none";
+
 export type PropertyType =
   | "apartment"
   | "house"
@@ -76,6 +95,8 @@ export type Listing = {
   titleEn: string;
   price: number;
   previousPrice?: number;
+  meetupSpot?: MeetupSpot;
+  payAfter?: PayAfter[];
   unit?: "month" | "day" | "night" | "bag" | "service";
   city: string;
   district?: string;
@@ -156,6 +177,7 @@ export type Filters = {
   locLabel: string | null;
   settlement: string;
   aiylOnly: boolean;
+  priceDroppedOnly: boolean;
 };
 
 export type SavedSearch = {
@@ -196,6 +218,7 @@ export type DraftListing = {
   description: string;
   promote: boolean;
   neighborPledge?: boolean;
+  meetupSpot?: MeetupSpot;
   photo?: string;
   category?: string;
   goodsKind?: string;

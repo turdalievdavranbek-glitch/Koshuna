@@ -10,7 +10,7 @@ import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Photo } from "@/components/ui";
-import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
+import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
@@ -157,6 +157,8 @@ export default function FeedPage() {
           </div>
         </div>
 
+        <RecentlyViewed />
+
         <div className="mt-[22px] flex flex-wrap gap-2">
           {CITIES.map((id) => (
             <Chip key={id} active={city === id} onClick={() => setCity(id)}>
@@ -178,6 +180,12 @@ export default function FeedPage() {
             onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
           >
             {t.fromNeighbor}
+          </Chip>
+          <Chip
+            active={filters.priceDroppedOnly}
+            onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
+          >
+            {t.priceDropped}
           </Chip>
           <Chip onClick={openSearch}>
             {t.allCategories}

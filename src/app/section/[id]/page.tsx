@@ -112,6 +112,12 @@ export default function SectionPage() {
           >
             {t.fromNeighbor}
           </Chip>
+          <Chip
+            active={filters.priceDroppedOnly}
+            onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
+          >
+            {t.priceDropped}
+          </Chip>
           <Chip onClick={() => router.push("/filters")}>
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
@@ -157,6 +163,7 @@ export default function SectionPage() {
                 autoType: "sale",
                 settlement: "any",
                 aiylOnly: false,
+                priceDroppedOnly: false,
                 section: id,
               });
             }}
@@ -204,6 +211,7 @@ export default function SectionPage() {
                   autoType: "sale",
                   settlement: "any",
                   aiylOnly: false,
+                  priceDroppedOnly: false,
                   section: id,
                 });
               }}
