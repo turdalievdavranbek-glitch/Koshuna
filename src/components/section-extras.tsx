@@ -180,7 +180,24 @@ export function SectionExtras() {
   }
 
   if (section === "restaurants") {
-    return <RestaurantChips />;
+    return (
+      <div className="flex flex-col gap-2.5">
+        <RestaurantChips />
+        <button
+          type="button"
+          onClick={() => router.push("/map")}
+          className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+        >
+          <span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="mt-0.5 block text-[13px] font-semibold text-ink">
+              {filters.locLabel ?? t.pickOnMap}
+            </span>
+          </span>
+          <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
+        </button>
+      </div>
+    );
   }
 
   return null;

@@ -26,8 +26,8 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     checkOut: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkOut : null,
     dealType: id === "rent" ? prev.dealType : "any",
     stockType: id === "rent" ? prev.stockType : "any",
-    locLng: id === "rent" ? prev.locLng : null,
-    locLat: id === "rent" ? prev.locLat : null,
-    locLabel: id === "rent" ? prev.locLabel : null,
+    locLng: id === "rent" || id === "restaurants" ? prev.locLng : null,
+    locLat: id === "rent" || id === "restaurants" ? prev.locLat : null,
+    locLabel: id === "rent" || id === "restaurants" ? prev.locLabel : null,
   };
 }

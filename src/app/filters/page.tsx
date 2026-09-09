@@ -204,7 +204,7 @@ export default function FiltersPage() {
           </div>
         ) : null}
 
-        {isRent ? (
+        {isRent || isRestaurants ? (
           <div>
             <Eyebrow>2ГИС</Eyebrow>
             <button

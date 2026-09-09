@@ -48,7 +48,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
     }
     if (
-      filters.section === "rent" &&
+      (filters.section === "rent" || filters.section === "restaurants") &&
       filters.locLng != null &&
       filters.locLat != null &&
       item.lng != null &&
