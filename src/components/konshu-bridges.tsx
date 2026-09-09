@@ -101,7 +101,7 @@ export function AbroadBanner() {
       className="mt-3 w-full rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
     >
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">
-        {t.abroadBanner} {t.viewerPlaces[viewerPlace]}
+        {t.viewerWhere}: {t.viewerPlaces[viewerPlace]}
       </div>
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.abroadBannerBody}</p>
       <span className="mt-2 inline-block text-[12px] font-semibold text-accent">{t.strategyNav} ›</span>
