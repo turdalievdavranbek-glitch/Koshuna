@@ -369,6 +369,16 @@ export default function PostPage() {
                 </div>
               </div>
               <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
+              <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+                <div>
+                  <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
+                  <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.neighborPledgeHint}</p>
+                </div>
+                <Toggle
+                  on={draft.neighborPledge !== false}
+                  onChange={() => setDraft({ neighborPledge: draft.neighborPledge === false })}
+                />
+              </div>
               <Field label={t.description}>
                 <textarea
                   value={draft.description}

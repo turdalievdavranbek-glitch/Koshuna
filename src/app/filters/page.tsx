@@ -386,6 +386,7 @@ export default function FiltersPage() {
               ["photosOnly", t.photosOnly],
               ["verifiedOnly", t.verifiedOwners],
               ["noAgents", t.noAgents],
+              ["neighborOnly", t.neighborOnly],
             ] as const
           ).map(([key, label]) => (
             <div key={key} className="flex items-center justify-between border-t border-line py-3.5">

@@ -106,6 +106,12 @@ export default function SectionPage() {
           </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
+          <Chip
+            active={filters.neighborOnly}
+            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
+          >
+            {t.fromNeighbor}
+          </Chip>
           <Chip onClick={() => router.push("/filters")}>
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
@@ -139,6 +145,7 @@ export default function SectionPage() {
                 photosOnly: false,
                 verifiedOnly: false,
                 noAgents: false,
+                neighborOnly: false,
                 sort: "new",
                 checkIn: null,
                 checkOut: null,
@@ -183,6 +190,7 @@ export default function SectionPage() {
                   photosOnly: false,
                   verifiedOnly: false,
                   noAgents: false,
+                  neighborOnly: false,
                   sort: "new",
                   checkIn: null,
                   checkOut: null,

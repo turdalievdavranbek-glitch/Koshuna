@@ -78,6 +78,7 @@ function LoginInner() {
         <h1 className="mt-5 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.01em] text-ink whitespace-pre-line">
           {t.loginTitle}
         </h1>
+        <p className="mt-2.5 font-display text-[17px] font-bold leading-[1.3] text-accent-dark">{t.slogan}</p>
         <p className="mt-2.5 text-[15px] leading-[1.5] text-muted">{t.loginHint}</p>
 
         <div className="mt-6 flex gap-2">

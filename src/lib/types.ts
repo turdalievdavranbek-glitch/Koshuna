@@ -133,6 +133,7 @@ export type Filters = {
   photosOnly: boolean;
   verifiedOnly: boolean;
   noAgents: boolean;
+  neighborOnly: boolean;
   sort: SortMode;
   checkIn: string | null;
   checkOut: string | null;
@@ -187,6 +188,7 @@ export type DraftListing = {
   phone: string;
   description: string;
   promote: boolean;
+  neighborPledge?: boolean;
   photo?: string;
   category?: string;
   goodsKind?: string;

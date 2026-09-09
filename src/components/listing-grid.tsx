@@ -5,6 +5,7 @@ import { listingChipLabel, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
+import { NeighborMark } from "./neighbor-seal";
 import { Photo, Price } from "./ui";
 
 export function LayoutSwitch() {
@@ -66,6 +67,9 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
+        <span className="pointer-events-none absolute bottom-2 left-2">
+          <NeighborMark listing={listing} compact={layout === "small"} />
+        </span>
         {onFav && layout !== "small" ? (
           <span
             role="button"

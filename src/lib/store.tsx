@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
+import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User } from "./types";
 
@@ -30,6 +30,7 @@ const defaultFilters = (): Filters => ({
   photosOnly: false,
   verifiedOnly: false,
   noAgents: false,
+  neighborOnly: false,
   sort: "new",
   checkIn: null,
   checkOut: null,
@@ -59,6 +60,7 @@ const defaultDraft = (): DraftListing => ({
   phone: "",
   description: "",
   promote: true,
+  neighborPledge: true,
 });
 
 type State = {
@@ -147,6 +149,7 @@ function normalizeFilters(filters: Filters): Filters {
     carModel: next.carModel && next.carModel !== "any" ? next.carModel : "any",
     techBrand: next.techBrand && next.techBrand !== "any" ? next.techBrand : "any",
     techModel: next.techModel && next.techModel !== "any" ? next.techModel : "any",
+    neighborOnly: Boolean(next.neighborOnly),
   };
 }
 
@@ -288,9 +291,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         descriptionKy: d.description || d.title,
         descriptionEn: d.description || d.title,
         ownerId: "aida",
-        verified: true,
         hasPhoto: true,
-        noAgent: true,
+        verified: d.neighborPledge !== false,
+        noAgent: d.neighborPledge !== false,
         status: d.promote ? "promoted" : "active",
         safetyKind: d.kind === "rent" ? "home" : "goods",
         mapX: 40,
@@ -298,6 +301,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         contact: "whatsapp",
         views: 0,
         favCount: 0,
+        lat: GIS_CITIES[d.city]?.lat,
+        lng: GIS_CITIES[d.city]?.lng,
       };
       update({ extraListings: [listing, ...state.extraListings] });
       return listing;

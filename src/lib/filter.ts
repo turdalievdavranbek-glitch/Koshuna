@@ -1,5 +1,6 @@
 import type { Filters, Listing } from "./types";
 import { haversineKm } from "./geo";
+import { isFromNeighbor } from "./neighbor";
 
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   const cityKey = filters.city !== "all" ? filters.city : city;
@@ -41,6 +42,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
+    if (filters.neighborOnly && !isFromNeighbor(item)) return false;
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }

@@ -11,6 +11,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Photo } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
+import { NeighborBanner } from "@/components/neighbor-seal";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 
 export default function FeedPage() {
@@ -79,7 +80,13 @@ export default function FeedPage() {
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        <div className="flex items-baseline justify-between">
+        <div className="mt-1">
+          <NeighborBanner
+            active={filters.neighborOnly}
+            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
+          />
+        </div>
+        <div className="mt-[18px] flex items-baseline justify-between">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
           <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
         </div>
@@ -164,6 +171,12 @@ export default function FeedPage() {
           </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
+          <Chip
+            active={filters.neighborOnly}
+            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
+          >
+            {t.fromNeighbor}
+          </Chip>
           <Chip onClick={openSearch}>
             {t.allCategories}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>

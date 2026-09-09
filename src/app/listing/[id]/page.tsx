@@ -9,6 +9,7 @@ import { listingChipLabel, listingDesc, listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
+import { NeighborCard } from "@/components/neighbor-seal";
 import { StayCalendar } from "@/components/stay-calendar";
 import { Eyebrow, Photo } from "@/components/ui";
 
@@ -179,6 +180,8 @@ export default function ListingPage() {
             </div>
           ) : null}
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
+
+          <NeighborCard listing={listing} />
 
           {listing.rooms ? (
             <div className="mt-5 grid grid-cols-3 gap-2">
