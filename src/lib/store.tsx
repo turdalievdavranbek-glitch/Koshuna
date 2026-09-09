@@ -12,7 +12,22 @@ import {
 import { persistableUrl } from "./blob-media";
 import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
-import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User, ViewerPlace } from "./types";
+import type {
+  AuthMethod,
+  ChatMessage,
+  DraftListing,
+  Filters,
+  Lang,
+  Listing,
+  ListingLayout,
+  MeetDeal,
+  MeetOffer,
+  MeetParty,
+  SavedSearch,
+  Thread,
+  User,
+  ViewerPlace,
+} from "./types";
 import { parseViewerPlace } from "./strategy";
 
 const STORAGE = "konshu-state-v1";
@@ -89,6 +104,7 @@ type State = {
   viewedIds: string[];
   reports: Record<string, string>;
   viewerPlace: ViewerPlace;
+  meetDeals: Record<string, MeetDeal>;
 };
 
 const initial: State = {
@@ -109,6 +125,7 @@ const initial: State = {
   viewedIds: [],
   reports: {},
   viewerPlace: "kyrgyzstan",
+  meetDeals: {},
 };
 
 type Store = State & {
@@ -133,9 +150,18 @@ type Store = State & {
   setDraft: (patch: Partial<DraftListing>) => void;
   publishDraft: () => Listing | null;
   updateListing: (id: string, patch: Partial<Listing>) => void;
+  ensureMeetDeal: (listingId: string, reservedById: string) => void;
+  clearMeetDeal: (listingId: string) => void;
+  patchMeetDeal: (listingId: string, patch: Partial<MeetDeal> | ((cur: MeetDeal) => MeetDeal)) => void;
+  setMeetViewAs: (listingId: string, viewAs: MeetParty) => void;
+  confirmMeetReserve: (listingId: string) => void;
+  proposeMeet: (listingId: string, offer: MeetOffer) => void;
+  acceptMeet: (listingId: string) => void;
+  declineMeet: (listingId: string) => void;
+  enableMeetGeo: (listingId: string, lat: number, lng: number) => void;
   clearPostedDraft: () => void;
   saveDraft: () => void;
-  addMessage: (threadId: string, text: string) => void;
+  addMessage: (threadId: string, text: string, from?: ChatMessage["from"]) => void;
   ensureThread: (listingId: string) => string;
   toggleSearchNotify: (id: string) => void;
   saveCurrentSearch: () => void;
@@ -181,6 +207,19 @@ function normalizeFilters(filters: Filters): Filters {
   };
 }
 
+function emptyMeetDeal(listingId: string, reservedById: string): MeetDeal {
+  return {
+    listingId,
+    reservedById,
+    buyerConfirmed: false,
+    phase: "wait-buyer",
+    viewAs: "seller",
+    geoOn: false,
+    arrived: false,
+    trackT: 0,
+  };
+}
+
 function load(): State {
   if (typeof window === "undefined") return initial;
   try {
@@ -195,6 +234,7 @@ function load(): State {
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
+      meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
       viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
@@ -393,6 +433,116 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       });
     },
+    ensureMeetDeal: (listingId, reservedById) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (cur && cur.reservedById === reservedById) return s;
+        return {
+          ...s,
+          meetDeals: { ...s.meetDeals, [listingId]: emptyMeetDeal(listingId, reservedById) },
+        };
+      });
+    },
+    clearMeetDeal: (listingId) => {
+      update((s) => {
+        if (!s.meetDeals[listingId]) return s;
+        const next = { ...s.meetDeals };
+        delete next[listingId];
+        return { ...s, meetDeals: next };
+      });
+    },
+    patchMeetDeal: (listingId, patch) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        const next = typeof patch === "function" ? patch(cur) : { ...cur, ...patch };
+        return { ...s, meetDeals: { ...s.meetDeals, [listingId]: next } };
+      });
+    },
+    setMeetViewAs: (listingId, viewAs) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        return { ...s, meetDeals: { ...s.meetDeals, [listingId]: { ...cur, viewAs } } };
+      });
+    },
+    confirmMeetReserve: (listingId) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        return {
+          ...s,
+          meetDeals: {
+            ...s.meetDeals,
+            [listingId]: { ...cur, buyerConfirmed: true, phase: "wait-meet" },
+          },
+        };
+      });
+    },
+    proposeMeet: (listingId, offer) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        return {
+          ...s,
+          meetDeals: {
+            ...s.meetDeals,
+            [listingId]: {
+              ...cur,
+              offer,
+              phase: "wait-reply",
+              geoOn: false,
+              arrived: false,
+              trackT: 0,
+              buyerLat: undefined,
+              buyerLng: undefined,
+            },
+          },
+        };
+      });
+    },
+    acceptMeet: (listingId) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur?.offer) return s;
+        return {
+          ...s,
+          meetDeals: { ...s.meetDeals, [listingId]: { ...cur, phase: "agreed" } },
+        };
+      });
+    },
+    declineMeet: (listingId) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        return {
+          ...s,
+          meetDeals: { ...s.meetDeals, [listingId]: { ...cur, phase: "declined" } },
+        };
+      });
+    },
+    enableMeetGeo: (listingId, lat, lng) => {
+      update((s) => {
+        const cur = s.meetDeals[listingId];
+        if (!cur) return s;
+        return {
+          ...s,
+          meetDeals: {
+            ...s.meetDeals,
+            [listingId]: {
+              ...cur,
+              geoOn: true,
+              arrived: false,
+              trackT: 0,
+              originLat: lat,
+              originLng: lng,
+              buyerLat: lat,
+              buyerLng: lng,
+            },
+          },
+        };
+      });
+    },
     clearPostedDraft: () =>
       update((s) => ({
         ...s,
@@ -402,7 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           phone: s.draft.phone,
         },
       })),
-    addMessage: (threadId, text) => {
+    addMessage: (threadId, text, from = "me") => {
       update((s) => ({
         ...s,
         threads: s.threads.map((th) =>
@@ -415,7 +565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   ...th.messages.filter((m) => m.from !== "system"),
                   {
                     id: `x-${Date.now()}`,
-                    from: "me",
+                    from,
                     text,
                     time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
                     read: true,

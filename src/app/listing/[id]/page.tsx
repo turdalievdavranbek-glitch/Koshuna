@@ -18,6 +18,7 @@ import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listing";
+import { MeetDealBlock } from "@/components/meet-deal";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
@@ -195,6 +196,7 @@ export default function ListingPage() {
             <Price listing={listing} large />
           </div>
           {mine ? <OwnerListingTools listing={listing} /> : null}
+          {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
           <PayAfterNote listing={listing} />
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
@@ -396,7 +398,11 @@ export default function ListingPage() {
         <button
           type="button"
           onClick={() => {
-            if (off || reserved) return;
+            if (off) return;
+            if (reserved) {
+              document.getElementById("meet-deal")?.scrollIntoView({ behavior: "smooth", block: "center" });
+              return;
+            }
             if (isStay) {
               onBook();
               return;

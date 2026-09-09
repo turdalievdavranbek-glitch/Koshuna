@@ -11,7 +11,7 @@ import { LangSwitch, Photo } from "@/components/ui";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace } = useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace, meetDeals } = useApp();
   const router = useRouter();
   const mine = [
     ...extraListings,
@@ -136,6 +136,7 @@ export default function ProfilePage() {
                     {item.reservedBy ? (
                       <span className="rounded-md bg-chip px-2 py-0.5 text-[10px] font-bold text-muted">
                         {item.reservedBy.name}
+                        {meetDeals[item.id]?.buyerConfirmed ? "" : " · …"}
                       </span>
                     ) : null}
                   </div>

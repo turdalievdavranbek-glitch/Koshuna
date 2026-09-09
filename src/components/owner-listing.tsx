@@ -3,24 +3,30 @@
 import { useEffect, useState } from "react";
 import { RESERVE_ACCOUNTS, formatSom } from "@/lib/data";
 import { DEAL_STAGES, stageOf, statusForStage } from "@/lib/listing-owner";
+import { offerWhen } from "@/lib/meet";
 import { parseDraftPrice } from "@/lib/market";
 import { useApp } from "@/lib/store";
 import type { DealStage, Listing, ReserveAccount } from "@/lib/types";
 import { Chip, Eyebrow, Field, Input } from "./ui";
 
 export function ListingStageBanner({ listing }: { listing: Listing }) {
-  const { t } = useApp();
+  const { t, lang, meetDeals } = useApp();
   const stage = stageOf(listing);
   if (stage === "active") return null;
   const reserved = listing.reservedBy;
+  const deal = meetDeals[listing.id];
   const text =
-    stage === "reserved" && reserved
-      ? t.reservedBanner(reserved.name, reserved.phone)
-      : stage === "reserved"
-        ? t.status.reserved
-        : stage === "closed"
-          ? t.closedBanner
-          : t.withdrawnBanner;
+    stage === "reserved" && reserved && deal?.phase === "agreed" && deal.offer
+      ? t.meetAgreed(offerWhen(deal.offer, lang), t.meetupSpots[deal.offer.spot])
+      : stage === "reserved" && reserved && !deal?.buyerConfirmed
+        ? t.reservedWaitBuyer(reserved.name, reserved.phone)
+        : stage === "reserved" && reserved
+          ? t.reservedBanner(reserved.name, reserved.phone)
+          : stage === "reserved"
+            ? t.status.reserved
+            : stage === "closed"
+              ? t.closedBanner
+              : t.withdrawnBanner;
   return (
     <div
       className="mt-3 rounded-[16px] px-3.5 py-3"
@@ -39,7 +45,7 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
 }
 
 export function OwnerListingTools({ listing }: { listing: Listing }) {
-  const { t, updateListing } = useApp();
+  const { t, updateListing, ensureMeetDeal, clearMeetDeal } = useApp();
   const [price, setPrice] = useState(String(listing.price));
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -73,7 +79,12 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
     setError("");
     setNote("");
     const patch: Partial<Listing> = { status: statusForStage(listing, next) };
-    if (next !== "reserved") patch.reservedBy = undefined;
+    if (next !== "reserved") {
+      patch.reservedBy = undefined;
+      clearMeetDeal(listing.id);
+    } else if (listing.reservedBy) {
+      ensureMeetDeal(listing.id, listing.reservedBy.id);
+    }
     updateListing(listing.id, patch);
   };
 
@@ -81,6 +92,7 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
     setError("");
     setNote("");
     updateListing(listing.id, { reservedBy: account, status: "reserved" });
+    ensureMeetDeal(listing.id, account.id);
   };
 
   return (

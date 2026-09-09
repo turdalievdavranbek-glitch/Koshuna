@@ -49,7 +49,7 @@ function ListingCard({
   layout: ListingLayout;
   onFav?: (id: string) => void;
 }) {
-  const { t, lang, isFav, user } = useApp();
+  const { t, lang, isFav, user, meetDeals } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const saved = Boolean(user && isFav(listing.id));
@@ -107,7 +107,11 @@ function ListingCard({
         </div>
         {listing.status === "reserved" ? (
           <div className={`mt-0.5 font-bold text-accent-dark ${layout === "small" ? "text-[9px]" : "text-[10px]"}`}>
-            {listing.reservedBy ? t.reservedBanner(listing.reservedBy.name, listing.reservedBy.phone) : t.status.reserved}
+            {listing.reservedBy
+              ? meetDeals[listing.id]?.buyerConfirmed
+                ? t.reservedBanner(listing.reservedBy.name, listing.reservedBy.phone)
+                : t.reservedWaitBuyer(listing.reservedBy.name, listing.reservedBy.phone)
+              : t.status.reserved}
           </div>
         ) : null}
         {layout === "large" && listing.rooms ? (

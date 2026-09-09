@@ -33,6 +33,33 @@ export type ReserveAccount = {
   phone: string;
 };
 
+export type MeetParty = "seller" | "buyer";
+
+export type MeetPhase = "wait-buyer" | "wait-meet" | "wait-reply" | "agreed" | "declined";
+
+export type MeetOffer = {
+  date: string;
+  time: string;
+  spot: MeetupSpot;
+  from: MeetParty;
+};
+
+export type MeetDeal = {
+  listingId: string;
+  reservedById: string;
+  buyerConfirmed: boolean;
+  phase: MeetPhase;
+  offer?: MeetOffer;
+  viewAs: MeetParty;
+  geoOn: boolean;
+  arrived: boolean;
+  trackT: number;
+  originLat?: number;
+  originLng?: number;
+  buyerLat?: number;
+  buyerLng?: number;
+};
+
 export type SortMode = "new" | "price-asc" | "price-desc";
 
 export type ListingLayout = "large" | "medium" | "small";
