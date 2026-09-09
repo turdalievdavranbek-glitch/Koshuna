@@ -6,6 +6,7 @@ import { dropAmount, hasPriceDrop } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
 import { listingChipLabel, listingTitle } from "@/lib/i18n";
 import { somToForeign } from "@/lib/strategy";
+import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
@@ -138,17 +139,36 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
   const { t, lang, isFav, user } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
+  const video = isVideoListing(listing);
   return (
     <button
       type="button"
       onClick={() => router.push(`/listing/${listing.id}`)}
-      className="mt-3 w-full overflow-hidden rounded-[20px] border border-line bg-surface text-left"
+      className={`mt-3 w-full text-left ${video ? "" : "overflow-hidden rounded-[20px] border border-line bg-surface"}`}
     >
-      <div className="relative h-[186px]">
-        <Photo src={listing.photos[0]} alt={title} />
-        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
-          {listingChipLabel(listing, t)}
-        </span>
+      <div className={`relative ${video ? "px-14 pt-4" : "aspect-square overflow-hidden rounded-t-[20px]"}`}>
+        {video ? (
+          <div
+            className="rounded-full p-[2.5px]"
+            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+          >
+            <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
+              <Photo src={listing.photos[0]} alt={title} />
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(23,20,15,.72)] pl-0.5 text-white">
+                  ▶
+                </span>
+              </span>
+            </div>
+          </div>
+        ) : (
+          <Photo src={listing.photos[0]} alt={title} />
+        )}
+        {!video ? (
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
+            {listingChipLabel(listing, t)}
+          </span>
+        ) : null}
         <span
           role="button"
           onClick={(e) => {
@@ -160,7 +180,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           <IconHeart size={16} color={user && isFav(listing.id) ? "#B8452F" : "#17140F"} filled={Boolean(user && isFav(listing.id))} />
         </span>
       </div>
-      <div className="px-[15px] pb-[15px] pt-[13px]">
+      <div className={`px-[15px] pb-[15px] pt-[13px] ${video ? "text-center" : ""}`}>
         <Price listing={listing} />
         <div className="mt-1 text-[15px] font-medium leading-[1.3] text-ink">{title}</div>
         {listing.rooms ? (
@@ -202,25 +222,42 @@ export function ListingRow({
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const cat = listingChipLabel(listing, t);
+  const video = isVideoListing(listing);
   return (
     <button
       type="button"
       onClick={onOpen ?? (() => router.push(`/listing/${listing.id}`))}
-      className="flex w-full overflow-hidden rounded-[20px] border border-line bg-surface text-left"
+      className="flex w-full items-center overflow-hidden rounded-[20px] border border-line bg-surface text-left"
       style={{ opacity: dim ? 0.7 : 1 }}
     >
-      <div className="relative h-full w-[118px] shrink-0 self-stretch">
-        <Photo src={listing.photos[0]} alt={title} className="min-h-[118px]" />
-        {hasPriceDrop(listing) ? (
-          <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[10px] font-bold text-screen">
-            −{formatSom(dropAmount(listing))}
-          </span>
-        ) : null}
-        {overlay ? (
-          <span className="absolute inset-0 flex items-center justify-center bg-[rgba(23,20,15,.42)] text-[11px] font-bold tracking-wide text-screen">
-            {overlay}
-          </span>
-        ) : null}
+      <div className={`relative shrink-0 self-center p-2 ${video ? "w-[92px]" : "w-[118px]"}`}>
+        {video ? (
+          <div
+            className="rounded-full p-[2px]"
+            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+          >
+            <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
+              <Photo src={listing.photos[0]} alt={title} />
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-white">
+                ▶
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="relative aspect-square overflow-hidden rounded-[10px]">
+            <Photo src={listing.photos[0]} alt={title} />
+            {hasPriceDrop(listing) ? (
+              <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[10px] font-bold text-screen">
+                −{formatSom(dropAmount(listing))}
+              </span>
+            ) : null}
+            {overlay ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-[rgba(23,20,15,.42)] text-[11px] font-bold tracking-wide text-screen">
+                {overlay}
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
       <div className="flex-1 px-3.5 py-3">
         <span className="inline-block rounded-md bg-chip px-2 py-0.5 text-[11px] font-semibold text-muted">{cat}</span>

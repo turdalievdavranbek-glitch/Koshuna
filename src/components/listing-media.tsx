@@ -1,15 +1,15 @@
 "use client";
 
 import type { Listing } from "@/lib/types";
+import { isVideoListing as videoOf, isVoiceListing as voiceOf } from "@/lib/video-ai";
 import { Photo } from "./ui";
 
 export function isVideoListing(listing: { mediaKind?: string; videoUrl?: string }) {
-  return listing.mediaKind === "video" || Boolean(listing.videoUrl);
+  return videoOf(listing);
 }
 
 export function isVoiceListing(listing: { mediaKind?: string; voiceUrl?: string; videoUrl?: string }) {
-  if (listing.mediaKind === "voice") return true;
-  return Boolean(listing.voiceUrl) && listing.mediaKind !== "video" && !listing.videoUrl;
+  return voiceOf(listing);
 }
 
 export function PlayBadge({ compact }: { compact?: boolean }) {
@@ -33,6 +33,32 @@ export function VoiceBadge({ compact }: { compact?: boolean }) {
         <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 8 : 10 }} />
       </span>
     </span>
+  );
+}
+
+export function ListingThumb({
+  listing,
+  alt,
+  compact,
+  className,
+}: {
+  listing: { photos: string[]; mediaKind?: string; videoUrl?: string; voiceUrl?: string };
+  alt: string;
+  compact?: boolean;
+  className?: string;
+}) {
+  const video = isVideoListing(listing);
+  const inner = video ? "rounded-full" : "rounded-[10px]";
+  return (
+    <div
+      className={`relative ${video ? "rounded-full p-[2.5px]" : ""} ${className ?? ""}`}
+      style={video ? { background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" } : undefined}
+    >
+      <div className={`relative aspect-square overflow-hidden bg-chip ${inner}`}>
+        <Photo src={listing.photos[0]} alt={alt} />
+        {video ? <PlayBadge compact={compact} /> : isVoiceListing(listing) ? <VoiceBadge compact={compact} /> : null}
+      </div>
+    </div>
   );
 }
 

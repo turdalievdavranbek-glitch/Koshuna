@@ -8,6 +8,7 @@ import { useApp } from "@/lib/store";
 import { IconBack, IconPhone, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
+import { ListingThumb, isVideoListing } from "@/components/listing-media";
 
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>();
@@ -69,8 +70,8 @@ export default function ChatPage() {
           onClick={() => router.push(`/listing/${listing.id}`)}
           className="mx-4 mb-3 flex items-center gap-2.5 rounded-[14px] border border-line bg-screen p-2 text-left"
         >
-          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px]">
-            <Photo src={listing.photos[0]} alt="" />
+          <div className={`shrink-0 ${isVideoListing(listing) ? "h-11 w-11" : "h-11 w-11 overflow-hidden rounded-[10px]"}`}>
+            {isVideoListing(listing) ? <ListingThumb listing={listing} alt="" compact /> : <Photo src={listing.photos[0]} alt="" />}
           </div>
           <div className="flex-1">
             <div className="text-[13px] font-medium leading-[1.3] text-ink">{listingTitle(listing, lang)}</div>

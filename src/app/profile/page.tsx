@@ -8,6 +8,7 @@ import { useApp } from "@/lib/store";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch, Photo } from "@/components/ui";
+import { ListingThumb, isVideoListing } from "@/components/listing-media";
 
 export default function ProfilePage() {
   const { t, lang, user, logout, extraListings, setLang, notificationsOn, setNotificationsOn, viewerPlace } = useApp();
@@ -96,10 +97,16 @@ export default function ProfilePage() {
                 key={item.id}
                 type="button"
                 onClick={() => router.push(`/listing/${item.id}`)}
-                className="flex overflow-hidden rounded-[18px] border border-line bg-white text-left"
+                className="flex items-center overflow-hidden rounded-[18px] border border-line bg-white text-left"
               >
-                <div className="h-24 w-24 shrink-0">
-                  <Photo src={item.photos[0]} alt="" />
+                <div className={`shrink-0 p-2 ${isVideoListing(item) ? "w-[88px]" : "h-24 w-24 p-0"}`}>
+                  {isVideoListing(item) ? (
+                    <ListingThumb listing={item} alt="" compact />
+                  ) : (
+                    <div className="h-24 w-24 overflow-hidden">
+                      <Photo src={item.photos[0]} alt="" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 px-3.5 py-3">
                   <div className="flex gap-1.5">

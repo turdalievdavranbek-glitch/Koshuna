@@ -19,7 +19,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ReportListing } from "@/components/report-listing";
 import { Eyebrow, Photo, Price } from "@/components/ui";
-import { ListingHero, isVideoListing } from "@/components/listing-media";
+import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -329,12 +329,17 @@ export default function ListingPage() {
                     key={item.id}
                     type="button"
                     onClick={() => router.push(`/listing/${item.id}`)}
-                    className="w-[148px] shrink-0 overflow-hidden rounded-2xl border border-line bg-white text-left"
+                    className={`w-[148px] shrink-0 text-left ${
+                      isVideoListing(item) ? "" : "overflow-hidden rounded-2xl border border-line bg-white"
+                    }`}
                   >
-                    <div className="h-24">
-                      <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
-                    </div>
-                    <div className="px-[11px] pb-[11px] pt-[9px]">
+                    <ListingThumb
+                      listing={item}
+                      alt={listingTitle(item, lang)}
+                      compact
+                      className={isVideoListing(item) ? "px-4 pt-2" : ""}
+                    />
+                    <div className={`px-[11px] pb-[11px] pt-[9px] ${isVideoListing(item) ? "text-center" : ""}`}>
                       <div className="font-display text-[15px] font-bold text-ink">{formatSom(item.price)} KGS</div>
                       <div className="mt-[3px] line-clamp-2 text-xs leading-[1.3] text-muted">
                         {listingTitle(item, lang)}

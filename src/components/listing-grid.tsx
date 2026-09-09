@@ -8,8 +8,8 @@ import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
 import { NeighborMark } from "./neighbor-seal";
-import { isVideoListing, isVoiceListing, PlayBadge, VoiceBadge } from "./listing-media";
-import { Photo, Price } from "./ui";
+import { ListingThumb, isVideoListing } from "./listing-media";
+import { Price } from "./ui";
 
 export function LayoutSwitch() {
   const { t, listingLayout, setListingLayout } = useApp();
@@ -53,7 +53,7 @@ function ListingCard({
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const saved = Boolean(user && isFav(listing.id));
-  const photoH = layout === "large" ? "h-[186px]" : layout === "medium" ? "h-[112px]" : "h-[74px]";
+  const video = isVideoListing(listing);
   const radius = layout === "small" ? "rounded-[12px]" : "rounded-[16px]";
   const pad = layout === "large" ? "px-[15px] pb-[15px] pt-[13px]" : layout === "medium" ? "px-2.5 pb-2.5 pt-2" : "px-1.5 pb-1.5 pt-1";
 
@@ -61,25 +61,26 @@ function ListingCard({
     <button
       type="button"
       onClick={() => router.push(`/listing/${listing.id}`)}
-      className={`overflow-hidden border border-line bg-surface text-left ${radius}`}
+      className={`text-left ${video ? "" : `overflow-hidden border border-line bg-surface ${radius}`}`}
     >
-      <div className={`relative ${photoH}`}>
-        <Photo src={listing.photos[0]} alt={title} />
-        {isVideoListing(listing) ? <PlayBadge compact={layout === "small"} /> : isVoiceListing(listing) ? <VoiceBadge compact={layout === "small"} /> : null}
-        {layout !== "small" ? (
+      <div className={`relative ${video ? (layout === "large" ? "px-8 pt-3" : layout === "medium" ? "px-3 pt-2" : "px-1 pt-1") : ""}`}>
+        <ListingThumb listing={listing} alt={title} compact={layout !== "large"} />
+        {!video && layout !== "small" ? (
           <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(23,20,15,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {hasPriceDrop(listing) ? (
+        {!video && hasPriceDrop(listing) ? (
           <span className="pointer-events-none absolute right-1.5 bottom-2 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen">
             −{formatSom(dropAmount(listing))}
           </span>
         ) : null}
-        <span className="pointer-events-none absolute bottom-2 left-2">
-          <NeighborMark listing={listing} compact={layout === "small"} />
-        </span>
-        {onFav && layout !== "small" ? (
+        {!video ? (
+          <span className="pointer-events-none absolute bottom-2 left-2">
+            <NeighborMark listing={listing} compact={layout === "small"} />
+          </span>
+        ) : null}
+        {onFav && layout !== "small" && !video ? (
           <span
             role="button"
             onClick={(e) => {
@@ -92,7 +93,10 @@ function ListingCard({
           </span>
         ) : null}
       </div>
-      <div className={pad}>
+      <div className={`${pad} ${video ? "flex flex-col items-center text-center" : ""}`}>
+        {video && layout !== "small" ? (
+          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.videoListing}</div>
+        ) : null}
         <Price listing={listing} compact={layout !== "large"} />
         <div
           className={`mt-0.5 font-medium leading-[1.25] text-ink ${
@@ -107,10 +111,11 @@ function ListingCard({
           </div>
         ) : null}
         {layout !== "small" ? (
-          <div className="mt-1 text-[11px] text-muted-2">
+          <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
             {listing.settlement && settlementById(listing.settlement)
               ? `${settlementLabel(settlementById(listing.settlement)!, lang)} · ${t.aiyl}`
               : t.cities[listing.city]}
+            {video ? <NeighborMark listing={listing} compact /> : null}
           </div>
         ) : null}
       </div>
@@ -153,13 +158,12 @@ export function RecentlyViewed() {
             key={item.id}
             type="button"
             onClick={() => router.push(`/listing/${item.id}`)}
-            className="w-[132px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface text-left"
+            className={`w-[132px] shrink-0 text-left ${
+              isVideoListing(item) ? "" : "overflow-hidden rounded-2xl border border-line bg-surface"
+            }`}
           >
-            <div className="relative h-20">
-              <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
-              {isVideoListing(item) ? <PlayBadge compact /> : isVoiceListing(item) ? <VoiceBadge compact /> : null}
-            </div>
-            <div className="px-2.5 pb-2.5 pt-2">
+            <ListingThumb listing={item} alt={listingTitle(item, lang)} compact className={isVideoListing(item) ? "px-3 pt-2" : ""} />
+            <div className={`px-2.5 pb-2.5 pt-2 ${isVideoListing(item) ? "text-center" : ""}`}>
               <div className="font-display text-[14px] font-bold text-ink">{formatSom(item.price)} KGS</div>
               <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
             </div>

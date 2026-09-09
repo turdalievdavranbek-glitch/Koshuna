@@ -9,9 +9,9 @@ import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
-import { Chip, Photo } from "@/components/ui";
+import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
-import { isVideoListing, PlayBadge } from "@/components/listing-media";
+import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { AbroadBanner, KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
@@ -129,13 +129,17 @@ export default function FeedPage() {
                   key={item.id}
                   type="button"
                   onClick={() => router.push(`/listing/${item.id}`)}
-                  className="w-[148px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface text-left"
+                  className={`w-[148px] shrink-0 text-left ${
+                    isVideoListing(item) ? "" : "overflow-hidden rounded-2xl border border-line bg-surface"
+                  }`}
                 >
-                  <div className="relative h-24">
-                    <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
-                    {isVideoListing(item) ? <PlayBadge compact /> : null}
-                  </div>
-                  <div className="px-[11px] pb-[11px] pt-[9px]">
+                  <ListingThumb
+                    listing={item}
+                    alt={listingTitle(item, lang)}
+                    compact
+                    className={isVideoListing(item) ? "px-4 pt-2" : ""}
+                  />
+                  <div className={`px-[11px] pb-[11px] pt-[9px] ${isVideoListing(item) ? "text-center" : ""}`}>
                     <div className="font-display text-[15px] font-bold text-ink">
                       {formatSom(item.price)}{" "}
                       <span className="text-[11px] text-muted">

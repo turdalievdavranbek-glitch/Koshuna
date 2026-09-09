@@ -10,6 +10,7 @@ import { useApp } from "@/lib/store";
 import { IconLocate, IconSearch, IconSliders } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingRow, Photo, useFiltered } from "@/components/ui";
+import { ListingThumb, isVideoListing } from "@/components/listing-media";
 
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
@@ -226,10 +227,16 @@ export default function MapPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/listing/${current.id}`)}
-                className="flex w-full overflow-hidden rounded-[18px] border border-line bg-white text-left"
+                className="flex w-full items-center overflow-hidden rounded-[18px] border border-line bg-white text-left"
               >
-                <div className="h-[88px] w-[88px] shrink-0">
-                  <Photo src={current.photos[0]} alt="" />
+                <div className={`shrink-0 p-2 ${isVideoListing(current) ? "w-[84px]" : "h-[88px] w-[88px] p-0"}`}>
+                  {isVideoListing(current) ? (
+                    <ListingThumb listing={current} alt="" compact />
+                  ) : (
+                    <div className="h-[88px] w-[88px] overflow-hidden rounded-[10px]">
+                      <Photo src={current.photos[0]} alt="" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 px-3.5 py-2.5">
                   <div className="font-display text-[17px] font-bold text-ink">
