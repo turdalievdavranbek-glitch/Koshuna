@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { meetupSpotsFor } from "@/lib/deal";
 import { defaultBuyerOrigin, formatKm, lerp, MEET_TIMES, meetPoint, offerWhen, remainingToMeet } from "@/lib/meet";
+import { haversineKm } from "@/lib/geo";
 import { useApp } from "@/lib/store";
 import type { Listing, MeetOffer, MeetupSpot } from "@/lib/types";
 import { GisMap } from "./gis-map";
@@ -80,17 +81,16 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
 
   useEffect(() => {
     if (!deal?.geoOn || deal.arrived || !deal.offer || deal.originLat == null || deal.originLng == null) return;
-    const dest = meetPoint(listing, deal.offer.spot);
-    const originLat = deal.originLat;
-    const originLng = deal.originLng;
     const tick = window.setInterval(() => {
       patchMeetDeal(listing.id, (cur) => {
+        if (!cur.geoOn || cur.arrived || !cur.offer || cur.originLat == null || cur.originLng == null) return cur;
+        const destNow = meetPoint(listing, cur.offer.spot);
         const nextT = Math.min(1, cur.trackT + 0.035);
         return {
           ...cur,
           trackT: nextT,
-          buyerLat: lerp(originLat, dest.lat, nextT),
-          buyerLng: lerp(originLng, dest.lng, nextT),
+          buyerLat: lerp(cur.originLat, destNow.lat, nextT),
+          buyerLng: lerp(cur.originLng, destNow.lng, nextT),
           arrived: nextT >= 1,
         };
       });
@@ -181,7 +181,15 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => apply(pos.coords.latitude, pos.coords.longitude, t.meetGeoOn),
+      (pos) => {
+        const dest = deal.offer ? meetPoint(listing, deal.offer.spot) : fallback;
+        const km = haversineKm(pos.coords.latitude, pos.coords.longitude, dest.lat, dest.lng);
+        if (km > 60) {
+          apply(fallback.lat, fallback.lng, t.meetGeoOn);
+          return;
+        }
+        apply(pos.coords.latitude, pos.coords.longitude, t.meetGeoOn);
+      },
       (err) =>
         apply(
           fallback.lat,
@@ -318,6 +326,11 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
               onClick={onGeo}
               className="shadow-btn mt-3 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
             >
+              {t.meetGeoCta}
+            </button>
+          ) : null}
+          {party === "buyer" && deal.geoOn && deal.arrived ? (
+            <button type="button" onClick={onGeo} className="mt-2 text-[13px] font-semibold text-accent">
               {t.meetGeoCta}
             </button>
           ) : null}
