@@ -16,6 +16,7 @@ import { PropertyTypeChips } from "@/components/property-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
+import { RestaurantChips } from "@/components/restaurant-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -45,6 +46,7 @@ export default function FiltersPage() {
   const isCarRental = isAuto && filters.autoType === "rent";
   const isStays = filters.section === "stays";
   const isConstruction = filters.section === "construction";
+  const isRestaurants = filters.section === "restaurants";
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
     if (filters.section === id) {
@@ -341,6 +343,8 @@ export default function FiltersPage() {
         ) : null}
 
         {isConstruction ? <ConstructionChips labeled /> : null}
+
+        {isRestaurants ? <RestaurantChips labeled /> : null}
 
         <div>
           <Eyebrow>{t.sort}</Eyebrow>

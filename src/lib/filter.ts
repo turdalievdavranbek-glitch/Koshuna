@@ -16,7 +16,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (
         (filters.section === "secondhand" ||
           filters.section === "services" ||
-          filters.section === "construction") &&
+          filters.section === "construction" ||
+          filters.section === "restaurants") &&
         item.category !== filters.category
       ) {
         return false;

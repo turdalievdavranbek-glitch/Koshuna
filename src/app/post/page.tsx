@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -250,6 +250,19 @@ export default function PostPage() {
               {draft.section === "construction" ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {CONSTRUCTION_CATEGORIES.map((c) => (
+                    <Chip
+                      key={c}
+                      active={draft.category === c}
+                      onClick={() => setDraft({ category: c })}
+                    >
+                      {t.cats[c]}
+                    </Chip>
+                  ))}
+                </div>
+              ) : null}
+              {draft.section === "restaurants" ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {RESTAURANT_CATEGORIES.map((c) => (
                     <Chip
                       key={c}
                       active={draft.category === c}

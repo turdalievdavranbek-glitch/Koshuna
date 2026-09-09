@@ -9,6 +9,7 @@ import { PropertyTypeChips } from "@/components/property-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
+import { RestaurantChips } from "@/components/restaurant-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -176,6 +177,10 @@ export function SectionExtras() {
 
   if (section === "construction") {
     return <ConstructionChips />;
+  }
+
+  if (section === "restaurants") {
+    return <RestaurantChips />;
   }
 
   return null;
