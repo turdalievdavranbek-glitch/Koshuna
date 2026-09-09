@@ -7,6 +7,7 @@ import { meetupSpotsFor } from "@/lib/deal";
 import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconPin, sectionIcon } from "@/components/icons";
+import { MarketRangeCard } from "@/components/market-range";
 import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
 import { ShareToSocial } from "@/components/share-to-social";
 import { PhoneShell } from "@/components/shell";
@@ -459,6 +460,7 @@ export default function PostPage() {
                 {draft.description ? <p className="mt-3 text-sm leading-[1.5] text-ink-2">{draft.description}</p> : null}
               </div>
             </div>
+            <MarketRangeCard draft={draft} onPatch={setDraft} />
             {draft.mediaKind === "video" || draft.mediaKind === "voice" ? (
               <div className="mt-4">
                 <AiConfirmCard draft={draft} onPatch={setDraft} />
