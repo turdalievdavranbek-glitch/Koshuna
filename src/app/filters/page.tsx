@@ -6,7 +6,7 @@ import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
-import { IconBack, IconHeart, sectionIcon } from "@/components/icons";
+import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
@@ -106,13 +106,15 @@ export default function FiltersPage() {
                   key={s.id}
                   type="button"
                   onClick={() => pickSection(s.id)}
-                  className="flex w-full items-center gap-3 px-3.5 py-[13px] text-left"
+                  className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
                   style={{
                     background: on ? "#17140F" : "#FFFFFF",
                     borderTop: i === 0 ? "none" : "1px solid #E4DCCE",
                   }}
                 >
-                  {sectionIcon(s.id, on ? "#F7F3EC" : "#B8452F", 20)}
+                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
+                    <img src={s.art} alt="" className="h-full w-full object-cover" />
+                  </span>
                   <span
                     className="flex-1 text-[15px] font-semibold"
                     style={{ color: on ? "#F7F3EC" : "#17140F" }}
