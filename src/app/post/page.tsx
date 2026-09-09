@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { meetupSpotsFor } from "@/lib/deal";
+import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
-import { IconCamera, IconImage, IconPin, sectionIcon } from "@/components/icons";
+import { IconPin, sectionIcon } from "@/components/icons";
+import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
@@ -42,7 +44,13 @@ export default function PostPage() {
             <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#B8452F" : "#E4DCCE" }} />
           ))}
           <span className="ml-1 text-xs font-semibold text-muted">
-            {step === 1 ? t.step1 : step === 2 ? t.step2 : t.step3}
+            {step === 1
+              ? t.step1
+              : step === 2
+                ? draft.mediaKind === "video" || draft.mediaKind === "voice"
+                  ? t.step2Ai
+                  : t.step2
+                : t.step3}
           </span>
         </div>
       </div>
@@ -63,6 +71,8 @@ export default function PostPage() {
                 . {t.phoneNote}
               </div>
             </div>
+
+            <MediaCapture draft={draft} onPatch={setDraft} />
 
             <div>
               <Eyebrow>{t.whatPost}</Eyebrow>
@@ -276,47 +286,6 @@ export default function PostPage() {
               ) : null}
             </div>
 
-            <div>
-              <div className="flex items-baseline justify-between">
-                <Eyebrow>{t.photos}</Eyebrow>
-                <span className="text-xs text-muted">{draft.photo ? "1" : "0"} {t.of10}</span>
-              </div>
-              <div className="mt-2.5 grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraft({
-                      photo:
-                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70",
-                    })
-                  }
-                  className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
-                >
-                  {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
-                  <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
-                    {t.mainPhoto}
-                  </span>
-                </button>
-                <div className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white">
-                  <IconCamera size={22} color="#B8452F" />
-                  <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraft({
-                      photo:
-                        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=70",
-                    })
-                  }
-                  className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
-                >
-                  <IconImage size={22} color="#6E6558" />
-                  <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
-                </button>
-              </div>
-            </div>
-
             <div className="flex flex-col gap-3.5">
               <Field label={t.title}>
                 <Input value={draft.title} onChange={(v) => setDraft({ title: v })} placeholder={t.title} />
@@ -436,6 +405,15 @@ export default function PostPage() {
             <button
               type="button"
               onClick={() => {
+                const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
+                if (spoken && draft.mediaKind === "video" && !draft.videoUrl) {
+                  setError(t.mediaNeed);
+                  return;
+                }
+                if (spoken && !draft.transcript?.trim() && !draft.description.trim()) {
+                  setError(t.mediaNeed);
+                  return;
+                }
                 if (!draft.title.trim() || !draft.price.trim()) {
                   setError(t.needFields);
                   return;
@@ -455,7 +433,9 @@ export default function PostPage() {
         <>
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
             <div className="overflow-hidden rounded-[20px] border border-line bg-white">
-              {draft.photo ? (
+              {draft.videoUrl ? (
+                <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="h-56 w-full object-cover bg-ink" />
+              ) : draft.photo ? (
                 <div className="h-44">
                   <Photo src={draft.photo} alt="" />
                 </div>
@@ -470,10 +450,18 @@ export default function PostPage() {
                 <div className="mt-1 text-[13px] text-muted">
                   {t.cities[draft.city]}
                   {draft.rooms ? ` · ${draft.rooms} ${t.roomWord} · ${draft.area} м²` : ""}
+                  {` · ${listingChipLabel({ section: draft.section, category: draft.category, goodsKind: draft.goodsKind, housingKind: draft.housingKind, carMake: draft.carMake, carModel: draft.carModel, techBrand: draft.techBrand, techModel: draft.techModel, animalKind: draft.animalKind }, t)}`}
                 </div>
+                {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="mt-3 w-full" /> : null}
                 {draft.description ? <p className="mt-3 text-sm leading-[1.5] text-ink-2">{draft.description}</p> : null}
               </div>
             </div>
+            {draft.mediaKind === "video" || draft.mediaKind === "voice" ? (
+              <div className="mt-4">
+                <AiConfirmCard draft={draft} onPatch={setDraft} />
+              </div>
+            ) : null}
+            {error ? <p className="mt-3 text-[13px] text-accent">{error}</p> : null}
           </div>
           <div className="flex shrink-0 gap-2.5 border-t border-line px-5 pb-[26px] pt-3.5">
             <button type="button" onClick={() => setStep(1)} className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold">
@@ -482,6 +470,10 @@ export default function PostPage() {
             <button
               type="button"
               onClick={() => {
+                if ((draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed) {
+                  setError(t.needConfirm);
+                  return;
+                }
                 const item = publishDraft();
                 if (!item) {
                   setError(t.needFields);

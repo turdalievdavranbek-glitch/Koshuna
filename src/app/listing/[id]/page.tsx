@@ -19,6 +19,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ReportListing } from "@/components/report-listing";
 import { Eyebrow, Photo, Price } from "@/components/ui";
+import { ListingHero, isVideoListing } from "@/components/listing-media";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -89,9 +90,9 @@ export default function ListingPage() {
   return (
     <PhoneShell>
       <div className="sc relative min-h-0 flex-1 overflow-y-auto">
-        <div className="relative bg-ink" style={{ height: listing.section === "secondhand" ? 300 : 320 }}>
-          <Photo src={listing.photos[photo] ?? listing.photos[0]} alt={title} />
-          <div className="absolute left-[18px] right-[18px] top-[12px] flex items-center justify-between">
+        <div className="relative bg-ink" style={{ height: isVideoListing(listing) ? 360 : listing.section === "secondhand" ? 300 : 320 }}>
+          <ListingHero listing={listing} photo={photo} title={title} />
+          <div className="absolute left-[18px] right-[18px] top-[12px] z-10 flex items-center justify-between">
             <button
               type="button"
               onClick={() => router.back()}
@@ -117,12 +118,14 @@ export default function ListingPage() {
               </button>
             </div>
           </div>
-          <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
-            {photo + 1} / {listing.photos.length}
-          </span>
+          {isVideoListing(listing) ? null : (
+            <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
+              {photo + 1} / {listing.photos.length}
+            </span>
+          )}
         </div>
 
-        {listing.photos.length > 1 ? (
+        {listing.photos.length > 1 && !isVideoListing(listing) ? (
           <div className="flex gap-2 px-5 pt-3">
             {listing.photos.slice(0, 3).map((src, i) => (
               <button
@@ -148,6 +151,9 @@ export default function ListingPage() {
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
               {listingChipLabel(listing, t)}
             </span>
+            {isVideoListing(listing) ? (
+              <span className="rounded-full bg-ink px-[11px] py-1 text-xs font-semibold text-screen">{t.videoListing}</span>
+            ) : null}
             {listing.condition ? (
               <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
                 {t.conditions[listing.condition]}
@@ -157,6 +163,9 @@ export default function ListingPage() {
                 {t.cities[listing.city]} · {t.sample}
               </span>
             )}
+            {listing.mediaKind === "voice" ? (
+              <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">{t.voiceListing}</span>
+            ) : null}
           </div>
           <h1 className="mt-3.5 font-display text-[26px] font-bold leading-[1.14] tracking-[-0.015em] text-ink">
             {title}
@@ -266,6 +275,9 @@ export default function ListingPage() {
 
           <div className="mt-6">
             <Eyebrow>{t.description}</Eyebrow>
+            {listing.transcript ? (
+              <p className="mt-2 text-[12px] font-semibold text-accent-dark">{t.fromSpeech}</p>
+            ) : null}
             <p className="mt-2.5 text-[15px] leading-[1.6] text-ink-2">{listingDesc(listing, lang)}</p>
             <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>

@@ -44,7 +44,7 @@ export function VoiceNote({ listing }: { listing: Listing }) {
     setOn(false);
   };
 
-  if (!listing.voiceText && !listing.voiceTextKy) return null;
+  if (!listing.voiceText && !listing.voiceTextKy && !listing.voiceUrl) return null;
 
   return (
     <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
@@ -71,6 +71,7 @@ export function VoiceNote({ listing }: { listing: Listing }) {
           </span>
         </span>
       </button>
+      {listing.voiceUrl ? <audio src={listing.voiceUrl} controls className="mt-3 w-full" /> : null}
       <p className="mt-3 text-[14px] leading-[1.5] text-ink-2">{script}</p>
     </div>
   );

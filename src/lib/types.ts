@@ -50,6 +50,8 @@ export type GoLookKind = "view" | "meet" | "none";
 
 export type ViewerPlace = "kyrgyzstan" | "moscow" | "almaty" | "istanbul" | "seoul" | "dubai";
 
+export type MediaKind = "photos" | "video" | "voice";
+
 export type PropertyType =
   | "apartment"
   | "house"
@@ -126,6 +128,10 @@ export type Listing = {
   year?: number;
   condition?: string;
   photos: string[];
+  mediaKind?: MediaKind;
+  videoUrl?: string;
+  voiceUrl?: string;
+  transcript?: string;
   photoCredit: string;
   description: string;
   descriptionKy: string;
@@ -231,4 +237,9 @@ export type DraftListing = {
   carModel?: string;
   techBrand?: string;
   techModel?: string;
+  mediaKind?: MediaKind;
+  videoUrl?: string;
+  voiceUrl?: string;
+  transcript?: string;
+  aiConfirmed?: boolean;
 };

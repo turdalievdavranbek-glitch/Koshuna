@@ -8,6 +8,7 @@ import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
 import { NeighborMark } from "./neighbor-seal";
+import { isVideoListing, PlayBadge } from "./listing-media";
 import { Photo, Price } from "./ui";
 
 export function LayoutSwitch() {
@@ -64,6 +65,7 @@ function ListingCard({
     >
       <div className={`relative ${photoH}`}>
         <Photo src={listing.photos[0]} alt={title} />
+        {isVideoListing(listing) ? <PlayBadge compact={layout === "small"} /> : null}
         {layout !== "small" ? (
           <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(23,20,15,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
@@ -153,8 +155,9 @@ export function RecentlyViewed() {
             onClick={() => router.push(`/listing/${item.id}`)}
             className="w-[132px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface text-left"
           >
-            <div className="h-20">
+            <div className="relative h-20">
               <Photo src={item.photos[0]} alt={listingTitle(item, lang)} />
+              {isVideoListing(item) ? <PlayBadge compact /> : null}
             </div>
             <div className="px-2.5 pb-2.5 pt-2">
               <div className="font-display text-[14px] font-bold text-ink">{formatSom(item.price)} KGS</div>

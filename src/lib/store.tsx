@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { persistableUrl } from "./blob-media";
 import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User, ViewerPlace } from "./types";
@@ -65,6 +66,8 @@ const defaultDraft = (): DraftListing => ({
   description: "",
   promote: true,
   neighborPledge: true,
+  mediaKind: "photos",
+  aiConfirmed: false,
 });
 
 type State = {
@@ -204,7 +207,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    localStorage.setItem(STORAGE, JSON.stringify(state));
+    localStorage.setItem(
+      STORAGE,
+      JSON.stringify({
+        ...state,
+        draft: {
+          ...state.draft,
+          videoUrl: persistableUrl(state.draft.videoUrl),
+          voiceUrl: persistableUrl(state.draft.voiceUrl),
+          photo: persistableUrl(state.draft.photo),
+        },
+        extraListings: state.extraListings.map((item) => ({
+          ...item,
+          videoUrl: persistableUrl(item.videoUrl),
+          voiceUrl: persistableUrl(item.voiceUrl),
+        })),
+      }),
+    );
   }, [state, ready]);
 
   const update = useCallback((patch: Partial<State> | ((s: State) => State)) => {
@@ -283,7 +302,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isFav: (id) => state.favouriteIds.includes(id),
     requireAuth: () => Boolean(state.user),
     setPendingPath: (path) => update({ pendingPath: path }),
-    setDraft: (patch) => update({ draft: { ...state.draft, ...patch } }),
+    setDraft: (patch) => update((s) => ({ ...s, draft: { ...s.draft, ...patch } })),
     saveDraft: () => update({ draft: { ...state.draft } }),
     publishDraft: () => {
       const d = state.draft;
@@ -322,7 +341,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         area: d.area ? Number(d.area) : undefined,
         photos: [d.photo || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70"],
         photoCredit: "Demo",
-        description: d.description || d.title,
+        mediaKind: d.mediaKind ?? "photos",
+        videoUrl: d.videoUrl,
+        voiceUrl: d.voiceUrl,
+        transcript: d.transcript,
+        voiceText: d.transcript,
+        voiceSec: d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined,
+        description: d.description || d.transcript || d.title,
         descriptionKy: d.description || d.title,
         descriptionEn: d.description || d.title,
         ownerId: "aida",
