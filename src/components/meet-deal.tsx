@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { meetupSpotsFor } from "@/lib/deal";
@@ -69,6 +69,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const [spot, setSpot] = useState<MeetupSpot | null>(deal?.offer?.spot ?? listing.meetupSpot ?? null);
   const [error, setError] = useState("");
   const [geoNote, setGeoNote] = useState("");
+  const geoReq = useRef(0);
   const spots = meetupSpotsFor(listing.city);
   const viewAs = mine ? (deal?.viewAs ?? "seller") : "buyer";
   const party = viewAs;
@@ -84,7 +85,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     const originLng = deal.originLng;
     const tick = window.setInterval(() => {
       patchMeetDeal(listing.id, (cur) => {
-        const nextT = Math.min(1, cur.trackT + 0.08);
+        const nextT = Math.min(1, cur.trackT + 0.035);
         return {
           ...cur,
           trackT: nextT,
@@ -93,7 +94,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
           arrived: nextT >= 1,
         };
       });
-    }, 900);
+    }, 1100);
     return () => window.clearInterval(tick);
   }, [deal?.arrived, deal?.geoOn, deal?.offer, deal?.originLat, deal?.originLng, listing.id, listing.lat, listing.lng, listing.city, patchMeetDeal]);
 
@@ -169,18 +170,25 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const onGeo = () => {
     if (!needUser()) return;
     const fallback = defaultBuyerOrigin(listing);
-    const apply = (lat: number, lng: number, denied: boolean) => {
+    const req = ++geoReq.current;
+    const apply = (lat: number, lng: number, note: string) => {
+      if (req !== geoReq.current) return;
       enableMeetGeo(listing.id, lat, lng);
-      setGeoNote(denied ? t.meetGeoDenied : t.meetGeoOn);
+      setGeoNote(note);
     };
     if (!navigator.geolocation) {
-      apply(fallback.lat, fallback.lng, true);
+      apply(fallback.lat, fallback.lng, t.meetGeoDenied);
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => apply(pos.coords.latitude, pos.coords.longitude, false),
-      () => apply(fallback.lat, fallback.lng, true),
-      { enableHighAccuracy: true, timeout: 4000 },
+      (pos) => apply(pos.coords.latitude, pos.coords.longitude, t.meetGeoOn),
+      (err) =>
+        apply(
+          fallback.lat,
+          fallback.lng,
+          err.code === 1 ? t.meetGeoDenied : t.meetGeoOn,
+        ),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
     );
   };
 
@@ -321,12 +329,12 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
               </div>
               <div className="mt-2 h-[180px] overflow-hidden rounded-[16px] border border-line">
                 <GisMap
-                  center={pos ?? dest}
+                  center={dest}
                   zoom={13}
                   interactive={false}
+                  pick={pos}
                   markers={[
                     { id: "meet", lat: dest.lat, lng: dest.lng, label: t.meetupSpots[deal.offer.spot], active: true },
-                    ...(pos ? [{ id: "buyer", lat: pos.lat, lng: pos.lng, label: reservedBy.name }] : []),
                   ]}
                 />
               </div>
