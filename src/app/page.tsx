@@ -30,6 +30,11 @@ export default function FeedPage() {
     }
   };
 
+  const openSearch = () => {
+    setFilters({ section: null, category: null });
+    router.push("/filters");
+  };
+
   return (
     <PhoneShell tab>
       <header className="shrink-0 bg-screen px-5 pb-3.5 pt-1.5">
@@ -59,18 +64,19 @@ export default function FeedPage() {
             </Link>
           </div>
         </div>
-        <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
+        <button
+          type="button"
+          onClick={openSearch}
+          className="mt-3 flex h-12 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 text-left"
+        >
           <IconSearch size={17} color="#A79C8C" />
-          <input
-            value={filters.query}
-            onChange={(e) => setFilters({ query: e.target.value })}
-            placeholder={searchPlaceholder(null, t)}
-            className="h-full flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted-2"
-          />
-          <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters}>
+          <span className="h-full flex-1 truncate text-[15px] leading-[48px] text-muted-2">
+            {filters.query || searchPlaceholder(null, t)}
+          </span>
+          <span aria-label={t.filters}>
             <IconSliders size={17} color="#17140F" />
-          </button>
-        </div>
+          </span>
+        </button>
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
@@ -156,11 +162,11 @@ export default function FeedPage() {
           <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-          <Chip onClick={() => router.push("/filters")}>
+          <Chip onClick={openSearch}>
             {t.allCategories}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
           </Chip>
-          <Chip onClick={() => router.push("/filters")}>
+          <Chip onClick={openSearch}>
             {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
             <span className="ml-1 text-[10px] text-muted-2">▾</span>
           </Chip>

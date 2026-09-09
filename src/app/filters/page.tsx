@@ -1,13 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms, propertyShowsStock } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
-import { IconBack, IconHeart } from "@/components/icons";
+import { IconBack, IconHeart, sectionIcon } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
@@ -23,11 +22,6 @@ export default function FiltersPage() {
     useApp();
   const router = useRouter();
   const count = applyFilters(allListings, filters, city).length;
-  const [sectionPickerOpen, setSectionPickerOpen] = useState(!filters.section);
-
-  useEffect(() => {
-    setSectionPickerOpen(!filters.section);
-  }, [filters.section]);
 
   const setRooms = (n: number | 0) => {
     if (n === 0) {
@@ -49,15 +43,9 @@ export default function FiltersPage() {
   const isRestaurants = filters.section === "restaurants";
 
   const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
-    if (filters.section === id) {
-      setSectionPickerOpen(false);
-      return;
-    }
     setFilters(patchForSection(id, filters));
-    setSectionPickerOpen(false);
   };
 
-  const showAllSections = !filters.section || sectionPickerOpen;
   const searchPh = searchPlaceholder(filters.section, t);
 
   const priceLabel = isRent
@@ -109,44 +97,33 @@ export default function FiltersPage() {
         </div>
 
         <div>
-          <div className="flex items-baseline justify-between gap-3">
-            <Eyebrow>{t.section}</Eyebrow>
-            {filters.section && !showAllSections ? (
-              <button
-                type="button"
-                onClick={() => setSectionPickerOpen(true)}
-                className="text-[13px] font-semibold text-accent"
-              >
-                {t.changeSection}
-              </button>
-            ) : null}
-          </div>
-          {showAllSections ? (
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {SECTIONS.map((s) => (
+          <Eyebrow>{t.section}</Eyebrow>
+          <div className="mt-2.5 overflow-hidden rounded-[16px] border border-line bg-surface">
+            {SECTIONS.map((s, i) => {
+              const on = filters.section === s.id;
+              return (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => pickSection(s.id)}
-                  className="rounded-xl px-3.5 py-2.5 text-sm"
+                  className="flex w-full items-center gap-3 px-3.5 py-[13px] text-left"
                   style={{
-                    background: filters.section === s.id ? "#17140F" : "#FFFFFF",
-                    color: filters.section === s.id ? "#F7F3EC" : "#17140F",
-                    border: filters.section === s.id ? "none" : "1px solid #E4DCCE",
-                    fontWeight: filters.section === s.id ? 600 : 500,
+                    background: on ? "#17140F" : "#FFFFFF",
+                    borderTop: i === 0 ? "none" : "1px solid #E4DCCE",
                   }}
                 >
-                  {t.sectionNames[s.id]}
+                  {sectionIcon(s.id, on ? "#F7F3EC" : "#B8452F", 20)}
+                  <span
+                    className="flex-1 text-[15px] font-semibold"
+                    style={{ color: on ? "#F7F3EC" : "#17140F" }}
+                  >
+                    {t.sectionNames[s.id]}
+                  </span>
+                  <span style={{ color: on ? "rgba(247,243,236,.45)" : "#A79C8C" }}>›</span>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2.5">
-              <Chip active onClick={() => setSectionPickerOpen(true)}>
-                {t.sectionNames[filters.section!]}
-              </Chip>
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
 
         {isRent ? (
