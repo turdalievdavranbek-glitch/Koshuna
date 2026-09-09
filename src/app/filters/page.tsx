@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms, propertyShowsStock } from "@/lib/data";
+import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
@@ -12,6 +12,7 @@ import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
+import { DealTypeChips } from "@/components/deal-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
@@ -128,60 +129,9 @@ export default function FiltersPage() {
           </div>
         </div>
 
-        {isRent ? (
-          <div>
-            <Eyebrow>{t.dealType}</Eyebrow>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {(
-                [
-                  ["buy", t.dealBuy],
-                  ["short", t.dealShort],
-                  ["long", t.dealLong],
-                  ["any", t.any],
-                ] as const
-              ).map(([id, label]) => (
-                <Chip
-                  key={id}
-                  active={filters.dealType === id}
-                  onClick={() =>
-                    setFilters({
-                      dealType: id,
-                      checkIn: id === "short" ? filters.checkIn : null,
-                      checkOut: id === "short" ? filters.checkOut : null,
-                      stockType: id === "buy" ? filters.stockType : "any",
-                    })
-                  }
-                >
-                  {label}
-                </Chip>
-              ))}
-            </div>
-            {filters.dealType === "buy" && propertyShowsStock(filters.housingType) ? (
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {(
-                  [
-                    ["any", t.any],
-                    ["newbuild", t.stockNew],
-                    ["resale", t.stockResale],
-                  ] as const
-                ).map(([id, label]) => (
-                  <Chip key={id} active={filters.stockType === id} onClick={() => setFilters({ stockType: id })}>
-                    {label}
-                  </Chip>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        {isRent ? <DealTypeChips labeled /> : null}
 
-        {isRent ? (
-          <div>
-            <Eyebrow>{t.category}</Eyebrow>
-            <div className="mt-2.5">
-              <PropertyTypeChips />
-            </div>
-          </div>
-        ) : null}
+        {isRent ? <PropertyTypeChips labeled /> : null}
 
         {isRent || isRestaurants ? (
           <div>

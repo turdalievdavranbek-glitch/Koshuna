@@ -2,9 +2,9 @@
 
 import { PROPERTY_TYPES, propertyIsLiving, propertyShowsRooms } from "@/lib/data";
 import { useApp } from "@/lib/store";
-import { Chip } from "@/components/ui";
+import { Chip, Eyebrow } from "@/components/ui";
 
-export function PropertyTypeChips() {
+export function PropertyTypeChips({ labeled }: { labeled?: boolean }) {
   const { t, filters, setFilters } = useApp();
 
   const pick = (id: string) => {
@@ -16,8 +16,8 @@ export function PropertyTypeChips() {
     });
   };
 
-  return (
-    <div className="flex flex-wrap gap-2">
+  const row = (
+    <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
       <Chip active={filters.housingType === "any"} onClick={() => pick("any")}>
         {t.allCategories}
       </Chip>
@@ -28,4 +28,15 @@ export function PropertyTypeChips() {
       ))}
     </div>
   );
+
+  if (labeled) {
+    return (
+      <div>
+        <Eyebrow>{t.housingType}</Eyebrow>
+        {row}
+      </div>
+    );
+  }
+
+  return row;
 }
