@@ -88,13 +88,15 @@ export default function SectionPage() {
           <SectionExtras />
         </div>
 
-        <div className="mt-3.5 flex flex-wrap gap-2">
-          {CITIES.map((cityId) => (
-            <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
-              {t.cities[cityId]}
-            </Chip>
-          ))}
-        </div>
+        {id === "rent" || id === "restaurants" ? null : (
+          <div className="mt-3.5 flex flex-wrap gap-2">
+            {CITIES.map((cityId) => (
+              <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
+                {t.cities[cityId]}
+              </Chip>
+            ))}
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>

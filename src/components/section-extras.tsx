@@ -11,6 +11,7 @@ import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
+import { LocationChips } from "@/components/location-chips";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -23,6 +24,7 @@ export function SectionExtras() {
       <div className="flex flex-col gap-2.5">
         <DealTypeChips labeled />
         <PropertyTypeChips labeled />
+        <LocationChips labeled />
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -145,6 +147,7 @@ export function SectionExtras() {
     return (
       <div className="flex flex-col gap-2.5">
         <RestaurantChips />
+        <LocationChips labeled />
         <button
           type="button"
           onClick={() => router.push("/map")}

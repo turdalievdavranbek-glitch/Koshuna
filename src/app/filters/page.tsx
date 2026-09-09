@@ -17,6 +17,7 @@ import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
+import { LocationChips } from "@/components/location-chips";
 
 export default function FiltersPage() {
   const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -132,6 +133,8 @@ export default function FiltersPage() {
         {isRent ? <DealTypeChips labeled /> : null}
 
         {isRent ? <PropertyTypeChips labeled /> : null}
+
+        {isRent || isRestaurants ? <LocationChips labeled /> : null}
 
         {isRent || isRestaurants ? (
           <div>
@@ -302,21 +305,23 @@ export default function FiltersPage() {
           </div>
         </div>
 
-        <div>
-          <Eyebrow>{t.city}</Eyebrow>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {[...CITIES].sort((a, b) => (a === "all" ? 1 : b === "all" ? -1 : 0)).map((id) => (
-              <Chip
-                key={id}
-                active={filters.city === id}
-                accent={id !== "all" && filters.city === id}
-                onClick={() => setFilters({ city: id })}
-              >
-                {t.cities[id]}
-              </Chip>
-            ))}
+        {isRent || isRestaurants ? null : (
+          <div>
+            <Eyebrow>{t.city}</Eyebrow>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {[...CITIES].sort((a, b) => (a === "all" ? 1 : b === "all" ? -1 : 0)).map((id) => (
+                <Chip
+                  key={id}
+                  active={filters.city === id}
+                  accent={id !== "all" && filters.city === id}
+                  onClick={() => setFilters({ city: id })}
+                >
+                  {t.cities[id]}
+                </Chip>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <div className="flex items-baseline justify-between">
