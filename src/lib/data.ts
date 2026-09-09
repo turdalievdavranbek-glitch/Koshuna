@@ -17,12 +17,12 @@ export const CITIES = [
 export const SECTIONS: { id: SectionId; icon: string; art: string }[] = [
   { id: "rent", icon: "home", art: "/sections/rent.jpg" },
   { id: "cars", icon: "car", art: "/sections/cars.jpg" },
+  { id: "secondhand", icon: "bag", art: "/sections/secondhand.jpg" },
   { id: "construction", icon: "blocks", art: "/sections/construction.jpg" },
   { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.jpg" },
   { id: "services", icon: "pen", art: "/sections/services.jpg" },
   { id: "stays", icon: "hotel", art: "/sections/stays.jpg" },
   { id: "animals", icon: "animal", art: "/sections/animals.jpg" },
-  { id: "secondhand", icon: "bag", art: "/sections/secondhand.jpg" },
 ];
 
 export const CATEGORIES = [
