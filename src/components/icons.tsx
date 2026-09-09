@@ -86,6 +86,26 @@ export function IconFork(p: P) {
     </svg>
   );
 }
+export function IconCols({ count, color = "currentColor", size = 18, ...rest }: P & { count: 1 | 2 | 3 }) {
+  const bars =
+    count === 1
+      ? [<rect key="1" x="4" y="3.5" width="10" height="11" rx="1.4" />]
+      : count === 2
+        ? [
+            <rect key="1" x="3.2" y="3.5" width="5.2" height="11" rx="1.2" />,
+            <rect key="2" x="9.6" y="3.5" width="5.2" height="11" rx="1.2" />,
+          ]
+        : [
+            <rect key="1" x="2.6" y="3.5" width="3.4" height="11" rx="1" />,
+            <rect key="2" x="7.3" y="3.5" width="3.4" height="11" rx="1" />,
+            <rect key="3" x="12" y="3.5" width="3.4" height="11" rx="1" />,
+          ];
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill={color} stroke="none" {...rest}>
+      {bars}
+    </svg>
+  );
+}
 export function IconPin(p: P) {
   return (
     <svg {...base(p)} strokeWidth="1.7" strokeLinecap="round">

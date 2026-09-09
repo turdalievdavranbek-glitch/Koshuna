@@ -11,7 +11,7 @@ import {
 } from "react";
 import { DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
 import { DICT } from "./i18n";
-import type { AuthMethod, DraftListing, Filters, Lang, Listing, SavedSearch, Thread, User } from "./types";
+import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User } from "./types";
 
 const STORAGE = "konshu-state-v1";
 
@@ -73,6 +73,7 @@ type State = {
   threads: Thread[];
   pendingPath: string | null;
   notificationsOn: boolean;
+  listingLayout: ListingLayout;
 };
 
 const initial: State = {
@@ -87,6 +88,7 @@ const initial: State = {
   threads: DEFAULT_THREADS,
   pendingPath: null,
   notificationsOn: true,
+  listingLayout: "medium",
 };
 
 type Store = State & {
@@ -97,6 +99,7 @@ type Store = State & {
   logout: () => void;
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
+  setListingLayout: (layout: ListingLayout) => void;
   setFilters: (patch: Partial<Filters>) => void;
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
@@ -153,7 +156,13 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
     const saved = JSON.parse(raw) as Partial<State>;
-    return { ...initial, ...saved, filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }) };
+    return {
+      ...initial,
+      ...saved,
+      listingLayout:
+        saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
+      filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
+    };
   } catch {
     return initial;
   }
@@ -217,6 +226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     logout: () => update({ user: null }),
     setLang: (lang) => update({ lang }),
+    setListingLayout: (listingLayout) => update({ listingLayout }),
     setCity: (city) => update((s) => ({ ...s, city, filters: { ...s.filters, city } })),
     setFilters: (patch) => update((s) => ({ ...s, filters: { ...s.filters, ...patch } })),
     resetFilters: () =>

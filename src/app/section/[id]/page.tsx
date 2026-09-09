@@ -10,15 +10,14 @@ import { useApp } from "@/lib/store";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { SectionExtras } from "@/components/section-extras";
 import { PhoneShell } from "@/components/shell";
-import { Chip, ListingHero, ListingRow, useFiltered } from "@/components/ui";
+import { Chip, useFiltered } from "@/components/ui";
+import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 
 export default function SectionPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { t, lang, city, setCity, filters, setFilters, user, setPendingPath, toggleFav } = useApp();
   const listings = useFiltered();
-  const featured = listings[0];
-  const rest = listings.slice(1);
 
   useEffect(() => {
     if (id === "car-rental") {
@@ -97,9 +96,12 @@ export default function SectionPage() {
           ))}
         </div>
 
-        <div className="mt-5 flex items-baseline justify-between">
+        <div className="mt-5 flex items-center justify-between gap-3">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>
-          <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
+            <LayoutSwitch />
+          </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
           <Chip onClick={() => router.push("/filters")}>
@@ -198,12 +200,7 @@ export default function SectionPage() {
           </div>
         ) : (
           <>
-            {featured ? <ListingHero listing={featured} onFav={() => onFav(featured.id)} /> : null}
-            <div className="mt-3 flex flex-col gap-3">
-              {rest.map((item) => (
-                <ListingRow key={item.id} listing={item} />
-              ))}
-            </div>
+            <ListingGrid listings={listings} onFav={onFav} />
           </>
         )}
       </div>

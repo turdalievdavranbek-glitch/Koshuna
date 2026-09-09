@@ -27,6 +27,8 @@ export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted";
 
 export type SortMode = "new" | "price-asc" | "price-desc";
 
+export type ListingLayout = "large" | "medium" | "small";
+
 export type PropertyType =
   | "apartment"
   | "house"

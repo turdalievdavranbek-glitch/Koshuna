@@ -9,7 +9,8 @@ import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
-import { Chip, ListingHero, ListingRow, Photo } from "@/components/ui";
+import { Chip, Photo } from "@/components/ui";
+import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 
 export default function FeedPage() {
@@ -18,8 +19,6 @@ export default function FeedPage() {
   const router = useRouter();
   const listings = applyFilters(allListings, { ...filters, section: null }, city);
   const [cityOpen, setCityOpen] = useState(false);
-  const featured = listings[0];
-  const rest = listings.slice(1);
   const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter(Boolean);
 
   const onFav = (id: string) => {
@@ -157,9 +156,12 @@ export default function FeedPage() {
           ))}
         </div>
 
-        <div className="mt-5 flex items-baseline justify-between">
+        <div className="mt-5 flex items-center justify-between gap-3">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>
-          <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
+            <LayoutSwitch />
+          </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
           <Chip onClick={openSearch}>
@@ -185,12 +187,7 @@ export default function FeedPage() {
           </div>
         ) : (
           <>
-            {featured ? <ListingHero listing={featured} onFav={() => onFav(featured.id)} /> : null}
-            <div className="mt-3 flex flex-col gap-3">
-              {rest.map((item) => (
-                <ListingRow key={item.id} listing={item} />
-              ))}
-            </div>
+            <ListingGrid listings={listings} onFav={onFav} />
           </>
         )}
 

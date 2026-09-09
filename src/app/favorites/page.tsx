@@ -5,7 +5,8 @@ import { useState } from "react";
 import { listingById } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
-import { ListingRow, Toggle } from "@/components/ui";
+import { Toggle } from "@/components/ui";
+import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 
 export default function FavoritesPage() {
   const { t, user, favouriteIds, savedSearches, toggleSearchNotify, setPendingPath } = useApp();
@@ -37,7 +38,10 @@ export default function FavoritesPage() {
   return (
     <PhoneShell tab>
       <div className="px-5 pt-2">
-        <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
+          {tab === "items" && items.length ? <LayoutSwitch /> : null}
+        </div>
         <div className="mt-3.5 flex gap-1 rounded-[14px] bg-chip p-1">
           <button
             type="button"
@@ -71,24 +75,7 @@ export default function FavoritesPage() {
           items.length === 0 ? (
             <div className="mt-10 text-center text-[15px] text-muted">{t.emptyFav}</div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {items.map((item) =>
-                item ? (
-                  <ListingRow
-                    key={item.id}
-                    listing={item}
-                    heart
-                    priceDrop={item.id === "apt-sunny"}
-                    overlay={item.status === "withdrawn" ? t.withdrawn.toUpperCase() : undefined}
-                    dim={item.status === "withdrawn"}
-                    onOpen={() => {
-                      if (item.status === "withdrawn") return;
-                      router.push(`/listing/${item.id}`);
-                    }}
-                  />
-                ) : null,
-              )}
-            </div>
+            <ListingGrid listings={items.filter((item): item is NonNullable<typeof item> => Boolean(item))} />
           )
         ) : (
           <div className="flex flex-col gap-3">
