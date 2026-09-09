@@ -1,7 +1,7 @@
 "use client";
 
 import { formatSom } from "@/lib/data";
-import { marketBand, marketFit, marketMarker, parseDraftPrice } from "@/lib/market";
+import { listingsForMarket, marketBand, marketFit, marketMarker, parseDraftPrice } from "@/lib/market";
 import { useApp } from "@/lib/store";
 import type { DraftListing } from "@/lib/types";
 import { Chip } from "./ui";
@@ -13,9 +13,18 @@ export function MarketRangeCard({
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
 }) {
-  const { t, allListings } = useApp();
-  const band = marketBand(draft, allListings);
-  if (!band) return null;
+  const { t, extraListings } = useApp();
+  const band = marketBand(draft, listingsForMarket(extraListings));
+
+  if (!band) {
+    return (
+      <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.marketTitle}</div>
+        <p className="mt-2 text-[15px] leading-[1.45] text-ink">{t.marketMissing}</p>
+        <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.marketMissingHint}</p>
+      </div>
+    );
+  }
 
   const price = parseDraftPrice(draft.price);
   const fit = marketFit(price, band);

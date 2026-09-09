@@ -1,3 +1,4 @@
+import { listingById, MY_LISTING_IDS } from "./data";
 import type { DraftListing, Listing } from "./types";
 
 export type MarketScope = "tight" | "city" | "section";
@@ -14,6 +15,16 @@ export type MarketFit = "low" | "in" | "high";
 
 export function parseDraftPrice(raw: string): number {
   return Number(String(raw).replace(/\s/g, "")) || 0;
+}
+
+/** Price range comes only from the initiator's own ads — not the rest of the catalog. */
+export function listingsForMarket(extra: Listing[]): Listing[] {
+  const seen = new Set(extra.map((item) => item.id));
+  const seeded = MY_LISTING_IDS.map(listingById).filter((item): item is Listing => {
+    if (!item || seen.has(item.id)) return false;
+    return true;
+  });
+  return [...extra, ...seeded];
 }
 
 function median(nums: number[]): number {
