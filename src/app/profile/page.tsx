@@ -52,7 +52,8 @@ export default function ProfilePage() {
               {user.verified ? <IconVerified size={17} /> : null}
             </div>
             <div className="mt-0.5 text-[13px] text-muted">
-              {user.phone} · с {user.joinedYear} года
+              {user.email || user.phone}
+              {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
             </div>
           </div>
           <button type="button" className="text-[13px] font-semibold text-accent">

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
 import { DICT } from "./i18n";
-import type { DraftListing, Filters, Lang, Listing, SavedSearch, Thread, User } from "./types";
+import type { AuthMethod, DraftListing, Filters, Lang, Listing, SavedSearch, Thread, User } from "./types";
 
 const STORAGE = "konshu-state-v1";
 
@@ -93,7 +93,7 @@ type Store = State & {
   t: (typeof DICT)["ru"];
   ready: boolean;
   allListings: Listing[];
-  login: (phone: string) => void;
+  login: (input: { phone?: string; email?: string; method: AuthMethod; name?: string }) => void;
   logout: () => void;
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
@@ -188,13 +188,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     t,
     ready,
     allListings,
-    login: (phone) => {
-      const clean = phone.replace(/\D/g, "");
-      const isAida = clean === "555123456" || clean === "";
+    login: ({ phone, email, method, name }) => {
+      const clean = (phone ?? "").replace(/\D/g, "");
+      const isAida = method === "sms" && (clean === "555123456" || clean === "");
+      const displayName = name || (isAida ? "Аида" : "Давран");
+      const displayPhone = phone
+        ? phone.startsWith("+")
+          ? phone
+          : `+996 ${phone}`
+        : "+996 555 12 34 56";
       update({
         user: {
-          name: isAida ? "Аида" : "Давран",
-          phone: `+996 ${phone || "555 12 34 56"}`,
+          name: displayName,
+          phone: displayPhone,
+          email,
+          method,
           joinedYear: 2024,
           verified: true,
           rating: 4.9,
@@ -202,8 +210,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
         draft: {
           ...state.draft,
-          name: isAida ? "Аида" : "Давран",
-          phone: `+996 ${phone || "555 12 34 56"}`,
+          name: displayName,
+          phone: displayPhone,
         },
       });
     },

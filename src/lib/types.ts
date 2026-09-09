@@ -1,5 +1,16 @@
 export type Lang = "ru" | "ky" | "en";
 
+export type AuthMethod =
+  | "sms"
+  | "email"
+  | "google"
+  | "facebook"
+  | "apple"
+  | "whatsapp"
+  | "telegram"
+  | "instagram"
+  | "vk";
+
 export type SectionId =
   | "rent"
   | "secondhand"
@@ -30,6 +41,8 @@ export type AnimalGroup = "pets" | "farm";
 export type User = {
   name: string;
   phone: string;
+  email?: string;
+  method?: AuthMethod;
   joinedYear: number;
   verified: boolean;
   rating: number;
