@@ -5,6 +5,7 @@ import { formatSom } from "@/lib/data";
 import { dropAmount, hasPriceDrop } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
 import { listingChipLabel, listingTitle } from "@/lib/i18n";
+import { somToForeign } from "@/lib/strategy";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
@@ -66,9 +67,10 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
 }
 
 export function Price({ listing, large, compact }: { listing: Listing; large?: boolean; compact?: boolean }) {
-  const { t } = useApp();
+  const { t, viewerPlace } = useApp();
   const unit = listing.unit ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
+  const fx = somToForeign(listing.price, viewerPlace);
   if (large) {
     return (
       <div>
@@ -78,6 +80,11 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
           </span>
           {unit ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
+        {fx ? (
+          <div className="mt-1 text-[13px] text-muted">
+            ≈ {fx} <span className="text-[11px] text-muted-2">{t.fxApprox}</span>
+          </div>
+        ) : null}
         {dropped && listing.previousPrice ? (
           <div className="mt-1 flex items-center gap-2">
             <span className="text-sm text-muted-2 line-through">{formatSom(listing.previousPrice)} KGS</span>
@@ -108,6 +115,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
         {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
         {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
       </div>
+      {fx && !compact ? <div className="text-[11px] text-muted-2">≈ {fx}</div> : null}
       {dropped && listing.previousPrice ? (
         <div className={`flex items-center gap-1.5 ${compact ? "mt-0.5" : "mt-1"}`}>
           <span className={`text-muted-2 line-through ${compact ? "text-[10px]" : "text-xs"}`}>

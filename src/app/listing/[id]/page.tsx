@@ -8,6 +8,7 @@ import { goLookKind, similarListings } from "@/lib/deal";
 import { twoGisUrl } from "@/lib/geo";
 import { listingChipLabel, listingDesc, listingTitle } from "@/lib/i18n";
 import { familyShareText } from "@/lib/share";
+import { isAbroad } from "@/lib/strategy";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -22,7 +23,7 @@ import { Eyebrow, Photo, Price } from "@/components/ui";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed } =
+  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, viewerPlace } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -186,6 +187,12 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
+          {isAbroad(viewerPlace) ? (
+            <div className="mt-3 rounded-[16px] border border-line bg-white p-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.bridgeAbroad}</div>
+              <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.abroadListingHint(t.viewerPlaces[viewerPlace])}</p>
+            </div>
+          ) : null}
           <GoLookCard listing={listing} />
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />
@@ -199,12 +206,12 @@ export default function ListingPage() {
               {t.storyToIg}
             </button>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(familyShareText(listing, t, lang))}`}
+              href={`https://wa.me/?text=${encodeURIComponent(familyShareText(listing, t, lang, viewerPlace))}`}
               target="_blank"
               rel="noreferrer"
               className="flex h-[48px] items-center justify-center rounded-[14px] bg-success text-[13px] font-semibold text-white"
             >
-              {t.showApa}
+              {isAbroad(viewerPlace) ? t.showFamily : t.showApa}
             </a>
           </div>
 

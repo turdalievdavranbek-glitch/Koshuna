@@ -48,6 +48,8 @@ export type ReportReason = "agent" | "prepay" | "currency" | "photos" | "other";
 
 export type GoLookKind = "view" | "meet" | "none";
 
+export type ViewerPlace = "kyrgyzstan" | "moscow" | "almaty" | "istanbul" | "seoul" | "dubai";
+
 export type PropertyType =
   | "apartment"
   | "house"

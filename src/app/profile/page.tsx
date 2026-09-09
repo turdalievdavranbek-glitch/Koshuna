@@ -10,7 +10,7 @@ import { PhoneShell } from "@/components/shell";
 import { LangSwitch, Photo } from "@/components/ui";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, setLang, notificationsOn, setNotificationsOn } = useApp();
+  const { t, lang, user, logout, extraListings, setLang, notificationsOn, setNotificationsOn, viewerPlace } = useApp();
   const router = useRouter();
   const mine = [
     ...extraListings,
@@ -34,6 +34,16 @@ export default function ProfilePage() {
             <div className="mb-3 text-[13px] font-semibold text-ink">{t.language}</div>
             <LangSwitch />
           </div>
+          <Link
+            href="/strategy"
+            className="mt-3 flex items-center justify-between rounded-[18px] border border-line bg-white px-4 py-[15px] text-[15px] text-ink no-underline"
+          >
+            <span>
+              {t.strategyNav}
+              <span className="mt-0.5 block text-[12px] text-muted">{t.viewerWhere}: {t.viewerPlaces[viewerPlace]}</span>
+            </span>
+            <span className="text-xs text-muted-2">›</span>
+          </Link>
         </div>
       </PhoneShell>
     );
@@ -149,6 +159,13 @@ export default function ProfilePage() {
               </span>
             }
           />
+          <Link href="/strategy" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
+            <span>
+              {t.viewerWhere}
+              <span className="mt-0.5 block text-[12px] text-muted">{t.viewerPlaces[viewerPlace]} · {t.somStays}</span>
+            </span>
+            <span className="text-xs text-muted-2">›</span>
+          </Link>
           <Row
             label={t.notifications}
             value={
@@ -168,6 +185,10 @@ export default function ProfilePage() {
           />
           <Link href="/help" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
             {t.help}
+            <span className="text-xs text-muted-2">›</span>
+          </Link>
+          <Link href="/strategy" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
+            {t.strategyNav}
             <span className="text-xs text-muted-2">›</span>
           </Link>
           <Link href="/messages" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">

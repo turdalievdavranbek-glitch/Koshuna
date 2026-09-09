@@ -11,7 +11,8 @@ import {
 } from "react";
 import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
-import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User } from "./types";
+import type { AuthMethod, DraftListing, Filters, Lang, Listing, ListingLayout, SavedSearch, Thread, User, ViewerPlace } from "./types";
+import { parseViewerPlace } from "./strategy";
 
 const STORAGE = "konshu-state-v1";
 
@@ -82,6 +83,7 @@ type State = {
   elderMode: boolean;
   viewedIds: string[];
   reports: Record<string, string>;
+  viewerPlace: ViewerPlace;
 };
 
 const initial: State = {
@@ -100,6 +102,7 @@ const initial: State = {
   elderMode: false,
   viewedIds: [],
   reports: {},
+  viewerPlace: "kyrgyzstan",
 };
 
 type Store = State & {
@@ -114,6 +117,7 @@ type Store = State & {
   setElderMode: (on: boolean) => void;
   markViewed: (id: string) => void;
   reportListing: (id: string, reason: string) => void;
+  setViewerPlace: (place: ViewerPlace) => void;
   setFilters: (patch: Partial<Filters>) => void;
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
@@ -181,6 +185,7 @@ function load(): State {
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
+      viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
   } catch {
@@ -249,6 +254,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
+    setViewerPlace: (viewerPlace) => update({ viewerPlace }),
     markViewed: (id) =>
       update((s) => ({
         ...s,

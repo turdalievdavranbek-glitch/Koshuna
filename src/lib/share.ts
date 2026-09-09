@@ -1,6 +1,7 @@
 import { formatSom, settlementById, settlementLabel } from "./data";
 import { listingTitle, type Dict } from "./i18n";
-import type { Lang, Listing } from "./types";
+import { isAbroad } from "./strategy";
+import type { Lang, Listing, ViewerPlace } from "./types";
 
 export function listingPlace(listing: Listing, t: Dict, lang: Lang): string {
   const s = settlementById(listing.settlement);
@@ -21,11 +22,20 @@ export function storyCaption(listing: Listing, t: Dict, lang: Lang): string {
   ].join("\n");
 }
 
-export function familyShareText(listing: Listing, t: Dict, lang: Lang): string {
+export function familyShareText(
+  listing: Listing,
+  t: Dict,
+  lang: Lang,
+  viewerPlace: ViewerPlace = "kyrgyzstan",
+): string {
   const title = listingTitle(listing, lang);
   const place = listingPlace(listing, t, lang);
   const unit = listing.unit ? ` ${t.units[listing.unit]}` : "";
-  return t.familyShareBody(title, place, `${formatSom(listing.price)} KGS${unit}`);
+  const price = `${formatSom(listing.price)} KGS${unit}`;
+  if (isAbroad(viewerPlace)) {
+    return t.abroadShareBody(title, place, price, t.viewerPlaces[viewerPlace]);
+  }
+  return t.familyShareBody(title, place, price);
 }
 
 export function voiceScript(listing: Listing, lang: Lang): string {

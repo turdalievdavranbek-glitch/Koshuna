@@ -12,7 +12,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Photo } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { NeighborBanner } from "@/components/neighbor-seal";
-import { KonshuBridges } from "@/components/konshu-bridges";
+import { AbroadBanner, KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 
 export default function FeedPage() {
@@ -87,6 +87,7 @@ export default function FeedPage() {
             onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
           />
         </div>
+        <AbroadBanner />
         <KonshuBridges />
         <div className="mt-[18px] flex items-baseline justify-between">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
