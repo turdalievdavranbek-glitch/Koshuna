@@ -1,5 +1,5 @@
 import { GIS_CITIES } from "./data";
-import { formatStayDay } from "./dates";
+import { formatStayDay, parseKey } from "./dates";
 import { haversineKm } from "./geo";
 import type { Lang, Listing, MeetupSpot, MeetOffer } from "./types";
 
@@ -43,10 +43,6 @@ export function travelEta(km: number): { driveMin: number; walkMin: number } {
   };
 }
 
-export function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
 export function formatKm(km: number, lang: Lang): string {
   const n = km < 10 ? km.toFixed(1) : String(Math.round(km));
   const local = lang === "en" ? n : n.replace(".", ",");
@@ -61,4 +57,67 @@ export function remainingToMeet(listing: Listing, offer: MeetOffer, lat: number,
   const dest = meetPoint(listing, offer.spot);
   const km = haversineKm(lat, lng, dest.lat, dest.lng);
   return { km, dest, ...travelEta(km) };
+}
+
+export function estimateTravel(listing: Listing, offer: MeetOffer) {
+  const origin = defaultBuyerOrigin(listing);
+  return remainingToMeet(listing, offer, origin.lat, origin.lng);
+}
+
+function icsUtc(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function escapeIcs(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+
+export function meetEventTimes(offer: MeetOffer): { start: Date; end: Date } {
+  const [h, m] = offer.time.split(":").map(Number);
+  const start = parseKey(offer.date);
+  start.setHours(h ?? 18, m ?? 0, 0, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  return { start, end };
+}
+
+export function meetIcs(input: { title: string; place: string; details: string; start: Date; end: Date }): string {
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Konshu//Meet//RU",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:konshu-meet-${Date.now()}@konshu.kg`,
+    `DTSTAMP:${icsUtc(new Date())}`,
+    `DTSTART:${icsUtc(input.start)}`,
+    `DTEND:${icsUtc(input.end)}`,
+    `SUMMARY:${escapeIcs(input.title)}`,
+    `LOCATION:${escapeIcs(input.place)}`,
+    `DESCRIPTION:${escapeIcs(input.details)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+export function googleCalUrl(input: { title: string; place: string; details: string; start: Date; end: Date }): string {
+  const dates = `${icsUtc(input.start)}/${icsUtc(input.end)}`;
+  const q = new URLSearchParams({
+    action: "TEMPLATE",
+    text: input.title,
+    dates,
+    location: input.place,
+    details: input.details,
+  });
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
+}
+
+export function downloadMeetIcs(filename: string, ics: string) {
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }

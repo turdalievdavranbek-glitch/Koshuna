@@ -158,7 +158,7 @@ type Store = State & {
   proposeMeet: (listingId: string, offer: MeetOffer) => void;
   acceptMeet: (listingId: string) => void;
   declineMeet: (listingId: string) => void;
-  enableMeetGeo: (listingId: string, lat: number, lng: number) => void;
+  leaveForMeet: (listingId: string) => void;
   clearPostedDraft: () => void;
   saveDraft: () => void;
   addMessage: (threadId: string, text: string, from?: ChatMessage["from"]) => void;
@@ -214,9 +214,8 @@ function emptyMeetDeal(listingId: string, reservedById: string): MeetDeal {
     buyerConfirmed: false,
     phase: "wait-buyer",
     viewAs: "seller",
-    geoOn: false,
-    arrived: false,
-    trackT: 0,
+    buyerLeft: false,
+    calendarSaved: false,
   };
 }
 
@@ -491,11 +490,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               ...cur,
               offer,
               phase: "wait-reply",
-              geoOn: false,
-              arrived: false,
-              trackT: 0,
-              buyerLat: undefined,
-              buyerLng: undefined,
+              buyerLeft: false,
+              calendarSaved: false,
             },
           },
         };
@@ -521,25 +517,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    enableMeetGeo: (listingId, lat, lng) => {
+    leaveForMeet: (listingId) => {
       update((s) => {
         const cur = s.meetDeals[listingId];
         if (!cur) return s;
         return {
           ...s,
-          meetDeals: {
-            ...s.meetDeals,
-            [listingId]: {
-              ...cur,
-              geoOn: true,
-              arrived: false,
-              trackT: 0,
-              originLat: lat,
-              originLng: lng,
-              buyerLat: lat,
-              buyerLng: lng,
-            },
-          },
+          meetDeals: { ...s.meetDeals, [listingId]: { ...cur, buyerLeft: true } },
         };
       });
     },

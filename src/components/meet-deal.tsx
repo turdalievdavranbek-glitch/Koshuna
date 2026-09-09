@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { meetupSpotsFor } from "@/lib/deal";
-import { defaultBuyerOrigin, formatKm, lerp, MEET_TIMES, meetPoint, offerWhen, remainingToMeet } from "@/lib/meet";
-import { haversineKm } from "@/lib/geo";
+import { listingTitle } from "@/lib/i18n";
+import {
+  downloadMeetIcs,
+  estimateTravel,
+  formatKm,
+  googleCalUrl,
+  MEET_TIMES,
+  meetEventTimes,
+  meetIcs,
+  offerWhen,
+} from "@/lib/meet";
 import { useApp } from "@/lib/store";
 import type { Listing, MeetOffer, MeetupSpot } from "@/lib/types";
-import { GisMap } from "./gis-map";
 import { MeetDayCalendar } from "./meet-calendar";
 import { Chip, Eyebrow } from "./ui";
 
@@ -54,7 +62,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     proposeMeet,
     acceptMeet,
     declineMeet,
-    enableMeetGeo,
+    leaveForMeet,
     patchMeetDeal,
     ensureThread,
     addMessage,
@@ -69,8 +77,6 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const [time, setTime] = useState<string | null>(deal?.offer?.time ?? null);
   const [spot, setSpot] = useState<MeetupSpot | null>(deal?.offer?.spot ?? listing.meetupSpot ?? null);
   const [error, setError] = useState("");
-  const [geoNote, setGeoNote] = useState("");
-  const geoReq = useRef(0);
   const spots = meetupSpotsFor(listing.city);
   const viewAs = mine ? (deal?.viewAs ?? "seller") : "buyer";
   const party = viewAs;
@@ -78,25 +84,6 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   useEffect(() => {
     if (listing.status === "reserved" && reservedBy) ensureMeetDeal(listing.id, reservedBy.id);
   }, [ensureMeetDeal, listing.id, listing.status, reservedBy]);
-
-  useEffect(() => {
-    if (!deal?.geoOn || deal.arrived || !deal.offer || deal.originLat == null || deal.originLng == null) return;
-    const tick = window.setInterval(() => {
-      patchMeetDeal(listing.id, (cur) => {
-        if (!cur.geoOn || cur.arrived || !cur.offer || cur.originLat == null || cur.originLng == null) return cur;
-        const destNow = meetPoint(listing, cur.offer.spot);
-        const nextT = Math.min(1, cur.trackT + 0.035);
-        return {
-          ...cur,
-          trackT: nextT,
-          buyerLat: lerp(cur.originLat, destNow.lat, nextT),
-          buyerLng: lerp(cur.originLng, destNow.lng, nextT),
-          arrived: nextT >= 1,
-        };
-      });
-    }, 1100);
-    return () => window.clearInterval(tick);
-  }, [deal?.arrived, deal?.geoOn, deal?.offer, deal?.originLat, deal?.originLng, listing.id, listing.lat, listing.lng, listing.city, patchMeetDeal]);
 
   if (listing.status !== "reserved" || !reservedBy) return null;
   if (!deal) return null;
@@ -167,52 +154,39 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     note(t.meetMsgDecline);
   };
 
-  const onGeo = () => {
-    if (!needUser()) return;
-    const fallback = defaultBuyerOrigin(listing);
-    const req = ++geoReq.current;
-    const apply = (lat: number, lng: number, note: string) => {
-      if (req !== geoReq.current) return;
-      enableMeetGeo(listing.id, lat, lng);
-      setGeoNote(note);
-    };
-    if (!navigator.geolocation) {
-      apply(fallback.lat, fallback.lng, t.meetGeoDenied);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const dest = deal.offer ? meetPoint(listing, deal.offer.spot) : fallback;
-        const km = haversineKm(pos.coords.latitude, pos.coords.longitude, dest.lat, dest.lng);
-        if (km > 60) {
-          apply(fallback.lat, fallback.lng, t.meetGeoOn);
-          return;
-        }
-        apply(pos.coords.latitude, pos.coords.longitude, t.meetGeoOn);
-      },
-      (err) =>
-        apply(
-          fallback.lat,
-          fallback.lng,
-          err.code === 1 ? t.meetGeoDenied : t.meetGeoOn,
-        ),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+  const onCalendar = () => {
+    if (!needUser() || !deal.offer) return;
+    const when = offerWhen(deal.offer, lang);
+    const place = `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`;
+    const title = `Konshu · ${listingTitle(listing, lang)}`;
+    const details = `${when} · ${place}`;
+    const { start, end } = meetEventTimes(deal.offer);
+    downloadMeetIcs(
+      "konshu-meet.ics",
+      meetIcs({ title, place, details, start, end }),
     );
+    patchMeetDeal(listing.id, { calendarSaved: true });
+  };
+
+  const onLeave = () => {
+    if (!needUser()) return;
+    leaveForMeet(listing.id);
+    note(t.meetMsgLeft(reservedBy.name));
   };
 
   const waitingFor = deal.phase === "wait-reply" && deal.offer ? (deal.offer.from === "seller" ? "buyer" : "seller") : null;
   const canReply = deal.phase === "wait-reply" && waitingFor === party;
   const sellerStarts = party === "seller" && (deal.phase === "wait-meet" || deal.phase === "declined");
-
-  const pos =
-    deal.buyerLat != null && deal.buyerLng != null
-      ? { lat: deal.buyerLat, lng: deal.buyerLng }
-      : deal.originLat != null && deal.originLng != null
-        ? { lat: deal.originLat, lng: deal.originLng }
-        : null;
-  const travel =
-    deal.phase === "agreed" && deal.offer && pos ? remainingToMeet(listing, deal.offer, pos.lat, pos.lng) : null;
-  const dest = deal.offer ? meetPoint(listing, deal.offer.spot) : null;
+  const travel = deal.phase === "agreed" && deal.offer ? estimateTravel(listing, deal.offer) : null;
+  const cal =
+    deal.phase === "agreed" && deal.offer
+      ? googleCalUrl({
+          title: `Konshu · ${listingTitle(listing, lang)}`,
+          place: `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`,
+          details: `${offerWhen(deal.offer, lang)} · ${t.meetupSpots[deal.offer.spot]}`,
+          ...meetEventTimes(deal.offer),
+        })
+      : null;
 
   return (
     <div id="meet-deal" className="mt-4 rounded-[18px] border border-line bg-white p-4">
@@ -311,47 +285,47 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
 
       {deal.phase === "agreed" && deal.offer ? (
         <div className="mt-3">
-          {travel ? (
-            <p className="text-[13px] leading-[1.45] text-ink">
-              {deal.arrived
-                ? t.meetArrived
-                : t.meetEta(formatKm(travel.km, lang), travel.driveMin, travel.walkMin)}
-            </p>
-          ) : (
-            <p className="text-[13px] leading-[1.45] text-muted">{t.meetGeoAsk}</p>
-          )}
-          {party === "buyer" && !deal.geoOn ? (
+          <p className="text-[13px] leading-[1.45] text-muted">{t.meetCalendarHint}</p>
+          <button
+            type="button"
+            onClick={onCalendar}
+            className="shadow-btn mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+          >
+            {t.meetCalendarCta}
+          </button>
+          {cal ? (
+            <a
+              href={cal}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 flex h-11 items-center justify-center text-[13px] font-semibold text-accent"
+            >
+              {t.meetCalendarGoogle}
+            </a>
+          ) : null}
+          {deal.calendarSaved ? (
+            <p className="mt-1 text-[12px] leading-[1.4] text-success-ink">{t.meetCalendarSaved}</p>
+          ) : null}
+
+          {party === "buyer" && !deal.buyerLeft ? (
             <button
               type="button"
-              onClick={onGeo}
+              onClick={onLeave}
               className="shadow-btn mt-3 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
             >
-              {t.meetGeoCta}
+              {t.meetLeaveCta}
             </button>
           ) : null}
-          {party === "buyer" && deal.geoOn && deal.arrived ? (
-            <button type="button" onClick={onGeo} className="mt-2 text-[13px] font-semibold text-accent">
-              {t.meetGeoCta}
-            </button>
-          ) : null}
-          {geoNote ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{geoNote}</p> : null}
-          {deal.geoOn && dest ? (
-            <>
-              <div className="mt-2 text-[12px] font-semibold text-ink">
-                {deal.arrived ? t.meetArrived : t.meetTrackSeller}
+
+          {deal.buyerLeft && travel ? (
+            <div className="mt-3 rounded-[14px] bg-[#F3E0D9] px-3.5 py-3">
+              <div className="text-[13px] font-bold leading-[1.4] text-accent-dark">
+                {party === "seller" ? t.meetLeftSeller(reservedBy.name) : t.meetLeftBuyer}
               </div>
-              <div className="mt-2 h-[180px] overflow-hidden rounded-[16px] border border-line">
-                <GisMap
-                  center={dest}
-                  zoom={13}
-                  interactive={false}
-                  pick={pos}
-                  markers={[
-                    { id: "meet", lat: dest.lat, lng: dest.lng, label: t.meetupSpots[deal.offer.spot], active: true },
-                  ]}
-                />
-              </div>
-            </>
+              <p className="mt-1.5 text-[13px] leading-[1.45] text-ink">
+                {t.meetEta(formatKm(travel.km, lang), travel.driveMin, travel.walkMin)}
+              </p>
+            </div>
           ) : null}
         </div>
       ) : null}

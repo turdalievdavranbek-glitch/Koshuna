@@ -51,13 +51,8 @@ export type MeetDeal = {
   phase: MeetPhase;
   offer?: MeetOffer;
   viewAs: MeetParty;
-  geoOn: boolean;
-  arrived: boolean;
-  trackT: number;
-  originLat?: number;
-  originLng?: number;
-  buyerLat?: number;
-  buyerLng?: number;
+  buyerLeft: boolean;
+  calendarSaved: boolean;
 };
 
 export type SortMode = "new" | "price-asc" | "price-desc";
