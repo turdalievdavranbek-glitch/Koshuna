@@ -10,8 +10,23 @@ import {
   aiToDraftPatch,
   classifyListingSpeech,
 } from "@/lib/video-ai";
+import {
+  ANIMAL_GROUPS,
+  animalKindsOf,
+  CAR_MAKES,
+  CATEGORIES,
+  CONSTRUCTION_CATEGORIES,
+  goodsKindsOf,
+  isTechCategory,
+  PROPERTY_TYPES,
+  RESTAURANT_CATEGORIES,
+  SECTIONS,
+  SERVICE_CATEGORIES,
+  techBrandsOf,
+  techModelsOf,
+} from "@/lib/data";
 import { useApp } from "@/lib/store";
-import type { DraftListing, MediaKind } from "@/lib/types";
+import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 
@@ -327,27 +342,211 @@ export function MediaCapture({ draft, onPatch }: Props) {
   );
 }
 
+function pickSection(draft: DraftListing, id: SectionId): Partial<DraftListing> {
+  const kind = id === "rent" || id === "stays" ? "rent" : "goods";
+  const next: Partial<DraftListing> = { section: id, kind, aiConfirmed: false };
+  if (id === "rent") next.housingKind = draft.housingKind ?? "apartment";
+  if (id === "secondhand") {
+    const keep = draft.category && (CATEGORIES as readonly string[]).includes(draft.category);
+    next.category = keep ? draft.category : "phones";
+  }
+  if (id === "animals") next.animalGroup = draft.animalGroup ?? "pets";
+  if (id === "services") next.category = draft.category ?? SERVICE_CATEGORIES[0];
+  if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
+  if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
+  return next;
+}
+
 export function AiConfirmCard({ draft, onPatch }: Props) {
   const { t } = useApp();
-  const cat =
-    draft.housingKind && t.propertyTypes[draft.housingKind]
-      ? t.propertyTypes[draft.housingKind]
-      : draft.techBrand && t.techBrands[draft.techBrand]
-        ? [t.techBrands[draft.techBrand], draft.techModel ? t.techModels[draft.techModel] : ""]
-            .filter(Boolean)
-            .join(" ")
-        : draft.category && t.cats[draft.category]
-          ? t.cats[draft.category]
-          : t.sectionNames[draft.section];
+  const visualSection = draft.section === "car-rental" ? "cars" : draft.section;
+  const heard = (draft.transcript ?? "").trim();
+
   return (
     <div className="rounded-[18px] border border-line bg-white p-4">
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.confirmAiTitle}</div>
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.confirmAiHint}</p>
-      <div className="mt-3 rounded-[14px] bg-chip px-3.5 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.listingType}</div>
-        <div className="mt-1 text-[16px] font-semibold text-ink">{t.sectionNames[draft.section]}</div>
-        <div className="mt-0.5 text-[13px] text-muted">{cat}</div>
+      {heard ? (
+        <div className="mt-3 rounded-[14px] bg-chip px-3.5 py-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiHeard}</div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-ink">{heard}</p>
+        </div>
+      ) : null}
+
+      <div className="mt-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickSection}</div>
+        <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.confirmAiFix}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {SECTIONS.map((s) => (
+            <Chip
+              key={s.id}
+              active={visualSection === s.id}
+              accent={visualSection === s.id}
+              onClick={() => onPatch(pickSection(draft, s.id))}
+            >
+              {t.sectionNames[s.id]}
+            </Chip>
+          ))}
+        </div>
       </div>
+
+      {visualSection === "cars" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Chip active={draft.section === "cars"} onClick={() => onPatch({ section: "cars", kind: "goods", aiConfirmed: false })}>
+            {t.autoSale}
+          </Chip>
+          <Chip
+            active={draft.section === "car-rental"}
+            onClick={() => onPatch({ section: "car-rental", kind: "goods", aiConfirmed: false })}
+          >
+            {t.autoRent}
+          </Chip>
+          {CAR_MAKES.map((id) => (
+            <Chip
+              key={id}
+              active={draft.carMake === id}
+              onClick={() => onPatch({ carMake: id, carModel: undefined, aiConfirmed: false })}
+            >
+              {t.carMakes[id]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+
+      {draft.section === "rent" ? (
+        <div className="mt-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickCategory}</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {PROPERTY_TYPES.map((id) => (
+              <Chip
+                key={id}
+                active={draft.housingKind === id}
+                onClick={() => onPatch({ housingKind: id, aiConfirmed: false })}
+              >
+                {t.propertyTypes[id]}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {draft.section === "secondhand" ? (
+        <div className="mt-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickCategory}</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <Chip
+                key={c}
+                active={draft.category === c}
+                onClick={() =>
+                  onPatch({
+                    category: c,
+                    goodsKind: undefined,
+                    techBrand: undefined,
+                    techModel: undefined,
+                    aiConfirmed: false,
+                  })
+                }
+              >
+                {t.cats[c]}
+              </Chip>
+            ))}
+          </div>
+          {goodsKindsOf(draft.category).length ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {goodsKindsOf(draft.category).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.goodsKind === id}
+                  onClick={() => onPatch({ goodsKind: id, aiConfirmed: false })}
+                >
+                  {t.goodsKinds[id]}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+          {isTechCategory(draft.category) ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {techBrandsOf(draft.category).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.techBrand === id}
+                  onClick={() => onPatch({ techBrand: id, techModel: undefined, aiConfirmed: false })}
+                >
+                  {t.techBrands[id]}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+          {techModelsOf(draft.category, draft.techBrand).length ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {techModelsOf(draft.category, draft.techBrand).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.techModel === id}
+                  onClick={() => onPatch({ techModel: id, aiConfirmed: false })}
+                >
+                  {t.techModels[id]}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {draft.section === "animals" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {ANIMAL_GROUPS.map((id) => (
+            <Chip
+              key={id}
+              active={(draft.animalGroup ?? "pets") === id}
+              onClick={() => onPatch({ animalGroup: id, animalKind: undefined, aiConfirmed: false })}
+            >
+              {id === "pets" ? t.animalPets : t.animalFarm}
+            </Chip>
+          ))}
+          {animalKindsOf(draft.animalGroup ?? "pets").map((id) => (
+            <Chip
+              key={id}
+              active={draft.animalKind === id}
+              onClick={() => onPatch({ animalKind: id, aiConfirmed: false })}
+            >
+              {t.animalKinds[id]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+
+      {draft.section === "services" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SERVICE_CATEGORIES.map((c) => (
+            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
+              {t.cats[c]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+
+      {draft.section === "construction" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {CONSTRUCTION_CATEGORIES.map((c) => (
+            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
+              {t.cats[c]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+
+      {draft.section === "restaurants" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {RESTAURANT_CATEGORIES.map((c) => (
+            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
+              {t.cats[c]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
+
       <label className="mt-3 block">
         <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.title}</span>
         <input

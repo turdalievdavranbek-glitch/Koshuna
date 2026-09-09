@@ -64,6 +64,7 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
     <div className="w-full text-left">
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shareAfterTitle}</div>
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.shareAfterHint}</p>
+      {toast ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{toast}</p> : null}
       <div className="mt-3 grid grid-cols-3 gap-2">
         {cell("wa", t.shareWa, <BrandWhatsApp size={28} />, () => {
           window.open(socialShareHref("whatsapp", listing, t, lang), "_blank", "noreferrer");
@@ -87,7 +88,6 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
       >
         {t.shareMore}
       </button>
-      {toast ? <p className="mt-2 text-center text-[12px] font-semibold text-accent-dark">{toast}</p> : null}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CITIES, PROMOTED_IDS, SECTIONS, formatSom, listingById } from "@/lib/data";
-import { applyFilters } from "@/lib/filter";
+import { applyFilters, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
@@ -20,7 +20,7 @@ export default function FeedPage() {
   const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
     useApp();
   const router = useRouter();
-  const listings = applyFilters(allListings, { ...filters, section: null }, city);
+  const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const [cityOpen, setCityOpen] = useState(false);
   const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter(Boolean);
 

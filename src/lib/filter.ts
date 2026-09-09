@@ -5,6 +5,39 @@ import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { isSpokenListing } from "./video-ai";
 
+/** Home chips only — leftover section search (rooms, map pin, deal type) must not empty the feed. */
+export function homeFeedFilters(filters: Filters): Filters {
+  return {
+    ...filters,
+    section: null,
+    category: null,
+    goodsKind: "any",
+    housingType: "any",
+    rooms: [],
+    bodyType: "any",
+    gear: "any",
+    photosOnly: false,
+    verifiedOnly: false,
+    noAgents: false,
+    dealType: "any",
+    stockType: "any",
+    autoType: "sale",
+    carMake: "any",
+    carModel: "any",
+    techBrand: "any",
+    techModel: "any",
+    animalGroup: "pets",
+    animalKind: "any",
+    locLng: null,
+    locLat: null,
+    locLabel: null,
+    priceMin: null,
+    priceMax: null,
+    checkIn: null,
+    checkOut: null,
+  };
+}
+
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   const cityKey = filters.city !== "all" ? filters.city : city;
   let out = list.filter((item) => {
