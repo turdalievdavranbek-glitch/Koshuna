@@ -23,7 +23,15 @@ export type SectionId =
   | "construction"
   | "restaurants";
 
-export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted";
+export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed";
+
+export type DealStage = "active" | "reserved" | "closed" | "withdrawn";
+
+export type ReserveAccount = {
+  id: string;
+  name: string;
+  phone: string;
+};
 
 export type SortMode = "new" | "price-asc" | "price-desc";
 
@@ -137,6 +145,7 @@ export type Listing = {
   descriptionKy: string;
   descriptionEn: string;
   ownerId: string;
+  reservedBy?: ReserveAccount;
   verified: boolean;
   hasPhoto: boolean;
   noAgent: boolean;

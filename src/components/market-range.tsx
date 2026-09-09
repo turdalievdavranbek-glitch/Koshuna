@@ -13,8 +13,8 @@ export function MarketRangeCard({
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
 }) {
-  const { t, extraListings } = useApp();
-  const band = marketBand(draft, listingsForMarket(extraListings));
+  const { t, allListings, extraListings } = useApp();
+  const band = marketBand(draft, listingsForMarket(allListings, extraListings));
 
   if (!band) {
     return (

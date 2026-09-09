@@ -17,7 +17,9 @@ import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
+import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listing";
 import { ReportListing } from "@/components/report-listing";
+import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
@@ -25,7 +27,7 @@ import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, viewerPlace } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, viewerPlace } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -68,6 +70,9 @@ export default function ListingPage() {
   };
 
   const similar = similarListings(listing, allListings);
+  const mine = isOwnListing(listing, extraListings, user);
+  const off = isOffMarket(listing);
+  const reserved = listing.status === "reserved";
   const isStay = listing.section === "stays" || listing.dealKind === "short";
   const look = goLookKind(listing);
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
@@ -171,6 +176,7 @@ export default function ListingPage() {
           <h1 className="mt-3.5 font-display text-[26px] font-bold leading-[1.14] tracking-[-0.015em] text-ink">
             {title}
           </h1>
+          <ListingStageBanner listing={listing} />
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${t.ago[listing.postedAgo]}`}
@@ -188,6 +194,7 @@ export default function ListingPage() {
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
+          {mine ? <OwnerListingTools listing={listing} /> : null}
           <PayAfterNote listing={listing} />
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
@@ -203,7 +210,7 @@ export default function ListingPage() {
               <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.abroadListingHint(t.viewerPlaces[viewerPlace])}</p>
             </div>
           ) : null}
-          <GoLookCard listing={listing} />
+          {off || reserved ? null : <GoLookCard listing={listing} />}
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />
 
@@ -389,6 +396,7 @@ export default function ListingPage() {
         <button
           type="button"
           onClick={() => {
+            if (off || reserved) return;
             if (isStay) {
               onBook();
               return;
@@ -401,7 +409,9 @@ export default function ListingPage() {
           }}
           className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
         >
-          {isStay ? (
+          {off || reserved ? (
+            listing.status === "reserved" ? t.status.reserved : listing.status === "closed" ? t.status.closed : t.status.withdrawn
+          ) : isStay ? (
             t.bookStay
           ) : look !== "none" ? (
             look === "meet" ? t.goMeet : t.goLook

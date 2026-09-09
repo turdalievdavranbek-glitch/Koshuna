@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CITIES, PROMOTED_IDS, SECTIONS, formatSom, listingById } from "@/lib/data";
+import { CITIES, PROMOTED_IDS, SECTIONS, formatSom } from "@/lib/data";
 import { applyFilters, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
@@ -22,7 +22,7 @@ export default function FeedPage() {
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const [cityOpen, setCityOpen] = useState(false);
-  const promoted = PROMOTED_IDS.map((id) => listingById(id)).filter(Boolean);
+  const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);

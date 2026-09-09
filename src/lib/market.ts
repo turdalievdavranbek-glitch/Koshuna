@@ -1,4 +1,4 @@
-import { listingById, MY_LISTING_IDS } from "./data";
+import { ownListingIds } from "./listing-owner";
 import type { DraftListing, Listing } from "./types";
 
 export type MarketScope = "tight" | "city" | "section";
@@ -18,13 +18,9 @@ export function parseDraftPrice(raw: string): number {
 }
 
 /** Price range comes only from the initiator's own ads — not the rest of the catalog. */
-export function listingsForMarket(extra: Listing[]): Listing[] {
-  const seen = new Set(extra.map((item) => item.id));
-  const seeded = MY_LISTING_IDS.map(listingById).filter((item): item is Listing => {
-    if (!item || seen.has(item.id)) return false;
-    return true;
-  });
-  return [...extra, ...seeded];
+export function listingsForMarket(all: Listing[], extra: Listing[]): Listing[] {
+  const ids = new Set(ownListingIds(extra));
+  return all.filter((item) => ids.has(item.id));
 }
 
 function median(nums: number[]): number {
@@ -45,7 +41,7 @@ function rentLike(item: Listing): boolean {
 }
 
 function eligible(draft: DraftListing, item: Listing): boolean {
-  if (item.status === "draft") return false;
+  if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
   if (!sameSection(draft, item)) return false;
   if (!item.price || item.price <= 0) return false;
   if (draft.section === "rent" && draft.kind === "rent" && !rentLike(item)) return false;

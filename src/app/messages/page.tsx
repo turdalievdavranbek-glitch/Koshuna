@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { listingById, ownerById } from "@/lib/data";
+import { ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
@@ -9,7 +9,7 @@ import { PhoneShell } from "@/components/shell";
 import { Photo, RoundBtn } from "@/components/ui";
 
 export default function MessagesPage() {
-  const { t, lang, user, threads, setPendingPath } = useApp();
+  const { t, lang, user, threads, setPendingPath, allListings } = useApp();
   const router = useRouter();
 
   if (!user) {
@@ -50,7 +50,7 @@ export default function MessagesPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {threads.map((th) => {
-              const listing = listingById(th.listingId);
+              const listing = allListings.find((item) => item.id === th.listingId);
               const owner = ownerById(th.ownerId);
               if (!listing || !owner) return null;
               return (

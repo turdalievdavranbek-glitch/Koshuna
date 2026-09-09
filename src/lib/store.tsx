@@ -80,6 +80,7 @@ type State = {
   savedSearches: SavedSearch[];
   draft: DraftListing;
   extraListings: Listing[];
+  listingEdits: Record<string, Partial<Listing>>;
   threads: Thread[];
   pendingPath: string | null;
   notificationsOn: boolean;
@@ -99,6 +100,7 @@ const initial: State = {
   savedSearches: DEFAULT_SAVED,
   draft: defaultDraft(),
   extraListings: [],
+  listingEdits: {},
   threads: DEFAULT_THREADS,
   pendingPath: null,
   notificationsOn: true,
@@ -130,6 +132,7 @@ type Store = State & {
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
   publishDraft: () => Listing | null;
+  updateListing: (id: string, patch: Partial<Listing>) => void;
   clearPostedDraft: () => void;
   saveDraft: () => void;
   addMessage: (threadId: string, text: string) => void;
@@ -191,6 +194,7 @@ function load(): State {
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
+      listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
@@ -234,10 +238,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = DICT[state.lang];
-  const allListings = useMemo(
-    () => [...state.extraListings, ...LISTINGS],
-    [state.extraListings],
-  );
+  const allListings = useMemo(() => {
+    const extraIds = new Set(state.extraListings.map((item) => item.id));
+    const merged = [...state.extraListings, ...LISTINGS.filter((item) => !extraIds.has(item.id))];
+    return merged.map((item) => {
+      const edit = state.listingEdits[item.id];
+      return edit ? { ...item, ...edit } : item;
+    });
+  }, [state.extraListings, state.listingEdits]);
 
   const value: Store = {
     ...state,
@@ -370,6 +378,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
       update({ extraListings: [listing, ...state.extraListings] });
       return listing;
+    },
+    updateListing: (id, patch) => {
+      update((s) => {
+        if (s.extraListings.some((item) => item.id === id)) {
+          return {
+            ...s,
+            extraListings: s.extraListings.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+          };
+        }
+        return {
+          ...s,
+          listingEdits: { ...s.listingEdits, [id]: { ...s.listingEdits[id], ...patch } },
+        };
+      });
     },
     clearPostedDraft: () =>
       update((s) => ({

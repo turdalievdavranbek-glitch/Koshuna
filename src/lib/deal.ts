@@ -64,7 +64,7 @@ export function payAfterMethods(listing: Listing): PayAfter[] {
 
 export function similarListings(listing: Listing, all: Listing[], n = 4): Listing[] {
   return all
-    .filter((item) => item.id !== listing.id && item.status !== "draft")
+    .filter((item) => item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed")
     .map((item) => {
       let score = 0;
       if (item.section === listing.section) score += 6;

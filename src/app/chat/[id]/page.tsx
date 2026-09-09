@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { formatSom, listingById, ownerById } from "@/lib/data";
+import { formatSom, ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconBack, IconPhone, IconVerified } from "@/components/icons";
@@ -13,9 +13,9 @@ import { ListingThumb, isVideoListing } from "@/components/listing-media";
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, threads, addMessage, user } = useApp();
+  const { t, lang, threads, addMessage, user, allListings } = useApp();
   const thread = threads.find((th) => th.id === id) ?? threads.find((th) => th.listingId === id);
-  const listing = listingById(thread?.listingId ?? id);
+  const listing = allListings.find((item) => item.id === (thread?.listingId ?? id));
   const owner = ownerById(thread?.ownerId ?? listing?.ownerId ?? "aida");
   const [text, setText] = useState("");
   const end = useRef<HTMLDivElement>(null);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MY_LISTING_IDS, formatSom, listingById } from "@/lib/data";
+import { MY_LISTING_IDS, formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { Flag, IconVerified } from "@/components/icons";
@@ -11,12 +11,12 @@ import { LangSwitch, Photo } from "@/components/ui";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, setLang, notificationsOn, setNotificationsOn, viewerPlace } = useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace } = useApp();
   const router = useRouter();
   const mine = [
     ...extraListings,
-    ...MY_LISTING_IDS.map((id) => listingById(id)).filter(Boolean),
-  ];
+    ...MY_LISTING_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean),
+  ].filter((item, i, all) => all.findIndex((row) => row && row.id === item?.id) === i);
 
   if (!user) {
     return (
@@ -109,26 +109,35 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="flex-1 px-3.5 py-3">
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <span
                       className="rounded-md px-2 py-0.5 text-[10px] font-bold"
                       style={{
                         background:
                           item.status === "promoted"
                             ? "#F3E0D9"
-                            : item.status === "draft"
-                              ? "#EFE8DB"
-                              : "#E4EFE9",
+                            : item.status === "reserved"
+                              ? "#F3E0D9"
+                              : item.status === "closed"
+                                ? "#E4EFE9"
+                                : item.status === "draft" || item.status === "withdrawn"
+                                  ? "#EFE8DB"
+                                  : "#E4EFE9",
                         color:
-                          item.status === "promoted"
+                          item.status === "promoted" || item.status === "reserved"
                             ? "#8E3423"
-                            : item.status === "draft"
+                            : item.status === "draft" || item.status === "withdrawn"
                               ? "#6E6558"
                               : "#2A6B57",
                       }}
                     >
-                      {t.status[item.status].toUpperCase()}
+                      {t.status[item.status]?.toUpperCase?.() ?? t.status[item.status]}
                     </span>
+                    {item.reservedBy ? (
+                      <span className="rounded-md bg-chip px-2 py-0.5 text-[10px] font-bold text-muted">
+                        {item.reservedBy.name}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-1.5 text-sm leading-[1.3] text-ink">{listingTitle(item, lang)}</div>
                   <div className="mt-1.5 text-xs text-muted-2">

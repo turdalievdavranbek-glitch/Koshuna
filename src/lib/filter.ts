@@ -41,7 +41,7 @@ export function homeFeedFilters(filters: Filters): Filters {
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   const cityKey = filters.city !== "all" ? filters.city : city;
   let out = list.filter((item) => {
-    if (item.status === "draft") return false;
+    if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
     if (cityKey && cityKey !== "all" && item.city !== cityKey) return false;
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";

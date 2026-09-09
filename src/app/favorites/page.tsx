@@ -2,17 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { listingById } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Toggle } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 
 export default function FavoritesPage() {
-  const { t, user, favouriteIds, savedSearches, toggleSearchNotify, setPendingPath } = useApp();
+  const { t, user, favouriteIds, savedSearches, toggleSearchNotify, setPendingPath, allListings } = useApp();
   const router = useRouter();
   const [tab, setTab] = useState<"items" | "searches">("items");
-  const items = favouriteIds.map((id) => listingById(id)).filter(Boolean);
+  const items = favouriteIds.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
 
   if (!user) {
     return (

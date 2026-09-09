@@ -105,6 +105,11 @@ function ListingCard({
         >
           {title}
         </div>
+        {listing.status === "reserved" ? (
+          <div className={`mt-0.5 font-bold text-accent-dark ${layout === "small" ? "text-[9px]" : "text-[10px]"}`}>
+            {listing.reservedBy ? t.reservedBanner(listing.reservedBy.name, listing.reservedBy.phone) : t.status.reserved}
+          </div>
+        ) : null}
         {layout === "large" && listing.rooms ? (
           <div className="mt-1 text-[13px] text-muted">
             {listing.rooms} {t.roomWord} · {listing.area} м²
