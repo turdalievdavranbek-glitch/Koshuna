@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle } from "@/lib/i18n";
+import { settlementById, settlementLabel } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
@@ -98,7 +99,11 @@ function ListingCard({
           </div>
         ) : null}
         {layout !== "small" ? (
-          <div className="mt-1 text-[11px] text-muted-2">{t.cities[listing.city]}</div>
+          <div className="mt-1 text-[11px] text-muted-2">
+            {listing.settlement && settlementById(listing.settlement)
+              ? `${settlementLabel(settlementById(listing.settlement)!, lang)} · ${t.aiyl}`
+              : t.cities[listing.city]}
+          </div>
         ) : null}
       </div>
     </button>

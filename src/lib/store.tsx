@@ -46,6 +46,8 @@ const defaultFilters = (): Filters => ({
   locLng: null,
   locLat: null,
   locLabel: null,
+  settlement: "any",
+  aiylOnly: false,
 });
 
 const defaultDraft = (): DraftListing => ({
@@ -76,6 +78,7 @@ type State = {
   pendingPath: string | null;
   notificationsOn: boolean;
   listingLayout: ListingLayout;
+  elderMode: boolean;
 };
 
 const initial: State = {
@@ -91,6 +94,7 @@ const initial: State = {
   pendingPath: null,
   notificationsOn: true,
   listingLayout: "medium",
+  elderMode: false,
 };
 
 type Store = State & {
@@ -102,6 +106,7 @@ type Store = State & {
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
+  setElderMode: (on: boolean) => void;
   setFilters: (patch: Partial<Filters>) => void;
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
@@ -150,6 +155,8 @@ function normalizeFilters(filters: Filters): Filters {
     techBrand: next.techBrand && next.techBrand !== "any" ? next.techBrand : "any",
     techModel: next.techModel && next.techModel !== "any" ? next.techModel : "any",
     neighborOnly: Boolean(next.neighborOnly),
+    aiylOnly: Boolean(next.aiylOnly),
+    settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
   };
 }
 
@@ -230,6 +237,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     logout: () => update({ user: null }),
     setLang: (lang) => update({ lang }),
     setListingLayout: (listingLayout) => update({ listingLayout }),
+    setElderMode: (elderMode) =>
+      update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
     setCity: (city) => update((s) => ({ ...s, city, filters: { ...s.filters, city } })),
     setFilters: (patch) => update((s) => ({ ...s, filters: { ...s.filters, ...patch } })),
     resetFilters: () =>

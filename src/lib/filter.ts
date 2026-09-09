@@ -1,4 +1,5 @@
 import type { Filters, Listing } from "./types";
+import { isAiylListing } from "./data";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 
@@ -43,6 +44,11 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
+    if (filters.settlement && filters.settlement !== "any") {
+      if (item.settlement !== filters.settlement) return false;
+    } else if (filters.aiylOnly && !isAiylListing(item)) {
+      return false;
+    }
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }
@@ -50,6 +56,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
     }
     if (
+      !filters.aiylOnly &&
+      (!filters.settlement || filters.settlement === "any") &&
       (filters.section === "rent" || filters.section === "restaurants") &&
       filters.locLng != null &&
       filters.locLat != null &&

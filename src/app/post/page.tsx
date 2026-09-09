@@ -369,6 +369,9 @@ export default function PostPage() {
                 </div>
               </div>
               <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
+              <div className="rounded-[14px] border border-line bg-accent-tint px-3.5 py-3 text-[13px] leading-[1.45] text-safe">
+                {t.igPostHint}
+              </div>
               <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                 <div>
                   <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>

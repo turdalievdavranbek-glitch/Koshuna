@@ -155,6 +155,8 @@ export default function SectionPage() {
                 locLat: null,
                 locLabel: null,
                 autoType: "sale",
+                settlement: "any",
+                aiylOnly: false,
                 section: id,
               });
             }}
@@ -200,6 +202,8 @@ export default function SectionPage() {
                   locLat: null,
                   locLabel: null,
                   autoType: "sale",
+                  settlement: "any",
+                  aiylOnly: false,
                   section: id,
                 });
               }}

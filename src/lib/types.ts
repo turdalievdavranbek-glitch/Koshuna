@@ -79,6 +79,11 @@ export type Listing = {
   unit?: "month" | "day" | "night" | "bag" | "service";
   city: string;
   district?: string;
+  settlement?: string;
+  voiceSec?: number;
+  voiceText?: string;
+  voiceTextKy?: string;
+  voiceTextEn?: string;
   postedAgo: string;
   rooms?: number;
   area?: number;
@@ -149,6 +154,8 @@ export type Filters = {
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
+  settlement: string;
+  aiylOnly: boolean;
 };
 
 export type SavedSearch = {

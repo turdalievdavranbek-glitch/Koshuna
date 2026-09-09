@@ -234,6 +234,47 @@ export const DISTRICTS = [
   { id: "tokmok-center", city: "tokmok", name: "Токмок", nameKy: "Токмок", nameEn: "Tokmok", lng: 75.301, lat: 42.8417 },
 ] as const;
 
+export const SETTLEMENTS = [
+  { id: "sokuluk", city: "bishkek", name: "Сокулук", nameKy: "Сокулук", nameEn: "Sokuluk", fromRu: "45 мин · маршрутка с Западного", fromKy: "45 мүн · Батыш автобекеттен", fromEn: "45 min · marshrutka from the West station", lng: 74.345, lat: 42.861 },
+  { id: "kant", city: "bishkek", name: "Кант", nameKy: "Кант", nameEn: "Kant", fromRu: "35 мин · маршрутка с Восточного", fromKy: "35 мүн · Чыгыш автобекеттен", fromEn: "35 min · marshrutka from the East station", lng: 74.85, lat: 42.891 },
+  { id: "belovodskoe", city: "bishkek", name: "Беловодское", nameKy: "Беловодское", nameEn: "Belovodskoye", fromRu: "50 мин · трасса М-41", fromKy: "50 мүн · М-41 жолу", fromEn: "50 min · M-41 highway", lng: 74.118, lat: 42.829 },
+  { id: "uzgen", city: "osh", name: "Узген", nameKy: "Өзгөн", nameEn: "Uzgen", fromRu: "1,5 ч · маршрутка с Оша", fromKy: "1,5 с · Оштон маршрутка", fromEn: "1.5 h · marshrutka from Osh", lng: 73.3, lat: 40.77 },
+  { id: "kara-suu", city: "osh", name: "Кара-Суу", nameKy: "Кара-Суу", nameEn: "Kara-Suu", fromRu: "25 мин от Оша", fromKy: "Оштон 25 мүн", fromEn: "25 min from Osh", lng: 72.87, lat: 40.7 },
+  { id: "suzak", city: "jalal-abad", name: "Сузак", nameKy: "Сузак", nameEn: "Suzak", fromRu: "20 мин от Джалал-Абада", fromKy: "Жалал-Абаддан 20 мүн", fromEn: "20 min from Jalal-Abad", lng: 72.9, lat: 40.86 },
+  { id: "at-bashy", city: "naryn", name: "Ат-Башы", nameKy: "Ат-Башы", nameEn: "At-Bashy", fromRu: "2 ч от Нарына", fromKy: "Нарындан 2 с", fromEn: "2 h from Naryn", lng: 75.8, lat: 41.17 },
+  { id: "balykchy", city: "cholpon-ata", name: "Балыкчы", nameKy: "Балыкчы", nameEn: "Balykchy", fromRu: "3 ч от Бишкека · запад Иссык-Куля", fromKy: "Бишкектен 3 с · Ысык-Көлдүн батышы", fromEn: "3 h from Bishkek · west Issyk-Kul", lng: 76.18, lat: 42.46 },
+] as const;
+
+export type SettlementId = (typeof SETTLEMENTS)[number]["id"];
+
+export const REMOTE_CITIES = ["tokmok", "kochkor", "naryn", "talas", "batken"] as const;
+
+export function settlementsForCity(cityId: string) {
+  if (!cityId || cityId === "all") return [...SETTLEMENTS];
+  return SETTLEMENTS.filter((s) => s.city === cityId);
+}
+
+export function settlementById(id: string | undefined) {
+  if (!id) return undefined;
+  return SETTLEMENTS.find((s) => s.id === id);
+}
+
+export function settlementLabel(s: (typeof SETTLEMENTS)[number], lang: "ru" | "ky" | "en") {
+  if (lang === "ky") return s.nameKy;
+  if (lang === "en") return s.nameEn;
+  return s.name;
+}
+
+export function settlementRoad(s: (typeof SETTLEMENTS)[number], lang: "ru" | "ky" | "en") {
+  if (lang === "ky") return s.fromKy;
+  if (lang === "en") return s.fromEn;
+  return s.fromRu;
+}
+
+export function isAiylListing(listing: { city: string; settlement?: string }) {
+  return Boolean(listing.settlement) || (REMOTE_CITIES as readonly string[]).includes(listing.city);
+}
+
 const img = (id: string, extra = "") =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70${extra}`;
 
@@ -319,6 +360,10 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 412,
     favCount: 6,
+    voiceSec: 14,
+    voiceText: "Ассалаумаалейкум. Квартира в Ленинском, две комнаты, тридцать восемь тысяч сом в месяц. Я хозяин, предоплату не прошу — приезжайте смотреть.",
+    voiceTextKy: "Ассалаумаалейкум. Ленин районунда батир, эки бөлмө, айына отуз сегиз миң сом. Мен ээсимин, алдын ала акча сурабайм — келип көрүңүз.",
+    voiceTextEn: "Hello. Apartment in Leninsky, two rooms, thirty-eight thousand som a month. I am the owner, I do not ask for a deposit — come and see it.",
   },
   {
     id: "sofa-leather",
@@ -835,6 +880,10 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 61,
     favCount: 2,
+    voiceSec: 11,
+    voiceText: "Дом в Токмоке, шесть соток. Хозяин сам. До Бишкека минут сорок, предоплату не беру.",
+    voiceTextKy: "Токмоктогу үй, алты соток. Ээси өзүм. Бишкекке кырк мүнөт, алдын ала төлөм жок.",
+    voiceTextEn: "House in Tokmok, six sotok. I am the owner. Forty minutes to Bishkek, no prepayment.",
   },
   {
     id: "buy-apt-newbuild",
@@ -1004,6 +1053,10 @@ export const LISTINGS: Listing[] = [
     contact: "telegram",
     views: 31,
     favCount: 2,
+    voiceSec: 8,
+    voiceText: "Нарын, Ат-Башы. Койлор бар. Соода кылабыз, келип көрүңүз.",
+    voiceTextKy: "Нарын, Ат-Башы. Койлор бар. Соода кылабыз, келип көрүңүз.",
+    voiceTextEn: "Naryn, At-Bashy. We have sheep. Come, we can talk the price.",
   },
   {
     id: "dacha-issyk",
@@ -1014,6 +1067,7 @@ export const LISTINGS: Listing[] = [
     titleEn: "Issyk-Kul dacha with a garden and banya",
     price: 2100000,
     city: "cholpon-ata",
+    settlement: "balykchy",
     postedAgo: "4h",
     rooms: 3,
     area: 54,
@@ -1050,6 +1104,7 @@ export const LISTINGS: Listing[] = [
     titleEn: "Sheep from a local smallholding",
     price: 16000,
     city: "naryn",
+    settlement: "at-bashy",
     postedAgo: "12h",
     photos: [img("photo-1484557985045-edf25e1d3d4e")],
     photoCredit: "Unsplash / Jasper",
@@ -1208,6 +1263,10 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 27,
     favCount: 1,
+    voiceSec: 9,
+    voiceText: "Кочкор. Жыйырма тоок. Баасы төрт жүз элүү сомдан. Апама жардам — өзүбүз багып жатабыз.",
+    voiceTextKy: "Кочкор. Жыйырма тоок. Төрт жүз элүү сом. Апама жардам, өзүбүз багып жатабыз.",
+    voiceTextEn: "Kochkor. Twenty hens. Four hundred fifty som each. Helping my mother — we raise them ourselves.",
   },
   {
     id: "camry-2018",
@@ -1944,6 +2003,83 @@ export const LISTINGS: Listing[] = [
     contact: "telegram",
     views: 73,
     favCount: 5,
+  },
+  {
+    id: "house-sokuluk",
+    section: "rent",
+    category: "rent",
+    title: "Дом в Сокулуке, двор и сад",
+    titleKy: "Сокулуктагы үй, короо жана бак",
+    titleEn: "House in Sokuluk, yard and garden",
+    price: 22000,
+    unit: "month",
+    city: "bishkek",
+    settlement: "sokuluk",
+    district: "Сокулук",
+    postedAgo: "6h",
+    rooms: 4,
+    area: 88,
+    housingKind: "house",
+    dealKind: "long",
+    lng: 74.345,
+    lat: 42.861,
+    photos: [img("photo-1564013799919-ab600027ffc6")],
+    photoCredit: "Unsplash",
+    description: "Дом в айыле, тихо, свой двор. До Бишкека — маршрутка с Западного, около 45 минут. Хозяин живёт рядом.",
+    descriptionKy: "Айылдагы үй, тынч, өз короо. Бишкекке Батыш автобекеттен ~45 мүнөт. Ээси жакын жашайт.",
+    descriptionEn: "A quiet village house with its own yard. About 45 minutes to Bishkek from the West station. The owner lives nearby.",
+    ownerId: "nurbek",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    safetyKind: "home",
+    mapX: 18,
+    mapY: 48,
+    contact: "whatsapp",
+    views: 54,
+    favCount: 3,
+    voiceSec: 12,
+    voiceText: "Сокулук. Үй короо менен. Мен хозяинмин, Бишкекке жакын. Алдын ала акча жок — келип көрүңүз, чай ичебиз.",
+    voiceTextKy: "Сокулук. Үй короо менен. Мен ээсимин. Алдын ала акча жок — келип көрүңүз, чай ичебиз.",
+    voiceTextEn: "Sokuluk. A house with a yard. I am the owner, close to Bishkek. No prepayment — come, we will drink tea.",
+  },
+  {
+    id: "land-uzgen",
+    section: "rent",
+    category: "rent",
+    title: "Участок у Узгена, под дом",
+    titleKy: "Өзгөндөгү жер, үй үчүн",
+    titleEn: "Plot near Uzgen, for a house",
+    price: 620000,
+    city: "osh",
+    settlement: "uzgen",
+    postedAgo: "1d",
+    housingKind: "land",
+    dealKind: "buy",
+    lng: 73.3,
+    lat: 40.77,
+    photos: [img("photo-1500382017468-9049fed747ef", "&h=800")],
+    photoCredit: "Unsplash",
+    description: "Участок в айыле у Узгена. Документы есть. Хозяин на месте, можно приехать с родственниками.",
+    descriptionKy: "Өзгөн айылындагы жер. Документ бар. Ээси жерде, туугандар менен келсеңиз болот.",
+    descriptionEn: "A plot in a village near Uzgen. Papers ready. The owner is there — come with family.",
+    ownerId: "asel",
+    verified: true,
+    hasPhoto: true,
+    noAgent: true,
+    status: "active",
+    specs: [{ label: "size", value: "6 соток" }],
+    safetyKind: "goods",
+    mapX: 80,
+    mapY: 70,
+    contact: "telegram",
+    views: 22,
+    favCount: 1,
+    voiceSec: 10,
+    voiceText: "Өзгөн. Жер бар, документ бар. Мен ээсимин. Туугандар менен келиңиз, чогуу карайбыз.",
+    voiceTextKy: "Өзгөн. Жер бар, документ бар. Мен ээсимин. Туугандар менен келиңиз.",
+    voiceTextEn: "Uzgen. There is land, there are papers. I am the owner. Come with family, we will look together.",
   },
 ];
 

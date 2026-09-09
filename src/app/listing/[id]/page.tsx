@@ -6,17 +6,20 @@ import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { twoGisUrl } from "@/lib/geo";
 import { listingChipLabel, listingDesc, listingTitle } from "@/lib/i18n";
+import { familyShareText } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { NeighborCard } from "@/components/neighbor-seal";
+import { VoiceNote } from "@/components/voice-note";
+import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { Eyebrow, Photo } from "@/components/ui";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage } =
+  const { t, lang, allListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -87,17 +90,9 @@ export default function ListingPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={async () => {
-                  const text = `${t.shareText}: ${title}`;
-                  try {
-                    await navigator.clipboard.writeText(window.location.href);
-                    setToast(t.copied);
-                  } catch {
-                    setToast(text);
-                  }
-                  setTimeout(() => setToast(""), 1600);
-                }}
+                onClick={() => router.push(`/story/${listing.id}`)}
                 className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
+                aria-label={t.storyToIg}
               >
                 <IconShare size={17} color="#17140F" />
               </button>
@@ -182,6 +177,26 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
+          <VoiceNote listing={listing} />
+          <AiylRoad listing={listing} />
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => router.push(`/story/${listing.id}`)}
+              className="h-[48px] rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
+            >
+              {t.storyToIg}
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(familyShareText(listing, t, lang))}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-[48px] items-center justify-center rounded-[14px] bg-success text-[13px] font-semibold text-white"
+            >
+              {t.showApa}
+            </a>
+          </div>
 
           {listing.rooms ? (
             <div className="mt-5 grid grid-cols-3 gap-2">
@@ -280,6 +295,31 @@ export default function ListingPage() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-[26px] pt-3.5">
+        {elderMode && !isStay ? (
+          <>
+            <a
+              href={`tel:+996555123456`}
+              onClick={(e) => {
+                if (!user) {
+                  e.preventDefault();
+                  gate(`/listing/${listing.id}`);
+                }
+              }}
+              className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
+            >
+              <IconPhone size={19} color="#F7F3EC" />
+              {t.call}
+            </a>
+            <button
+              type="button"
+              onClick={onChat}
+              className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
+            >
+              <IconChat size={18} color="#FFF7F0" />
+            </button>
+          </>
+        ) : (
+          <>
         <button
           type="button"
           onClick={isStay ? onBook : onChat}
@@ -324,6 +364,8 @@ export default function ListingPage() {
           >
             <IconWa size={19} color="#F7F3EC" />
           </a>
+        )}
+          </>
         )}
       </div>
       {toast ? (
