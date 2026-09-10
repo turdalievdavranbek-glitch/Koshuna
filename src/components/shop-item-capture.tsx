@@ -58,7 +58,7 @@ export function ShopItemCapture({
     if (!photo) return;
     const next = photoForProductTitle(title, kind);
     if (!next || next === photo) return;
-    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title, kind)) {
+    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title)) {
       setPhoto(next);
       return;
     }
@@ -105,8 +105,8 @@ export function ShopItemCapture({
     const tag =
       isGeneratedPriceTag(dataUrl) ||
       isGeneratedPriceTag(compact) ||
-      isCompactPriceTagDataUrl(dataUrl, title, kind) ||
-      isCompactPriceTagDataUrl(compact, title, kind) ||
+      isCompactPriceTagDataUrl(dataUrl, title) ||
+      isCompactPriceTagDataUrl(compact, title) ||
       (await looksLikeRenderedPriceTag(dataUrl)) ||
       (await looksLikeRenderedPriceTag(compact));
     setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);

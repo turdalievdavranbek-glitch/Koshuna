@@ -98,9 +98,9 @@ export function isGeneratedPriceTag(src?: string): boolean {
  * photos from the in-app camera are much larger after jpegDataUrl(900).
  * Only used when the title already maps to a stock item photo.
  */
-export function isCompactPriceTagDataUrl(src?: string, title?: string, kind?: ShopKind): boolean {
+export function isCompactPriceTagDataUrl(src?: string, title?: string): boolean {
   if (!src?.startsWith("data:image") || isStockShopPhoto(src)) return false;
-  if (!photoForProductTitle(title, kind)) return false;
+  if (!stockPhotoForTitle(title)) return false;
   if (isGeneratedPriceTag(src)) return true;
   if (src.length >= 28_000) return false;
   const size = imageSizeFromDataUrl(src);
@@ -109,7 +109,7 @@ export function isCompactPriceTagDataUrl(src?: string, title?: string, kind?: Sh
 }
 
 function isPriceTagPhoto(src?: string, title?: string, kind?: ShopKind): boolean {
-  return isGeneratedPriceTag(src) || isCompactPriceTagDataUrl(src, title, kind);
+  return isGeneratedPriceTag(src) || isCompactPriceTagDataUrl(src, title);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -188,13 +188,17 @@ export async function looksLikeRenderedPriceTag(src?: string): Promise<boolean> 
   }
 }
 
-export function photoForProductTitle(title?: string, kind?: ShopKind): string | undefined {
+function stockPhotoForTitle(title?: string): string | undefined {
   const name = title?.trim() ?? "";
+  if (!name) return undefined;
   for (const row of TITLE_PHOTOS) {
-    if (name && row.re.test(name)) return row.src;
+    if (row.re.test(name)) return row.src;
   }
-  if (kind && KIND_PHOTOS[kind]) return KIND_PHOTOS[kind];
   return undefined;
+}
+
+export function photoForProductTitle(title?: string, kind?: ShopKind): string | undefined {
+  return stockPhotoForTitle(title) ?? (kind && KIND_PHOTOS[kind]) ?? undefined;
 }
 
 function usablePhoto(src?: string, title?: string, kind?: ShopKind): string | undefined {
