@@ -4,9 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
-import { goLookKind, similarListings } from "@/lib/deal";
+import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { twoGisUrl } from "@/lib/geo";
-import { listingChipLabel, listingDesc, listingTitle } from "@/lib/i18n";
+import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
 import { familyShareText } from "@/lib/share";
 import { isAbroad } from "@/lib/strategy";
 import { useApp } from "@/lib/store";
@@ -173,7 +173,7 @@ export default function ListingPage() {
               <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
                 {t.conditions[listing.condition]}
               </span>
-            ) : (
+            ) : listing.shopId ? null : (
               <span className="text-xs text-muted-2">
                 {t.cities[listing.city]} · {t.sample}
               </span>
@@ -188,7 +188,7 @@ export default function ListingPage() {
           <ListingStageBanner listing={listing} />
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
-            {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${t.ago[listing.postedAgo]}`}
+            {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
           </div>
           {listing.lng != null && listing.lat != null ? (
             <a
@@ -206,7 +206,7 @@ export default function ListingPage() {
           {listing.shopId
             ? (() => {
                 const shop = shops.find((item) => item.id === listing.shopId);
-                if (!shop || shop.status !== "active") return null;
+                if (!shop) return null;
                 const others = allListings.filter(
                   (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed",
                 );
@@ -336,7 +336,25 @@ export default function ListingPage() {
             <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>
 
-          {owner ? (
+          {listing.shopId || listing.sellerName ? (
+            <button
+              type="button"
+              onClick={() => listing.shopId && router.push(`/shops/${listing.shopId}`)}
+              className="mt-6 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-4 text-left"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink font-display text-xl font-bold text-screen">
+                {(listing.sellerName || owner?.name || "?").slice(0, 1)}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-semibold text-ink">{listing.sellerName || owner?.name}</span>
+                  <SellerStarsBadge listing={listing} placed />
+                </div>
+                <div className="mt-0.5 text-[13px] text-muted">{t.shopFromListing} · {postedLabel(listing, t)}</div>
+              </div>
+              {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
+            </button>
+          ) : owner ? (
             <button
               type="button"
               onClick={() => router.push(`/owner/${owner.id}`)}
@@ -394,7 +412,9 @@ export default function ListingPage() {
                       className={isVideoListing(item) ? "px-4 pt-2" : ""}
                     />
                     <div className={`px-[11px] pb-[11px] pt-[9px] ${isVideoListing(item) ? "text-center" : ""}`}>
-                      <div className="font-display text-[15px] font-bold text-ink">{formatSom(item.price)} KGS</div>
+                      <div className="font-display text-[15px] font-bold text-ink">
+                        {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
+                      </div>
                       <div className="mt-[3px] line-clamp-2 text-xs leading-[1.3] text-muted">
                         {listingTitle(item, lang)}
                       </div>

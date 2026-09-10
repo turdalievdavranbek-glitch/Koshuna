@@ -200,14 +200,12 @@ export function validPrice(raw: unknown): number | undefined {
 export function listingSectionForShop(
   category: ShopCategory,
   kind?: ShopKind | null,
-): { section: "secondhand" | "construction"; category: string } | null {
-  if (category === "food" || parentOfShopKind(kind) === "food") return null;
-  if (category === "construction") return { section: "construction", category: "cement" };
-  if (category === "furniture") return { section: "secondhand", category: "furniture" };
-  if (category === "electronics") return { section: "secondhand", category: "appliances" };
-  if (category === "home") return { section: "secondhand", category: "home" };
-  if (category === "apparel") return { section: "secondhand", category: "home" };
-  return null;
+): { section: "shops"; category: string } {
+  const parent = parentOfShopKind(kind) ?? category;
+  return {
+    section: "shops",
+    category: kind && isShopKind(kind) ? kind : parent,
+  };
 }
 
 export function toggleExtraCategory(

@@ -546,6 +546,7 @@ const ru = {
   credit:
     "Фото — Unsplash.",
   ago: {
+    now: "только что",
     "2h": "2 часа назад",
     "3h": "3 часа назад",
     "4h": "4 часа назад",
@@ -583,6 +584,7 @@ const ru = {
     vacancies: "Вакансии",
     construction: "Стройматериалы",
     restaurants: "Рестораны, кафе",
+    shops: "Торговые точки",
   } as Record<SectionId, string>,
   cats: {
     furniture: "Мебель",
@@ -1898,6 +1900,7 @@ const ky: typeof ru = {
     vacancies: "Бош орундар",
     construction: "Курулуш материалдары",
     restaurants: "Ресторандар, кафелер",
+    shops: "Соода түйүндөрү",
   },
   cats: {
     furniture: "Эмерек",
@@ -2772,6 +2775,7 @@ const en: typeof ru = {
     vacancies: "Jobs",
     construction: "Building materials",
     restaurants: "Restaurants & cafes",
+    shops: "Shops",
   },
   cats: {
     furniture: "Furniture",
@@ -3335,6 +3339,7 @@ const uz: typeof ru = {
   helpBody:
     "Koshuna — qoʻshnidan e’lonlar doskasi. «Qoʻshnidan» belgisi egasi oʻzi yozsa, tuman yoki qishloq koʻrinsa, narx soʻmda va oldindan toʻlov soʻralmasa qoʻyiladi. «Koʻrgani boraman» yoki topshirish nuqtasi (TSUM, Dordoy, Oʻsh bozor) — oldindan toʻlovsiz. Narx tushishi darhol koʻrinadi. Instagram hikoyalari bir kunda yonadi — bu yerda e’lon saqlanadi va opaga yuboriladi. Moskva yoki Olmaotadan qarasangiz, yaqin odam boradi. Egasining ovozini eshitish mumkin. Videoe’lon: rolik yoki rasm+ovoz — SI matn va toifa qiladi, siz tekshirib keyin e’lon qilasiz. Bitim uchun pul olmaymiz. Namunalar oʻquv.",
   ago: {
+    now: "hozirgina",
     "2h": "2 soat oldin",
     "3h": "3 soat oldin",
     "4h": "4 soat oldin",
@@ -3372,6 +3377,7 @@ const uz: typeof ru = {
     vacancies: "Vakansiyalar",
     construction: "Qurilish mollari",
     restaurants: "Restoran, kafe",
+    shops: "Savdo nuqtalari",
   },
   cats: {
     furniture: "Mebel",
@@ -3805,6 +3811,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchConstruction;
     case "restaurants":
       return t.searchRestaurants;
+    case "shops":
+      return t.shopSearch;
     default:
       return t.searchPh;
   }
@@ -3867,9 +3875,40 @@ export function listingChipLabel(
     const name = [brand, model].filter(Boolean).join(" ");
     if (name) return name;
   }
+  if (listing.section === "shops") {
+    if (listing.category && t.shopKinds[listing.category]) return t.shopKinds[listing.category];
+    if (listing.category && t.shopCats[listing.category]) return t.shopCats[listing.category];
+    return t.shopBadge;
+  }
   if (listing.goodsKind && t.goodsKinds[listing.goodsKind]) return t.goodsKinds[listing.goodsKind];
   if (listing.category && t.cats[listing.category]) return t.cats[listing.category];
   return t.sectionNames[listing.section];
+}
+
+export function postedLabel(
+  listing: { postedAgo: string; postedAt?: string },
+  t: Dict,
+): string {
+  const key = listing.postedAt ? postedKeyFrom(listing.postedAt) : listing.postedAgo;
+  return t.ago[key] ?? listing.postedAgo;
+}
+
+function postedKeyFrom(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 3_600_000) return "now";
+  const h = Math.floor(ms / 3_600_000);
+  if (h < 3) return "2h";
+  if (h < 4) return "3h";
+  if (h < 5) return "4h";
+  if (h < 7) return "6h";
+  if (h < 8) return "7h";
+  if (h < 9) return "8h";
+  if (h < 12) return "9h";
+  if (h < 20) return "12h";
+  if (h < 36) return "1d";
+  if (h < 60) return "2d";
+  if (h < 96) return "3d";
+  return "5d";
 }
 
 export function listingDesc(

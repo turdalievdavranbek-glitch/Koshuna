@@ -9,7 +9,7 @@ import type { Shop, ShopKind, ShopProduct, ShopStock, ShopProductUnit } from "@/
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function ShopProductsEditor({ shop }: { shop: Shop }) {
-  const { t, upsertShopProduct, updateShopProduct, hideShopProduct, publishProductListing } = useApp();
+  const { t, upsertShopProduct, updateShopProduct, hideShopProduct } = useApp();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [noPrice, setNoPrice] = useState(false);
@@ -106,11 +106,6 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
             onUnit={(unit) => void updateShopProduct(shop.id, item.id, { unit })}
             onKind={(next) => void updateShopProduct(shop.id, item.id, { kind: next, category: parentOfShopKind(next) ?? shop.category })}
             onHide={() => hideShopProduct(shop.id, item.id)}
-            onListing={() => {
-              const out = publishProductListing(shop.id, item.id);
-              if (out && "missing" in out) setError(out.missing.includes("price") ? t.shopToListingNeedPrice : t.shopToListingNeed);
-              else if (out) setNote(t.published);
-            }}
           />
         ))}
       </div>
@@ -126,7 +121,6 @@ function ProductRow({
   onUnit,
   onKind,
   onHide,
-  onListing,
 }: {
   shop: Shop;
   product: ShopProduct;
@@ -135,7 +129,6 @@ function ProductRow({
   onUnit: (u: ShopProductUnit) => void;
   onKind: (k?: ShopKind) => void;
   onHide: () => void;
-  onListing: () => void;
 }) {
   const { t } = useApp();
   const [raw, setRaw] = useState(product.price != null ? String(product.price) : "");
@@ -201,11 +194,8 @@ function ProductRow({
           </Chip>
         ))}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <button type="button" onClick={onListing} className="h-10 rounded-2xl border border-line text-[12px] font-semibold">
-          {t.shopToListing}
-        </button>
-        <button type="button" onClick={onHide} className="h-10 rounded-2xl border border-line text-[12px] font-semibold text-muted">
+      <div className="mt-2">
+        <button type="button" onClick={onHide} className="h-10 w-full rounded-2xl border border-line text-[12px] font-semibold text-muted">
           {t.shopWithdraw}
         </button>
       </div>

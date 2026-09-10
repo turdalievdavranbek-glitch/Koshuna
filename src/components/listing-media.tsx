@@ -1,6 +1,6 @@
 "use client";
 
-import type { Listing } from "@/lib/types";
+import type { AuthMethod, Listing } from "@/lib/types";
 import { isVideoListing as videoOf, isVoiceListing as voiceOf } from "@/lib/video-ai";
 import { SellerStarsBadge } from "./trust-stars";
 import { Photo } from "./ui";
@@ -43,7 +43,7 @@ export function ListingThumb({
   compact,
   className,
 }: {
-  listing: { id?: string; ownerId?: string; photos: string[]; mediaKind?: string; videoUrl?: string; voiceUrl?: string };
+  listing: { id?: string; ownerId?: string; sellerMethod?: AuthMethod; sellerCardLinked?: boolean; photos: string[]; mediaKind?: string; videoUrl?: string; voiceUrl?: string };
   alt: string;
   compact?: boolean;
   className?: string;
@@ -59,7 +59,15 @@ export function ListingThumb({
         <Photo src={listing.photos[0]} alt={alt} />
         {video ? <PlayBadge compact={compact} /> : isVoiceListing(listing) ? <VoiceBadge compact={compact} /> : null}
         {listing.id && listing.ownerId ? (
-          <SellerStarsBadge listing={{ id: listing.id, ownerId: listing.ownerId }} compact={compact} />
+          <SellerStarsBadge
+            listing={{
+              id: listing.id,
+              ownerId: listing.ownerId,
+              sellerMethod: listing.sellerMethod,
+              sellerCardLinked: listing.sellerCardLinked,
+            }}
+            compact={compact}
+          />
         ) : null}
       </div>
     </div>

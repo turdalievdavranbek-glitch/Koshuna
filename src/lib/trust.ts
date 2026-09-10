@@ -21,10 +21,11 @@ export function starsForOwner(owner: Pick<Owner, "method" | "cardLinked"> | null
 }
 
 export function starsForListing(
-  listing: { id: string; ownerId: string },
+  listing: { id: string; ownerId: string; sellerMethod?: AuthMethod; sellerCardLinked?: boolean },
   extra: Listing[],
   user: User | null,
 ): TrustStars {
   if (isOwnListing(listing, extra, user)) return starsForUser(user);
+  if (listing.sellerMethod) return starsForAuth(listing.sellerMethod, listing.sellerCardLinked);
   return starsForOwner(ownerById(listing.ownerId));
 }

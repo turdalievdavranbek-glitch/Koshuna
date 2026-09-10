@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { listingChipLabel, listingTitle } from "@/lib/i18n";
-import { formatSom, settlementById, settlementLabel } from "@/lib/data";
-import { dropAmount, hasPriceDrop } from "@/lib/deal";
+import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/data";
+import { dropAmount, hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
@@ -121,9 +121,16 @@ function ListingCard({
         ) : null}
         {layout !== "small" ? (
           <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
+            {layout === "large" && (listing.sellerName || ownerById(listing.ownerId)?.name) ? (
+              <span>
+                {listing.sellerName || ownerById(listing.ownerId)?.name}
+                {" · "}
+              </span>
+            ) : null}
             {listing.settlement && settlementById(listing.settlement)
               ? `${settlementLabel(settlementById(listing.settlement)!, lang)} · ${t.aiyl}`
               : t.cities[listing.city]}
+            {` · ${postedLabel(listing, t)}`}
             {video ? <NeighborMark listing={listing} compact /> : null}
           </div>
         ) : null}
@@ -173,7 +180,9 @@ export function RecentlyViewed() {
           >
             <ListingThumb listing={item} alt={listingTitle(item, lang)} compact className={isVideoListing(item) ? "px-3 pt-2" : ""} />
             <div className={`px-2.5 pb-2.5 pt-2 ${isVideoListing(item) ? "text-center" : ""}`}>
-              <div className="font-display text-[14px] font-bold text-ink">{formatSom(item.price)} KGS</div>
+              <div className="font-display text-[14px] font-bold text-ink">
+                {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
+              </div>
               <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
             </div>
           </button>

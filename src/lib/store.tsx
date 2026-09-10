@@ -33,7 +33,8 @@ import {
   type User,
   type ViewerPlace,
 } from "./types";
-import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, listingSectionForShop, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
+import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
+import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
 
@@ -265,6 +266,8 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
     const saved = JSON.parse(raw) as Partial<State>;
+    const shops = Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [];
+    const extraListings = Array.isArray(saved.extraListings) ? (saved.extraListings as Listing[]) : [];
     return {
       ...initial,
       ...saved,
@@ -274,7 +277,8 @@ function load(): State {
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
-      shops: Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [],
+      shops,
+      extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
       viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
@@ -309,6 +313,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...item,
           videoUrl: persistableUrl(item.videoUrl),
           voiceUrl: persistableUrl(item.voiceUrl),
+          photos: item.photos.map((src) => persistableUrl(src) || src).filter(Boolean),
         })),
         shops: state.shops.map(persistShop),
         shopDraft: state.shopDraft ? persistShop(state.shopDraft) as ShopDraft : null,
@@ -344,28 +349,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? phone
           : `+996 ${phone}`
         : "+996 555 12 34 56";
-      update({
-        user: {
-          name: displayName,
-          phone: displayPhone,
-          email,
-          method,
-          linkedChannels: (() => {
-            const ch = parseSellerChannel(method);
-            return ch ? [ch] : [];
-          })(),
-          cardLinked: false,
-          joinedYear: 2024,
-          verified: method === "sms",
-          rating: 4.9,
-          views: 1284,
-        },
+      const nextUser = {
+        name: displayName,
+        phone: displayPhone,
+        email,
+        method,
+        linkedChannels: (() => {
+          const ch = parseSellerChannel(method);
+          return ch ? [ch] : [];
+        })(),
+        cardLinked: false,
+        joinedYear: 2024,
+        verified: method === "sms",
+        rating: 4.9,
+        views: 1284,
+      };
+      update((s) => ({
+        ...s,
+        user: nextUser,
+        extraListings: syncShopListings(s.extraListings, s.shops, nextUser),
         draft: {
-          ...state.draft,
+          ...s.draft,
           name: displayName,
           phone: displayPhone,
         },
-      });
+      }));
     },
     logout: () => update({ user: null }),
     linkCard: () =>
@@ -480,11 +488,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     updateListing: (id, patch) => {
       update((s) => {
-        if (s.extraListings.some((item) => item.id === id)) {
-          return {
-            ...s,
-            extraListings: s.extraListings.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-          };
+        let extraListings = s.extraListings;
+        let shops = s.shops;
+        if (extraListings.some((item) => item.id === id)) {
+          extraListings = extraListings.map((item) => (item.id === id ? { ...item, ...patch } : item));
+          const listing = extraListings.find((item) => item.id === id);
+          if (listing?.shopId && listing.shopProductId && "price" in patch) {
+            shops = shops.map((shop) =>
+              shop.id === listing.shopId
+                ? {
+                    ...shop,
+                    products: shop.products.map((row) =>
+                      row.id === listing.shopProductId
+                        ? { ...row, price: listing.price > 0 ? listing.price : undefined, updatedAt: new Date().toISOString() }
+                        : row,
+                    ),
+                  }
+                : shop,
+            );
+          }
+          return { ...s, extraListings, shops };
         }
         return {
           ...s,
@@ -737,6 +760,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...s,
           shops: prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops],
           shopDraft: { ...draft, ...merged },
+          extraListings: syncShopListings(s.extraListings, prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops], user),
         };
       });
       return { shop };
@@ -801,7 +825,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currency: "KGS",
         unit: product.unit ?? "piece",
         stock: product.stock ?? "in",
-        listingId: product.listingId,
+        listingId: product.listingId || listingIdForProduct(id),
         sourceId,
         priceFromPhoto: product.priceFromPhoto,
         published: product.published !== false,
@@ -825,9 +849,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch {
         return { error: "network" };
       }
-      update((s) => ({
-        ...s,
-        shops: s.shops.map((item) =>
+      update((s) => {
+        const shops = s.shops.map((item) =>
           item.id === shopId
             ? {
                 ...item,
@@ -839,8 +862,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   : [...item.products, nextProduct],
               }
             : item,
-        ),
-      }));
+        );
+        const shopNext = shops.find((item) => item.id === shopId) ?? shop;
+        return {
+          ...s,
+          shops,
+          extraListings: syncProductListing(s.extraListings, shopNext, nextProduct, user),
+        };
+      });
       return { product: nextProduct };
     },
     updateShopProduct: async (shopId, productId, patch) => {
@@ -866,23 +895,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? { ...item, updatedAt: next.updatedAt, products: item.products.map((row) => (row.id === productId ? next : row)) }
             : item,
         );
-        let extraListings = s.extraListings;
-        let listingEdits = s.listingEdits;
-        if (next.listingId && next.price != null) {
-          if (extraListings.some((item) => item.id === next.listingId)) {
-            extraListings = extraListings.map((item) =>
-              item.id === next.listingId
-                ? { ...item, price: next.price as number, previousPrice: item.price > (next.price as number) ? item.price : item.previousPrice }
-                : item,
-            );
-          } else {
-            listingEdits = {
-              ...listingEdits,
-              [next.listingId]: { ...listingEdits[next.listingId], price: next.price as number },
-            };
-          }
-        }
-        return { ...s, shops, extraListings, listingEdits };
+        const shopNext = shops.find((item) => item.id === shopId) ?? shop;
+        return {
+          ...s,
+          shops,
+          extraListings: syncProductListing(s.extraListings, shopNext, next, user),
+        };
       });
       return {};
     },
@@ -901,9 +919,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             : item,
         ),
-        extraListings: product?.listingId
-          ? s.extraListings.map((item) => (item.id === product.listingId ? { ...item, status: "withdrawn" } : item))
-          : s.extraListings,
+        extraListings: s.extraListings.map((item) =>
+          item.id === (product?.listingId || listingIdForProduct(productId)) || item.shopProductId === productId
+            ? { ...item, status: "withdrawn" }
+            : item,
+        ),
       }));
     },
     publishProductListing: (shopId, productId) => {
@@ -911,73 +931,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const shop = state.shops.find((item) => item.id === shopId);
       const product = shop?.products.find((row) => row.id === productId);
       if (!user || !shop || !product || !isOwnShop(shop, user)) return null;
-      if (shop.status !== "active") return { missing: ["category"] };
-      const mapped = listingSectionForShop(product.category || shop.category, product.kind);
-      const missing: string[] = [];
-      if (!product.title.trim()) missing.push("name");
-      if (product.price == null) missing.push("price");
-      if (!mapped) missing.push("category");
-      if (missing.length || !mapped) return { missing: missing.length ? missing : ["category"] };
-      if (product.listingId) {
-        const existing = state.extraListings.find((item) => item.id === product.listingId);
-        if (existing) {
-          update((s) => ({
-            ...s,
-            extraListings: s.extraListings.map((item) =>
-              item.id === product.listingId
-                ? { ...item, title: product.title, price: product.price as number, description: product.description || product.title, status: "active" }
-                : item,
-            ),
-          }));
-          return existing;
-        }
-      }
-      const listing: Listing = {
-        id: `shop-item-${product.id}`,
-        section: mapped.section,
-        category: mapped.category,
-        title: product.title,
-        titleKy: product.title,
-        titleEn: product.title,
-        price: product.price as number,
-        city: shop.city,
-        postedAgo: "2h",
-        photos: [product.photo || shop.coverUrl || "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=70"],
-        photoCredit: shop.name,
-        description: product.description || product.title,
-        descriptionKy: product.description || product.title,
-        descriptionEn: product.description || product.title,
-        ownerId: "aida",
-        shopId: shop.id,
-        shopProductId: product.id,
-        hasPhoto: true,
-        verified: true,
-        noAgent: true,
-        status: "active",
-        safetyKind: "goods",
-        mapX: 40,
-        mapY: 40,
-        contact: shop.contacts.telegram ? "telegram" : "whatsapp",
-        views: 0,
-        favCount: 0,
-        lat: shop.lat,
-        lng: shop.lng,
-        mediaKind: product.videoUrl ? "video" : "photos",
-        videoUrl: product.videoUrl,
-      };
-      update((s) => ({
-        ...s,
-        extraListings: [listing, ...s.extraListings],
-        shops: s.shops.map((item) =>
-          item.id === shopId
-            ? {
-                ...item,
-                products: item.products.map((row) => (row.id === productId ? { ...row, listingId: listing.id, published: true } : row)),
-              }
-            : item,
-        ),
-      }));
-      return listing;
+      if (!product.title.trim()) return { missing: ["name"] };
+      let listing: Listing | undefined;
+      update((s) => {
+        const extraListings = syncProductListing(s.extraListings, shop, product, user);
+        listing = extraListings.find((item) => item.shopProductId === product.id);
+        return {
+          ...s,
+          extraListings,
+          shops: s.shops.map((item) =>
+            item.id === shopId
+              ? {
+                  ...item,
+                  products: item.products.map((row) =>
+                    row.id === productId ? { ...row, listingId: listingIdForProduct(product.id), published: true } : row,
+                  ),
+                }
+              : item,
+          ),
+        };
+      });
+      return listing ?? null;
     },
     reportShop: (id, reason) =>
       update((s) => ({

@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { dropAmount, hasPriceDrop } from "@/lib/deal";
+import { dropAmount, hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
-import { listingChipLabel, listingTitle } from "@/lib/i18n";
+import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { somToForeign } from "@/lib/strategy";
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
@@ -71,15 +71,16 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
   const { t, viewerPlace } = useApp();
   const unit = listing.unit ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
-  const fx = somToForeign(listing.price, viewerPlace);
+  const fx = listingHasPrice(listing) ? somToForeign(listing.price, viewerPlace) : null;
+  const amount = listingHasPrice(listing) ? `${formatSom(listing.price)}` : t.shopAskPrice;
   if (large) {
     return (
       <div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-            {formatSom(listing.price)} KGS
+            {listingHasPrice(listing) ? `${amount} KGS` : amount}
           </span>
-          {unit ? <span className="text-sm text-muted">{unit}</span> : null}
+          {listingHasPrice(listing) && unit ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
         {fx ? (
           <div className="mt-1 text-[13px] text-muted">
@@ -101,16 +102,22 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
     <div>
       <div className="flex items-baseline gap-1.5">
         <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
-          {formatSom(listing.price)} {compact ? "" : "KGS"}
-          {compact && listing.unit === "month" ? (
-            <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
-          ) : compact && listing.unit === "night" ? (
-            <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
-          ) : compact && listing.unit === "day" ? (
-            <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
-          ) : compact ? (
-            <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
-          ) : null}
+          {listingHasPrice(listing) ? (
+            <>
+              {formatSom(listing.price)} {compact ? "" : "KGS"}
+              {compact && listing.unit === "month" ? (
+                <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
+              ) : compact && listing.unit === "night" ? (
+                <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
+              ) : compact && listing.unit === "day" ? (
+                <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
+              ) : compact ? (
+                <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
+              ) : null}
+            </>
+          ) : (
+            amount
+          )}
         </span>
         {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
         {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
@@ -191,7 +198,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
         <div className="mt-2 flex items-center gap-2 text-xs text-muted-2">
           <span>{t.cities[listing.city]}</span>
           <span>·</span>
-          <span>{t.ago[listing.postedAgo] ?? listing.postedAgo}</span>
+          <span>{postedLabel(listing, t)}</span>
           {listing.verified ? (
             <span className="ml-auto flex items-center gap-1 font-semibold text-success">
               <IconCheck size={12} color="#2A6B57" />
@@ -267,6 +274,7 @@ export function ListingRow({
         <div className="mt-1 text-sm leading-[1.3] text-ink">{title}</div>
         <div className="mt-1.5 text-xs text-muted-2">
           {t.cities[listing.city]}
+          {` · ${postedLabel(listing, t)}`}
           {listing.rooms
             ? ` · ${listing.rooms} ${t.roomWord} · ${listing.area} м²`
             : listing.condition

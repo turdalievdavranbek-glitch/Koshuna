@@ -19,8 +19,12 @@ export const PAY_AFTER: PayAfter[] = ["cash", "mbank", "odengi", "elsom"];
 
 export const REPORT_REASONS = ["agent", "prepay", "currency", "photos", "other"] as const;
 
+export function listingHasPrice(listing: Pick<Listing, "price">): boolean {
+  return listing.price != null && listing.price > 0;
+}
+
 export function hasPriceDrop(listing: Listing): boolean {
-  return listing.previousPrice != null && listing.previousPrice > listing.price;
+  return listingHasPrice(listing) && listing.previousPrice != null && listing.previousPrice > listing.price;
 }
 
 export function dropAmount(listing: Listing): number {
@@ -36,7 +40,8 @@ export function goLookKind(listing: Listing): GoLookKind {
   if (
     listing.section === "secondhand" ||
     listing.section === "animals" ||
-    listing.section === "construction"
+    listing.section === "construction" ||
+    listing.section === "shops"
   ) {
     return "meet";
   }

@@ -22,7 +22,8 @@ export type SectionId =
   | "services"
   | "vacancies"
   | "construction"
-  | "restaurants";
+  | "restaurants"
+  | "shops";
 
 export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed";
 
@@ -148,6 +149,7 @@ export type Listing = {
   voiceTextKy?: string;
   voiceTextEn?: string;
   postedAgo: string;
+  postedAt?: string;
   rooms?: number;
   area?: number;
   housingKind?: PropertyType;
@@ -175,6 +177,9 @@ export type Listing = {
   descriptionKy: string;
   descriptionEn: string;
   ownerId: string;
+  sellerName?: string;
+  sellerMethod?: AuthMethod;
+  sellerCardLinked?: boolean;
   shopId?: string;
   shopProductId?: string;
   reservedBy?: ReserveAccount;

@@ -50,7 +50,7 @@ export function SellerStarsBadge({
   compact,
   placed,
 }: {
-  listing: { id: string; ownerId: string };
+  listing: { id: string; ownerId: string; sellerMethod?: AuthMethod; sellerCardLinked?: boolean };
   compact?: boolean;
   placed?: boolean;
 }) {
