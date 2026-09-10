@@ -431,7 +431,7 @@ const ru = {
   mediaVoice: "Фото и голос",
   mediaPhotos: "Только фото",
   mediaHint:
-    "Запишите ролик или приложите фото и голосовое. ИИ сам распознает речь — по-русски, по-кыргызски, по-узбекски или смешанно — переведёт в текст, подставит описание и выберет категорию. Публикация — только после вашей проверки.",
+    "Запишите ролик или приложите фото и голосовое. ИИ переведёт речь в текст, подставит описание и выберет категорию. Публикация — только после вашей проверки.",
   mediaRecord: "Записать видео",
   mediaStop: "Стоп",
   mediaFile: "Файл",
@@ -1324,7 +1324,7 @@ const ky: typeof ru = {
   mediaVoice: "Сүрөт жана үн",
   mediaPhotos: "Сүрөт гана",
   mediaHint:
-    "Ролик жазыңыз же сүрөт менен үн кошуңуз. ИИ сөздү өзү тааныйт — орусча, кыргызча, өзбекче же аралаш — текстке айлантып, категорияны сунуштайт. Жайгаштыруудан мурун сиз текшересиз.",
+    "Ролик жазыңыз же сүрөт менен үн кошуңуз. ИИ сөздү текстке айлантып, категорияны сунуштайт. Жайгаштыруудан мурун сиз текшересиз.",
   mediaRecord: "Видео жазуу",
   mediaStop: "Стоп",
   mediaFile: "Файл",
@@ -1962,7 +1962,7 @@ const en: typeof ru = {
   mediaVoice: "Photo and voice",
   mediaPhotos: "Photos only",
   mediaHint:
-    "Record a clip or attach a photo and a voice note. AI recognizes speech automatically — Russian, Kyrgyz, Uzbek, or mixed — turns it into text, fills the description and picks a category. Nothing goes live until you confirm.",
+    "Record a clip or attach a photo and a voice note. AI turns speech into text, fills the description and picks a category. Nothing goes live until you confirm.",
   mediaRecord: "Record video",
   mediaStop: "Stop",
   mediaFile: "File",
@@ -2510,7 +2510,7 @@ const uz: typeof ru = {
   mediaVoice: "Rasm va ovoz",
   mediaPhotos: "Faqat rasm",
   mediaHint:
-    "Rolik yozing yoki rasm va ovoz qoʻshing. SI nutqni oʻzi tanib oladi — ruscha, qirgʻizcha, oʻzbekcha yoki aralash — matnga aylantiradi, tavsif va toifani tanlaydi. E’lon — faqat siz tekshirgandan keyin.",
+    "Rolik yozing yoki rasm va ovoz qoʻshing. SI nutqni matnga aylantiradi, tavsif va toifani tanlaydi. E’lon — faqat siz tekshirgandan keyin.",
   mediaRecord: "Video yozish",
   mediaStop: "Stop",
   mediaFile: "Fayl",

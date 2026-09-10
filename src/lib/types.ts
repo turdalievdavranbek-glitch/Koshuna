@@ -1,10 +1,6 @@
 export const LANGS = ["ru", "ky", "uz", "en"] as const;
 export type Lang = (typeof LANGS)[number];
 
-/** Speech recognition for video/voice: Russian, Kyrgyz, Uzbek, or mixed. Chosen automatically, not shown in UI. */
-export const SPEECH_LANGS = ["ru", "ky", "uz", "mix"] as const;
-export type SpeechLang = (typeof SPEECH_LANGS)[number];
-
 export type AuthMethod =
   | "sms"
   | "email"

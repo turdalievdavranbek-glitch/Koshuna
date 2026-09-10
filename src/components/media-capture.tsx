@@ -115,7 +115,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
       setRecording(true);
       setLive("");
       stopSpeech.current?.();
-      stopSpeech.current = startSpeech("mix", (text) => {
+      stopSpeech.current = startSpeech((text) => {
         setLive(text);
         applySpeech(text);
       });

@@ -1,5 +1,3 @@
-import type { SpeechLang } from "./types";
-
 const held = new Map<string, string>();
 
 export function keepBlob(key: "video" | "voice" | "photo", blob: Blob): string {
@@ -71,21 +69,16 @@ type SpeechRec = {
 
 type SpeechCtor = new () => SpeechRec;
 
-/** BCP-47 tags to try, in order. Kyrgyz/Uzbek often missing in browsers → fall back to ru-RU. Mixed uses ru-RU (one engine; best regional code-switch). */
-export function speechLocales(mode: SpeechLang): string[] {
-  if (mode === "ky") return ["ky-KG", "ky", "ru-RU"];
-  if (mode === "uz") return ["uz-UZ", "uz-Latn-UZ", "uz", "ru-RU"];
-  if (mode === "mix") return ["ru-RU"];
-  return ["ru-RU"];
-}
+/** Auto STT for Russian, Kyrgyz, Uzbek and mixed speech. ru-RU first (one engine; best regional code-switch), then ky/uz if the browser rejects the locale. */
+const AUTO_SPEECH_LOCALES = ["ru-RU", "ky-KG", "uz-UZ", "uz-Latn-UZ"];
 
-export function startSpeech(mode: SpeechLang, onText: (text: string) => void): () => void {
+export function startSpeech(onText: (text: string) => void): () => void {
   const Ctor = ((window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
     .SpeechRecognition ||
     (window as unknown as { webkitSpeechRecognition?: SpeechCtor }).webkitSpeechRecognition) as SpeechCtor | undefined;
   if (!Ctor) return () => undefined;
 
-  const locales = speechLocales(mode);
+  const locales = AUTO_SPEECH_LOCALES;
   let index = 0;
   let stopped = false;
   let rec: SpeechRec | null = null;
