@@ -3,8 +3,13 @@ import type { DealStage, Listing, ListingStatus, User } from "./types";
 
 export const DEAL_STAGES: DealStage[] = ["active", "reserved", "closed", "withdrawn"];
 
-export function isOwnListing(listing: { id: string }, extra: Listing[], user: User | null): boolean {
+export function isOwnListing(
+  listing: { id: string; shopId?: string; shopProductId?: string },
+  extra: Listing[],
+  user: User | null,
+): boolean {
   if (!user) return false;
+  if (listing.shopId || listing.shopProductId) return true;
   if (extra.some((item) => item.id === listing.id)) return true;
   return MY_LISTING_IDS.includes(listing.id);
 }

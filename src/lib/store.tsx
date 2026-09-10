@@ -327,13 +327,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const t = DICT[state.lang];
   const allListings = useMemo(() => {
-    const extraIds = new Set(state.extraListings.map((item) => item.id));
-    const merged = [...state.extraListings, ...LISTINGS.filter((item) => !extraIds.has(item.id))];
+    const fromShops = syncShopListings(
+      state.extraListings.filter((item) => item.shopProductId),
+      state.shops,
+      state.user,
+    );
+    const restExtra = state.extraListings.filter((item) => !item.shopProductId);
+    const extra = [...fromShops, ...restExtra];
+    const extraIds = new Set(extra.map((item) => item.id));
+    const merged = [...extra, ...LISTINGS.filter((item) => !extraIds.has(item.id))];
     return merged.map((item) => {
       const edit = state.listingEdits[item.id];
       return edit ? { ...item, ...edit } : item;
     });
-  }, [state.extraListings, state.listingEdits]);
+  }, [state.extraListings, state.listingEdits, state.shops, state.user]);
 
   const value: Store = {
     ...state,
