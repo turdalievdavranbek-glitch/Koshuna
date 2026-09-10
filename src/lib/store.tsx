@@ -33,7 +33,7 @@ import {
   type User,
   type ViewerPlace,
 } from "./types";
-import { emptyShopDraft, isOwnShop, listingSectionForShop, validPrice } from "./shops";
+import { emptyShopDraft, hydrateShop, isOwnShop, listingSectionForShop, validPrice } from "./shops";
 import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
 
@@ -274,8 +274,8 @@ function load(): State {
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
-      shops: Array.isArray(saved.shops) ? saved.shops : [],
-      shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? saved.shopDraft : null,
+      shops: Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [],
+      shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
       viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
@@ -782,6 +782,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         photo: product.photo,
         videoUrl: product.videoUrl,
         category: product.category ?? shop.category,
+        kind: product.kind,
         price,
         currency: "KGS",
         unit: product.unit ?? "piece",
@@ -889,7 +890,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const product = shop?.products.find((row) => row.id === productId);
       if (!user || !shop || !product || !isOwnShop(shop, user)) return null;
       if (shop.status !== "active") return { missing: ["category"] };
-      const mapped = listingSectionForShop(product.category || shop.category);
+      const mapped = listingSectionForShop(product.category || shop.category, product.kind);
       const missing: string[] = [];
       if (!product.title.trim()) missing.push("name");
       if (product.price == null) missing.push("price");

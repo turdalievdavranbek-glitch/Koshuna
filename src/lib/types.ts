@@ -297,6 +297,27 @@ export const SHOP_CATEGORIES = [
 ] as const;
 export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
 
+export const SHOP_KINDS = {
+  food: [
+    "food-bakery",
+    "food-meat",
+    "food-dairy",
+    "food-produce",
+    "food-staples",
+    "food-drinks",
+    "food-sweets",
+    "food-frozen",
+  ],
+  construction: ["build-mix", "build-timber", "build-plumbing", "build-electrical", "build-tools", "build-finishes"],
+  furniture: ["furn-sofa", "furn-bed", "furn-storage", "furn-table", "furn-kitchen"],
+  electronics: ["el-phones", "el-computers", "el-tv", "el-appliances", "el-audio"],
+  apparel: ["ap-men", "ap-women", "ap-kids", "ap-shoes", "ap-acc"],
+  home: ["home-kitchen", "home-textile", "home-decor", "home-clean"],
+  other: [],
+} as const satisfies Record<ShopCategory, readonly string[]>;
+
+export type ShopKind = (typeof SHOP_KINDS)[Exclude<ShopCategory, "other">][number];
+
 export type ShopStatus = "draft" | "active" | "withdrawn";
 
 export type ShopProductUnit = "piece" | "kg" | "meter" | "liter" | "pack" | "other";
@@ -325,6 +346,7 @@ export type ShopProduct = {
   photo?: string;
   videoUrl?: string;
   category: ShopCategory;
+  kind?: ShopKind;
   price?: number;
   currency: "KGS";
   unit: ShopProductUnit;
@@ -342,6 +364,7 @@ export type Shop = {
   ownerName: string;
   category: ShopCategory;
   extraCategories: ShopCategory[];
+  kinds: ShopKind[];
   description: string;
   city: string;
   address: string;
@@ -371,5 +394,5 @@ export type ShopDraft = Shop & {
 export type ShopFilters = {
   query: string;
   city: string;
-  category: ShopCategory | "all";
+  category: ShopCategory | ShopKind | "all";
 };

@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { formatSom } from "@/lib/data";
-import { SHOP_STOCK, SHOP_UNITS, validPrice } from "@/lib/shops";
-import { shopErrorText } from "@/lib/shop-copy";
+import { parentOfShopKind, shopKindsOf, SHOP_STOCK, SHOP_UNITS, validPrice } from "@/lib/shops";
+import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
-import type { Shop, ShopProduct, ShopStock, ShopProductUnit } from "@/lib/types";
+import type { Shop, ShopKind, ShopProduct, ShopStock, ShopProductUnit } from "@/lib/types";
 import { Chip, Field, Input } from "./ui";
 
 export function ShopProductsEditor({ shop }: { shop: Shop }) {
   const { t, upsertShopProduct, updateShopProduct, hideShopProduct, publishProductListing } = useApp();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [kind, setKind] = useState<ShopKind | undefined>(shop.kinds?.[0]);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const kids = shopKindsOf(shop.category, ...shop.extraCategories);
 
   const add = async () => {
     setError("");
@@ -26,7 +28,12 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
       setError(t.shopNeedPrice);
       return;
     }
-    const result = await upsertShopProduct(shop.id, { title: title.trim(), price: n, category: shop.category });
+    const result = await upsertShopProduct(shop.id, {
+      title: title.trim(),
+      price: n,
+      category: parentOfShopKind(kind) ?? shop.category,
+      kind,
+    });
     if (result.error) {
       setError(shopErrorText(t, result.error));
       return;
@@ -46,6 +53,18 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
         <Field label={t.shopProductPrice}>
           <Input value={price} onChange={setPrice} placeholder={t.shopAskPrice} />
         </Field>
+        {kids.length ? (
+          <div>
+            <div className="text-[12px] font-semibold text-muted">{t.shopProductKind}</div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {kids.map((id) => (
+                <Chip key={id} active={kind === id} onClick={() => setKind(kind === id ? undefined : id)}>
+                  {t.shopKinds[id]}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <button type="button" onClick={() => void add()} className="h-11 rounded-2xl bg-ink text-[14px] font-semibold text-screen">
           {t.shopAddProduct}
         </button>
@@ -61,6 +80,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
             onPrice={(next) => void updateShopProduct(shop.id, item.id, { price: next })}
             onStock={(stock) => void updateShopProduct(shop.id, item.id, { stock })}
             onUnit={(unit) => void updateShopProduct(shop.id, item.id, { unit })}
+            onKind={(next) => void updateShopProduct(shop.id, item.id, { kind: next, category: parentOfShopKind(next) ?? shop.category })}
             onHide={() => hideShopProduct(shop.id, item.id)}
             onListing={() => {
               const out = publishProductListing(shop.id, item.id);
@@ -75,10 +95,12 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
 }
 
 function ProductRow({
+  shop,
   product,
   onPrice,
   onStock,
   onUnit,
+  onKind,
   onHide,
   onListing,
 }: {
@@ -87,17 +109,20 @@ function ProductRow({
   onPrice: (n?: number) => void;
   onStock: (s: ShopStock) => void;
   onUnit: (u: ShopProductUnit) => void;
+  onKind: (k?: ShopKind) => void;
   onHide: () => void;
   onListing: () => void;
 }) {
   const { t } = useApp();
   const [raw, setRaw] = useState(product.price != null ? String(product.price) : "");
+  const kids = shopKindsOf(shop.category, ...shop.extraCategories);
   return (
     <div className="rounded-[16px] border border-line bg-white p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-[14px] font-semibold text-ink">{product.title}</div>
           <div className="mt-0.5 text-[11px] text-muted-2">
+            {product.kind ? `${shopKindLabel(t, product.kind)} · ` : ""}
             {t.shopStockStale} · {product.updatedAt.slice(0, 10)}
           </div>
         </div>
@@ -125,6 +150,15 @@ function ProductRow({
           </Chip>
         ))}
       </div>
+      {kids.length ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {kids.map((id) => (
+            <Chip key={id} active={product.kind === id} onClick={() => onKind(product.kind === id ? undefined : id)}>
+              {t.shopKinds[id]}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {SHOP_STOCK.map((id) => (
           <Chip key={id} active={product.stock === id} onClick={() => onStock(id)}>

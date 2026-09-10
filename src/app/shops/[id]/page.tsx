@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { twoGisUrl } from "@/lib/geo";
-import { canSeeShop, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
+import { canSeeShop, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
+import { shopKindLabel } from "@/lib/shop-copy";
 import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
@@ -30,6 +31,7 @@ export default function ShopDetailPage() {
     () => (shop ? shop.products.filter((p) => mine || publicProduct(p, shop)) : []),
     [shop, mine],
   );
+  const groups = useMemo(() => (shop ? groupShopProducts(shop, products) : []), [shop, products]);
   const linked = useMemo(
     () => (shop ? allListings.filter((item) => item.shopId === shop.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed") : []),
     [allListings, shop],
@@ -113,6 +115,9 @@ export default function ShopDetailPage() {
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Chip active>{t.shopCats[shop.category]}</Chip>
+          {(shop.kinds ?? []).map((id) => (
+            <Chip key={id}>{shopKindLabel(t, id)}</Chip>
+          ))}
           {shop.extraCategories.map((id) => (
             <Chip key={id}>{t.shopCats[id]}</Chip>
           ))}
@@ -170,19 +175,30 @@ export default function ShopDetailPage() {
 
         <div className="mt-5">
           <Eyebrow>{t.shopCatalog}</Eyebrow>
-          {!products.length ? <p className="mt-2 text-[13px] text-muted">{t.shopNoCatalog}</p> : null}
-          <div className="mt-2 flex flex-col gap-2">
-            {products.map((item) => (
-              <div key={item.id} className="rounded-[16px] border border-line bg-white p-3">
-                <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
-                {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
-                <div className="mt-1 text-[15px] font-semibold text-accent">
-                  {item.price != null ? `${formatSom(item.price)} KGS / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
-                </div>
-                <div className="mt-0.5 text-[12px] text-muted">
-                  {item.stock === "in" ? t.shopStockIn : item.stock === "out" ? t.shopStockOut : item.stock === "order" ? t.shopStockOrder : t.shopStockAsk}
-                  {" · "}
-                  {t.shopStockStale} {item.updatedAt.slice(0, 10)}
+          {!products.length && !groups.length ? <p className="mt-2 text-[13px] text-muted">{t.shopNoCatalog}</p> : null}
+          <div className="mt-2 flex flex-col gap-3">
+            {groups.map((group) => (
+              <div key={group.id}>
+                {group.id !== "none" || groups.length > 1 ? (
+                  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-2">
+                    {group.id === "none" ? t.shopCatalog : shopKindLabel(t, group.id)}
+                  </div>
+                ) : null}
+                <div className="flex flex-col gap-2">
+                  {group.items.map((item) => (
+                    <div key={item.id} className="rounded-[16px] border border-line bg-white p-3">
+                      <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
+                      {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
+                      <div className="mt-1 text-[15px] font-semibold text-accent">
+                        {item.price != null ? `${formatSom(item.price)} KGS / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
+                      </div>
+                      <div className="mt-0.5 text-[12px] text-muted">
+                        {item.stock === "in" ? t.shopStockIn : item.stock === "out" ? t.shopStockOut : item.stock === "order" ? t.shopStockOrder : t.shopStockAsk}
+                        {" · "}
+                        {t.shopStockStale} {item.updatedAt.slice(0, 10)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

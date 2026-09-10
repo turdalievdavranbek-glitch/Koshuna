@@ -32,3 +32,8 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopError;
   }
 }
+
+export function shopKindLabel(t: Dict, id: string | undefined | null): string {
+  if (!id) return "";
+  return t.shopKinds[id] || t.shopCats[id] || id;
+}

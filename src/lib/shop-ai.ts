@@ -1,5 +1,5 @@
-import { isShopCategory, SHOP_CATEGORIES, validPrice } from "./shops";
-import type { ShopCategory, ShopDraft, ShopHours, ShopProductUnit } from "./types";
+import { isShopCategory, isShopKind, parentOfShopKind, SHOP_CATEGORIES, validPrice } from "./shops";
+import type { ShopCategory, ShopDraft, ShopHours, ShopKind, ShopProductUnit } from "./types";
 
 export type ShopAiProductHint = {
   title: string;
@@ -12,6 +12,7 @@ export type ShopAiGuess = {
   description?: string;
   category?: ShopCategory;
   extraCategories?: ShopCategory[];
+  kinds?: ShopKind[];
   hoursNote?: string;
   hours?: ShopHours;
   pickup?: boolean;
@@ -28,6 +29,42 @@ const CAT_RULES: { id: ShopCategory; keys: string[] }[] = [
   { id: "electronics", keys: ["электрон", "бытов", "холодильник", "стирал", "телевизор", "телефон", "ноутбук"] },
   { id: "apparel", keys: ["одежд", "обув", "кийим", "куртка", "платье", "кроссов"] },
   { id: "home", keys: ["для дома", "хозяйств", "посуд", "текстил", "уют"] },
+];
+
+const KIND_RULES: { id: ShopKind; keys: string[] }[] = [
+  { id: "food-bakery", keys: ["хлеб", "выпечк", "булоч", "нан ", "лепеш"] },
+  { id: "food-meat", keys: ["мясо", "птиц", "говяд", "барани", "кур ", "эт "] },
+  { id: "food-dairy", keys: ["молоч", "сыр", "кефир", "айран", "сметан", "сүт"] },
+  { id: "food-produce", keys: ["овощ", "фрукт", "зелен", "жашылча", "жемиш"] },
+  { id: "food-staples", keys: ["бакале", "крупа", "мука", "рис", "масло подсолн"] },
+  { id: "food-drinks", keys: ["напит", "сок", "вода", "ичимдик", "газиров"] },
+  { id: "food-sweets", keys: ["сладост", "шоколад", "печен", "снек", "таттуу"] },
+  { id: "food-frozen", keys: ["замороз", "мороженое", "тоңдур"] },
+  { id: "build-mix", keys: ["цемент", "смесь", "штукатур"] },
+  { id: "build-timber", keys: ["пиломатериал", "доска", "брус"] },
+  { id: "build-plumbing", keys: ["сантех", "труба", "смесител"] },
+  { id: "build-electrical", keys: ["кабель", "провод", "розетк", "электрик"] },
+  { id: "build-tools", keys: ["инструмент", "дрель", "шуруповерт"] },
+  { id: "build-finishes", keys: ["отделк", "плитка", "краска", "обои"] },
+  { id: "furn-sofa", keys: ["диван"] },
+  { id: "furn-bed", keys: ["кроват", "матрас"] },
+  { id: "furn-storage", keys: ["шкаф", "комод"] },
+  { id: "furn-table", keys: ["стол", "стул"] },
+  { id: "furn-kitchen", keys: ["кухн"] },
+  { id: "el-phones", keys: ["телефон", "смартфон"] },
+  { id: "el-computers", keys: ["ноутбук", "компьютер"] },
+  { id: "el-tv", keys: ["телевизор"] },
+  { id: "el-appliances", keys: ["холодильник", "стирал", "плита"] },
+  { id: "el-audio", keys: ["колонк", "наушник"] },
+  { id: "ap-men", keys: ["мужск"] },
+  { id: "ap-women", keys: ["женск"] },
+  { id: "ap-kids", keys: ["детск", "балалар"] },
+  { id: "ap-shoes", keys: ["обув", "кроссов"] },
+  { id: "ap-acc", keys: ["сумк", "ремень"] },
+  { id: "home-kitchen", keys: ["посуд"] },
+  { id: "home-textile", keys: ["текстил", "полотенц"] },
+  { id: "home-decor", keys: ["декор"] },
+  { id: "home-clean", keys: ["бытов хими", "моющее"] },
 ];
 
 function norm(raw: string): string {
@@ -104,6 +141,10 @@ function categoriesFrom(text: string): { category?: ShopCategory; extra: ShopCat
   return { category: ranked[0].id, extra: ranked.slice(1, 3).map((r) => r.id) };
 }
 
+function kindsFrom(text: string): ShopKind[] {
+  return KIND_RULES.filter((rule) => score(text, rule.keys) > 0).map((rule) => rule.id);
+}
+
 function shopName(raw: string, text: string): string | undefined {
   const branded = raw.match(/(?:магазин|дүкөн|точка)\s+[«"]?([A-Za-zА-Яа-яЁёҮүҢңӨө0-9 \-]{3,40})/i);
   if (branded?.[1]) return branded[1].replace(/[«»"]/g, "").trim().slice(0, 60);
@@ -119,6 +160,7 @@ export function classifyShopSpeech(raw: string): ShopAiGuess {
   const text = norm(raw);
   const filled: string[] = [];
   const cats = categoriesFrom(text);
+  const kinds = kindsFrom(text).filter(isShopKind);
   const hours = extractHours(text);
   const fulfill = extractFulfillment(text);
   const products = extractProducts(raw);
@@ -135,10 +177,20 @@ export function classifyShopSpeech(raw: string): ShopAiGuess {
   if (cats.category && isShopCategory(cats.category)) {
     guess.category = cats.category;
     filled.push("category");
+  } else if (kinds.length) {
+    const parent = parentOfShopKind(kinds[0]);
+    if (parent) {
+      guess.category = parent;
+      filled.push("category");
+    }
   }
   if (cats.extra.length) {
     guess.extraCategories = cats.extra.filter((id) => id !== cats.category);
     filled.push("extraCategories");
+  }
+  if (kinds.length) {
+    guess.kinds = kinds.slice(0, 6);
+    filled.push("kinds");
   }
   if (hours.hours || hours.hoursNote) {
     guess.hours = hours.hours;
@@ -160,7 +212,7 @@ export function classifyShopSpeech(raw: string): ShopAiGuess {
   return guess;
 }
 
-type Touchable = "name" | "description" | "category" | "extraCategories" | "hours" | "hoursNote" | "pickup" | "delivery";
+type Touchable = "name" | "description" | "category" | "extraCategories" | "kinds" | "hours" | "hoursNote" | "pickup" | "delivery";
 
 export function applyShopAi(draft: ShopDraft, guess: ShopAiGuess): Partial<ShopDraft> {
   const patch: Partial<ShopDraft> = {};
@@ -175,6 +227,7 @@ export function applyShopAi(draft: ShopDraft, guess: ShopAiGuess): Partial<ShopD
   take("description", guess.description, !draft.description.trim());
   take("category", guess.category, draft.category === "other" || !draft.category);
   take("extraCategories", guess.extraCategories, !draft.extraCategories.length);
+  take("kinds", guess.kinds, !(draft.kinds ?? []).length);
   take("hours", guess.hours, !draft.hours);
   take("hoursNote", guess.hoursNote, !draft.hoursNote?.trim());
   take("pickup", guess.pickup, true);

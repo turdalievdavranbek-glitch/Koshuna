@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CITIES } from "@/lib/data";
-import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopsOf, type ShopCategory } from "@/lib/shops";
+import { applyShopFilters, filterShopParent, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory, type ShopKind } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopThumb } from "@/components/shop-thumb";
@@ -15,7 +15,7 @@ export default function ShopsPage() {
   const { t, user, shops, city, ready } = useApp();
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [cat, setCat] = useState<ShopCategory | "all">("all");
+  const [cat, setCat] = useState<ShopCategory | ShopKind | "all">("all");
   const [cityKey, setCityKey] = useState(city);
   const [mine, setMine] = useState(false);
 
@@ -23,6 +23,8 @@ export default function ShopsPage() {
     const source = mine ? shopsOf(shops, user) : publicShops(shops);
     return applyShopFilters(source, { query, city: cityKey, category: cat }, city);
   }, [shops, query, cityKey, cat, user, city, mine]);
+  const parent = filterShopParent(cat);
+  const kids = shopKindsOf(parent);
 
   return (
     <PhoneShell tab>
@@ -67,11 +69,20 @@ export default function ShopsPage() {
             {t.shopCats.all}
           </Chip>
           {SHOP_CATEGORIES.map((id) => (
-            <Chip key={id} active={cat === id} onClick={() => setCat(id)}>
+            <Chip key={id} active={parent === id} onClick={() => setCat(id)}>
               {t.shopCats[id]}
             </Chip>
           ))}
         </div>
+        {kids.length ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {kids.map((id) => (
+              <Chip key={id} active={cat === id} onClick={() => setCat(id)}>
+                {t.shopKinds[id]}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
         {user ? (
           <Link href="/shops/new" className="shadow-btn mt-4 flex h-12 items-center justify-center rounded-2xl bg-accent text-[15px] font-semibold text-accent-on no-underline">
             {t.shopNew}
@@ -106,7 +117,10 @@ export default function ShopsPage() {
                   ) : null}
                 </div>
                 <div className="mt-0.5 text-[12px] text-muted">
-                  {t.shopCats[shop.category]} · {t.cities[shop.city]}
+                  {t.shopCats[shop.category]}
+                  {(shop.kinds ?? []).length ? ` · ${shop.kinds.slice(0, 2).map((id) => t.shopKinds[id]).join(", ")}` : ""}
+                  {" · "}
+                  {t.cities[shop.city]}
                 </div>
                 <div className="mt-0.5 truncate text-[12px] text-muted-2">{shop.address}</div>
               </div>

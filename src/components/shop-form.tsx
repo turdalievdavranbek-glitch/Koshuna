@@ -7,9 +7,9 @@ import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { applyShopAi, classifyShopSpeech } from "@/lib/shop-ai";
 import { shopErrorText } from "@/lib/shop-copy";
 import { publishErrors } from "@/lib/shop-rules";
-import { SHOP_CATEGORIES, setPrimaryCategory, toggleExtraCategory } from "@/lib/shops";
+import { SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
 import { useApp } from "@/lib/store";
-import type { Shop, ShopCategory, ShopHoursSlot } from "@/lib/types";
+import type { Shop, ShopCategory, ShopHoursSlot, ShopKind } from "@/lib/types";
 import { GisMap } from "./gis-map";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
 
@@ -335,11 +335,33 @@ export function ShopForm() {
         <div className="mt-3 text-[13px] font-semibold text-ink">{t.shopExtraCats}</div>
         <div className="mt-2 flex flex-wrap gap-2">
           {SHOP_CATEGORIES.filter((id) => id !== d.category).map((id) => (
-            <Chip key={id} active={d.extraCategories.includes(id)} onClick={() => lock("extraCategories", { extraCategories: toggleExtraCategory(d, id) })}>
+            <Chip key={id} active={d.extraCategories.includes(id)} onClick={() => lock("extraCategories", toggleExtraCategory(d, id))}>
               {t.shopCats[id]}
             </Chip>
           ))}
         </div>
+        {shopKindsOf(d.category, ...d.extraCategories).length ? (
+          <div className="mt-3">
+            <div className="text-[13px] font-semibold text-ink">{t.shopDepartments}</div>
+            <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.shopDepartmentHint}</p>
+            {([d.category, ...d.extraCategories] as ShopCategory[]).map((parent) => {
+              const kids = shopKindsOf(parent);
+              if (!kids.length) return null;
+              return (
+                <div key={parent} className="mt-2">
+                  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-2">{t.shopCats[parent]}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {kids.map((id) => (
+                      <Chip key={id} active={(d.kinds ?? []).includes(id)} onClick={() => lock("kinds", { kinds: toggleShopKind(d, id as ShopKind) })}>
+                        {t.shopKinds[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <div>

@@ -1,14 +1,73 @@
 import { GIS_CITIES } from "./data";
-import { SHOP_CATEGORIES, type Shop, type ShopCategory, type ShopDraft, type ShopFilters, type ShopHours, type ShopProduct, type ShopStatus, type User } from "./types";
+import {
+  SHOP_CATEGORIES,
+  SHOP_KINDS,
+  type Shop,
+  type ShopCategory,
+  type ShopDraft,
+  type ShopFilters,
+  type ShopHours,
+  type ShopKind,
+  type ShopProduct,
+  type ShopStatus,
+  type User,
+} from "./types";
 
-export { SHOP_CATEGORIES };
-export type { ShopCategory };
+export { SHOP_CATEGORIES, SHOP_KINDS };
+export type { ShopCategory, ShopKind };
 
 export const SHOP_UNITS = ["piece", "kg", "meter", "liter", "pack", "other"] as const;
 export const SHOP_STOCK = ["in", "out", "order", "ask"] as const;
 
+export const ALL_SHOP_KINDS = SHOP_CATEGORIES.flatMap((cat) => [...SHOP_KINDS[cat]]) as ShopKind[];
+
 export function isShopCategory(id: string | null | undefined): id is ShopCategory {
   return !!id && (SHOP_CATEGORIES as readonly string[]).includes(id);
+}
+
+export function isShopKind(id: string | null | undefined): id is ShopKind {
+  return !!id && (ALL_SHOP_KINDS as readonly string[]).includes(id);
+}
+
+export function shopKindsOf(...cats: Array<ShopCategory | undefined | null>): ShopKind[] {
+  const out: ShopKind[] = [];
+  for (const cat of cats) {
+    if (!cat || !isShopCategory(cat)) continue;
+    out.push(...SHOP_KINDS[cat]);
+  }
+  return out;
+}
+
+export function parentOfShopKind(id: string | null | undefined): ShopCategory | undefined {
+  if (!id) return undefined;
+  for (const cat of SHOP_CATEGORIES) {
+    if ((SHOP_KINDS[cat] as readonly string[]).includes(id)) return cat;
+  }
+  return undefined;
+}
+
+export function filterShopParent(id: ShopCategory | ShopKind | "all"): ShopCategory | null {
+  if (id === "all") return null;
+  if (isShopCategory(id)) return id;
+  return parentOfShopKind(id) ?? null;
+}
+
+export function pruneShopKinds(shop: Pick<Shop, "category" | "extraCategories" | "kinds">): ShopKind[] {
+  const allowed = new Set(shopKindsOf(shop.category, ...shop.extraCategories));
+  return (shop.kinds ?? []).filter((id) => allowed.has(id));
+}
+
+export function shopMatchesCategory(shop: Shop, filter: ShopCategory | ShopKind): boolean {
+  if (isShopCategory(filter)) {
+    return shop.category === filter || shop.extraCategories.includes(filter);
+  }
+  const parent = parentOfShopKind(filter);
+  if (!parent) return false;
+  if (shop.category !== parent && !shop.extraCategories.includes(parent)) return false;
+  const selected = shop.kinds ?? [];
+  const fromProducts = shop.products.map((item) => item.kind).filter((id): id is ShopKind => Boolean(id));
+  if (!selected.length && !fromProducts.length) return true;
+  return selected.includes(filter) || fromProducts.includes(filter);
 }
 
 export function emptyShopDraft(user: User): ShopDraft {
@@ -20,6 +79,7 @@ export function emptyShopDraft(user: User): ShopDraft {
     ownerName: user.name,
     category: "other",
     extraCategories: [],
+    kinds: [],
     description: "",
     city: "bishkek",
     address: "",
@@ -77,7 +137,7 @@ export function applyShopFilters(list: Shop[], filters: ShopFilters, cityFallbac
   return list.filter((shop) => {
     if (cityKey && cityKey !== "all" && shop.city !== cityKey) return false;
     if (filters.category !== "all") {
-      if (shop.category !== filters.category && !shop.extraCategories.includes(filters.category)) return false;
+      if (!shopMatchesCategory(shop, filters.category)) return false;
     }
     if (q && !shopSearchBlob(shop).includes(q)) return false;
     return true;
@@ -136,7 +196,11 @@ export function validPrice(raw: unknown): number | undefined {
   return Math.round(n);
 }
 
-export function listingSectionForShop(category: ShopCategory): { section: "secondhand" | "construction"; category: string } | null {
+export function listingSectionForShop(
+  category: ShopCategory,
+  kind?: ShopKind | null,
+): { section: "secondhand" | "construction"; category: string } | null {
+  if (category === "food" || parentOfShopKind(kind) === "food") return null;
   if (category === "construction") return { section: "construction", category: "cement" };
   if (category === "furniture") return { section: "secondhand", category: "furniture" };
   if (category === "electronics") return { section: "secondhand", category: "appliances" };
@@ -145,16 +209,48 @@ export function listingSectionForShop(category: ShopCategory): { section: "secon
   return null;
 }
 
-export function toggleExtraCategory(shop: Pick<Shop, "category" | "extraCategories">, id: ShopCategory): ShopCategory[] {
-  if (id === shop.category) return shop.extraCategories;
-  if (shop.extraCategories.includes(id)) return shop.extraCategories.filter((x) => x !== id);
-  return [...shop.extraCategories, id];
+export function toggleExtraCategory(
+  shop: Pick<Shop, "category" | "extraCategories" | "kinds">,
+  id: ShopCategory,
+): { extraCategories: ShopCategory[]; kinds: ShopKind[] } {
+  const extra =
+    id === shop.category
+      ? shop.extraCategories
+      : shop.extraCategories.includes(id)
+        ? shop.extraCategories.filter((x) => x !== id)
+        : [...shop.extraCategories, id];
+  return { extraCategories: extra, kinds: pruneShopKinds({ ...shop, extraCategories: extra }) };
 }
 
-export function setPrimaryCategory(shop: Pick<Shop, "category" | "extraCategories">, id: ShopCategory): { category: ShopCategory; extraCategories: ShopCategory[] } {
+export function setPrimaryCategory(
+  shop: Pick<Shop, "category" | "extraCategories" | "kinds">,
+  id: ShopCategory,
+): { category: ShopCategory; extraCategories: ShopCategory[]; kinds: ShopKind[] } {
   const extra = shop.extraCategories.filter((x) => x !== id);
   if (shop.category !== id && shop.category !== "other") extra.unshift(shop.category);
-  return { category: id, extraCategories: extra.filter((x, i, all) => all.indexOf(x) === i && x !== id) };
+  const extraCategories = extra.filter((x, i, all) => all.indexOf(x) === i && x !== id);
+  return { category: id, extraCategories, kinds: pruneShopKinds({ category: id, extraCategories, kinds: shop.kinds }) };
+}
+
+export function toggleShopKind(shop: Pick<Shop, "kinds">, id: ShopKind): ShopKind[] {
+  const cur = shop.kinds ?? [];
+  if (cur.includes(id)) return cur.filter((x) => x !== id);
+  return [...cur, id];
+}
+
+export function groupShopProducts(shop: Shop, products: ShopProduct[]): Array<{ id: ShopKind | "none"; items: ShopProduct[] }> {
+  const order = shopKindsOf(shop.category, ...shop.extraCategories);
+  const buckets = new Map<ShopKind | "none", ShopProduct[]>();
+  for (const id of order) buckets.set(id, []);
+  buckets.set("none", []);
+  for (const item of products) {
+    const key = item.kind && order.includes(item.kind) ? item.kind : "none";
+    buckets.get(key)?.push(item);
+  }
+  const selected = new Set(shop.kinds ?? []);
+  return [...buckets.entries()]
+    .filter(([id, items]) => items.length > 0 || (id !== "none" && selected.has(id)))
+    .map(([id, items]) => ({ id, items }));
 }
 
 export function shopsOf(list: Shop[], user: User | null): Shop[] {
@@ -164,6 +260,21 @@ export function shopsOf(list: Shop[], user: User | null): Shop[] {
 
 export function userHasShopBadge(list: Shop[], user: User | null): boolean {
   return shopsOf(list, user).some((s) => s.status === "active");
+}
+
+export function hydrateShop<T extends Shop>(shop: T): T {
+  const extraCategories = Array.isArray(shop.extraCategories) ? shop.extraCategories.filter(isShopCategory) : [];
+  const category = isShopCategory(shop.category) ? shop.category : "other";
+  return {
+    ...shop,
+    category,
+    extraCategories,
+    kinds: pruneShopKinds({ category, extraCategories, kinds: shop.kinds ?? [] }),
+    products: (shop.products ?? []).map((item) => ({
+      ...item,
+      kind: isShopKind(item.kind) ? item.kind : undefined,
+    })),
+  };
 }
 
 export function isPublicStatus(status: ShopStatus): boolean {
