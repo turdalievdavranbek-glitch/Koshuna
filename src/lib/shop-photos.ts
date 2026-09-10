@@ -62,13 +62,16 @@ export function jpegSizeFromDataUrl(src: string): { width: number; height: numbe
 }
 
 export function pngSizeFromDataUrl(src: string): { width: number; height: number } | null {
-  if (!src.startsWith("data:image/png")) return null;
-  const bytes = bytesFromDataUrl(src, 96);
+  if (!/^data:image\/png/i.test(src)) return null;
+  const bytes = bytesFromDataUrl(src, 512);
   if (!bytes || bytes.length < 24) return null;
-  if (bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4e || bytes[3] !== 0x47) return null;
-  const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
-  const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
-  return { width, height };
+  for (let i = 0; i <= bytes.length - 24; i++) {
+    if (bytes[i] !== 0x49 || bytes[i + 1] !== 0x48 || bytes[i + 2] !== 0x44 || bytes[i + 3] !== 0x52) continue;
+    const width = ((bytes[i + 4] << 24) | (bytes[i + 5] << 16) | (bytes[i + 6] << 8) | bytes[i + 7]) >>> 0;
+    const height = ((bytes[i + 8] << 24) | (bytes[i + 9] << 16) | (bytes[i + 10] << 8) | bytes[i + 11]) >>> 0;
+    if (width > 0 && height > 0 && width < 20000 && height < 20000) return { width, height };
+  }
+  return null;
 }
 
 export function imageSizeFromDataUrl(src?: string): { width: number; height: number } | null {
@@ -90,6 +93,25 @@ export function isGeneratedPriceTag(src?: string): boolean {
   return Boolean(size && isPriceTagCanvasSize(size.width, size.height));
 }
 
+/**
+ * Camera stills of the demo tag are often 4:3 VGA JPEGs (~12KB). Real product
+ * photos from the in-app camera are much larger after jpegDataUrl(900).
+ * Only used when the title already maps to a stock item photo.
+ */
+export function isCompactPriceTagDataUrl(src?: string, title?: string, kind?: ShopKind): boolean {
+  if (!src?.startsWith("data:image") || isStockShopPhoto(src)) return false;
+  if (!photoForProductTitle(title, kind)) return false;
+  if (isGeneratedPriceTag(src)) return true;
+  if (src.length >= 28_000) return false;
+  const size = imageSizeFromDataUrl(src);
+  if (!size) return src.length < 16_000;
+  return size.width >= 160 && size.height >= 160;
+}
+
+function isPriceTagPhoto(src?: string, title?: string, kind?: ShopKind): boolean {
+  return isGeneratedPriceTag(src) || isCompactPriceTagDataUrl(src, title, kind);
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -104,20 +126,23 @@ function isCream(r: number, g: number, b: number) {
 }
 
 function isPaper(r: number, g: number, b: number) {
-  return r > 232 && g > 232 && b > 220;
+  return r > 228 && g > 228 && b > 214;
 }
 
 function isInk(r: number, g: number, b: number) {
-  return r < 70 && g < 66 && b < 60 && r + g + b < 150;
+  return r < 110 && g < 105 && b < 100 && r + g + b < 280;
 }
 
-/** Close-up of the demo (or similar) price tag: cream frame, white card, dark digits. */
+/** Close-up of the demo (or similar) price tag: flat cream/white card, dark digits. */
 export async function looksLikeRenderedPriceTag(src?: string): Promise<boolean> {
   if (!src?.startsWith("data:image")) return false;
   if (isGeneratedPriceTag(src)) return true;
   if (typeof document === "undefined") return false;
   try {
     const img = await loadImage(src);
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    if (isPriceTagCanvasSize(width, height)) return true;
     const canvas = document.createElement("canvas");
     const w = 40;
     const h = 50;
@@ -129,10 +154,10 @@ export async function looksLikeRenderedPriceTag(src?: string): Promise<boolean> 
     const data = ctx.getImageData(0, 0, w, h).data;
     let cream = 0;
     let paper = 0;
-    let ink = 0;
+    let inkCenter = 0;
     let creamBorder = 0;
     let paperCenter = 0;
-    let inkCenter = 0;
+    const colors = new Set<number>();
     const n = w * h;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -140,6 +165,7 @@ export async function looksLikeRenderedPriceTag(src?: string): Promise<boolean> 
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
+        colors.add(((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4));
         const onBorder = x < 6 || x >= w - 6 || y < 6 || y >= h - 6;
         const onCenter = x >= 8 && x < w - 8 && y >= 10 && y < h - 12;
         if (isCream(r, g, b)) {
@@ -150,13 +176,13 @@ export async function looksLikeRenderedPriceTag(src?: string): Promise<boolean> 
           paper += 1;
           if (onCenter) paperCenter += 1;
         }
-        if (isInk(r, g, b)) {
-          ink += 1;
-          if (onCenter) inkCenter += 1;
-        }
+        if (onCenter && isInk(r, g, b)) inkCenter += 1;
       }
     }
-    return cream / n > 0.16 && paper / n > 0.1 && ink / n > 0.015 && creamBorder > 18 && paperCenter > 12 && inkCenter > 6;
+    const flat = colors.size <= 28;
+    const demoLayout = cream / n > 0.12 && paper / n > 0.08 && inkCenter > 4 && creamBorder > 10 && paperCenter > 8;
+    const whiteCard = paper / n > 0.22 && inkCenter > 5 && flat;
+    return demoLayout || whiteCard;
   } catch {
     return false;
   }
@@ -171,8 +197,8 @@ export function photoForProductTitle(title?: string, kind?: ShopKind): string | 
   return undefined;
 }
 
-function usablePhoto(src?: string): string | undefined {
-  if (!src || isGeneratedPriceTag(src)) return undefined;
+function usablePhoto(src?: string, title?: string, kind?: ShopKind): string | undefined {
+  if (!src || isPriceTagPhoto(src, title, kind)) return undefined;
   return src;
 }
 
@@ -181,8 +207,8 @@ export function displayPhotoForProduct(
   fallback?: string,
 ): string {
   const stock = photoForProductTitle(product.title, product.kind);
-  if (!product.photo || isGeneratedPriceTag(product.photo)) {
-    return stock || usablePhoto(fallback) || SHOP_ITEM_PHOTOS.bakery;
+  if (!product.photo || isPriceTagPhoto(product.photo, product.title, product.kind)) {
+    return stock || usablePhoto(fallback, product.title, product.kind) || SHOP_ITEM_PHOTOS.bakery;
   }
   return product.photo;
 }

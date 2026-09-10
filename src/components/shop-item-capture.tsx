@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
-import { displayPhotoForProduct, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
+import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import {
   assortmentKey,
@@ -58,7 +58,7 @@ export function ShopItemCapture({
     if (!photo) return;
     const next = photoForProductTitle(title, kind);
     if (!next || next === photo) return;
-    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo)) {
+    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title, kind)) {
       setPhoto(next);
       return;
     }
@@ -105,6 +105,8 @@ export function ShopItemCapture({
     const tag =
       isGeneratedPriceTag(dataUrl) ||
       isGeneratedPriceTag(compact) ||
+      isCompactPriceTagDataUrl(dataUrl, title, kind) ||
+      isCompactPriceTagDataUrl(compact, title, kind) ||
       (await looksLikeRenderedPriceTag(dataUrl)) ||
       (await looksLikeRenderedPriceTag(compact));
     setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);
