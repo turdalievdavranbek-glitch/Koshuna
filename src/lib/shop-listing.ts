@@ -1,4 +1,5 @@
 import { listingHasPrice } from "./deal";
+import { displayPhotoForProduct } from "./shop-photos";
 import { listingSectionForShop } from "./shops";
 import type { AuthMethod, Listing, ListingStatus, Shop, ShopProduct, User } from "./types";
 
@@ -39,7 +40,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
   const had = prev && listingHasPrice(prev) ? prev.price : 0;
   const previousPrice =
     had > 0 && price > 0 && price < had ? had : price > 0 && prev?.previousPrice && prev.previousPrice > price ? prev.previousPrice : undefined;
-  const photo = product.photo || shop.coverUrl || "/sections/shops.jpg";
+  const photo = displayPhotoForProduct(product, shop.coverUrl || "/sections/shops.jpg");
   const id = prev?.id || product.listingId || listingIdForProduct(product.id);
   return {
     id,
@@ -64,7 +65,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     sellerCardLinked: user?.cardLinked ?? prev?.sellerCardLinked,
     shopId: shop.id,
     shopProductId: product.id,
-    hasPhoto: Boolean(product.photo || shop.coverUrl),
+    hasPhoto: photo !== "/sections/shops.jpg" || Boolean(product.photo || shop.coverUrl),
     verified: Boolean(shop.aiConfirmed),
     noAgent: true,
     status: listingStatusForProduct(shop, product, prev),

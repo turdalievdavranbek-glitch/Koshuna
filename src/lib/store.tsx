@@ -34,6 +34,7 @@ import {
   type ViewerPlace,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
+import { displayPhotoForProduct } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
@@ -824,7 +825,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         shopId,
         title: product.title.trim(),
         description: product.description,
-        photo: product.photo,
+        photo: displayPhotoForProduct({ title: product.title.trim(), kind, photo: product.photo }),
         videoUrl: product.videoUrl,
         category: parent,
         kind,
@@ -894,6 +895,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? undefined
             : validPrice(patch.price)
           : current.price,
+        photo: displayPhotoForProduct({ ...current, ...patch }),
         updatedAt: new Date().toISOString(),
       };
       update((s) => {

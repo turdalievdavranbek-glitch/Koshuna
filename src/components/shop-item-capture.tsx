@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
+import { isGeneratedPriceTag, isStockShopPhoto, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import {
   assortmentKey,
@@ -53,6 +54,12 @@ export function ShopItemCapture({
     };
   }, []);
 
+  useEffect(() => {
+    if (!photo || !(isStockShopPhoto(photo) || isGeneratedPriceTag(photo))) return;
+    const next = photoForProductTitle(title, kind);
+    if (next && next !== photo) setPhoto(next);
+  }, [kind, photo, title]);
+
   const startCam = async () => {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -84,7 +91,8 @@ export function ShopItemCapture({
     setError("");
     setAi(t.shopItemAiBusy);
     const compact = await jpegDataUrl(dataUrl, 900);
-    setPhoto(compact);
+    const tag = isGeneratedPriceTag(dataUrl) || isGeneratedPriceTag(compact);
+    setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);
     try {
       const guess = await priceFromPhoto(dataUrl);
       if (noPriceRef.current) {
@@ -122,8 +130,30 @@ export function ShopItemCapture({
 
   const demoTag = async () => {
     priceTouched.current = false;
-    await applyPhoto(makeDemoPriceTag(85));
+    setError("");
+    setAi(t.shopItemAiBusy);
+    const itemPhoto = photoForProductTitle(title, kind) || photoForProductTitle("", kind);
+    if (itemPhoto) setPhoto(itemPhoto);
     if (!title.trim()) setTitle(shopKindLabel(t, kind));
+    try {
+      const guess = await priceFromPhoto(makeDemoPriceTag(85));
+      if (noPriceRef.current) {
+        setFromPhoto(false);
+        setAi("");
+      } else if (guess.price != null && !priceTouched.current) {
+        setPrice(String(guess.price));
+        setFromPhoto(true);
+        setAi(t.shopItemPriceAi);
+      } else if (guess.price != null) {
+        setAi(t.shopItemPriceAi);
+      } else {
+        setFromPhoto(false);
+        setAi(t.shopItemPriceNoAi);
+      }
+    } catch {
+      setFromPhoto(false);
+      setAi(t.shopItemPriceNoAi);
+    }
   };
 
   const publish = async () => {

@@ -1,4 +1,5 @@
 import { GIS_CITIES } from "./data";
+import { displayPhotoForProduct } from "./shop-photos";
 import {
   SHOP_CATEGORIES,
   SHOP_KINDS,
@@ -269,10 +270,11 @@ export function hydrateShop<T extends Shop>(shop: T): T {
     category,
     extraCategories,
     kinds: pruneShopKinds({ category, extraCategories, kinds: shop.kinds ?? [] }),
-    products: (shop.products ?? []).map((item) => ({
-      ...item,
-      kind: isShopKind(item.kind) ? item.kind : undefined,
-    })),
+    products: (shop.products ?? []).map((item) => {
+      const kind = isShopKind(item.kind) ? item.kind : undefined;
+      const next = { ...item, kind };
+      return { ...next, photo: displayPhotoForProduct(next, item.photo) };
+    }),
   };
 }
 
