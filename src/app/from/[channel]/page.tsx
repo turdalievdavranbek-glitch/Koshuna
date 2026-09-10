@@ -4,9 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { BrandFacebook, BrandInstagram, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
 import { IconBack } from "@/components/icons";
+import { SellerHub } from "@/components/seller-hub";
 import { PhoneShell } from "@/components/shell";
+import { Chip } from "@/components/ui";
 import { CHANNEL_DEMO_POST, hasChannel, parseSellerChannel } from "@/lib/channels";
 import { MY_LISTING_IDS } from "@/lib/data";
+import { listingTitle } from "@/lib/i18n";
 import { socialShareHref } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { aiToDraftPatch, classifyListingSpeech } from "@/lib/video-ai";
@@ -27,6 +30,7 @@ export default function FromChannelPage() {
   const router = useRouter();
   const [paste, setPaste] = useState("");
   const [busy, setBusy] = useState("");
+  const [pickedId, setPickedId] = useState<string | null>(null);
 
   const title =
     channel === "facebook"
@@ -42,7 +46,7 @@ export default function FromChannelPage() {
     const seeded = MY_LISTING_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
     return [...extras, ...seeded].filter((item, i, all) => all.findIndex((row) => row && row.id === item?.id) === i);
   }, [allListings, extraListings]);
-  const listing = mine[0];
+  const listing = mine.find((item) => item && item.id === pickedId) ?? mine[0];
 
   if (!channel) {
     return (
@@ -76,6 +80,7 @@ export default function FromChannelPage() {
       setBusy(t.channelNeedPaste);
       return;
     }
+    if (user) linkChannel(channel);
     const guess = classifyListingSpeech(rawText);
     setDraft({
       transcript: rawText,
@@ -93,15 +98,20 @@ export default function FromChannelPage() {
 
   const sendOut = () => {
     if (!listing) {
+      setBusy(t.channelNoListing);
       router.push(user ? "/post" : "/login");
       return;
     }
+    if (user) linkChannel(channel);
     if (channel === "instagram") {
       router.push(`/story/${listing.id}`);
       return;
     }
     window.open(socialShareHref(channel, listing, t, lang), "_blank", "noreferrer");
+    setBusy(t.channelSent);
   };
+
+  const name = t.authMethods[channel];
 
   return (
     <PhoneShell>
@@ -122,65 +132,85 @@ export default function FromChannelPage() {
         </h1>
         <p className="mt-3 text-[15px] leading-[1.55] text-muted">{t.channelLead}</p>
 
-        <ol className="mt-5 flex flex-col gap-3">
-          {[t.channelStep1, t.channelStep2, t.channelStep3].map((step, i) => (
-            <li key={step} className="flex gap-3 rounded-[16px] border border-line bg-white p-3.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-display text-sm font-bold text-screen">
-                {i + 1}
-              </span>
-              <span className="text-[14px] leading-[1.45] text-ink">{step}</span>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-5 rounded-[18px] bg-accent-tint p-4">
-          <div className="font-display text-[16px] font-bold text-accent-dark">{t.channelWhyTitle}</div>
-          <p className="mt-1.5 text-[13px] leading-[1.5] text-safe">{t.channelWhy}</p>
+        <div className="mt-4">
+          <SellerHub highlight={channel} />
         </div>
 
-        <button
-          type="button"
-          onClick={attach}
-          className="shadow-btn mt-6 flex h-[54px] w-full items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
-        >
-          {linked ? t.channelLinked : t.channelLink}
-        </button>
+        <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
+          <div className="font-display text-[16px] font-bold text-ink">1. {t.channelAct1Title}</div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelAct1Body(name)}</p>
+          <button
+            type="button"
+            onClick={attach}
+            className="shadow-btn mt-3 flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold"
+            style={{
+              background: linked ? "#2A6B57" : "#B8452F",
+              color: "#FFF7F0",
+            }}
+          >
+            {linked ? t.channelLinked : t.channelLink}
+          </button>
+        </div>
 
-        <label className="mt-5 block">
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.channelPaste}</span>
+        <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
+          <div className="font-display text-[16px] font-bold text-ink">2. {t.channelAct2Title}</div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelAct2Body(name)}</p>
           <textarea
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
             placeholder={t.channelPastePh}
-            className="mt-1.5 min-h-[96px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
+            className="mt-3 min-h-[88px] w-full rounded-[14px] border border-line bg-chip px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
           />
-        </label>
-        <button
-          type="button"
-          onClick={() => setPaste(CHANNEL_DEMO_POST[channel])}
-          className="mt-2 h-11 w-full rounded-[12px] border border-line bg-accent-tint text-[13px] font-semibold text-accent-dark"
-        >
-          {t.channelDemo}
-        </button>
-        <button
-          type="button"
-          onClick={() => importPost(paste || CHANNEL_DEMO_POST[channel])}
-          className="mt-2 flex h-[54px] w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
-        >
-          {t.channelImport}
-        </button>
-        <button
-          type="button"
-          onClick={sendOut}
-          className="mt-2 flex h-[54px] w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
-        >
-          {t.channelSend}
-        </button>
+          <button
+            type="button"
+            onClick={() => setPaste(CHANNEL_DEMO_POST[channel])}
+            className="mt-2 h-11 w-full rounded-[12px] border border-line bg-accent-tint text-[13px] font-semibold text-accent-dark"
+          >
+            {t.channelDemo}
+          </button>
+          <button
+            type="button"
+            onClick={() => importPost(paste || CHANNEL_DEMO_POST[channel])}
+            className="mt-2 flex h-12 w-full items-center justify-center rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+          >
+            {t.channelImport}
+          </button>
+        </div>
+
+        <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
+          <div className="font-display text-[16px] font-bold text-ink">3. {t.channelAct3Title}</div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelAct3Body(name)}</p>
+          {mine.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {mine.map((item) =>
+                item ? (
+                  <Chip
+                    key={item.id}
+                    active={(listing?.id ?? "") === item.id}
+                    onClick={() => setPickedId(item.id)}
+                  >
+                    {listingTitle(item, lang)}
+                  </Chip>
+                ) : null,
+              )}
+            </div>
+          ) : (
+            <p className="mt-3 text-[13px] text-muted">{t.channelNoListing}</p>
+          )}
+          <button
+            type="button"
+            onClick={sendOut}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+          >
+            {t.channelSend}
+          </button>
+        </div>
+
         {channel === "instagram" ? (
           <button
             type="button"
             onClick={() => router.push("/story/apt-sunny")}
-            className="mt-2 flex h-[54px] w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
           >
             {t.igExample}
           </button>

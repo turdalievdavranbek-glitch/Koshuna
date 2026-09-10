@@ -36,6 +36,7 @@ export function KonshuBridges() {
           {t.strategyNav}
         </button>
       </div>
+      <p className="mt-1.5 text-[12px] leading-[1.4] text-muted">{t.bridgesLine}</p>
       <div className="mt-2.5 grid grid-cols-2 gap-2">
         {SELLER_CHANNELS.map((id) => (
           <button

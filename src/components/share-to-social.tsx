@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { BrandFacebook, BrandInstagram, BrandTelegram, BrandVk, BrandWhatsApp } from "@/components/auth-brands";
+import { hasChannel } from "@/lib/channels";
 import { listingTitle } from "@/lib/i18n";
 import { listingPublicUrl, ownerShareText, socialShareHref } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 
 export function ShareToSocial({ listing }: { listing: Listing }) {
-  const { t, lang } = useApp();
+  const { t, lang, user } = useApp();
   const router = useRouter();
   const [toast, setToast] = useState("");
 
@@ -48,15 +49,22 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
     label: string,
     icon: ReactNode,
     onClick: () => void,
+    linked?: boolean,
   ) => (
     <button
       key={key}
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 rounded-[16px] border border-line bg-white px-2 py-3"
+      className="flex flex-col items-center gap-1.5 rounded-[16px] px-2 py-3"
+      style={{
+        background: linked ? "#17140F" : "#FFFFFF",
+        border: linked ? "none" : "1px solid #E4DCCE",
+      }}
     >
       <span className="flex h-11 w-11 items-center justify-center">{icon}</span>
-      <span className="text-[11px] font-semibold text-ink">{label}</span>
+      <span className="text-[11px] font-semibold" style={{ color: linked ? "#F7F3EC" : "#17140F" }}>
+        {label}
+      </span>
     </button>
   );
 
@@ -68,14 +76,14 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
       <div className="mt-3 grid grid-cols-3 gap-2">
         {cell("wa", t.shareWa, <BrandWhatsApp size={28} />, () => {
           window.open(socialShareHref("whatsapp", listing, t, lang), "_blank", "noreferrer");
-        })}
+        }, hasChannel(user, "whatsapp"))}
         {cell("tg", t.shareTg, <BrandTelegram size={28} />, () => {
           window.open(socialShareHref("telegram", listing, t, lang), "_blank", "noreferrer");
-        })}
-        {cell("ig", t.shareIg, <BrandInstagram size={28} />, () => router.push(`/story/${listing.id}`))}
+        }, hasChannel(user, "telegram"))}
+        {cell("ig", t.shareIg, <BrandInstagram size={28} />, () => router.push(`/story/${listing.id}`), hasChannel(user, "instagram"))}
         {cell("fb", t.shareFb, <BrandFacebook size={28} />, () => {
           window.open(socialShareHref("facebook", listing, t, lang), "_blank", "noreferrer");
-        })}
+        }, hasChannel(user, "facebook"))}
         {cell("vk", t.shareVk, <BrandVk size={28} />, () => {
           window.open(socialShareHref("vk", listing, t, lang), "_blank", "noreferrer");
         })}

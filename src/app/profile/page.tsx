@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { MY_LISTING_IDS, formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
-import { LANGS, SELLER_CHANNELS } from "@/lib/types";
+import { LANGS } from "@/lib/types";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch, Photo } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { starsForUser } from "@/lib/trust";
-import { hasChannel } from "@/lib/channels";
+import { SellerHub } from "@/components/seller-hub";
 
 export default function ProfilePage() {
   const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace, meetDeals } = useApp();
@@ -120,29 +120,8 @@ export default function ProfilePage() {
           {user.cardLinked ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{t.cardOn}</p> : null}
         </div>
 
-        <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.channelsOnAccount}</div>
-          <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelsOnHint}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {SELLER_CHANNELS.map((id) => {
-              const on = hasChannel(user, id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => router.push(`/from/${id}`)}
-                  className="rounded-full px-[13px] py-1.5 text-[13px] font-semibold"
-                  style={{
-                    background: on ? "#17140F" : "#FFFFFF",
-                    color: on ? "#F7F3EC" : "#17140F",
-                    border: on ? "none" : "1px solid #E4DCCE",
-                  }}
-                >
-                  {t.authMethods[id]}
-                </button>
-              );
-            })}
-          </div>
+        <div className="mt-3">
+          <SellerHub />
         </div>
 
         <div className="mt-6 flex items-baseline justify-between">
