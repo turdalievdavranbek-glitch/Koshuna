@@ -34,12 +34,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background-color: #f0252b;
-  background-image: url("/brand/logo.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: min(78vh, 64vw);
-  background-attachment: fixed;
+  background: #ede7dc;
   color: #17140f;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

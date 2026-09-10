@@ -614,10 +614,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       {ready ? (
         children
       ) : (
-        <div className="flex min-h-[100dvh] items-center justify-center">
-          <span className="rounded-full bg-white/94 px-5 py-2.5 shadow-[0_10px_36px_rgba(23,20,15,.2)]">
-            <BrandMark size={40} wordClass="text-[32px] text-ink" />
-          </span>
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#EDE7DC]">
+          <BrandMark size={40} wordClass="text-[32px] text-ink" />
         </div>
       )}
     </Ctx.Provider>
