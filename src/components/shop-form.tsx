@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CITIES, GIS_CITIES } from "@/lib/data";
 import { captureVideoPoster, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { applyShopAi, classifyShopSpeech } from "@/lib/shop-ai";
 import { shopErrorText } from "@/lib/shop-copy";
 import { publishErrors } from "@/lib/shop-rules";
-import { SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
+import { parentOfShopKind, SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
 import { useApp } from "@/lib/store";
-import type { Shop, ShopCategory, ShopHoursSlot, ShopKind } from "@/lib/types";
+import type { Shop, ShopCategory, ShopHoursSlot } from "@/lib/types";
 import { GisMap } from "./gis-map";
+import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
 
 type AiState = "idle" | "recording" | "analyzing" | "ready" | "empty" | "error";
@@ -36,6 +38,7 @@ export function ShopForm() {
   const [busy, setBusy] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const [deptParent, setDeptParent] = useState<ShopCategory | null>(null);
 
   useEffect(() => {
     if (!shopDraft && user) startShopDraft();
@@ -199,6 +202,7 @@ export function ShopForm() {
   );
 
   return (
+    <>
     <div className="flex flex-col gap-5">
       <div>
         <Eyebrow>{t.shopVideo}</Eyebrow>
@@ -326,7 +330,10 @@ export function ShopForm() {
               key={id}
               active={d.category === id}
               accent={d.category === id}
-              onClick={() => lock("category", setPrimaryCategory(d, id as ShopCategory))}
+              onClick={() => {
+                lock("category", setPrimaryCategory(d, id as ShopCategory));
+                if (shopKindsOf(id).length) setDeptParent(id);
+              }}
             >
               {t.shopCats[id]}
             </Chip>
@@ -335,7 +342,15 @@ export function ShopForm() {
         <div className="mt-3 text-[13px] font-semibold text-ink">{t.shopExtraCats}</div>
         <div className="mt-2 flex flex-wrap gap-2">
           {SHOP_CATEGORIES.filter((id) => id !== d.category).map((id) => (
-            <Chip key={id} active={d.extraCategories.includes(id)} onClick={() => lock("extraCategories", toggleExtraCategory(d, id))}>
+            <Chip
+              key={id}
+              active={d.extraCategories.includes(id)}
+              onClick={() => {
+                const adding = !d.extraCategories.includes(id);
+                lock("extraCategories", toggleExtraCategory(d, id));
+                if (adding && shopKindsOf(id).length) setDeptParent(id);
+              }}
+            >
               {t.shopCats[id]}
             </Chip>
           ))}
@@ -344,22 +359,24 @@ export function ShopForm() {
           <div className="mt-3">
             <div className="text-[13px] font-semibold text-ink">{t.shopDepartments}</div>
             <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.shopDepartmentHint}</p>
-            {([d.category, ...d.extraCategories] as ShopCategory[]).map((parent) => {
-              const kids = shopKindsOf(parent);
-              if (!kids.length) return null;
-              return (
-                <div key={parent} className="mt-2">
-                  <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-2">{t.shopCats[parent]}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {kids.map((id) => (
-                      <Chip key={id} active={(d.kinds ?? []).includes(id)} onClick={() => lock("kinds", { kinds: toggleShopKind(d, id as ShopKind) })}>
-                        {t.shopKinds[id]}
-                      </Chip>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(d.kinds ?? []).length ? (
+                (d.kinds ?? []).map((id) => (
+                  <Chip key={id} active onClick={() => setDeptParent(parentOfShopKind(id) ?? d.category)}>
+                    {t.shopKinds[id]}
+                  </Chip>
+                ))
+              ) : (
+                <span className="text-[13px] text-muted">{t.shopAllInCat}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDeptParent(d.category)}
+              className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold"
+            >
+              {t.shopPickDepartments}
+            </button>
           </div>
         ) : null}
       </div>
@@ -448,5 +465,21 @@ export function ShopForm() {
         {t.shopPublish}
       </button>
     </div>
+    {deptParent
+      ? createPortal(
+          <div className="absolute inset-0 z-30 flex flex-col bg-screen pt-11">
+            <ShopKindPicker
+              parent={deptParent}
+              multiple
+              selected={(d.kinds ?? []).filter((id) => shopKindsOf(deptParent).includes(id))}
+              onToggle={(id) => lock("kinds", { kinds: toggleShopKind(d, id) })}
+              onBack={() => setDeptParent(null)}
+              onDone={() => setDeptParent(null)}
+            />
+          </div>,
+          document.getElementById("konshu-phone") ?? document.body,
+        )
+      : null}
+    </>
   );
 }
