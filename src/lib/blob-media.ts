@@ -1,3 +1,5 @@
+import type { Lang } from "./types";
+
 const held = new Map<string, string>();
 
 export function keepBlob(key: "video" | "voice" | "photo", blob: Blob): string {
@@ -66,13 +68,13 @@ type SpeechCtor = new () => {
   onerror: (() => void) | null;
 };
 
-export function startSpeech(lang: "ru" | "ky" | "en", onText: (text: string) => void): () => void {
+export function startSpeech(lang: Lang, onText: (text: string) => void): () => void {
   const Ctor = ((window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
     .SpeechRecognition ||
     (window as unknown as { webkitSpeechRecognition?: SpeechCtor }).webkitSpeechRecognition) as SpeechCtor | undefined;
   if (!Ctor) return () => undefined;
   const rec = new Ctor();
-  rec.lang = lang === "en" ? "en-US" : "ru-RU";
+  rec.lang = lang === "en" ? "en-US" : lang === "uz" ? "uz-UZ" : "ru-RU";
   rec.continuous = true;
   rec.interimResults = true;
   rec.onresult = (ev) => {

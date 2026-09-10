@@ -1,4 +1,5 @@
-export type Lang = "ru" | "ky" | "en";
+export const LANGS = ["ru", "ky", "uz", "en"] as const;
+export type Lang = (typeof LANGS)[number];
 
 export type AuthMethod =
   | "sms"

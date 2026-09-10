@@ -1,4 +1,4 @@
-import type { Listing, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
+import type { Lang, Listing, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
 
 export const CITIES = [
   "all",
@@ -259,13 +259,13 @@ export function settlementById(id: string | undefined) {
   return SETTLEMENTS.find((s) => s.id === id);
 }
 
-export function settlementLabel(s: (typeof SETTLEMENTS)[number], lang: "ru" | "ky" | "en") {
+export function settlementLabel(s: (typeof SETTLEMENTS)[number], lang: Lang) {
   if (lang === "ky") return s.nameKy;
   if (lang === "en") return s.nameEn;
   return s.name;
 }
 
-export function settlementRoad(s: (typeof SETTLEMENTS)[number], lang: "ru" | "ky" | "en") {
+export function settlementRoad(s: (typeof SETTLEMENTS)[number], lang: Lang) {
   if (lang === "ky") return s.fromKy;
   if (lang === "en") return s.fromEn;
   return s.fromRu;

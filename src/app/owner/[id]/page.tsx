@@ -41,7 +41,7 @@ export default function OwnerPage() {
               {owner.verified ? <IconVerified size={17} /> : null}
             </div>
             <div className="mt-1 text-[13px] text-muted">
-              {t.onKonshu} {owner.since}
+              {t.onKoshuna} {owner.since}
               {owner.rating ? ` · ${t.rating} ${owner.rating}` : ""}
             </div>
           </div>

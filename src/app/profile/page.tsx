@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MY_LISTING_IDS, formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
+import { LANGS } from "@/lib/types";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch, Photo } from "@/components/ui";
@@ -191,12 +192,14 @@ export default function ProfilePage() {
             value={
               <select
                 value={lang}
-                onChange={(e) => setLang(e.target.value as "ru" | "ky" | "en")}
+                onChange={(e) => setLang(e.target.value as (typeof LANGS)[number])}
                 className="bg-transparent text-sm text-muted"
               >
-                <option value="ru">{t.langName.ru}</option>
-                <option value="ky">{t.langName.ky}</option>
-                <option value="en">{t.langName.en}</option>
+                {LANGS.map((code) => (
+                  <option key={code} value={code}>
+                    {t.langName[code]}
+                  </option>
+                ))}
               </select>
             }
           />

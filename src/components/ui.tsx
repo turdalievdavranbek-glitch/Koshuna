@@ -8,7 +8,7 @@ import { listingChipLabel, listingTitle } from "@/lib/i18n";
 import { somToForeign } from "@/lib/strategy";
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
-import type { Listing } from "@/lib/types";
+import { LANGS, type Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
 
 export function Photo({ src, alt, className }: { src: string; alt: string; className?: string }) {
@@ -396,13 +396,13 @@ export function CityPicker({
 export function LangSwitch() {
   const { lang, setLang } = useApp();
   return (
-    <div className="flex gap-1.5 self-end rounded-full bg-chip p-1">
-      {(["ru", "ky", "en"] as const).map((code) => (
+    <div className="flex gap-1 self-end rounded-full bg-chip p-1">
+      {LANGS.map((code) => (
         <button
           key={code}
           type="button"
           onClick={() => setLang(code)}
-          className="rounded-full px-[13px] py-1.5 text-xs font-semibold"
+          className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold"
           style={{
             background: lang === code ? "#17140F" : "transparent",
             color: lang === code ? "#F7F3EC" : "#6E6558",

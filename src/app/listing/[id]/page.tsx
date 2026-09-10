@@ -326,7 +326,7 @@ export default function ListingPage() {
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
                   {owner.replyTime
-                    ? `${t.onKonshu} ${owner.since} · ${owner.replyTime}`
+                    ? `${t.onKoshuna} ${owner.since} · ${owner.replyTime}`
                     : `${owner.listingsCount} ${t.nListingsOwner} · ${t.rating} ${owner.rating}`}
                 </div>
               </div>
