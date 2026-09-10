@@ -186,7 +186,12 @@ export default function ShopDetailPage() {
                 ) : null}
                 <div className="flex flex-col gap-2">
                   {group.items.map((item) => (
-                    <div key={item.id} className="rounded-[16px] border border-line bg-white p-3">
+                    <div key={item.id} className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
+                      {item.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
                       <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
                       {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
                       <div className="mt-1 text-[15px] font-semibold text-accent">
@@ -196,6 +201,7 @@ export default function ShopDetailPage() {
                         {item.stock === "in" ? t.shopStockIn : item.stock === "out" ? t.shopStockOut : item.stock === "order" ? t.shopStockOrder : t.shopStockAsk}
                         {" · "}
                         {t.shopStockStale} {item.updatedAt.slice(0, 10)}
+                      </div>
                       </div>
                     </div>
                   ))}

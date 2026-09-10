@@ -352,6 +352,8 @@ export type ShopProduct = {
   unit: ShopProductUnit;
   stock: ShopStock;
   listingId?: string;
+  sourceId?: string;
+  priceFromPhoto?: boolean;
   updatedAt: string;
   createdAt: string;
   published: boolean;

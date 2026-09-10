@@ -18,6 +18,7 @@ export type { ShopCategory, ShopKind };
 
 export const SHOP_UNITS = ["piece", "kg", "meter", "liter", "pack", "other"] as const;
 export const SHOP_STOCK = ["in", "out", "order", "ask"] as const;
+export const PRODUCT_REUSE_MAX = 5;
 
 export const ALL_SHOP_KINDS = SHOP_CATEGORIES.flatMap((cat) => [...SHOP_KINDS[cat]]) as ShopKind[];
 
@@ -279,4 +280,50 @@ export function hydrateShop<T extends Shop>(shop: T): T {
 
 export function isPublicStatus(status: ShopStatus): boolean {
   return status === "active";
+}
+
+export function assortmentKey(product: Pick<ShopProduct, "id" | "sourceId">): string {
+  return product.sourceId || product.id;
+}
+
+export function assortmentUseCount(shop: Pick<Shop, "products">, key: string): number {
+  return shop.products.filter((item) => item.published !== false && assortmentKey(item) === key).length;
+}
+
+export function canReuseAssortment(shop: Pick<Shop, "products">, key: string): boolean {
+  return assortmentUseCount(shop, key) < PRODUCT_REUSE_MAX;
+}
+
+export function pickShopForKind(list: Shop[], user: User | null, parent: ShopCategory, kind?: ShopKind): Shop | undefined {
+  const mine = shopsOf(list, user);
+  if (!mine.length) return undefined;
+  const scored = mine
+    .map((shop) => {
+      let score = shop.status === "active" ? 10 : 0;
+      if (shop.category === parent) score += 4;
+      if (shop.extraCategories.includes(parent)) score += 2;
+      if (kind && (shop.kinds ?? []).includes(kind)) score += 3;
+      return { shop, score };
+    })
+    .sort((a, b) => b.score - a.score);
+  return scored[0]?.shop;
+}
+
+export function publicProductsInKind(
+  list: Shop[],
+  parent: ShopCategory,
+  kind: ShopKind | "all",
+): Array<{ shop: Shop; product: ShopProduct }> {
+  const out: Array<{ shop: Shop; product: ShopProduct }> = [];
+  for (const shop of list.filter(publicShop)) {
+    for (const product of shop.products) {
+      if (!publicProduct(product, shop)) continue;
+        if (kind === "all") {
+          if (product.category === parent || (product.kind && parentOfShopKind(product.kind) === parent)) out.push({ shop, product });
+        } else if (product.kind === kind) {
+        out.push({ shop, product });
+      }
+    }
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 import { videoLimitError } from "./media-limits";
-import { hasShopContact, isOwnShop, isShopCategory, validPrice } from "./shops";
+import { assortmentUseCount, hasShopContact, isOwnShop, isShopCategory, PRODUCT_REUSE_MAX, validPrice } from "./shops";
 import type { Shop, ShopProduct, User } from "./types";
 
 export type ShopAction = "save-draft" | "publish" | "withdraw" | "upsert-product" | "hide-product";
@@ -16,7 +16,8 @@ export type ShopRuleError =
   | "price"
   | "video-size"
   | "video-duration"
-  | "not-found";
+  | "not-found"
+  | "reuse";
 
 export function publishErrors(shop: Shop): ShopRuleError[] {
   const errors: ShopRuleError[] = [];
@@ -37,6 +38,12 @@ export function productErrors(product: Partial<ShopProduct>): ShopRuleError[] {
     if (product.price < 0) errors.push("price");
   }
   return errors;
+}
+
+export function reuseErrors(shop: Shop, sourceId?: string): ShopRuleError[] {
+  if (!sourceId) return [];
+  if (assortmentUseCount(shop, sourceId) >= PRODUCT_REUSE_MAX) return ["reuse"];
+  return [];
 }
 
 export function assertOwner(shop: Shop, user: User | null): ShopRuleError | null {

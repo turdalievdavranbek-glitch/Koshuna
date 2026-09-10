@@ -33,7 +33,7 @@ import {
   type User,
   type ViewerPlace,
 } from "./types";
-import { emptyShopDraft, hydrateShop, isOwnShop, listingSectionForShop, validPrice } from "./shops";
+import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, listingSectionForShop, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
 import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
 
@@ -774,20 +774,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const price = product.price != null ? validPrice(product.price) : undefined;
       if (product.price != null && product.price !== 0 && price == null) return { error: "price" };
       const now = new Date().toISOString();
+      const id = product.id || `sp-${Date.now()}`;
+      const sourceId = product.sourceId || id;
+      const isNew = !shop.products.some((row) => row.id === id);
+      if (isNew && sourceId !== id && !canReuseAssortment(shop, sourceId)) return { error: "reuse" };
+      const kind = product.kind;
+      const parent = parentOfShopKind(kind) ?? product.category ?? shop.category;
+      const extraCategories =
+        parent !== shop.category && !shop.extraCategories.includes(parent)
+          ? [...shop.extraCategories, parent]
+          : shop.extraCategories;
+      const kinds =
+        kind && isShopKind(kind) && !(shop.kinds ?? []).includes(kind)
+          ? pruneShopKinds({ ...shop, extraCategories, kinds: [...(shop.kinds ?? []), kind] })
+          : pruneShopKinds({ ...shop, extraCategories, kinds: shop.kinds ?? [] });
       const nextProduct: ShopProduct = {
-        id: product.id || `sp-${Date.now()}`,
+        id,
         shopId,
         title: product.title.trim(),
         description: product.description,
         photo: product.photo,
         videoUrl: product.videoUrl,
-        category: product.category ?? shop.category,
-        kind: product.kind,
+        category: parent,
+        kind,
         price,
         currency: "KGS",
         unit: product.unit ?? "piece",
         stock: product.stock ?? "in",
         listingId: product.listingId,
+        sourceId,
+        priceFromPhoto: product.priceFromPhoto,
         published: product.published !== false,
         createdAt: product.createdAt ?? now,
         updatedAt: now,
@@ -815,6 +831,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           item.id === shopId
             ? {
                 ...item,
+                extraCategories,
+                kinds,
                 updatedAt: now,
                 products: item.products.some((row) => row.id === nextProduct.id)
                   ? item.products.map((row) => (row.id === nextProduct.id ? nextProduct : row))

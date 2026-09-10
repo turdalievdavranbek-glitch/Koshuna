@@ -26,6 +26,8 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopVideoTime;
     case "network":
       return t.shopNetwork;
+    case "reuse":
+      return t.shopItemReuseMax;
     case "need-transcript":
       return t.shopAiNeedSpeech;
     default:

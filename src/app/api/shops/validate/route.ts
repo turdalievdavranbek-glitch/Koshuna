@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canMutate, mediaError, productErrors, publishErrors, type ShopAction } from "@/lib/shop-rules";
+import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
 import { normalizePhone } from "@/lib/shops";
 import type { Shop, ShopProduct, User } from "@/lib/types";
 
@@ -41,6 +41,9 @@ export async function POST(req: Request) {
   const action = body.action;
   if (action === "upsert-product" && body.product) {
     const errs = productErrors(body.product);
+    if (!body.shop.products.some((row) => row.id === body.product?.id)) {
+      errs.push(...reuseErrors(body.shop, body.product.sourceId));
+    }
     if (errs.length) return NextResponse.json({ ok: false, error: errs[0], errors: errs }, { status: 400 });
   }
   const gate = canMutate(body.shop, user, action);
