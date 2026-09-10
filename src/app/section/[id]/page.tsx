@@ -10,7 +10,7 @@ import { useApp } from "@/lib/store";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { SectionExtras } from "@/components/section-extras";
 import { PhoneShell } from "@/components/shell";
-import { Chip, useFiltered } from "@/components/ui";
+import { Chip, Eyebrow, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 
 export default function SectionPage() {
@@ -84,19 +84,22 @@ export default function SectionPage() {
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        <div className="mt-1">
-          <SectionExtras />
-        </div>
-
         {id === "rent" || id === "restaurants" ? null : (
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {CITIES.map((cityId) => (
-              <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
-                {t.cities[cityId]}
-              </Chip>
-            ))}
+          <div className="mt-1">
+            <Eyebrow>{t.region}</Eyebrow>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {CITIES.map((cityId) => (
+                <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
+                  {t.cities[cityId]}
+                </Chip>
+              ))}
+            </div>
           </div>
         )}
+
+        <div className="mt-3.5">
+          <SectionExtras />
+        </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>

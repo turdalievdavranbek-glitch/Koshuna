@@ -3,8 +3,9 @@
 import { CATEGORIES, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { Chip, Eyebrow } from "@/components/ui";
+import { SectionList } from "@/components/section-list";
 
-export function SecondhandChips({ labeled }: { labeled?: boolean }) {
+export function SecondhandChips({ labeled, list }: { labeled?: boolean; list?: boolean }) {
   const { t, filters, setFilters } = useApp();
   const kinds = goodsKindsOf(filters.category);
   const brands = techBrandsOf(filters.category);
@@ -21,6 +22,67 @@ export function SecondhandChips({ labeled }: { labeled?: boolean }) {
   const pickBrand = (techBrand: string) => {
     setFilters({ techBrand, techModel: "any" });
   };
+
+  if (list) {
+    return (
+      <div className="flex flex-col gap-3">
+        <SectionList
+          title={t.category}
+          rows={[
+            { id: "all", label: t.allCategories, active: !filters.category, onClick: () => pickCategory(null) },
+            ...CATEGORIES.map((c) => ({
+              id: c,
+              label: t.cats[c],
+              active: filters.category === c,
+              onClick: () => pickCategory(c),
+            })),
+          ]}
+        />
+        {kinds.length ? (
+          <SectionList
+            title={isTechCategory(filters.category) ? t.equipmentType : t.itemType}
+            rows={[
+              { id: "any", label: t.any, active: filters.goodsKind === "any", onClick: () => pickKind("any") },
+              ...kinds.map((id) => ({
+                id,
+                label: t.goodsKinds[id],
+                active: filters.goodsKind === id,
+                onClick: () => pickKind(id),
+              })),
+            ]}
+          />
+        ) : null}
+        {brands.length ? (
+          <SectionList
+            title={t.carMake}
+            rows={[
+              { id: "any", label: t.any, active: filters.techBrand === "any", onClick: () => pickBrand("any") },
+              ...brands.map((id) => ({
+                id,
+                label: t.techBrands[id],
+                active: filters.techBrand === id,
+                onClick: () => pickBrand(id),
+              })),
+            ]}
+          />
+        ) : null}
+        {models.length ? (
+          <SectionList
+            title={t.carModel}
+            rows={[
+              { id: "any", label: t.any, active: filters.techModel === "any", onClick: () => setFilters({ techModel: "any" }) },
+              ...models.map((id) => ({
+                id,
+                label: t.techModels[id],
+                active: filters.techModel === id,
+                onClick: () => setFilters({ techModel: id }),
+              })),
+            ]}
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   const categoryRow = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>

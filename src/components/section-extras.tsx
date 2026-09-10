@@ -13,6 +13,7 @@ import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
 import { LocationChips } from "@/components/location-chips";
+import { SectionList } from "@/components/section-list";
 import { Chip } from "@/components/ui";
 
 export function SectionExtras() {
@@ -22,9 +23,9 @@ export function SectionExtras() {
 
   if (section === "rent") {
     return (
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
-        <PropertyTypeChips labeled />
+        <PropertyTypeChips list />
         <LocationChips labeled />
         <button
           type="button"
@@ -52,8 +53,8 @@ export function SectionExtras() {
 
   if (section === "secondhand") {
     return (
-      <div className="flex flex-col gap-2.5">
-        <SecondhandChips />
+      <div className="flex flex-col gap-3">
+        <SecondhandChips list />
         <button
           type="button"
           onClick={() => {
@@ -80,7 +81,7 @@ export function SectionExtras() {
 
   if (section === "cars") {
     return (
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -102,7 +103,7 @@ export function SectionExtras() {
             </Chip>
           ))}
         </div>
-        <CarMakeChips />
+        <CarMakeChips list />
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -146,32 +147,34 @@ export function SectionExtras() {
   }
 
   if (section === "animals") {
-    return <AnimalChips />;
+    return <AnimalChips list />;
   }
 
   if (section === "services") {
     return (
-      <div className="flex flex-wrap gap-2">
-        <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
-          {t.allCategories}
-        </Chip>
-        {SERVICE_CATEGORIES.map((c) => (
-          <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
-            {t.cats[c]}
-          </Chip>
-        ))}
-      </div>
+      <SectionList
+        title={t.category}
+        rows={[
+          { id: "all", label: t.allCategories, active: !filters.category, onClick: () => setFilters({ category: null }) },
+          ...SERVICE_CATEGORIES.map((c) => ({
+            id: c,
+            label: t.cats[c],
+            active: filters.category === c,
+            onClick: () => setFilters({ category: c }),
+          })),
+        ]}
+      />
     );
   }
 
   if (section === "construction") {
-    return <ConstructionChips />;
+    return <ConstructionChips list />;
   }
 
   if (section === "restaurants") {
     return (
-      <div className="flex flex-col gap-2.5">
-        <RestaurantChips />
+      <div className="flex flex-col gap-3">
+        <RestaurantChips list />
         <LocationChips labeled />
         <button
           type="button"
