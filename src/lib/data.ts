@@ -1,4 +1,4 @@
-import type { Lang, Listing, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
+import type { Lang, Listing, ListingComment, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
 
 export const CITIES = [
   "all",
@@ -2244,6 +2244,19 @@ export const DEFAULT_THREADS: Thread[] = [
     ],
   },
 ];
+
+export const DEFAULT_COMMENTS: Record<string, ListingComment[]> = {
+  "apt-sunny": [
+    { id: "cm-apt-1", listingId: "apt-sunny", author: "Нургуль", text: "Была на просмотре — всё как на фото, двор чистый.", time: "2 дня назад" },
+    { id: "cm-apt-2", listingId: "apt-sunny", author: "Азамат", text: "Район тихий, рядом школа и магазины.", time: "вчера" },
+  ],
+  "sofa-leather": [
+    { id: "cm-sofa-1", listingId: "sofa-leather", author: "Бермет", text: "Кожа настоящая? Выглядит очень аккуратно.", time: "3 дня назад" },
+  ],
+  "bike-blue": [
+    { id: "cm-bike-1", listingId: "bike-blue", author: "Тимур", text: "Какой размер рамы? Рост 180 подойдёт?", time: "5 дней назад" },
+  ],
+};
 
 export const MY_LISTING_IDS = ["apt-sunny", "house-karakol", "bike-blue", "guesthouse-karakol"];
 

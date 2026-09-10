@@ -209,6 +209,38 @@ export function IconShare(p: P) {
     </svg>
   );
 }
+export function IconLike(p: P & { filled?: boolean }) {
+  const { filled, ...rest } = p;
+  return (
+    <svg
+      {...base(rest)}
+      fill={filled ? (p.color ?? "#2A6B57") : "none"}
+      stroke={p.color ?? "currentColor"}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 8.2 8 2.8c.9 0 1.7.8 1.7 1.7V7h3.6c.9 0 1.6.9 1.4 1.8l-1 4.2c-.2.8-.9 1.3-1.7 1.3H5z" />
+      <path d="M5 8.2V15H3.4V8.2z" />
+    </svg>
+  );
+}
+export function IconDislike(p: P & { filled?: boolean }) {
+  const { filled, ...rest } = p;
+  return (
+    <svg
+      {...base(rest)}
+      fill={filled ? (p.color ?? "#B8452F") : "none"}
+      stroke={p.color ?? "currentColor"}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M13 9.8 10 15.2c-.9 0-1.7-.8-1.7-1.7V11H4.7c-.9 0-1.6-.9-1.4-1.8l1-4.2C4.5 4.2 5.2 3.7 6 3.7h7z" />
+      <path d="M13 9.8V3h1.6v6.8z" />
+    </svg>
+  );
+}
 export function IconCheck(p: P) {
   return (
     <svg {...base(p)} strokeWidth="2" strokeLinecap="round">

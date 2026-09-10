@@ -248,6 +248,16 @@ export type ChatMessage = {
   read?: boolean;
 };
 
+export type ListingReaction = "like" | "dislike";
+
+export type ListingComment = {
+  id: string;
+  listingId: string;
+  author: string;
+  text: string;
+  time: string;
+};
+
 export type Thread = {
   id: string;
   listingId: string;

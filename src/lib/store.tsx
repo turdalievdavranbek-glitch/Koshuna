@@ -11,7 +11,7 @@ import {
 } from "react";
 import { persistableUrl } from "./blob-media";
 import { channelsOf, parseSellerChannel } from "./channels";
-import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
+import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import {
   type AuthMethod,
@@ -20,7 +20,9 @@ import {
   type Filters,
   type Lang,
   type Listing,
+  type ListingComment,
   type ListingLayout,
+  type ListingReaction,
   type MeetDeal,
   type MeetOffer,
   type MeetParty,
@@ -111,6 +113,8 @@ type State = {
   viewedIds: string[];
   reports: Record<string, string>;
   meetDeals: Record<string, MeetDeal>;
+  reactions: Record<string, ListingReaction>;
+  comments: Record<string, ListingComment[]>;
   shops: Shop[];
   shopDraft: ShopDraft | null;
 };
@@ -133,6 +137,8 @@ const initial: State = {
   viewedIds: [],
   reports: {},
   meetDeals: {},
+  reactions: {},
+  comments: DEFAULT_COMMENTS,
   shops: [],
   shopDraft: null,
 };
@@ -155,6 +161,10 @@ type Store = State & {
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
   isFav: (id: string) => boolean;
+  reactionOf: (id: string) => ListingReaction | null;
+  setReaction: (id: string, reaction: ListingReaction) => boolean;
+  commentsOf: (id: string) => ListingComment[];
+  addComment: (id: string, text: string) => boolean;
   requireAuth: (path: string) => boolean;
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
@@ -274,6 +284,11 @@ function load(): State {
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
+      reactions: saved.reactions && typeof saved.reactions === "object" ? saved.reactions : {},
+      comments:
+        saved.comments && typeof saved.comments === "object"
+          ? { ...DEFAULT_COMMENTS, ...saved.comments }
+          : DEFAULT_COMMENTS,
       shops,
       extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
@@ -449,6 +464,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     },
     isFav: (id) => state.favouriteIds.includes(id),
+    reactionOf: (id) => state.reactions[id] ?? null,
+    setReaction: (id, reaction) => {
+      if (!state.user) return false;
+      update((s) => {
+        const next = { ...s.reactions };
+        if (next[id] === reaction) delete next[id];
+        else next[id] = reaction;
+        return { ...s, reactions: next };
+      });
+      return true;
+    },
+    commentsOf: (id) => state.comments[id] ?? [],
+    addComment: (id, text) => {
+      const clean = text.trim();
+      if (!state.user || !clean) return false;
+      const comment: ListingComment = {
+        id: `c-${Date.now()}`,
+        listingId: id,
+        author: state.user.name,
+        text: clean,
+        time: t.justNow,
+      };
+      update((s) => ({
+        ...s,
+        comments: { ...s.comments, [id]: [...(s.comments[id] ?? []), comment] },
+      }));
+      return true;
+    },
     requireAuth: () => Boolean(state.user),
     setPendingPath: (path) => update({ pendingPath: path }),
     setDraft: (patch) => update((s) => ({ ...s, draft: { ...s.draft, ...patch } })),

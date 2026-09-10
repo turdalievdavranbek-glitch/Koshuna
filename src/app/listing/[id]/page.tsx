@@ -21,6 +21,7 @@ import { MeetDealBlock } from "@/components/meet-deal";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
+import { ListingSocial } from "@/components/listing-social";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { SellerStarsBadge } from "@/components/trust-stars";
@@ -328,6 +329,8 @@ export default function ListingPage() {
             <p className="mt-2.5 text-[15px] leading-[1.6] text-ink-2">{listingDesc(listing, lang)}</p>
             <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>
+
+          <ListingSocial listing={listing} />
 
           {listing.shopId || listing.sellerName ? (
             <button
