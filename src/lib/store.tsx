@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { persistableUrl } from "./blob-media";
+import { channelsOf, parseSellerChannel } from "./channels";
 import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import {
@@ -24,6 +25,7 @@ import {
   type MeetOffer,
   type MeetParty,
   type SavedSearch,
+  type SellerChannel,
   type Thread,
   type User,
   type ViewerPlace,
@@ -136,6 +138,7 @@ type Store = State & {
   login: (input: { phone?: string; email?: string; method: AuthMethod; name?: string }) => void;
   logout: () => void;
   linkCard: () => void;
+  linkChannel: (channel: SellerChannel) => void;
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
@@ -308,6 +311,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           phone: displayPhone,
           email,
           method,
+          linkedChannels: (() => {
+            const ch = parseSellerChannel(method);
+            return ch ? [ch] : [];
+          })(),
           cardLinked: false,
           joinedYear: 2024,
           verified: method === "sms",
@@ -326,6 +333,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       update((s) => {
         if (!s.user || s.user.method !== "sms") return s;
         return { ...s, user: { ...s.user, cardLinked: true, verified: true } };
+      }),
+    linkChannel: (channel) =>
+      update((s) => {
+        if (!s.user) return s;
+        if (channelsOf(s.user).includes(channel)) return s;
+        return { ...s, user: { ...s.user, linkedChannels: [...channelsOf(s.user), channel] } };
       }),
     setLang: (lang) => update({ lang }),
     setListingLayout: (listingLayout) => update({ listingLayout }),

@@ -1,13 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { BrandFacebook, BrandInstagram, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
 import { isAbroad } from "@/lib/strategy";
 import { useApp } from "@/lib/store";
+import { SELLER_CHANNELS, type SellerChannel } from "@/lib/types";
+import type { ReactNode } from "react";
+
+const ICONS: Record<SellerChannel, (size: number) => ReactNode> = {
+  instagram: (size) => <BrandInstagram size={size} />,
+  facebook: (size) => <BrandFacebook size={size} />,
+  telegram: (size) => <BrandTelegram size={size} />,
+  whatsapp: (size) => <BrandWhatsApp size={size} />,
+};
 
 export function KonshuBridges() {
-  const { t, filters, setFilters, setElderMode, elderMode, setCity, viewerPlace } = useApp();
+  const { t } = useApp();
   const router = useRouter();
-  const abroad = isAbroad(viewerPlace);
+  const labels: Record<SellerChannel, { title: string; hint: string }> = {
+    instagram: { title: t.bridgeIg, hint: t.bridgeIgHint },
+    facebook: { title: t.bridgeFb, hint: t.bridgeFbHint },
+    telegram: { title: t.bridgeTg, hint: t.bridgeTgHint },
+    whatsapp: { title: t.bridgeWa, hint: t.bridgeWaHint },
+  };
 
   return (
     <div className="mt-3">
@@ -22,69 +37,18 @@ export function KonshuBridges() {
         </button>
       </div>
       <div className="mt-2.5 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => router.push("/from-ig")}
-          className="rounded-[16px] border border-line bg-surface px-2.5 py-3 text-left"
-        >
-          <div className="text-[15px] font-bold leading-[1.15] text-ink">{t.bridgeIg}</div>
-          <p className="mt-1 text-[11px] leading-[1.3] text-muted">{t.bridgeIgHint}</p>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (filters.aiylOnly) {
-              setFilters({ aiylOnly: false, settlement: "any" });
-            } else {
-              setCity("all");
-              setFilters({ aiylOnly: true, settlement: "any", locLat: null, locLng: null, locLabel: null });
-            }
-          }}
-          className="rounded-[16px] border px-2.5 py-3 text-left"
-          style={{
-            background: filters.aiylOnly ? "#17140F" : "#FFFFFF",
-            borderColor: filters.aiylOnly ? "#17140F" : "#E4DCCE",
-          }}
-        >
-          <div className="text-[15px] font-bold leading-[1.15]" style={{ color: filters.aiylOnly ? "#F7F3EC" : "#17140F" }}>
-            {t.bridgeAiyl}
-          </div>
-          <p className="mt-1 text-[11px] leading-[1.3]" style={{ color: filters.aiylOnly ? "rgba(247,243,236,.7)" : "#6E6558" }}>
-            {t.bridgeAiylHint}
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setElderMode(!elderMode)}
-          className="rounded-[16px] border px-2.5 py-3 text-left"
-          style={{
-            background: elderMode ? "#17140F" : "#FFFFFF",
-            borderColor: elderMode ? "#17140F" : "#E4DCCE",
-          }}
-        >
-          <div className="text-[15px] font-bold leading-[1.15]" style={{ color: elderMode ? "#F7F3EC" : "#17140F" }}>
-            {t.bridgeApa}
-          </div>
-          <p className="mt-1 text-[11px] leading-[1.3]" style={{ color: elderMode ? "rgba(247,243,236,.7)" : "#6E6558" }}>
-            {t.bridgeApaHint}
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/strategy")}
-          className="rounded-[16px] border px-2.5 py-3 text-left"
-          style={{
-            background: abroad ? "#17140F" : "#FFFFFF",
-            borderColor: abroad ? "#17140F" : "#E4DCCE",
-          }}
-        >
-          <div className="text-[15px] font-bold leading-[1.15]" style={{ color: abroad ? "#F7F3EC" : "#17140F" }}>
-            {t.bridgeAbroad}
-          </div>
-          <p className="mt-1 text-[11px] leading-[1.3]" style={{ color: abroad ? "rgba(247,243,236,.7)" : "#6E6558" }}>
-            {abroad ? t.viewerPlaces[viewerPlace] : t.bridgeAbroadHint}
-          </p>
-        </button>
+        {SELLER_CHANNELS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => router.push(`/from/${id}`)}
+            className="rounded-[16px] border border-line bg-surface px-2.5 py-3 text-left"
+          >
+            <span className="flex h-7 w-7 items-center justify-center">{ICONS[id](22)}</span>
+            <div className="mt-2 text-[15px] font-bold leading-[1.15] text-ink">{labels[id].title}</div>
+            <p className="mt-1 text-[11px] leading-[1.3] text-muted">{labels[id].hint}</p>
+          </button>
+        ))}
       </div>
     </div>
   );

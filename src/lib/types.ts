@@ -94,11 +94,15 @@ export type PropertyType =
 
 export type AnimalGroup = "pets" | "farm";
 
+export const SELLER_CHANNELS = ["instagram", "facebook", "telegram", "whatsapp"] as const;
+export type SellerChannel = (typeof SELLER_CHANNELS)[number];
+
 export type User = {
   name: string;
   phone: string;
   email?: string;
   method?: AuthMethod;
+  linkedChannels?: SellerChannel[];
   cardLinked?: boolean;
   joinedYear: number;
   verified: boolean;
