@@ -51,7 +51,7 @@ export default function ShopKindResultsPage() {
             <span className="w-9" />
           </div>
         </div>
-        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
           <ShopItemCapture parent={category} kind={kind} />
         </div>
       </PhoneShell>

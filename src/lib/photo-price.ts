@@ -251,6 +251,6 @@ export function makeDemoPriceTag(price = 85): string {
   ctx.font = "bold 42px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("сом", 320, 580);
+  ctx.fillText("KGS", 320, 580);
   return canvas.toDataURL("image/jpeg", 0.92);
 }
