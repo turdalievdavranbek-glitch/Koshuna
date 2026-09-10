@@ -24,6 +24,7 @@ import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
+import { SellerStarsBadge } from "@/components/trust-stars";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -125,9 +126,16 @@ export default function ListingPage() {
               </button>
             </div>
           </div>
-          {isVideoListing(listing) ? null : (
-            <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
-              {photo + 1} / {listing.photos.length}
+          {isVideoListing(listing) ? (
+            <span className="pointer-events-none absolute bottom-4 right-4">
+              <SellerStarsBadge listing={listing} placed />
+            </span>
+          ) : (
+            <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2">
+              <SellerStarsBadge listing={listing} placed />
+              <span className="rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
+                {photo + 1} / {listing.photos.length}
+              </span>
             </span>
           )}
         </div>

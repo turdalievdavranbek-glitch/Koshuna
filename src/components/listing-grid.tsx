@@ -71,7 +71,7 @@ function ListingCard({
           </span>
         ) : null}
         {!video && hasPriceDrop(listing) ? (
-          <span className="pointer-events-none absolute right-1.5 bottom-2 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen">
+          <span className="pointer-events-none absolute right-1.5 bottom-8 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen">
             −{formatSom(dropAmount(listing))}
           </span>
         ) : null}

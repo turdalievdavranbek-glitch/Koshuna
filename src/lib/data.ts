@@ -290,6 +290,8 @@ export const OWNERS: Record<string, Owner> = {
     listingsCount: 4,
     rating: 4.9,
     online: true,
+    method: "sms",
+    cardLinked: true,
   },
   nurbek: {
     id: "nurbek",
@@ -301,6 +303,7 @@ export const OWNERS: Record<string, Owner> = {
     listingsCount: 7,
     rating: 4.8,
     online: false,
+    method: "instagram",
   },
   asel: {
     id: "asel",
@@ -311,6 +314,7 @@ export const OWNERS: Record<string, Owner> = {
     since: "2022",
     listingsCount: 3,
     rating: 4.7,
+    method: "sms",
   },
 };
 

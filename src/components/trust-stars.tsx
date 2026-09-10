@@ -1,6 +1,7 @@
 "use client";
 
-import { starsForAuth, type TrustStars as StarCount } from "@/lib/trust";
+import { starsForAuth, starsForListing, type TrustStars as StarCount } from "@/lib/trust";
+import { useApp } from "@/lib/store";
 import type { AuthMethod } from "@/lib/types";
 
 function Star({ filled, size, onDark }: { filled: boolean; size: number; onDark?: boolean }) {
@@ -42,4 +43,28 @@ export function TrustStars({
 
 export function TrustMethodMark({ method, card }: { method: AuthMethod; card?: boolean }) {
   return <TrustStars n={starsForAuth(method, card)} size={12} />;
+}
+
+export function SellerStarsBadge({
+  listing,
+  compact,
+  placed,
+}: {
+  listing: { id: string; ownerId: string };
+  compact?: boolean;
+  placed?: boolean;
+}) {
+  const { user, extraListings } = useApp();
+  const n = starsForListing(listing, extraListings, user);
+  return (
+    <span
+      className={`pointer-events-none z-[1] flex items-center rounded-full bg-[rgba(23,20,15,.72)] ${
+        placed ? "relative" : "absolute"
+      } ${
+        compact && !placed ? "bottom-1.5 right-1.5 px-1 py-[3px]" : placed ? "px-1.5 py-1" : "bottom-2 right-2 px-1.5 py-1"
+      }`}
+    >
+      <TrustStars n={n} size={compact ? 9 : 11} onDark />
+    </span>
+  );
 }

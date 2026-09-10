@@ -116,6 +116,8 @@ export type Owner = {
   listingsCount?: number;
   rating?: number;
   online?: boolean;
+  method?: AuthMethod;
+  cardLinked?: boolean;
 };
 
 export type SpecRow = { label: string; value: string };
