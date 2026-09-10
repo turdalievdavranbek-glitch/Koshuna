@@ -31,12 +31,10 @@ import {
   type ShopProduct,
   type Thread,
   type User,
-  type ViewerPlace,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
 import { displayPhotoForProduct } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
-import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
 
 const STORAGE = "konshu-state-v1";
@@ -112,7 +110,6 @@ type State = {
   elderMode: boolean;
   viewedIds: string[];
   reports: Record<string, string>;
-  viewerPlace: ViewerPlace;
   meetDeals: Record<string, MeetDeal>;
   shops: Shop[];
   shopDraft: ShopDraft | null;
@@ -135,7 +132,6 @@ const initial: State = {
   elderMode: false,
   viewedIds: [],
   reports: {},
-  viewerPlace: "kyrgyzstan",
   meetDeals: {},
   shops: [],
   shopDraft: null,
@@ -155,7 +151,6 @@ type Store = State & {
   setElderMode: (on: boolean) => void;
   markViewed: (id: string) => void;
   reportListing: (id: string, reason: string) => void;
-  setViewerPlace: (place: ViewerPlace) => void;
   setFilters: (patch: Partial<Filters>) => void;
   resetFilters: () => void;
   toggleFav: (id: string) => boolean;
@@ -269,9 +264,10 @@ function load(): State {
     const saved = JSON.parse(raw) as Partial<State>;
     const shops = Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [];
     const extraListings = Array.isArray(saved.extraListings) ? (saved.extraListings as Listing[]) : [];
+    const { viewerPlace: _viewerPlace, ...rest } = saved as Partial<State> & { viewerPlace?: unknown };
     return {
       ...initial,
-      ...saved,
+      ...rest,
       listingLayout:
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
@@ -281,7 +277,6 @@ function load(): State {
       shops,
       extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
-      viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
   } catch {
@@ -399,7 +394,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
-    setViewerPlace: (viewerPlace) => update({ viewerPlace }),
     markViewed: (id) =>
       update((s) => ({
         ...s,
