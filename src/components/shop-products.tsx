@@ -6,12 +6,13 @@ import { parentOfShopKind, shopKindsOf, SHOP_STOCK, SHOP_UNITS, validPrice } fro
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
 import type { Shop, ShopKind, ShopProduct, ShopStock, ShopProductUnit } from "@/lib/types";
-import { Chip, Field, Input } from "./ui";
+import { Chip, Field, Input, Toggle } from "./ui";
 
 export function ShopProductsEditor({ shop }: { shop: Shop }) {
   const { t, upsertShopProduct, updateShopProduct, hideShopProduct, publishProductListing } = useApp();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [noPrice, setNoPrice] = useState(false);
   const [kind, setKind] = useState<ShopKind | undefined>(shop.kinds?.[0]);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -23,8 +24,8 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
       setError(t.shopNeedName);
       return;
     }
-    const n = price.trim() ? validPrice(price) : undefined;
-    if (price.trim() && n == null) {
+    const n = noPrice || !price.trim() ? undefined : validPrice(price);
+    if (!noPrice && price.trim() && n == null) {
       setError(t.shopNeedPrice);
       return;
     }
@@ -40,6 +41,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
     }
     setTitle("");
     setPrice("");
+    setNoPrice(false);
     setNote(t.shopProductSave);
   };
 
@@ -51,8 +53,30 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
           <Input value={title} onChange={setTitle} />
         </Field>
         <Field label={t.shopProductPrice}>
-          <Input value={price} onChange={setPrice} placeholder={t.shopAskPrice} />
+          <Input
+            value={noPrice ? "" : price}
+            onChange={(v) => {
+              setNoPrice(false);
+              setPrice(v);
+            }}
+            placeholder={t.shopAskPrice}
+            disabled={noPrice}
+          />
         </Field>
+        <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+          <div>
+            <div className="text-[15px] font-semibold text-ink">{t.shopNoPrice}</div>
+            <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.shopNoPriceHint}</p>
+          </div>
+          <Toggle
+            on={noPrice}
+            onChange={() => {
+              const next = !noPrice;
+              setNoPrice(next);
+              if (next) setPrice("");
+            }}
+          />
+        </div>
         {kids.length ? (
           <div>
             <div className="text-[12px] font-semibold text-muted">{t.shopProductKind}</div>
@@ -141,6 +165,17 @@ function ProductRow({
           }}
           placeholder={t.shopAskPrice}
         />
+        <div className="mt-2">
+          <Chip
+            active={product.price == null}
+            onClick={() => {
+              setRaw("");
+              onPrice(undefined);
+            }}
+          >
+            {t.shopNoPrice}
+          </Chip>
+        </div>
         <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}</div>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">

@@ -324,19 +324,22 @@ export function Input({
   onChange,
   placeholder,
   type = "text",
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  disabled?: boolean;
 }) {
   return (
     <input
       type={type}
       value={value}
       placeholder={placeholder}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      className="h-[50px] w-full rounded-[14px] border border-line bg-surface px-[15px] text-[15px] text-ink outline-none placeholder:text-muted-2"
+      className="h-[50px] w-full rounded-[14px] border border-line bg-surface px-[15px] text-[15px] text-ink outline-none placeholder:text-muted-2 disabled:bg-chip disabled:text-muted"
     />
   );
 }

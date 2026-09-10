@@ -849,11 +849,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const current = shop?.products.find((row) => row.id === productId);
       if (!user) return { error: "auth" };
       if (!shop || !current || !isOwnShop(shop, user)) return { error: "forbidden" };
-      if (patch.price != null && patch.price !== 0 && validPrice(patch.price) == null) return { error: "price" };
+      if ("price" in patch && patch.price != null && patch.price !== 0 && validPrice(patch.price) == null) return { error: "price" };
       const next = {
         ...current,
         ...patch,
-        price: patch.price === 0 ? undefined : patch.price != null ? validPrice(patch.price) : current.price,
+        price: "price" in patch
+          ? patch.price == null || patch.price === 0
+            ? undefined
+            : validPrice(patch.price)
+          : current.price,
         updatedAt: new Date().toISOString(),
       };
       update((s) => {

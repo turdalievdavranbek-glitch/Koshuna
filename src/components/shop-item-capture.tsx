@@ -18,7 +18,7 @@ import {
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
-import { Field, Input } from "./ui";
+import { Field, Input, Toggle } from "./ui";
 
 export function ShopItemCapture({
   parent,
@@ -33,15 +33,18 @@ export function ShopItemCapture({
   const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const priceTouched = useRef(false);
+  const noPriceRef = useRef(false);
   const [live, setLive] = useState(false);
   const [photo, setPhoto] = useState("");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [noPrice, setNoPrice] = useState(false);
   const [fromPhoto, setFromPhoto] = useState(false);
   const [ai, setAi] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const shop = pickShopForKind(shops, user, parent, kind);
+  noPriceRef.current = noPrice;
 
   useEffect(() => {
     return () => {
@@ -84,7 +87,10 @@ export function ShopItemCapture({
     setPhoto(compact);
     try {
       const guess = await priceFromPhoto(dataUrl);
-      if (guess.price != null && !priceTouched.current) {
+      if (noPriceRef.current) {
+        setFromPhoto(false);
+        setAi("");
+      } else if (guess.price != null && !priceTouched.current) {
         setPrice(String(guess.price));
         setFromPhoto(true);
         setAi(t.shopItemPriceAi);
@@ -141,8 +147,8 @@ export function ShopItemCapture({
       setError(t.shopNeedName);
       return;
     }
-    const n = price.trim() ? validPrice(price) : undefined;
-    if (price.trim() && n == null) {
+    const n = noPrice || !price.trim() ? undefined : validPrice(price);
+    if (!noPrice && price.trim() && n == null) {
       setError(t.shopNeedPrice);
       return;
     }
@@ -162,6 +168,7 @@ export function ShopItemCapture({
     setPhoto("");
     setTitle("");
     setPrice("");
+    setNoPrice(false);
     setFromPhoto(false);
     setAi("");
     priceTouched.current = false;
@@ -251,14 +258,36 @@ export function ShopItemCapture({
         </Field>
         <Field label={t.shopItemPrice}>
           <Input
-            value={price}
+            value={noPrice ? "" : price}
+            placeholder={noPrice ? t.shopAskPrice : undefined}
+            disabled={noPrice}
             onChange={(v) => {
               priceTouched.current = true;
+              setNoPrice(false);
               setFromPhoto(false);
               setPrice(v);
             }}
           />
         </Field>
+        <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+          <div>
+            <div className="text-[15px] font-semibold text-ink">{t.shopNoPrice}</div>
+            <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.shopNoPriceHint}</p>
+          </div>
+          <Toggle
+            on={noPrice}
+            onChange={() => {
+              const next = !noPrice;
+              setNoPrice(next);
+              if (next) {
+                priceTouched.current = true;
+                setPrice("");
+                setFromPhoto(false);
+                setAi("");
+              }
+            }}
+          />
+        </div>
         {ai ? <p className="text-[12px] leading-[1.4] text-muted">{ai}</p> : null}
         <p className="text-[12px] text-muted-2">{t.shopItemReuseRule}</p>
       </div>
