@@ -13,9 +13,10 @@ import { TrustStars } from "@/components/trust-stars";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { starsForUser } from "@/lib/trust";
 import { SellerHub } from "@/components/seller-hub";
+import { shopsOf, userHasShopBadge } from "@/lib/shops";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace, meetDeals } = useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace, meetDeals, shops } = useApp();
   const router = useRouter();
   const stars = starsForUser(user);
   const mine = [
@@ -66,6 +67,9 @@ export default function ProfilePage() {
             <div className="flex items-center gap-1.5">
               <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
+              {userHasShopBadge(shops, user) ? (
+                <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
+              ) : null}
             </div>
             <div className="mt-1">
               <TrustStars n={stars} size={15} />
@@ -123,6 +127,21 @@ export default function ProfilePage() {
         <div className="mt-3">
           <SellerHub />
         </div>
+
+        <div className="mt-6 flex items-baseline justify-between">
+          <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
+          <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
+            {t.allN(shopsOf(shops, user).length)}
+          </button>
+        </div>
+        <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+        <button
+          type="button"
+          onClick={() => router.push("/shops/new")}
+          className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+        >
+          {t.shopNew}
+        </button>
 
         <div className="mt-6 flex items-baseline justify-between">
           <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>

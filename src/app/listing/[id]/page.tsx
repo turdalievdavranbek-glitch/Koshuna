@@ -29,7 +29,7 @@ import { SellerStarsBadge } from "@/components/trust-stars";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, viewerPlace } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, viewerPlace, shops } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -203,6 +203,39 @@ export default function ListingPage() {
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
+          {listing.shopId
+            ? (() => {
+                const shop = shops.find((item) => item.id === listing.shopId);
+                if (!shop || shop.status !== "active") return null;
+                const others = allListings.filter(
+                  (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed",
+                );
+                return (
+                  <div className="mt-3 rounded-[16px] border border-line bg-white p-4">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shopFromListing}</div>
+                    <button type="button" onClick={() => router.push(`/shops/${shop.id}`)} className="mt-1.5 text-left">
+                      <div className="font-display text-[17px] font-bold text-ink">{shop.name}</div>
+                      <div className="text-[13px] text-muted">{t.shopToShop} · {t.cities[shop.city]}</div>
+                    </button>
+                    {others.length ? (
+                      <div className="mt-2">
+                        <div className="text-[12px] font-semibold text-muted">{t.shopMoreFrom}</div>
+                        {others.slice(0, 4).map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => router.push(`/listing/${item.id}`)}
+                            className="mt-1 block text-left text-[13px] font-semibold text-ink"
+                          >
+                            {listingTitle(item, lang)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })()
+            : null}
           {mine ? <OwnerListingTools listing={listing} /> : null}
           {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
           <PayAfterNote listing={listing} />

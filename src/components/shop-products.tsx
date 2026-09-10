@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import { formatSom } from "@/lib/data";
+import { SHOP_STOCK, SHOP_UNITS, validPrice } from "@/lib/shops";
+import { shopErrorText } from "@/lib/shop-copy";
+import { useApp } from "@/lib/store";
+import type { Shop, ShopProduct, ShopStock, ShopProductUnit } from "@/lib/types";
+import { Chip, Field, Input } from "./ui";
+
+export function ShopProductsEditor({ shop }: { shop: Shop }) {
+  const { t, upsertShopProduct, updateShopProduct, hideShopProduct, publishProductListing } = useApp();
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+
+  const add = async () => {
+    setError("");
+    if (!title.trim()) {
+      setError(t.shopNeedName);
+      return;
+    }
+    const n = price.trim() ? validPrice(price) : undefined;
+    if (price.trim() && n == null) {
+      setError(t.shopNeedPrice);
+      return;
+    }
+    const result = await upsertShopProduct(shop.id, { title: title.trim(), price: n, category: shop.category });
+    if (result.error) {
+      setError(shopErrorText(t, result.error));
+      return;
+    }
+    setTitle("");
+    setPrice("");
+    setNote(t.shopProductSave);
+  };
+
+  return (
+    <div>
+      <div className="font-display text-[17px] font-bold text-ink">{t.shopProducts}</div>
+      <div className="mt-3 flex flex-col gap-2">
+        <Field label={t.shopProductName}>
+          <Input value={title} onChange={setTitle} />
+        </Field>
+        <Field label={t.shopProductPrice}>
+          <Input value={price} onChange={setPrice} placeholder={t.shopAskPrice} />
+        </Field>
+        <button type="button" onClick={() => void add()} className="h-11 rounded-2xl bg-ink text-[14px] font-semibold text-screen">
+          {t.shopAddProduct}
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
+      {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
+      <div className="mt-4 flex flex-col gap-2">
+        {shop.products.map((item) => (
+          <ProductRow
+            key={item.id}
+            shop={shop}
+            product={item}
+            onPrice={(next) => void updateShopProduct(shop.id, item.id, { price: next })}
+            onStock={(stock) => void updateShopProduct(shop.id, item.id, { stock })}
+            onUnit={(unit) => void updateShopProduct(shop.id, item.id, { unit })}
+            onHide={() => hideShopProduct(shop.id, item.id)}
+            onListing={() => {
+              const out = publishProductListing(shop.id, item.id);
+              if (out && "missing" in out) setError(out.missing.includes("price") ? t.shopToListingNeedPrice : t.shopToListingNeed);
+              else if (out) setNote(t.published);
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductRow({
+  product,
+  onPrice,
+  onStock,
+  onUnit,
+  onHide,
+  onListing,
+}: {
+  shop: Shop;
+  product: ShopProduct;
+  onPrice: (n?: number) => void;
+  onStock: (s: ShopStock) => void;
+  onUnit: (u: ShopProductUnit) => void;
+  onHide: () => void;
+  onListing: () => void;
+}) {
+  const { t } = useApp();
+  const [raw, setRaw] = useState(product.price != null ? String(product.price) : "");
+  return (
+    <div className="rounded-[16px] border border-line bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[14px] font-semibold text-ink">{product.title}</div>
+          <div className="mt-0.5 text-[11px] text-muted-2">
+            {t.shopStockStale} · {product.updatedAt.slice(0, 10)}
+          </div>
+        </div>
+        {product.published === false ? <span className="text-[11px] font-bold text-muted">{t.status.withdrawn}</span> : null}
+      </div>
+      <div className="mt-2">
+        <Input
+          value={raw}
+          onChange={(v) => {
+            setRaw(v);
+            if (!v.trim()) onPrice(undefined);
+            else {
+              const n = validPrice(v);
+              if (n != null) onPrice(n);
+            }
+          }}
+          placeholder={t.shopAskPrice}
+        />
+        <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}</div>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {SHOP_UNITS.map((id) => (
+          <Chip key={id} active={product.unit === id} onClick={() => onUnit(id)}>
+            {t.shopUnits[id]}
+          </Chip>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {SHOP_STOCK.map((id) => (
+          <Chip key={id} active={product.stock === id} onClick={() => onStock(id)}>
+            {id === "in" ? t.shopStockIn : id === "out" ? t.shopStockOut : id === "order" ? t.shopStockOrder : t.shopStockAsk}
+          </Chip>
+        ))}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" onClick={onListing} className="h-10 rounded-2xl border border-line text-[12px] font-semibold">
+          {t.shopToListing}
+        </button>
+        <button type="button" onClick={onHide} className="h-10 rounded-2xl border border-line text-[12px] font-semibold text-muted">
+          {t.shopWithdraw}
+        </button>
+      </div>
+    </div>
+  );
+}

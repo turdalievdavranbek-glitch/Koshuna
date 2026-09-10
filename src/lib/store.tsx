@@ -26,10 +26,14 @@ import {
   type MeetParty,
   type SavedSearch,
   type SellerChannel,
+  type Shop,
+  type ShopDraft,
+  type ShopProduct,
   type Thread,
   type User,
   type ViewerPlace,
 } from "./types";
+import { emptyShopDraft, isOwnShop, listingSectionForShop, validPrice } from "./shops";
 import { parseViewerPlace } from "./strategy";
 import { BrandMark } from "@/components/brand";
 
@@ -108,6 +112,8 @@ type State = {
   reports: Record<string, string>;
   viewerPlace: ViewerPlace;
   meetDeals: Record<string, MeetDeal>;
+  shops: Shop[];
+  shopDraft: ShopDraft | null;
 };
 
 const initial: State = {
@@ -129,6 +135,8 @@ const initial: State = {
   reports: {},
   viewerPlace: "kyrgyzstan",
   meetDeals: {},
+  shops: [],
+  shopDraft: null,
 };
 
 type Store = State & {
@@ -171,6 +179,20 @@ type Store = State & {
   toggleSearchNotify: (id: string) => void;
   saveCurrentSearch: () => void;
   setNotificationsOn: (on: boolean) => void;
+  startShopDraft: (id?: string) => ShopDraft | null;
+  setShopDraft: (patch: Partial<ShopDraft>) => void;
+  lockShopField: (key: keyof Shop) => void;
+  saveShopDraft: () => Shop | null;
+  publishShop: () => Promise<{ shop: Shop | null; error?: string }>;
+  withdrawShop: (id: string) => Promise<{ error?: string }>;
+  upsertShopProduct: (
+    shopId: string,
+    product: Partial<ShopProduct> & { title: string },
+  ) => Promise<{ error?: string; product?: ShopProduct }>;
+  updateShopProduct: (shopId: string, productId: string, patch: Partial<ShopProduct>) => Promise<{ error?: string }>;
+  hideShopProduct: (shopId: string, productId: string) => void;
+  publishProductListing: (shopId: string, productId: string) => Listing | { missing: string[] } | null;
+  reportShop: (id: string, reason: string) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -224,6 +246,19 @@ function emptyMeetDeal(listingId: string, reservedById: string): MeetDeal {
   };
 }
 
+function persistShop(shop: Shop): Shop {
+  return {
+    ...shop,
+    videoUrl: persistableUrl(shop.videoUrl),
+    coverUrl: persistableUrl(shop.coverUrl),
+    products: (shop.products ?? []).map((item) => ({
+      ...item,
+      photo: persistableUrl(item.photo),
+      videoUrl: persistableUrl(item.videoUrl),
+    })),
+  };
+}
+
 function load(): State {
   if (typeof window === "undefined") return initial;
   try {
@@ -239,6 +274,8 @@ function load(): State {
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
+      shops: Array.isArray(saved.shops) ? saved.shops : [],
+      shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? saved.shopDraft : null,
       viewerPlace: parseViewerPlace(saved.viewerPlace),
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
     };
@@ -273,6 +310,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           videoUrl: persistableUrl(item.videoUrl),
           voiceUrl: persistableUrl(item.voiceUrl),
         })),
+        shops: state.shops.map(persistShop),
+        shopDraft: state.shopDraft ? persistShop(state.shopDraft) as ShopDraft : null,
       }),
     );
   }, [state, ready]);
@@ -620,6 +659,308 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     setNotificationsOn: (on) => update({ notificationsOn: on }),
+    startShopDraft: (id) => {
+      if (!state.user) return null;
+      if (id) {
+        const existing = state.shops.find((s) => s.id === id);
+        if (!existing || !isOwnShop(existing, state.user)) return null;
+        const draft: ShopDraft = { ...existing, locked: {}, pendingProducts: [] };
+        update({ shopDraft: draft });
+        return draft;
+      }
+      if (state.shopDraft && state.shopDraft.status !== "active" && isOwnShop(state.shopDraft, state.user)) {
+        return state.shopDraft;
+      }
+      const draft = emptyShopDraft(state.user);
+      update({ shopDraft: draft });
+      return draft;
+    },
+    setShopDraft: (patch) =>
+      update((s) => {
+        if (!s.shopDraft) return s;
+        return { ...s, shopDraft: { ...s.shopDraft, ...patch, updatedAt: new Date().toISOString() } };
+      }),
+    lockShopField: (key) =>
+      update((s) => {
+        if (!s.shopDraft) return s;
+        return { ...s, shopDraft: { ...s.shopDraft, locked: { ...s.shopDraft.locked, [key]: true } } };
+      }),
+    saveShopDraft: () => {
+      const draft = state.shopDraft;
+      const user = state.user;
+      if (!draft || !user || !isOwnShop(draft, user)) return null;
+      const saved: Shop = { ...draft, status: draft.status === "active" ? "active" : "draft", updatedAt: new Date().toISOString() };
+      update((s) => {
+        const prev = s.shops.find((item) => item.id === saved.id);
+        const merged: Shop = {
+          ...saved,
+          products: [
+            ...(prev?.products ?? []),
+            ...saved.products.filter((row) => !(prev?.products ?? []).some((p) => p.id === row.id)),
+          ],
+        };
+        return {
+          ...s,
+          shops: prev ? s.shops.map((item) => (item.id === saved.id ? merged : item)) : [merged, ...s.shops],
+          shopDraft: { ...draft, ...merged },
+        };
+      });
+      return saved;
+    },
+    publishShop: async () => {
+      const user = state.user;
+      const draft = state.shopDraft;
+      if (!user) return { shop: null, error: "auth" };
+      if (!draft || !isOwnShop(draft, user)) return { shop: null, error: "forbidden" };
+      const shop: Shop = { ...draft, status: "active", updatedAt: new Date().toISOString(), aiConfirmed: true };
+      try {
+        const res = await fetch("/api/shops/validate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "publish", shop, ownerPhone: user.phone, ownerName: user.name }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string };
+        if (!data.ok) return { shop: null, error: data.error || "forbidden" };
+      } catch {
+        return { shop: null, error: "network" };
+      }
+      update((s) => {
+        const prev = s.shops.find((item) => item.id === shop.id);
+        const merged: Shop = {
+          ...shop,
+          products: [
+            ...(prev?.products ?? []),
+            ...shop.products.filter((row) => !(prev?.products ?? []).some((p) => p.id === row.id)),
+          ],
+        };
+        return {
+          ...s,
+          shops: prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops],
+          shopDraft: { ...draft, ...merged },
+        };
+      });
+      return { shop };
+    },
+    withdrawShop: async (id) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === id);
+      if (!user) return { error: "auth" };
+      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      const next = { ...shop, status: "withdrawn" as const, updatedAt: new Date().toISOString() };
+      try {
+        const res = await fetch("/api/shops/validate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "withdraw", shop: next, ownerPhone: user.phone, ownerName: user.name }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string };
+        if (!data.ok) return { error: data.error || "forbidden" };
+      } catch {
+        return { error: "network" };
+      }
+      update((s) => ({
+        ...s,
+        shops: s.shops.map((item) => (item.id === id ? next : item)),
+        shopDraft: s.shopDraft?.id === id ? { ...s.shopDraft, ...next } : s.shopDraft,
+        extraListings: s.extraListings.map((item) => (item.shopId === id ? { ...item, status: "withdrawn" } : item)),
+      }));
+      return {};
+    },
+    upsertShopProduct: async (shopId, product) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === shopId);
+      if (!user) return { error: "auth" };
+      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      const price = product.price != null ? validPrice(product.price) : undefined;
+      if (product.price != null && product.price !== 0 && price == null) return { error: "price" };
+      const now = new Date().toISOString();
+      const nextProduct: ShopProduct = {
+        id: product.id || `sp-${Date.now()}`,
+        shopId,
+        title: product.title.trim(),
+        description: product.description,
+        photo: product.photo,
+        videoUrl: product.videoUrl,
+        category: product.category ?? shop.category,
+        price,
+        currency: "KGS",
+        unit: product.unit ?? "piece",
+        stock: product.stock ?? "in",
+        listingId: product.listingId,
+        published: product.published !== false,
+        createdAt: product.createdAt ?? now,
+        updatedAt: now,
+      };
+      try {
+        const res = await fetch("/api/shops/validate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "upsert-product",
+            shop,
+            product: nextProduct,
+            ownerPhone: user.phone,
+            ownerName: user.name,
+          }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string };
+        if (!data.ok) return { error: data.error || "forbidden" };
+      } catch {
+        return { error: "network" };
+      }
+      update((s) => ({
+        ...s,
+        shops: s.shops.map((item) =>
+          item.id === shopId
+            ? {
+                ...item,
+                updatedAt: now,
+                products: item.products.some((row) => row.id === nextProduct.id)
+                  ? item.products.map((row) => (row.id === nextProduct.id ? nextProduct : row))
+                  : [...item.products, nextProduct],
+              }
+            : item,
+        ),
+      }));
+      return { product: nextProduct };
+    },
+    updateShopProduct: async (shopId, productId, patch) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === shopId);
+      const current = shop?.products.find((row) => row.id === productId);
+      if (!user) return { error: "auth" };
+      if (!shop || !current || !isOwnShop(shop, user)) return { error: "forbidden" };
+      if (patch.price != null && patch.price !== 0 && validPrice(patch.price) == null) return { error: "price" };
+      const next = {
+        ...current,
+        ...patch,
+        price: patch.price === 0 ? undefined : patch.price != null ? validPrice(patch.price) : current.price,
+        updatedAt: new Date().toISOString(),
+      };
+      update((s) => {
+        const shops = s.shops.map((item) =>
+          item.id === shopId
+            ? { ...item, updatedAt: next.updatedAt, products: item.products.map((row) => (row.id === productId ? next : row)) }
+            : item,
+        );
+        let extraListings = s.extraListings;
+        let listingEdits = s.listingEdits;
+        if (next.listingId && next.price != null) {
+          if (extraListings.some((item) => item.id === next.listingId)) {
+            extraListings = extraListings.map((item) =>
+              item.id === next.listingId
+                ? { ...item, price: next.price as number, previousPrice: item.price > (next.price as number) ? item.price : item.previousPrice }
+                : item,
+            );
+          } else {
+            listingEdits = {
+              ...listingEdits,
+              [next.listingId]: { ...listingEdits[next.listingId], price: next.price as number },
+            };
+          }
+        }
+        return { ...s, shops, extraListings, listingEdits };
+      });
+      return {};
+    },
+    hideShopProduct: (shopId, productId) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === shopId);
+      const product = shop?.products.find((row) => row.id === productId);
+      if (!user || !shop || !isOwnShop(shop, user)) return;
+      update((s) => ({
+        ...s,
+        shops: s.shops.map((item) =>
+          item.id === shopId
+            ? {
+                ...item,
+                products: item.products.map((row) => (row.id === productId ? { ...row, published: false, updatedAt: new Date().toISOString() } : row)),
+              }
+            : item,
+        ),
+        extraListings: product?.listingId
+          ? s.extraListings.map((item) => (item.id === product.listingId ? { ...item, status: "withdrawn" } : item))
+          : s.extraListings,
+      }));
+    },
+    publishProductListing: (shopId, productId) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === shopId);
+      const product = shop?.products.find((row) => row.id === productId);
+      if (!user || !shop || !product || !isOwnShop(shop, user)) return null;
+      if (shop.status !== "active") return { missing: ["category"] };
+      const mapped = listingSectionForShop(product.category || shop.category);
+      const missing: string[] = [];
+      if (!product.title.trim()) missing.push("name");
+      if (product.price == null) missing.push("price");
+      if (!mapped) missing.push("category");
+      if (missing.length || !mapped) return { missing: missing.length ? missing : ["category"] };
+      if (product.listingId) {
+        const existing = state.extraListings.find((item) => item.id === product.listingId);
+        if (existing) {
+          update((s) => ({
+            ...s,
+            extraListings: s.extraListings.map((item) =>
+              item.id === product.listingId
+                ? { ...item, title: product.title, price: product.price as number, description: product.description || product.title, status: "active" }
+                : item,
+            ),
+          }));
+          return existing;
+        }
+      }
+      const listing: Listing = {
+        id: `shop-item-${product.id}`,
+        section: mapped.section,
+        category: mapped.category,
+        title: product.title,
+        titleKy: product.title,
+        titleEn: product.title,
+        price: product.price as number,
+        city: shop.city,
+        postedAgo: "2h",
+        photos: [product.photo || shop.coverUrl || "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=70"],
+        photoCredit: shop.name,
+        description: product.description || product.title,
+        descriptionKy: product.description || product.title,
+        descriptionEn: product.description || product.title,
+        ownerId: "aida",
+        shopId: shop.id,
+        shopProductId: product.id,
+        hasPhoto: true,
+        verified: true,
+        noAgent: true,
+        status: "active",
+        safetyKind: "goods",
+        mapX: 40,
+        mapY: 40,
+        contact: shop.contacts.telegram ? "telegram" : "whatsapp",
+        views: 0,
+        favCount: 0,
+        lat: shop.lat,
+        lng: shop.lng,
+        mediaKind: product.videoUrl ? "video" : "photos",
+        videoUrl: product.videoUrl,
+      };
+      update((s) => ({
+        ...s,
+        extraListings: [listing, ...s.extraListings],
+        shops: s.shops.map((item) =>
+          item.id === shopId
+            ? {
+                ...item,
+                products: item.products.map((row) => (row.id === productId ? { ...row, listingId: listing.id, published: true } : row)),
+              }
+            : item,
+        ),
+      }));
+      return listing;
+    },
+    reportShop: (id, reason) =>
+      update((s) => ({
+        ...s,
+        reports: { ...s.reports, [id]: reason },
+      })),
   };
 
   return (

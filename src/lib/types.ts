@@ -175,6 +175,8 @@ export type Listing = {
   descriptionKy: string;
   descriptionEn: string;
   ownerId: string;
+  shopId?: string;
+  shopProductId?: string;
   reservedBy?: ReserveAccount;
   verified: boolean;
   hasPhoto: boolean;
@@ -282,4 +284,92 @@ export type DraftListing = {
   voiceUrl?: string;
   transcript?: string;
   aiConfirmed?: boolean;
+};
+
+export const SHOP_CATEGORIES = [
+  "food",
+  "construction",
+  "furniture",
+  "electronics",
+  "apparel",
+  "home",
+  "other",
+] as const;
+export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
+
+export type ShopStatus = "draft" | "active" | "withdrawn";
+
+export type ShopProductUnit = "piece" | "kg" | "meter" | "liter" | "pack" | "other";
+
+export type ShopStock = "in" | "out" | "order" | "ask";
+
+export type ShopHoursSlot = { open: string; close: string };
+
+export type ShopHours = {
+  weekdays?: ShopHoursSlot | null;
+  saturday?: ShopHoursSlot | null;
+  sunday?: ShopHoursSlot | null;
+};
+
+export type ShopContacts = {
+  phone?: string;
+  whatsapp?: boolean;
+  telegram?: boolean;
+};
+
+export type ShopProduct = {
+  id: string;
+  shopId: string;
+  title: string;
+  description?: string;
+  photo?: string;
+  videoUrl?: string;
+  category: ShopCategory;
+  price?: number;
+  currency: "KGS";
+  unit: ShopProductUnit;
+  stock: ShopStock;
+  listingId?: string;
+  updatedAt: string;
+  createdAt: string;
+  published: boolean;
+};
+
+export type Shop = {
+  id: string;
+  name: string;
+  ownerPhone: string;
+  ownerName: string;
+  category: ShopCategory;
+  extraCategories: ShopCategory[];
+  description: string;
+  city: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+  hours?: ShopHours;
+  hoursNote?: string;
+  contacts: ShopContacts;
+  pickup: boolean;
+  delivery: boolean;
+  deliveryNote?: string;
+  videoUrl?: string;
+  coverUrl?: string;
+  transcript?: string;
+  status: ShopStatus;
+  products: ShopProduct[];
+  createdAt: string;
+  updatedAt: string;
+  aiConfirmed: boolean;
+};
+
+export type ShopDraft = Shop & {
+  locked: Partial<Record<keyof Shop, true>>;
+  pendingProducts?: Array<Partial<ShopProduct> & { title: string; price?: number }>;
+};
+
+export type ShopFilters = {
+  query: string;
+  city: string;
+  category: ShopCategory | "all";
 };
