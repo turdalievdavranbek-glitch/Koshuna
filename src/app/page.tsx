@@ -104,7 +104,7 @@ export default function FeedPage() {
               <img src="/sections/shops.jpg" alt="" className="h-full w-full object-cover" />
             </span>
           </button>
-          {SECTIONS.map((s) => (
+          {SECTIONS.filter((s) => s.id !== "construction").map((s) => (
             <button
               key={s.id}
               type="button"

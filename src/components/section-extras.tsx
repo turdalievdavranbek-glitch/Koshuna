@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SERVICE_CATEGORIES, propertyIsLiving } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES, SERVICE_CATEGORIES, propertyIsLiving } from "@/lib/data";
+import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
@@ -50,7 +51,31 @@ export function SectionExtras() {
   }
 
   if (section === "secondhand") {
-    return <SecondhandChips />;
+    return (
+      <div className="flex flex-col gap-2.5">
+        <SecondhandChips />
+        <button
+          type="button"
+          onClick={() => {
+            setFilters(patchForSection("construction", filters));
+            router.push("/section/construction");
+          }}
+          className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+        >
+          <span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">
+              {t.sectionNames.construction}
+            </span>
+            <span className="mt-0.5 block text-[13px] font-semibold text-ink">
+              {CONSTRUCTION_CATEGORIES.slice(0, 4)
+                .map((c) => t.cats[c])
+                .join(" · ")}
+            </span>
+          </span>
+          <span className="text-[15px] font-semibold text-accent">→</span>
+        </button>
+      </div>
+    );
   }
 
   if (section === "cars") {
