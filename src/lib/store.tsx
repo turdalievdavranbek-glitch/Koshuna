@@ -33,7 +33,7 @@ import {
   type User,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
-import { displayPhotoForProduct } from "./shop-photos";
+import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { BrandMark } from "@/components/brand";
 
@@ -289,8 +289,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setState(load());
+    const next = load();
+    setState(next);
     setReady(true);
+    let cancelled = false;
+    void (async () => {
+      let changed = false;
+      const shops: Shop[] = [];
+      for (const shop of next.shops) {
+        const result = await sweepShopPriceTagPhotos(shop);
+        if (result.changed) changed = true;
+        shops.push(result.shop);
+      }
+      let shopDraft = next.shopDraft;
+      if (shopDraft) {
+        const result = await sweepShopPriceTagPhotos(shopDraft);
+        if (result.changed) {
+          changed = true;
+          shopDraft = result.shop;
+        }
+      }
+      if (cancelled || !changed) return;
+      setState((s) => ({
+        ...s,
+        shops,
+        shopDraft,
+        extraListings: syncShopListings(s.extraListings, shops, s.user),
+      }));
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

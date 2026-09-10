@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
-import { isGeneratedPriceTag, isStockShopPhoto, photoForProductTitle } from "@/lib/shop-photos";
+import { displayPhotoForProduct, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import {
   assortmentKey,
@@ -55,9 +55,20 @@ export function ShopItemCapture({
   }, []);
 
   useEffect(() => {
-    if (!photo || !(isStockShopPhoto(photo) || isGeneratedPriceTag(photo))) return;
+    if (!photo) return;
     const next = photoForProductTitle(title, kind);
-    if (next && next !== photo) setPhoto(next);
+    if (!next || next === photo) return;
+    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo)) {
+      setPhoto(next);
+      return;
+    }
+    let cancelled = false;
+    void looksLikeRenderedPriceTag(photo).then((tag) => {
+      if (!cancelled && tag) setPhoto(next);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [kind, photo, title]);
 
   const startCam = async () => {
@@ -91,7 +102,11 @@ export function ShopItemCapture({
     setError("");
     setAi(t.shopItemAiBusy);
     const compact = await jpegDataUrl(dataUrl, 900);
-    const tag = isGeneratedPriceTag(dataUrl) || isGeneratedPriceTag(compact);
+    const tag =
+      isGeneratedPriceTag(dataUrl) ||
+      isGeneratedPriceTag(compact) ||
+      (await looksLikeRenderedPriceTag(dataUrl)) ||
+      (await looksLikeRenderedPriceTag(compact));
     setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);
     try {
       const guess = await priceFromPhoto(dataUrl);
@@ -375,12 +390,8 @@ export function ShopItemCapture({
                 onClick={() => router.push(`/shops/${row.id}`)}
                 className="flex gap-3 rounded-[16px] border border-line bg-white p-3 text-left"
               >
-                {product.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
-                ) : (
-                  <span className="h-16 w-16 rounded-[12px] bg-chip" />
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] font-semibold text-ink">{product.title}</span>
                   <span className="mt-0.5 block text-[13px] font-semibold text-accent">
@@ -412,12 +423,8 @@ function ItemCard({
   const { t } = useApp();
   return (
     <div className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
-      {product.photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={product.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
-      ) : (
-        <span className="h-16 w-16 rounded-[12px] bg-chip" />
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold text-ink">{product.title}</div>
         <div className="mt-0.5 text-[13px] font-semibold text-accent">

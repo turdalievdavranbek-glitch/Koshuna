@@ -273,7 +273,7 @@ export function hydrateShop<T extends Shop>(shop: T): T {
     products: (shop.products ?? []).map((item) => {
       const kind = isShopKind(item.kind) ? item.kind : undefined;
       const next = { ...item, kind };
-      return { ...next, photo: displayPhotoForProduct(next, item.photo) };
+      return { ...next, photo: displayPhotoForProduct(next) };
     }),
   };
 }

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { twoGisUrl } from "@/lib/geo";
+import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { canSeeShop, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel } from "@/lib/shop-copy";
 import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
@@ -187,10 +188,8 @@ export default function ShopDetailPage() {
                 <div className="flex flex-col gap-2">
                   {group.items.map((item) => (
                     <div key={item.id} className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
-                      {item.photo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
-                      ) : null}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={displayPhotoForProduct(item)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
                       <div className="min-w-0 flex-1">
                       <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
                       {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
