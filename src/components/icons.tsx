@@ -1,4 +1,5 @@
 import type { ReactNode, SVGProps } from "react";
+import { BrandLogo } from "./brand";
 
 type P = SVGProps<SVGSVGElement> & { size?: number; color?: string };
 
@@ -248,24 +249,8 @@ export function IconVerified({ size = 14 }: { size?: number }) {
   );
 }
 
-export function Flag({ className }: { className?: string }) {
-  return (
-    <svg width="24" height="16" viewBox="0 0 30 20" className={className} style={{ borderRadius: 2, flex: "0 0 auto" }}>
-      <rect width="30" height="20" fill="#E8112D" />
-      <path
-        d="M19.89 9.69L23.60 10.00L19.89 10.31ZM19.88 10.46L23.49 11.35L19.78 11.07ZM19.75 11.22L23.18 12.66L19.56 11.80ZM19.50 11.95L22.66 13.90L19.22 12.49ZM19.14 12.63L21.96 15.05L18.78 13.12ZM18.68 13.24L21.08 16.08L18.24 13.68ZM18.12 13.78L20.05 16.96L17.63 14.14ZM17.49 14.22L18.90 17.66L16.95 14.50ZM16.80 14.56L17.66 18.18L16.22 14.75ZM16.07 14.78L16.35 18.49L15.46 14.88ZM15.31 14.89L15.00 18.60L14.69 14.89ZM14.54 14.88L13.65 18.49L13.93 14.78ZM13.78 14.75L12.34 18.18L13.20 14.56ZM13.05 14.50L11.10 17.66L12.51 14.22ZM12.37 14.14L9.95 16.96L11.88 13.78ZM11.76 13.68L8.92 16.08L11.32 13.24ZM11.22 13.12L8.04 15.05L10.86 12.63ZM10.78 12.49L7.34 13.90L10.50 11.95ZM10.44 11.80L6.82 12.66L10.25 11.22ZM10.22 11.07L6.51 11.35L10.12 10.46ZM10.11 10.31L6.40 10.00L10.11 9.69ZM10.12 9.54L6.51 8.65L10.22 8.93ZM10.25 8.78L6.82 7.34L10.44 8.20ZM10.50 8.05L7.34 6.10L10.78 7.51ZM10.86 7.37L8.04 4.95L11.22 6.88ZM11.32 6.76L8.92 3.92L11.76 6.32ZM11.88 6.22L9.95 3.04L12.37 5.86ZM12.51 5.78L11.10 2.34L13.05 5.50ZM13.20 5.44L12.34 1.82L13.78 5.25ZM13.93 5.22L13.65 1.51L14.54 5.12ZM14.69 5.11L15.00 1.40L15.31 5.11ZM15.46 5.12L16.35 1.51L16.07 5.22ZM16.22 5.25L17.66 1.82L16.80 5.44ZM16.95 5.50L18.90 2.34L17.49 5.78ZM17.63 5.86L20.05 3.04L18.12 6.22ZM18.24 6.32L21.08 3.92L18.68 6.76ZM18.78 6.88L21.96 4.95L19.14 7.37ZM19.22 7.51L22.66 6.10L19.50 8.05ZM19.56 8.20L23.18 7.34L19.75 8.78ZM19.78 8.93L23.49 8.65L19.88 9.54Z"
-        fill="#FFEF00"
-      />
-      <circle cx="15" cy="10" r="4.9" fill="#FFEF00" />
-      <g fill="none" stroke="#E8112D" strokeWidth="0.62" strokeLinecap="round">
-        <path d="M10.6 10q4.4-2.9 8.8 0" />
-        <path d="M10.6 10q4.4 2.9 8.8 0" />
-        <path d="M15 5.6q2.9 4.4 0 8.8" />
-        <path d="M15 5.6q-2.9 4.4 0 8.8" />
-        <circle cx="15" cy="10" r="4.9" strokeWidth="0.5" />
-      </g>
-    </svg>
-  );
+export function Flag({ className, size = 18 }: { className?: string; size?: number }) {
+  return <BrandLogo size={size} className={className} />;
 }
 
 export function sectionIcon(id: string, color = "#B8452F", size = 19) {

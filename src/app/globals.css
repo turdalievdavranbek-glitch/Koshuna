@@ -34,7 +34,12 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #ede7dc;
+  background-color: #f0252b;
+  background-image: url("/brand/logo.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(78vh, 64vw);
+  background-attachment: fixed;
   color: #17140f;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -54,14 +59,6 @@ button {
 .sc::-webkit-scrollbar {
   width: 0;
   height: 0;
-}
-
-.ornament {
-  height: 36px;
-  flex: 0 0 36px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36' viewBox='0 0 72 36'%3E%3Cg fill='none' stroke='%23B8452F' stroke-width='1.5' opacity='0.55'%3E%3Cpath d='M4 30c0-12 7-17 14-17 6 0 9 4 9 8 0 5-5 7-7 4'/%3E%3Cpath d='M68 30c0-12-7-17-14-17-6 0-9 4-9 8 0 5 5 7 7 4'/%3E%3Cpath d='M36 33v-9'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 72px 36px;
-  background-repeat: repeat-x;
 }
 
 .shadow-btn {

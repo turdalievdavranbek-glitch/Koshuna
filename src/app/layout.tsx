@@ -22,17 +22,17 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Konshu — маркетплейс Кыргызстана",
+  title: "Koshuna — маркетплейс Кыргызстана",
   description:
     "Жильё, секонд-хенд, авто, услуги и вакансии по всему Кыргызстану. Местные находки. Новые начала.",
-  appleWebApp: { capable: true, title: "Konshu", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Koshuna", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#F7F3EC",
+  themeColor: "#F0252B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -8,6 +8,7 @@ import { isFromNeighbor } from "@/lib/neighbor";
 import { listingPlace, storyCaption } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
+import { BrandMark } from "@/components/brand";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
 
@@ -72,9 +73,7 @@ export default function StoryPage() {
           <Photo src={listing.photos[0]} alt={title} className="h-full min-h-[420px] object-cover opacity-80" />
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(23,20,15,.92)] via-[rgba(23,20,15,.25)] to-transparent" />
           <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
-            <span className="font-display text-[18px] font-extrabold text-white">
-              konshu<span className="text-accent">●</span>
-            </span>
+            <BrandMark size={22} wordClass="text-[18px] text-white" />
             {isFromNeighbor(listing) ? (
               <span className="rounded-full bg-[#E7F3ED] px-2.5 py-1 text-[11px] font-bold text-success">{t.fromNeighbor}</span>
             ) : null}

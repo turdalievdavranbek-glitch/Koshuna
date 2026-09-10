@@ -15,6 +15,7 @@ import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { AbroadBanner, KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
+import { BrandMark } from "@/components/brand";
 
 export default function FeedPage() {
   const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
@@ -42,10 +43,7 @@ export default function FeedPage() {
       <header className="shrink-0 bg-screen px-5 pb-3.5 pt-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-display text-[23px] font-extrabold tracking-[-0.01em] text-ink">
-              konshu<span className="text-accent">●</span>
-            </span>
-            <Flag />
+            <BrandMark size={26} wordClass="text-[23px] text-ink" />
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -225,7 +223,6 @@ export default function FeedPage() {
         )}
 
         <p className="mt-4 text-xs leading-[1.5] text-muted-2">{t.disclaimer}</p>
-        <div className="ornament mt-[18px]" />
         <div className="mt-3.5 flex flex-col gap-1.5 pb-1.5">
           <span className="font-display text-base font-bold text-ink">{t.footerSlogan}</span>
           <span className="flex items-center gap-[7px] text-xs text-muted">

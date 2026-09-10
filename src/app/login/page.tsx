@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { brandMark } from "@/components/auth-brands";
 import { Flag } from "@/components/icons";
+import { BrandMark } from "@/components/brand";
 import { PhoneShell } from "@/components/shell";
 import { Chip, LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
@@ -65,16 +66,13 @@ function LoginInner() {
     <PhoneShell>
       <div className="sc flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-8 pt-4">
         <LangSwitch />
-        <div className="mt-8 flex items-center gap-2.5">
-          <span className="font-display text-[36px] font-extrabold leading-none tracking-[-0.02em] text-ink">
-            konshu<span className="text-accent">●</span>
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1">
-            <Flag />
+        <div className="mt-8">
+          <BrandMark size={40} wordClass="text-[32px] leading-none text-ink" />
+          <div className="mt-3 flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 w-fit">
+            <Flag size={16} />
             <span className="text-xs font-semibold text-ink">{t.country}</span>
-          </span>
+          </div>
         </div>
-        <div className="ornament mt-[18px]" />
         <div className="mt-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-accent-dark">{t.eyebrow}</div>
         <h1 className="mt-5 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.01em] text-ink whitespace-pre-line">
           {t.loginTitle}

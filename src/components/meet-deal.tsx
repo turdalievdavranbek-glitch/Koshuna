@@ -158,11 +158,11 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     if (!needUser() || !deal.offer) return;
     const when = offerWhen(deal.offer, lang);
     const place = `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`;
-    const title = `Konshu · ${listingTitle(listing, lang)}`;
+    const title = `Koshuna · ${listingTitle(listing, lang)}`;
     const details = `${when} · ${place}`;
     const { start, end } = meetEventTimes(deal.offer);
     downloadMeetIcs(
-      "konshu-meet.ics",
+      "koshuna-meet.ics",
       meetIcs({ title, place, details, start, end }),
     );
     patchMeetDeal(listing.id, { calendarSaved: true });
@@ -181,7 +181,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const cal =
     deal.phase === "agreed" && deal.offer
       ? googleCalUrl({
-          title: `Konshu · ${listingTitle(listing, lang)}`,
+          title: `Koshuna · ${listingTitle(listing, lang)}`,
           place: `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`,
           details: `${offerWhen(deal.offer, lang)} · ${t.meetupSpots[deal.offer.spot]}`,
           ...meetEventTimes(deal.offer),

@@ -84,11 +84,11 @@ export function meetIcs(input: { title: string; place: string; details: string; 
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Konshu//Meet//RU",
+    "PRODID:-//Koshuna//Meet//RU",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:konshu-meet-${Date.now()}@konshu.kg`,
+    `UID:koshuna-meet-${Date.now()}@koshuna.kg`,
     `DTSTAMP:${icsUtc(new Date())}`,
     `DTSTART:${icsUtc(input.start)}`,
     `DTEND:${icsUtc(input.end)}`,
