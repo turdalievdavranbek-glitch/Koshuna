@@ -83,7 +83,7 @@ export function ShopItemCapture({
     const compact = await jpegDataUrl(dataUrl, 900);
     setPhoto(compact);
     try {
-      const guess = await priceFromPhoto(compact);
+      const guess = await priceFromPhoto(dataUrl);
       if (guess.price != null && !priceTouched.current) {
         setPrice(String(guess.price));
         setFromPhoto(true);
