@@ -1,4 +1,4 @@
-import type { Lang } from "./types";
+import type { SpeechLang } from "./types";
 
 const held = new Map<string, string>();
 
@@ -58,41 +58,78 @@ export function captureVideoPoster(src: string): Promise<string | null> {
   });
 }
 
-type SpeechCtor = new () => {
+type SpeechRec = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
   onresult: ((ev: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal?: boolean }> }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((ev?: { error?: string }) => void) | null;
 };
 
-export function startSpeech(lang: Lang, onText: (text: string) => void): () => void {
+type SpeechCtor = new () => SpeechRec;
+
+/** BCP-47 tags to try, in order. Kyrgyz/Uzbek often missing in browsers → fall back to ru-RU. Mixed uses ru-RU (one engine; best regional code-switch). */
+export function speechLocales(mode: SpeechLang): string[] {
+  if (mode === "ky") return ["ky-KG", "ky", "ru-RU"];
+  if (mode === "uz") return ["uz-UZ", "uz-Latn-UZ", "uz", "ru-RU"];
+  if (mode === "mix") return ["ru-RU"];
+  return ["ru-RU"];
+}
+
+export function startSpeech(mode: SpeechLang, onText: (text: string) => void): () => void {
   const Ctor = ((window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
     .SpeechRecognition ||
     (window as unknown as { webkitSpeechRecognition?: SpeechCtor }).webkitSpeechRecognition) as SpeechCtor | undefined;
   if (!Ctor) return () => undefined;
-  const rec = new Ctor();
-  rec.lang = lang === "en" ? "en-US" : lang === "uz" ? "uz-UZ" : "ru-RU";
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.onresult = (ev) => {
-    let text = "";
-    for (let i = 0; i < ev.results.length; i++) {
-      text += `${ev.results[i][0]?.transcript ?? ""} `;
-    }
-    onText(text.replace(/\s+/g, " ").trim());
-  };
-  rec.onerror = () => undefined;
-  try {
-    rec.start();
-  } catch {
-    return () => undefined;
-  }
-  return () => {
+
+  const locales = speechLocales(mode);
+  let index = 0;
+  let stopped = false;
+  let rec: SpeechRec | null = null;
+
+  const begin = () => {
+    if (stopped) return;
     try {
-      rec.stop();
+      rec?.abort?.();
+    } catch {
+      /* ignore */
+    }
+    rec = new Ctor();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = locales[index] ?? "ru-RU";
+    rec.onresult = (ev) => {
+      let text = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        text += `${ev.results[i][0]?.transcript ?? ""} `;
+      }
+      onText(text.replace(/\s+/g, " ").trim());
+    };
+    rec.onerror = (ev) => {
+      if (stopped) return;
+      if (ev?.error === "language-not-supported" && index < locales.length - 1) {
+        index += 1;
+        window.setTimeout(begin, 0);
+      }
+    };
+    try {
+      rec.start();
+    } catch {
+      if (!stopped && index < locales.length - 1) {
+        index += 1;
+        window.setTimeout(begin, 0);
+      }
+    }
+  };
+
+  begin();
+  return () => {
+    stopped = true;
+    try {
+      rec?.stop();
     } catch {
       /* already stopped */
     }

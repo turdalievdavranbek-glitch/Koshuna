@@ -441,6 +441,15 @@ const ru = {
   mediaTranscriptPh: "Говорите во время записи — или вставьте текст, если микрофона нет.",
   mediaNoCamera: "Камеры на этом устройстве нет. Возьмите файл с телефона или нажмите «Пример для проверки».",
   mediaListening: "Слушаю голос…",
+  speechLangTitle: "Язык речи",
+  speechLangHint:
+    "Как будете говорить в видео или голосовом — отдельно от языка приложения. «Смешанный» — когда в одной записи русский, кыргызский и узбекский.",
+  speechLangNames: {
+    ru: "Русский",
+    ky: "Кыргызский",
+    uz: "Узбекский",
+    mix: "Смешанный",
+  },
   mediaNeed: "Нужно видео или фото с голосом и текст, который получился из речи.",
   confirmAiTitle: "Так понял ИИ",
   confirmAiHint: "Проверьте категорию и описание. Если не то — выберите другие. Пока не подтвердите — объявление не выйдет в ленту.",
@@ -1334,6 +1343,15 @@ const ky: typeof ru = {
   mediaTranscriptPh: "Жазуу учурунда сүйлөңүз — же микрофон жок болсо текстти жазыңыз.",
   mediaNoCamera: "Бул түзмөктө камера жок. Телефондон файл алыңыз же «Текшерүү үчүн мисал» басыңыз.",
   mediaListening: "Үндү угуп жатам…",
+  speechLangTitle: "Сүйлөө тили",
+  speechLangHint:
+    "Видео же үндө кайсы тилде сүйлөйсүз — колдонмонун тилинен өзүнчө. «Аралаш» — бир жазууда орусча, кыргызча жана өзбекче.",
+  speechLangNames: {
+    ru: "Орусча",
+    ky: "Кыргызча",
+    uz: "Өзбекче",
+    mix: "Аралаш",
+  },
   mediaNeed: "Видео же сүрөт менен үн жана сөздөн чыккан текст керек.",
   confirmAiTitle: "ИИ ушинтип түшүндү",
   confirmAiHint: "Категория менен баяндоону текшериңиз. Туура эмес болсо — башкасын тандаңыз. Ырастамайынча жарнама лентага чыкпайт.",
@@ -1972,6 +1990,15 @@ const en: typeof ru = {
   mediaTranscriptPh: "Speak while recording — or paste the text if there is no microphone.",
   mediaNoCamera: "No camera on this device. Pick a file from your phone or tap “Try a sample”.",
   mediaListening: "Listening…",
+  speechLangTitle: "Speech language",
+  speechLangHint:
+    "The language you will speak in the video or voice note — independent of the app language. “Mixed” is for Russian, Kyrgyz and Uzbek in one recording.",
+  speechLangNames: {
+    ru: "Russian",
+    ky: "Kyrgyz",
+    uz: "Uzbek",
+    mix: "Mixed",
+  },
   mediaNeed: "Add a video or a photo with voice, and the text that came from speech.",
   confirmAiTitle: "What AI understood",
   confirmAiHint: "Check the category and the description. If it is wrong, pick another. The listing stays unpublished until you confirm.",
@@ -2520,6 +2547,15 @@ const uz: typeof ru = {
   mediaTranscriptPh: "Yozish paytida gapiring — yoki mikrofon boʻlmasa matnni yozing.",
   mediaNoCamera: "Bu qurilmada kamera yoʻq. Telefondan fayl oling yoki «Tekshiruv namunasi»ni bosing.",
   mediaListening: "Ovozni eshityapman…",
+  speechLangTitle: "Nutq tili",
+  speechLangHint:
+    "Video yoki ovozda qaysi tilda gapirasiz — ilova tilidan alohida. «Aralash» — bir yozuvda ruscha, qirgʻizcha va oʻzbekcha.",
+  speechLangNames: {
+    ru: "Ruscha",
+    ky: "Qirgʻizcha",
+    uz: "Oʻzbekcha",
+    mix: "Aralash",
+  },
   mediaNeed: "Video yoki rasm+ovoz va nutqdan chiqqan matn kerak.",
   confirmAiTitle: "SI shunday tushundi",
   confirmAiHint: "Toifa va tavsifni tekshiring. Notoʻgʻri boʻlsa — boshqasini tanlang. Tasdiqlamaguncha lenta chiqmaydi.",
