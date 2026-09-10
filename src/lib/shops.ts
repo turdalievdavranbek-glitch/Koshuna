@@ -99,6 +99,10 @@ export function parseHour(raw: string): { h: number; m: number } | null {
 
 export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): boolean | null {
   if (!hours) return null;
+  const usable = [hours.weekdays, hours.saturday, hours.sunday].some(
+    (slot) => slot && parseHour(slot.open) && parseHour(slot.close),
+  );
+  if (!usable) return null;
   const slot = slotForDay(hours, at);
   if (slot === undefined) return null;
   if (slot === null) return false;
@@ -115,7 +119,7 @@ export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): bool
 function slotForDay(hours: ShopHours, at: Date): ShopHours["weekdays"] | null | undefined {
   const dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Bishkek" }).format(at);
   if (dow === "Sat") return hours.saturday === undefined ? hours.weekdays : hours.saturday;
-  if (dow === "Sun") return hours.sunday === undefined ? null : hours.sunday;
+  if (dow === "Sun") return hours.sunday === undefined ? hours.weekdays : hours.sunday;
   return hours.weekdays;
 }
 
@@ -149,7 +153,7 @@ export function toggleExtraCategory(shop: Pick<Shop, "category" | "extraCategori
 
 export function setPrimaryCategory(shop: Pick<Shop, "category" | "extraCategories">, id: ShopCategory): { category: ShopCategory; extraCategories: ShopCategory[] } {
   const extra = shop.extraCategories.filter((x) => x !== id);
-  if (shop.category !== id) extra.unshift(shop.category);
+  if (shop.category !== id && shop.category !== "other") extra.unshift(shop.category);
   return { category: id, extraCategories: extra.filter((x, i, all) => all.indexOf(x) === i && x !== id) };
 }
 
