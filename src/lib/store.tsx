@@ -134,6 +134,7 @@ type Store = State & {
   allListings: Listing[];
   login: (input: { phone?: string; email?: string; method: AuthMethod; name?: string }) => void;
   logout: () => void;
+  linkCard: () => void;
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
@@ -306,8 +307,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           phone: displayPhone,
           email,
           method,
+          cardLinked: false,
           joinedYear: 2024,
-          verified: true,
+          verified: method === "sms",
           rating: 4.9,
           views: 1284,
         },
@@ -319,6 +321,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     logout: () => update({ user: null }),
+    linkCard: () =>
+      update((s) => {
+        if (!s.user || s.user.method !== "sms") return s;
+        return { ...s, user: { ...s.user, cardLinked: true, verified: true } };
+      }),
     setLang: (lang) => update({ lang }),
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>

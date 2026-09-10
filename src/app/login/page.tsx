@@ -7,6 +7,7 @@ import { brandMark } from "@/components/auth-brands";
 import { Flag } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, LangSwitch } from "@/components/ui";
+import { TrustStars } from "@/components/trust-stars";
 import { useApp } from "@/lib/store";
 import type { AuthMethod } from "@/lib/types";
 
@@ -36,7 +37,7 @@ function LoginInner() {
         setError(t.emailInvalid);
         return;
       }
-      router.push(`/otp?via=email&to=${encodeURIComponent(value)}`);
+      router.push(`/password?email=${encodeURIComponent(value)}`);
       return;
     }
     const q = phone.replace(/\D/g, "") || "555123456";
@@ -81,6 +82,24 @@ function LoginInner() {
         <p className="mt-2.5 font-display text-[17px] font-bold leading-[1.3] text-accent-dark">{t.slogan}</p>
         <p className="mt-2.5 text-[15px] leading-[1.5] text-muted">{t.loginHint}</p>
 
+        <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustHow}</div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-ink">{t.trustLead}</p>
+          <div className="mt-3 flex flex-col gap-2">
+            {[
+              [0, t.trustNone],
+              [1, t.trustSocial],
+              [2, t.trustPhone],
+              [3, t.trustPhoneCard],
+            ].map(([n, label]) => (
+              <div key={String(n)} className="flex items-start gap-2">
+                <TrustStars n={Number(n)} size={13} className="mt-[1px] shrink-0" />
+                <span className="text-[13px] leading-[1.4] text-muted">{label as string}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-6 flex gap-2">
           <Chip active={mode === "phone"} onClick={() => setMode("phone")}>
             {t.authPhone}
@@ -107,9 +126,10 @@ function LoginInner() {
             <button
               type="button"
               onClick={() => goCode("sms")}
-              className="shadow-btn mt-3.5 flex h-14 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
+              className="shadow-btn mt-3.5 flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
             >
               {t.getCode}
+              <TrustStars n={2} size={13} onDark />
             </button>
           </>
         ) : (
@@ -127,9 +147,10 @@ function LoginInner() {
             <button
               type="button"
               onClick={() => goCode("email")}
-              className="shadow-btn mt-3.5 flex h-14 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
+              className="shadow-btn mt-3.5 flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
             >
-              {t.getEmailCode}
+              {t.getEmailLink}
+              <TrustStars n={0} size={13} onDark />
             </button>
           </>
         )}
@@ -151,7 +172,8 @@ function LoginInner() {
               className="flex h-12 items-center gap-3 rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
             >
               {brandMark(id, 20)}
-              <span>{t.continueWith(t.authMethods[id])}</span>
+              <span className="flex-1">{t.continueWith(t.authMethods[id])}</span>
+              <TrustStars n={1} size={12} />
             </button>
           ))}
         </div>
@@ -166,7 +188,8 @@ function LoginInner() {
               className="flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-white px-3 text-left text-[13px] font-semibold text-ink"
             >
               {brandMark(id, 18)}
-              <span>{t.authMethods[id]}</span>
+              <span className="flex-1">{t.authMethods[id]}</span>
+              <TrustStars n={1} size={12} />
             </button>
           ))}
         </div>

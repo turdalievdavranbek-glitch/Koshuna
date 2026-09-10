@@ -8,11 +8,14 @@ import { useApp } from "@/lib/store";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch, Photo } from "@/components/ui";
+import { TrustStars } from "@/components/trust-stars";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
+import { starsForUser } from "@/lib/trust";
 
 export default function ProfilePage() {
   const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, viewerPlace, meetDeals } = useApp();
   const router = useRouter();
+  const stars = starsForUser(user);
   const mine = [
     ...extraListings,
     ...MY_LISTING_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean),
@@ -62,6 +65,9 @@ export default function ProfilePage() {
               <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
             </div>
+            <div className="mt-1">
+              <TrustStars n={stars} size={15} />
+            </div>
             <div className="mt-0.5 text-[13px] text-muted">
               {user.email || user.phone}
               {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
@@ -83,6 +89,33 @@ export default function ProfilePage() {
               <div className="mt-0.5 text-[11px] text-muted">{l}</div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustYours}</div>
+          <div className="mt-2 flex items-center gap-2">
+            <TrustStars n={stars} size={16} />
+            <span className="text-[13px] font-semibold text-ink">
+              {stars === 0
+                ? t.trustNone
+                : stars === 1
+                  ? t.trustSocial
+                  : stars === 3
+                    ? t.trustPhoneCard
+                    : t.trustPhone}
+            </span>
+          </div>
+          <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.trustLead}</p>
+          {user.method === "sms" && !user.cardLinked ? (
+            <button
+              type="button"
+              onClick={() => router.push("/card")}
+              className="shadow-btn mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+            >
+              {t.cardAdd}
+            </button>
+          ) : null}
+          {user.cardLinked ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{t.cardOn}</p> : null}
         </div>
 
         <div className="mt-6 flex items-baseline justify-between">

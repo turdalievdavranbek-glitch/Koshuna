@@ -98,6 +98,7 @@ export type User = {
   phone: string;
   email?: string;
   method?: AuthMethod;
+  cardLinked?: boolean;
   joinedYear: number;
   verified: boolean;
   rating: number;
