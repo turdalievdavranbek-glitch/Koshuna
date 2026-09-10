@@ -26,7 +26,7 @@ import {
   techModelsOf,
 } from "@/lib/data";
 import { useApp } from "@/lib/store";
-import { SPEECH_LANGS, type DraftListing, type MediaKind, type SectionId, type SpeechLang } from "@/lib/types";
+import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 
@@ -36,7 +36,7 @@ type Props = {
 };
 
 export function MediaCapture({ draft, onPatch }: Props) {
-  const { t, speechLang, setSpeechLang } = useApp();
+  const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const chunks = useRef<Blob[]>([]);
@@ -54,19 +54,6 @@ export function MediaCapture({ draft, onPatch }: Props) {
       transcript: text,
       ...aiToDraftPatch(guess),
     });
-  };
-
-  const listen = (mode: SpeechLang) => {
-    stopSpeech.current?.();
-    stopSpeech.current = startSpeech(mode, (text) => {
-      setLive(text);
-      applySpeech(text);
-    });
-  };
-
-  const pickSpeechLang = (mode: SpeechLang) => {
-    setSpeechLang(mode);
-    if (recording) listen(mode);
   };
 
   const setKind = (next: MediaKind) => {
@@ -127,7 +114,11 @@ export function MediaCapture({ draft, onPatch }: Props) {
       recRef.current = rec;
       setRecording(true);
       setLive("");
-      listen(speechLang);
+      stopSpeech.current?.();
+      stopSpeech.current = startSpeech("mix", (text) => {
+        setLive(text);
+        applySpeech(text);
+      });
     } catch {
       setBusy(t.mediaNoCamera);
     }
@@ -192,20 +183,6 @@ export function MediaCapture({ draft, onPatch }: Props) {
         </Chip>
       </div>
       <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.mediaHint}</p>
-
-      {kind !== "photos" ? (
-        <div className="mt-3">
-          <Eyebrow>{t.speechLangTitle}</Eyebrow>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {SPEECH_LANGS.map((id) => (
-              <Chip key={id} active={speechLang === id} accent={speechLang === id} onClick={() => pickSpeechLang(id)}>
-                {t.speechLangNames[id]}
-              </Chip>
-            ))}
-          </div>
-          <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.speechLangHint}</p>
-        </div>
-      ) : null}
 
       {kind === "video" ? (
         <div className="mt-3 overflow-hidden rounded-[16px] border border-line bg-ink">

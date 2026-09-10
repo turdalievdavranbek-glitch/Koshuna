@@ -13,8 +13,6 @@ import { persistableUrl } from "./blob-media";
 import { DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import {
-  defaultSpeechLang,
-  parseSpeechLang,
   type AuthMethod,
   type ChatMessage,
   type DraftListing,
@@ -26,7 +24,6 @@ import {
   type MeetOffer,
   type MeetParty,
   type SavedSearch,
-  type SpeechLang,
   type Thread,
   type User,
   type ViewerPlace,
@@ -104,7 +101,6 @@ type State = {
   pendingPath: string | null;
   notificationsOn: boolean;
   listingLayout: ListingLayout;
-  speechLang: SpeechLang;
   elderMode: boolean;
   viewedIds: string[];
   reports: Record<string, string>;
@@ -126,7 +122,6 @@ const initial: State = {
   pendingPath: null,
   notificationsOn: true,
   listingLayout: "medium",
-  speechLang: "ru",
   elderMode: false,
   viewedIds: [],
   reports: {},
@@ -144,7 +139,6 @@ type Store = State & {
   setLang: (lang: Lang) => void;
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
-  setSpeechLang: (lang: SpeechLang) => void;
   setElderMode: (on: boolean) => void;
   markViewed: (id: string) => void;
   reportListing: (id: string, reason: string) => void;
@@ -238,7 +232,6 @@ function load(): State {
       ...saved,
       listingLayout:
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
-      speechLang: parseSpeechLang(saved.speechLang) ?? defaultSpeechLang(saved.lang === "ky" || saved.lang === "uz" ? saved.lang : "ru"),
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
@@ -336,7 +329,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }),
     setLang: (lang) => update({ lang }),
     setListingLayout: (listingLayout) => update({ listingLayout }),
-    setSpeechLang: (speechLang) => update({ speechLang }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
     setViewerPlace: (viewerPlace) => update({ viewerPlace }),

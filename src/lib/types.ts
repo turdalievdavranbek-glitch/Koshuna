@@ -1,17 +1,9 @@
 export const LANGS = ["ru", "ky", "uz", "en"] as const;
 export type Lang = (typeof LANGS)[number];
 
-/** Speech recognition for video/voice posts — independent of UI language. */
+/** Speech recognition for video/voice: Russian, Kyrgyz, Uzbek, or mixed. Chosen automatically, not shown in UI. */
 export const SPEECH_LANGS = ["ru", "ky", "uz", "mix"] as const;
 export type SpeechLang = (typeof SPEECH_LANGS)[number];
-
-export function parseSpeechLang(value: unknown): SpeechLang | null {
-  return (SPEECH_LANGS as readonly string[]).includes(value as string) ? (value as SpeechLang) : null;
-}
-
-export function defaultSpeechLang(uiLang: Lang): SpeechLang {
-  return uiLang === "ky" || uiLang === "uz" ? uiLang : "ru";
-}
 
 export type AuthMethod =
   | "sms"
