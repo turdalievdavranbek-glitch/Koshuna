@@ -102,7 +102,7 @@ export default function FeedPage() {
               {t.shopNav}
             </span>
             <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-              <img src="/sections/secondhand.jpg" alt="" className="h-full w-full object-cover" />
+              <img src="/sections/shops.jpg" alt="" className="h-full w-full object-cover" />
             </span>
           </button>
           {SECTIONS.map((s) => (
