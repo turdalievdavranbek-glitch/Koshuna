@@ -73,7 +73,14 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shareAfterTitle}</div>
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.shareAfterHint}</p>
       {toast ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{toast}</p> : null}
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <button
+        type="button"
+        onClick={() => router.push(`/story/${listing.id}`)}
+        className="mt-3 h-11 w-full rounded-[14px] bg-ink text-[13px] font-semibold text-screen"
+      >
+        {t.packOpen}
+      </button>
+      <div className="mt-2 grid grid-cols-3 gap-2">
         {cell("wa", t.shareWa, <BrandWhatsApp size={28} />, () => {
           window.open(socialShareHref("whatsapp", listing, t, lang), "_blank", "noreferrer");
         }, hasChannel(user, "whatsapp"))}

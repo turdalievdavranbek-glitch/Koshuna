@@ -10,7 +10,6 @@ import { Chip } from "@/components/ui";
 import { CHANNEL_DEMO_POST, hasChannel, parseSellerChannel } from "@/lib/channels";
 import { MY_LISTING_IDS } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
-import { socialShareHref } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { aiToDraftPatch, classifyListingSpeech } from "@/lib/video-ai";
 import type { SellerChannel } from "@/lib/types";
@@ -103,12 +102,7 @@ export default function FromChannelPage() {
       return;
     }
     if (user) linkChannel(channel);
-    if (channel === "instagram") {
-      router.push(`/story/${listing.id}`);
-      return;
-    }
-    window.open(socialShareHref(channel, listing, t, lang), "_blank", "noreferrer");
-    setBusy(t.channelSent);
+    router.push(`/story/${listing.id}`);
   };
 
   const name = t.authMethods[channel];
