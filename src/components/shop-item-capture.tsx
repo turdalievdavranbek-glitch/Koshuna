@@ -201,7 +201,7 @@ export function ShopItemCapture({
         <video ref={videoRef} muted playsInline className={live ? "aspect-[4/5] w-full object-cover" : "hidden"} />
         {!live && photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt="" className="aspect-[4/5] w-full object-cover" />
+          <img src={photo} alt="" className="aspect-[4/5] w-full bg-[#f4efe6] object-contain" />
         ) : null}
         {!live && !photo ? (
           <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 px-6 text-center">
