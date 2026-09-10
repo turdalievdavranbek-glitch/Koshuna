@@ -121,7 +121,7 @@ function ListingCard({
         ) : null}
         {layout !== "small" ? (
           <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
-            {layout === "large" && (listing.sellerName || ownerById(listing.ownerId)?.name) ? (
+            {(listing.sellerName || (layout === "large" ? ownerById(listing.ownerId)?.name : undefined)) ? (
               <span>
                 {listing.sellerName || ownerById(listing.ownerId)?.name}
                 {" · "}

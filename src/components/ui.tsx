@@ -196,6 +196,12 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           </div>
         ) : null}
         <div className="mt-2 flex items-center gap-2 text-xs text-muted-2">
+          {listing.sellerName ? (
+            <>
+              <span>{listing.sellerName}</span>
+              <span>·</span>
+            </>
+          ) : null}
           <span>{t.cities[listing.city]}</span>
           <span>·</span>
           <span>{postedLabel(listing, t)}</span>
@@ -273,6 +279,7 @@ export function ListingRow({
         </div>
         <div className="mt-1 text-sm leading-[1.3] text-ink">{title}</div>
         <div className="mt-1.5 text-xs text-muted-2">
+          {listing.sellerName ? `${listing.sellerName} · ` : ""}
           {t.cities[listing.city]}
           {` · ${postedLabel(listing, t)}`}
           {listing.rooms

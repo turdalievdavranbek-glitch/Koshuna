@@ -59,7 +59,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     descriptionKy: product.description || product.title,
     descriptionEn: product.description || product.title,
     ownerId: prev?.ownerId || "aida",
-    sellerName: shop.ownerName || user?.name,
+    sellerName: shop.name,
     sellerMethod: user?.method ?? prev?.sellerMethod,
     sellerCardLinked: user?.cardLinked ?? prev?.sellerCardLinked,
     shopId: shop.id,
@@ -103,7 +103,7 @@ export function syncShopListings(extra: Listing[], shops: Shop[], user: User | n
 }
 
 export function sellerNameOf(listing: Listing, shop?: Shop | null): string | undefined {
-  return listing.sellerName || shop?.ownerName;
+  return listing.sellerName || shop?.name || shop?.ownerName;
 }
 
 export function sellerMethodOf(listing: Listing): { method?: AuthMethod; cardLinked?: boolean } {
