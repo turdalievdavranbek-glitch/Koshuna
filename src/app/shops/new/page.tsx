@@ -8,7 +8,7 @@ import { IconBack } from "@/components/icons";
 import { useApp } from "@/lib/store";
 
 export default function NewShopPage() {
-  const { t, user, setPendingPath, startShopDraft } = useApp();
+  const { t, user, setPendingPath, startShopDraft, setSide } = useApp();
   const router = useRouter();
 
   useEffect(() => {
@@ -17,6 +17,7 @@ export default function NewShopPage() {
       router.replace("/login");
       return;
     }
+    setSide("sell");
     startShopDraft();
     // startShopDraft is recreated each render; run once per signed-in visit.
     // eslint-disable-next-line react-hooks/exhaustive-deps

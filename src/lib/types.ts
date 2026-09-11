@@ -96,6 +96,13 @@ export type AnimalGroup = "pets" | "farm";
 export const SELLER_CHANNELS = ["instagram", "facebook", "telegram", "whatsapp"] as const;
 export type SellerChannel = (typeof SELLER_CHANNELS)[number];
 
+export const APP_SIDES = ["buy", "sell"] as const;
+export type AppSide = (typeof APP_SIDES)[number];
+
+export function isAppSide(value: unknown): value is AppSide {
+  return value === "buy" || value === "sell";
+}
+
 export type User = {
   name: string;
   phone: string;

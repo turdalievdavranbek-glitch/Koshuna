@@ -4,14 +4,15 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
-import { IconHeart, IconHome, IconPin, IconPlus, IconUser } from "./icons";
+import { IconHeart, IconHome, IconListings, IconPin, IconPlus, IconUser } from "./icons";
 
 type TabIcon = (p: { size?: number; color?: string; filled?: boolean }) => ReactNode;
 
 export function TabBar() {
-  const { t, user, setPendingPath } = useApp();
+  const { t, user, setPendingPath, side } = useApp();
   const path = usePathname();
   const router = useRouter();
+  const selling = side === "sell";
 
   const goPost = () => {
     if (!user) {
@@ -54,8 +55,10 @@ export function TabBar() {
           <IconPlus size={22} color="#FFF7F0" />
         </button>
       </div>
-      {item("/favorites", t.fav, IconHeart, path === "/favorites", true)}
-      {item("/profile", t.profile, IconUser, path === "/profile")}
+      {selling
+        ? item("/selling", t.myListingsShort, IconListings, path === "/selling", true)
+        : item("/favorites", t.fav, IconHeart, path === "/favorites", true)}
+      {item("/profile", selling ? t.sideDesk : t.profile, IconUser, path === "/profile")}
     </nav>
   );
 }

@@ -72,7 +72,7 @@ export default function ListingPage() {
   };
 
   const similar = similarListings(listing, allListings);
-  const mine = isOwnListing(listing, extraListings, user);
+  const mine = isOwnListing(listing, extraListings, user, shops);
   const off = isOffMarket(listing);
   const reserved = listing.status === "reserved";
   const isStay = listing.section === "stays" || listing.dealKind === "short";
@@ -117,13 +117,15 @@ export default function ListingPage() {
               >
                 <IconShare size={17} color="#17140F" />
               </button>
-              <button
-                type="button"
-                onClick={onFav}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
-              >
-                <IconHeart size={18} color="#B8452F" filled={isFav(listing.id)} />
-              </button>
+              {mine ? null : (
+                <button
+                  type="button"
+                  onClick={onFav}
+                  className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
+                >
+                  <IconHeart size={18} color="#B8452F" filled={isFav(listing.id)} />
+                </button>
+              )}
             </div>
           </div>
           {isVideoListing(listing) ? (
@@ -247,7 +249,7 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
-          {off || reserved ? null : <GoLookCard listing={listing} />}
+          {off || reserved || mine ? null : <GoLookCard listing={listing} />}
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />
 
@@ -346,7 +348,9 @@ export default function ListingPage() {
                   <span className="text-base font-semibold text-ink">{listing.sellerName || owner?.name}</span>
                   <SellerStarsBadge listing={listing} placed />
                 </div>
-                <div className="mt-0.5 text-[13px] text-muted">{t.shopFromListing} · {postedLabel(listing, t)}</div>
+                <div className="mt-0.5 text-[13px] text-muted">
+                  {mine ? t.youSellerOnCard : `${t.shopFromListing} · ${postedLabel(listing, t)}`}
+                </div>
               </div>
               {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
             </button>
@@ -372,9 +376,11 @@ export default function ListingPage() {
                   ) : null}
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
-                  {owner.replyTime
-                    ? `${t.onKoshuna} ${owner.since} · ${owner.replyTime}`
-                    : `${owner.listingsCount} ${t.nListingsOwner} · ${t.rating} ${owner.rating}`}
+                  {mine
+                    ? t.youSellerOnCard
+                    : owner.replyTime
+                      ? `${t.onKoshuna} ${owner.since} · ${owner.replyTime}`
+                      : `${owner.listingsCount} ${t.nListingsOwner} · ${t.rating} ${owner.rating}`}
                 </div>
               </div>
               <span className="text-[13px] font-semibold text-accent">{t.ownerProfile}</span>
@@ -427,7 +433,25 @@ export default function ListingPage() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-[26px] pt-3.5">
-        {elderMode && !isStay ? (
+        {mine ? (
+          <>
+            <button
+              type="button"
+              onClick={() => router.push("/messages")}
+              className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
+            >
+              <IconChat size={18} color="#F7F3EC" />
+              {t.inbox}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/selling")}
+              className="flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
+            >
+              {t.sideDesk}
+            </button>
+          </>
+        ) : elderMode && !isStay ? (
           <>
             <a
               href={`tel:+996555123456`}

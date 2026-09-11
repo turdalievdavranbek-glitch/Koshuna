@@ -1,5 +1,6 @@
 import { MY_LISTING_IDS } from "./data";
-import type { DealStage, Listing, ListingStatus, User } from "./types";
+import { isOwnShop } from "./shops";
+import type { AppSide, DealStage, Listing, ListingStatus, Shop, Thread, User } from "./types";
 
 export const DEAL_STAGES: DealStage[] = ["active", "reserved", "closed", "withdrawn"];
 
@@ -7,11 +8,16 @@ export function isOwnListing(
   listing: { id: string; shopId?: string; shopProductId?: string },
   extra: Listing[],
   user: User | null,
+  shops: Pick<Shop, "id" | "ownerPhone">[] = [],
 ): boolean {
   if (!user) return false;
-  if (listing.shopId || listing.shopProductId) return true;
   if (extra.some((item) => item.id === listing.id)) return true;
-  return MY_LISTING_IDS.includes(listing.id);
+  if (MY_LISTING_IDS.includes(listing.id)) return true;
+  if (listing.shopId) {
+    const shop = shops.find((item) => item.id === listing.shopId);
+    return Boolean(shop && isOwnShop(shop, user));
+  }
+  return false;
 }
 
 export function isOffMarket(listing: Pick<Listing, "status">): boolean {
@@ -32,4 +38,20 @@ export function statusForStage(listing: Listing, stage: DealStage): ListingStatu
 
 export function ownListingIds(extra: Listing[]): string[] {
   return [...new Set([...extra.map((item) => item.id), ...MY_LISTING_IDS])];
+}
+
+export function mineListings(all: Listing[], extra: Listing[], user: User | null, shops: Pick<Shop, "id" | "ownerPhone">[] = []): Listing[] {
+  if (!user) return [];
+  const seen = new Set<string>();
+  return all.filter((item) => {
+    if (seen.has(item.id)) return false;
+    if (!isOwnListing(item, extra, user, shops)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+export function threadSide(thread: Pick<Thread, "listingId">, extra: Listing[], user: User | null): AppSide {
+  if (!user) return "buy";
+  return ownListingIds(extra).includes(thread.listingId) ? "sell" : "buy";
 }

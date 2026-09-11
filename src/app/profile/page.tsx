@@ -2,34 +2,39 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MY_LISTING_IDS, formatSom } from "@/lib/data";
-import { listingTitle } from "@/lib/i18n";
+import { mineListings, threadSide } from "@/lib/listing-owner";
+import { shopsOf, userHasShopBadge } from "@/lib/shops";
+import { starsForUser } from "@/lib/trust";
 import { useApp } from "@/lib/store";
 import { LANGS } from "@/lib/types";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
-import { LangSwitch, Photo } from "@/components/ui";
+import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
-import { ListingThumb, isVideoListing } from "@/components/listing-media";
-import { starsForUser } from "@/lib/trust";
 import { SellerHub } from "@/components/seller-hub";
-import { shopsOf, userHasShopBadge } from "@/lib/shops";
+import { SideSwitch } from "@/components/side-switch";
+import { MyListings } from "@/components/my-listings";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, meetDeals, shops } = useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, side, threads } =
+    useApp();
   const router = useRouter();
   const stars = starsForUser(user);
-  const mine = [
-    ...extraListings,
-    ...MY_LISTING_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean),
-  ].filter((item, i, all) => all.findIndex((row) => row && row.id === item?.id) === i);
+  const selling = side === "sell";
+  const mine = mineListings(allListings, extraListings, user, shops);
+  const inboxCount = user
+    ? threads.filter((th) => (selling ? threadSide(th, extraListings, user) === "sell" : threadSide(th, extraListings, user) === "buy")).length
+    : 0;
 
   if (!user) {
     return (
       <PhoneShell tab>
         <div className="flex flex-1 flex-col px-5 pt-4">
           <h1 className="font-display text-[28px] font-extrabold text-ink">{t.profile}</h1>
-          <p className="mt-2 text-[15px] text-muted">{t.guestHint}</p>
+          <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.guestSideHint}</p>
+          <div className="mt-5">
+            <SideSwitch />
+          </div>
           <button
             type="button"
             onClick={() => router.push("/login")}
@@ -49,7 +54,9 @@ export default function ProfilePage() {
   return (
     <PhoneShell tab>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-2">
-        <div className="flex items-center gap-3.5">
+        <SideSwitch />
+
+        <div className="mt-5 flex items-center gap-3.5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">
             {user.name.slice(0, 1)}
           </div>
@@ -57,7 +64,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-1.5">
               <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
-              {userHasShopBadge(shops, user) ? (
+              {selling && userHasShopBadge(shops, user) ? (
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
               ) : null}
             </div>
@@ -74,31 +81,27 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <div className="mt-[18px] grid grid-cols-3 gap-2">
-          {[
-            [String(mine.length), t.listingsCount],
-            ["1 284", t.views],
-            ["4,9", t.rating],
-          ].map(([v, l]) => (
-            <div key={l} className="rounded-[14px] border border-line bg-white p-3">
-              <div className="font-display text-xl font-bold text-ink">{v}</div>
-              <div className="mt-0.5 text-[11px] text-muted">{l}</div>
-            </div>
-          ))}
-        </div>
+        {selling ? (
+          <div className="mt-[18px] grid grid-cols-3 gap-2">
+            {[
+              [String(mine.length), t.listingsCount],
+              ["1 284", t.views],
+              ["4,9", t.rating],
+            ].map(([v, l]) => (
+              <div key={l} className="rounded-[14px] border border-line bg-white p-3">
+                <div className="font-display text-xl font-bold text-ink">{v}</div>
+                <div className="mt-0.5 text-[11px] text-muted">{l}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustYours}</div>
           <div className="mt-2 flex items-center gap-2">
             <TrustStars n={stars} size={16} />
             <span className="text-[13px] font-semibold text-ink">
-              {stars === 0
-                ? t.trustNone
-                : stars === 1
-                  ? t.trustSocial
-                  : stars === 3
-                    ? t.trustPhoneCard
-                    : t.trustPhone}
+              {stars === 0 ? t.trustNone : stars === 1 ? t.trustSocial : stars === 3 ? t.trustPhoneCard : t.trustPhone}
             </span>
           </div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.trustLead}</p>
@@ -114,91 +117,58 @@ export default function ProfilePage() {
           {user.cardLinked ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{t.cardOn}</p> : null}
         </div>
 
-        <div className="mt-3">
-          <SellerHub />
-        </div>
-
-        <div className="mt-6 flex items-baseline justify-between">
-          <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
-          <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
-            {t.allN(shopsOf(shops, user).length)}
-          </button>
-        </div>
-        <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
-        <button
-          type="button"
-          onClick={() => router.push("/shops/new")}
-          className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+        <Link
+          href="/messages"
+          className="mt-3 flex items-center justify-between rounded-[18px] border border-line bg-white px-4 py-[15px] text-[15px] text-ink no-underline"
         >
-          {t.shopNew}
-        </button>
+          <span>
+            {t.inbox}
+            <span className="mt-0.5 block text-[12px] text-muted">{selling ? t.inboxSell : t.inboxBuy}</span>
+          </span>
+          <span className="text-[13px] font-semibold text-accent">{inboxCount}</span>
+        </Link>
 
-        <div className="mt-6 flex items-baseline justify-between">
-          <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
-          <span className="text-[13px] font-semibold text-accent">{t.allN(mine.length)}</span>
-        </div>
+        {selling ? (
+          <>
+            <div className="mt-3">
+              <SellerHub />
+            </div>
 
-        <div className="mt-3 flex flex-col gap-2.5">
-          {mine.map((item) =>
-            item ? (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => router.push(`/listing/${item.id}`)}
-                className="flex items-center overflow-hidden rounded-[18px] border border-line bg-white text-left"
-              >
-                <div className={`shrink-0 p-2 ${isVideoListing(item) ? "w-[88px]" : "h-24 w-24 p-0"}`}>
-                  {isVideoListing(item) ? (
-                    <ListingThumb listing={item} alt="" compact />
-                  ) : (
-                    <div className="h-24 w-24 overflow-hidden">
-                      <Photo src={item.photos[0]} alt="" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 px-3.5 py-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    <span
-                      className="rounded-md px-2 py-0.5 text-[10px] font-bold"
-                      style={{
-                        background:
-                          item.status === "promoted"
-                            ? "#F3E0D9"
-                            : item.status === "reserved"
-                              ? "#F3E0D9"
-                              : item.status === "closed"
-                                ? "#E4EFE9"
-                                : item.status === "draft" || item.status === "withdrawn"
-                                  ? "#EFE8DB"
-                                  : "#E4EFE9",
-                        color:
-                          item.status === "promoted" || item.status === "reserved"
-                            ? "#8E3423"
-                            : item.status === "draft" || item.status === "withdrawn"
-                              ? "#6E6558"
-                              : "#2A6B57",
-                      }}
-                    >
-                      {t.status[item.status]?.toUpperCase?.() ?? t.status[item.status]}
-                    </span>
-                    {item.reservedBy ? (
-                      <span className="rounded-md bg-chip px-2 py-0.5 text-[10px] font-bold text-muted">
-                        {item.reservedBy.name}
-                        {meetDeals[item.id]?.buyerConfirmed ? "" : " · …"}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1.5 text-sm leading-[1.3] text-ink">{listingTitle(item, lang)}</div>
-                  <div className="mt-1.5 text-xs text-muted-2">
-                    {item.status === "draft"
-                      ? `${t.cities[item.city]} · ${formatSom(item.price)} KGS`
-                      : `${item.views} ${t.views} · ${item.favCount} ${t.fav.toLowerCase()}`}
-                  </div>
-                </div>
+            <div className="mt-6 flex items-baseline justify-between">
+              <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
+              <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
+                {t.allN(shopsOf(shops, user).length)}
               </button>
-            ) : null,
-          )}
-        </div>
+            </div>
+            <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+            <button
+              type="button"
+              onClick={() => router.push("/shops/new")}
+              className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+            >
+              {t.shopNew}
+            </button>
+
+            <div className="mt-6 flex items-baseline justify-between">
+              <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
+              <button type="button" onClick={() => router.push("/selling")} className="text-[13px] font-semibold text-accent">
+                {t.allN(mine.length)}
+              </button>
+            </div>
+            <div className="mt-3">
+              <MyListings limit={3} />
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.push("/favorites")}
+            className="mt-3 flex h-[54px] w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.fav}</span>
+            <span className="text-[13px] font-semibold text-accent">›</span>
+          </button>
+        )}
 
         <div className="mt-6 overflow-hidden rounded-[18px] border border-line bg-white">
           <Row
@@ -245,10 +215,6 @@ export default function ProfilePage() {
           />
           <Link href="/help" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
             {t.help}
-            <span className="text-xs text-muted-2">›</span>
-          </Link>
-          <Link href="/messages" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
-            {t.inbox}
             <span className="text-xs text-muted-2">›</span>
           </Link>
           <button

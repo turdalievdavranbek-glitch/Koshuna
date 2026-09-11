@@ -33,6 +33,8 @@ import {
   type ShopProduct,
   type Thread,
   type User,
+  type AppSide,
+  isAppSide,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
@@ -118,6 +120,7 @@ type State = {
   comments: Record<string, ListingComment[]>;
   shops: Shop[];
   shopDraft: ShopDraft | null;
+  side: AppSide;
 };
 
 const initial: State = {
@@ -142,6 +145,7 @@ const initial: State = {
   comments: DEFAULT_COMMENTS,
   shops: [],
   shopDraft: null,
+  side: "buy",
 };
 
 type Store = State & {
@@ -156,6 +160,7 @@ type Store = State & {
   setCity: (city: string) => void;
   setListingLayout: (layout: ListingLayout) => void;
   setElderMode: (on: boolean) => void;
+  setSide: (side: AppSide) => void;
   markViewed: (id: string) => void;
   reportListing: (id: string, reason: string) => void;
   setFilters: (patch: Partial<Filters>) => void;
@@ -295,6 +300,7 @@ function load(): State {
       extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
+      side: isAppSide(saved.side) ? saved.side : "buy",
     };
   } catch {
     return initial;
@@ -440,6 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),
+    setSide: (side) => update({ side }),
     markViewed: (id) =>
       update((s) => ({
         ...s,
@@ -561,7 +568,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         lng: GIS_CITIES[d.city]?.lng,
         meetupSpot: d.meetupSpot,
       };
-      update({ extraListings: [listing, ...state.extraListings] });
+      update({ extraListings: [listing, ...state.extraListings], side: "sell" });
       return listing;
     },
     updateListing: (id, patch) => {

@@ -6,6 +6,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Toggle } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
+import { SideSwitch } from "@/components/side-switch";
 
 export default function FavoritesPage() {
   const { t, user, favouriteIds, savedSearches, toggleSearchNotify, setPendingPath, allListings } = useApp();
@@ -40,6 +41,9 @@ export default function FavoritesPage() {
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
           {tab === "items" && items.length ? <LayoutSwitch /> : null}
+        </div>
+        <div className="mt-3.5">
+          <SideSwitch compact />
         </div>
         <div className="mt-3.5 flex gap-1 rounded-[14px] bg-chip p-1">
           <button

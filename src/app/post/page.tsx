@@ -15,7 +15,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
 export default function PostPage() {
-  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, allListings } = useApp();
+  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, allListings, setSide } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
@@ -25,8 +25,10 @@ export default function PostPage() {
     if (!user) {
       setPendingPath("/post");
       router.replace("/login");
+    } else {
+      setSide("sell");
     }
-  }, [user, router, setPendingPath]);
+  }, [user, router, setPendingPath, setSide]);
 
   if (!user) return null;
 

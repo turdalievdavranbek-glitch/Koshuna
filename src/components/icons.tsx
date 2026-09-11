@@ -115,6 +115,15 @@ export function IconPin(p: P) {
     </svg>
   );
 }
+export function IconListings(p: P & { filled?: boolean }) {
+  return (
+    <svg {...base(p)} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.6" y="3.4" width="10.2" height="8.4" rx="1.6" fill={p.filled ? p.color ?? "currentColor" : "none"} />
+      <path d="M5.2 14.2h8.6A1.6 1.6 0 0 0 15.4 12.6V6.2" />
+    </svg>
+  );
+}
+
 export function IconHeart(p: P & { filled?: boolean }) {
   const { filled, ...rest } = p;
   return (
