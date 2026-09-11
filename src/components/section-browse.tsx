@@ -107,7 +107,6 @@ function FeedExtras({ id }: { id: SectionId }) {
             ))}
           </div>
         ) : null}
-        <SellerKindChips variant="auto" />
         <button
           type="button"
           onClick={() => router.push("/dealers")}
