@@ -20,10 +20,10 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   if (videos.length === 0) return null;
 
   return (
-    <div className="mt-4">
+    <div className="mt-4" data-testid="neighbor-circles">
       <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.homeCircles}</h2>
-      <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.homeCirclesHint}</p>
-      <div className="sc mt-3 flex gap-3 overflow-x-auto pb-1">
+      <p className="mt-1 line-clamp-2 text-[12px] leading-[1.35] text-muted">{t.homeCirclesHint}</p>
+      <div className="sc mt-2.5 flex gap-3 overflow-x-auto pb-1">
         {videos.map((item) => {
           const title = listingTitle(item, lang);
           return (
@@ -31,9 +31,9 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
               key={item.id}
               type="button"
               onClick={() => router.push(`/story/${item.id}`)}
-              className="flex w-[84px] shrink-0 flex-col items-center text-center"
+              className="flex w-[76px] shrink-0 flex-col items-center text-center"
             >
-              <ListingThumb listing={item} alt={title} compact className="w-[76px]" />
+              <ListingThumb listing={item} alt={title} compact className="w-[68px]" />
               <div className="mt-1.5 w-full truncate text-[11px] font-bold text-ink">{formatSom(item.price)}</div>
               <div className="w-full truncate text-[10px] leading-[1.2] text-muted">{t.cities[item.city]}</div>
             </button>

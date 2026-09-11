@@ -115,9 +115,7 @@ export default function FeedPage() {
           />
         </div>
 
-        <NeighborCircles listings={listings} />
-
-        <div className="mt-[18px] flex items-baseline justify-between">
+        <div className="mt-[16px] flex items-baseline justify-between">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
           <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
         </div>
@@ -127,9 +125,9 @@ export default function FeedPage() {
               key={s.id}
               type="button"
               onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[148px] flex-col overflow-hidden rounded-[18px] text-center"
+              className="section-tile flex h-[128px] flex-col overflow-hidden rounded-[18px] text-center"
             >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-2 text-[13px] font-semibold leading-[1.2] text-ink">
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-1.5 text-[12px] font-semibold leading-[1.2] text-ink">
                 {s.id === "shops" ? t.shopNav : t.sectionNames[s.id]}
               </span>
               <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
@@ -138,15 +136,18 @@ export default function FeedPage() {
             </button>
           ))}
         </div>
+
+        <NeighborCircles listings={listings} />
+
         <div className="mt-2.5 grid grid-cols-3 gap-2">
           {rest.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[102px] flex-col overflow-hidden rounded-[14px] text-center"
+              className="section-tile flex h-[96px] flex-col overflow-hidden rounded-[14px] text-center"
             >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1.5 text-[11px] font-semibold leading-[1.15] text-ink">
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1 text-[10px] font-semibold leading-[1.15] text-ink">
                 {t.sectionNames[s.id]}
               </span>
               <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
