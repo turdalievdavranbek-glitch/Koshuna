@@ -227,7 +227,7 @@ function normalizeFilters(filters: Filters): Filters {
     ...next,
     autoType: next.autoType === "rent" ? "rent" : "sale",
     goodsKind: next.goodsKind && next.goodsKind !== "any" ? next.goodsKind : "any",
-    animalGroup: next.animalGroup === "farm" ? "farm" : "pets",
+    animalGroup: next.animalGroup === "farm" ? "farm" : next.animalGroup === "any" ? "any" : "pets",
     animalKind: next.animalKind && next.animalKind !== "any" ? next.animalKind : "any",
     carMake: next.carMake && next.carMake !== "any" ? next.carMake : "any",
     carModel: next.carModel && next.carModel !== "any" ? next.carModel : "any",

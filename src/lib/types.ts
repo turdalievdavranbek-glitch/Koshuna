@@ -223,7 +223,7 @@ export type Filters = {
   carModel: string;
   techBrand: string;
   techModel: string;
-  animalGroup: AnimalGroup;
+  animalGroup: AnimalGroup | "any";
   animalKind: string;
   locLng: number | null;
   locLat: number | null;

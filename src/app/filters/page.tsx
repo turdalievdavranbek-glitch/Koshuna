@@ -5,6 +5,7 @@ import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRo
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
+import { feedHrefFromFilters } from "@/lib/section-tree";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -419,7 +420,7 @@ export default function FiltersPage() {
         </button>
         <button
           type="button"
-          onClick={() => router.push(filters.section ? `/section/${filters.section}` : "/")}
+          onClick={() => router.push(feedHrefFromFilters(filters))}
           className="shadow-btn flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
         >
           {t.showN(count)}

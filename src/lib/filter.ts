@@ -26,7 +26,7 @@ export function homeFeedFilters(filters: Filters): Filters {
     carModel: "any",
     techBrand: "any",
     techModel: "any",
-    animalGroup: "pets",
+    animalGroup: "any",
     animalKind: "any",
     locLng: null,
     locLat: null,
@@ -70,7 +70,9 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (item.techModel !== filters.techModel) return false;
     }
     if (filters.section === "animals") {
-      if (item.animalGroup !== filters.animalGroup) return false;
+      if (filters.animalGroup && filters.animalGroup !== "any" && item.animalGroup !== filters.animalGroup) {
+        return false;
+      }
       if (filters.animalKind && filters.animalKind !== "any" && item.animalKind !== filters.animalKind) {
         return false;
       }

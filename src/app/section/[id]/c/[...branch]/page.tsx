@@ -2,6 +2,6 @@
 
 import { SectionRoutePage } from "@/components/section-browse";
 
-export default function SectionPage() {
+export default function SectionBranchPage() {
   return <SectionRoutePage />;
 }

@@ -7,7 +7,7 @@ import { SectionList } from "@/components/section-list";
 
 export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boolean }) {
   const { t, filters, setFilters } = useApp();
-  const group = filters.animalGroup === "farm" ? "farm" : "pets";
+  const group = filters.animalGroup === "farm" || filters.animalGroup === "pets" ? filters.animalGroup : "any";
   const kinds = animalKindsOf(group);
 
   const pickGroup = (id: "pets" | "farm") => {
@@ -19,31 +19,39 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
       <div className="flex flex-col gap-3">
         <SectionList
           title={t.category}
-          rows={ANIMAL_GROUPS.map((id) => ({
-            id,
-            label: id === "pets" ? t.animalPets : t.animalFarm,
-            active: group === id,
-            onClick: () => pickGroup(id),
-          }))}
-        />
-        <SectionList
-          title={t.animalKindLabel}
           rows={[
-            { id: "any", label: t.any, active: filters.animalKind === "any", onClick: () => setFilters({ animalKind: "any" }) },
-            ...kinds.map((id) => ({
+            { id: "any", label: t.allCategories, active: group === "any", onClick: () => setFilters({ animalGroup: "any", animalKind: "any" }) },
+            ...ANIMAL_GROUPS.map((id) => ({
               id,
-              label: t.animalKinds[id],
-              active: filters.animalKind === id,
-              onClick: () => setFilters({ animalKind: id }),
+              label: id === "pets" ? t.animalPets : t.animalFarm,
+              active: group === id,
+              onClick: () => pickGroup(id),
             })),
           ]}
         />
+        {group === "any" ? null : (
+          <SectionList
+            title={t.animalKindLabel}
+            rows={[
+              { id: "any", label: t.any, active: filters.animalKind === "any", onClick: () => setFilters({ animalKind: "any" }) },
+              ...kinds.map((id) => ({
+                id,
+                label: t.animalKinds[id],
+                active: filters.animalKind === id,
+                onClick: () => setFilters({ animalKind: id }),
+              })),
+            ]}
+          />
+        )}
       </div>
     );
   }
 
   const groupRow = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
+      <Chip active={group === "any"} onClick={() => setFilters({ animalGroup: "any", animalKind: "any" })}>
+        {t.allCategories}
+      </Chip>
       {ANIMAL_GROUPS.map((id) => (
         <Chip key={id} active={group === id} onClick={() => pickGroup(id)}>
           {id === "pets" ? t.animalPets : t.animalFarm}
@@ -72,10 +80,12 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
           <Eyebrow>{t.category}</Eyebrow>
           {groupRow}
         </div>
-        <div>
-          <Eyebrow>{t.animalKindLabel}</Eyebrow>
-          {kindRow}
-        </div>
+        {group === "any" ? null : (
+          <div>
+            <Eyebrow>{t.animalKindLabel}</Eyebrow>
+            {kindRow}
+          </div>
+        )}
       </>
     );
   }
@@ -83,7 +93,7 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
   return (
     <div className="flex flex-col gap-2.5">
       {groupRow}
-      {kindRow}
+      {group === "any" ? null : kindRow}
     </div>
   );
 }
