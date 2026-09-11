@@ -28,7 +28,7 @@ export function GisOnMapCard({
   const href = listingId ? listingMapPath(listingId) : mapPointPath(lat, lng, city);
 
   return (
-    <div className="overflow-hidden rounded-[18px] border border-line bg-white">
+    <div className="isolate overflow-hidden rounded-[18px] border border-line bg-white">
       <div className={`pointer-events-none relative z-0 ${compact ? "h-[132px]" : "h-44"}`}>
         <GisMap
           center={{ lat, lng }}
