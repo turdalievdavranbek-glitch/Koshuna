@@ -5,7 +5,7 @@ import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRo
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
-import { feedHrefFromFilters } from "@/lib/section-tree";
+import { feedHrefFromFilters, sectionHref } from "@/lib/section-tree";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -45,8 +45,9 @@ export default function FiltersPage() {
   const isConstruction = filters.section === "construction";
   const isRestaurants = filters.section === "restaurants";
 
-  const pickSection = (id: (typeof SECTIONS)[number]["id"]) => {
+  const openSection = (id: (typeof SECTIONS)[number]["id"]) => {
     setFilters(patchForSection(id, filters));
+    router.push(sectionHref(id));
   };
 
   const searchPh = searchPlaceholder(filters.section, t);
@@ -102,17 +103,27 @@ export default function FiltersPage() {
         <div>
           <Eyebrow>{t.section}</Eyebrow>
           <div className="mt-2.5 overflow-hidden rounded-[16px] border border-line bg-surface">
-            {SECTIONS.map((s, i) => {
+            <button
+              type="button"
+              onClick={() => router.push("/shops")}
+              className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
+            >
+              <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
+                <img src="/sections/shops.jpg" alt="" className="h-full w-full object-cover" />
+              </span>
+              <span className="flex-1 text-[15px] font-semibold text-ink">{t.shopNav}</span>
+              <span className="text-muted-2">›</span>
+            </button>
+            {SECTIONS.map((s) => {
               const on = filters.section === s.id;
               return (
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => pickSection(s.id)}
-                  className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
+                  onClick={() => openSection(s.id)}
+                  className="flex w-full items-center gap-3 border-t border-line px-3 py-[10px] text-left"
                   style={{
                     background: on ? "#17140F" : "#FFFFFF",
-                    borderTop: i === 0 ? "none" : "1px solid #E4DCCE",
                   }}
                 >
                   <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
