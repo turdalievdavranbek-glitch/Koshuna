@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { CITIES, PROMOTED_IDS, SECTIONS, formatSom } from "@/lib/data";
+import { PROMOTED_IDS, SECTIONS, formatSom } from "@/lib/data";
 import { applyFilters, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
+import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
@@ -17,13 +17,13 @@ import { NeighborBanner } from "@/components/neighbor-seal";
 import { KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
+import { openLocationPicker } from "@/components/location-line";
 
 export default function FeedPage() {
-  const { t, lang, city, setCity, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
+  const { t, lang, city, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
     useApp();
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
-  const [cityOpen, setCityOpen] = useState(false);
   const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
 
   const onFav = (id: string) => {
@@ -49,11 +49,13 @@ export default function FeedPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setCityOpen(true)}
+              onClick={() => openLocationPicker(router, "/")}
               className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-[7px] text-[13px] font-semibold text-ink"
             >
               <IconPin size={13} color="#B8452F" />
-              {city === "all" ? t.country : t.cities[city]}
+              <span className="max-w-[140px] truncate">
+                {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
+              </span>
               <span className="text-[10px] text-muted-2">▾</span>
             </button>
             <Link
@@ -177,14 +179,6 @@ export default function FeedPage() {
 
         <RecentlyViewed />
 
-        <div className="mt-[22px] flex flex-wrap gap-2">
-          {CITIES.map((id) => (
-            <Chip key={id} active={city === id} onClick={() => setCity(id)}>
-              {t.cities[id]}
-            </Chip>
-          ))}
-        </div>
-
         <div className="mt-5 flex items-center justify-between gap-3">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>
           <div className="flex items-center gap-2">
@@ -244,33 +238,6 @@ export default function FeedPage() {
           </span>
         </div>
       </div>
-
-      {cityOpen ? (
-        <div className="absolute inset-0 z-20 flex items-end bg-black/30" onClick={() => setCityOpen(false)}>
-          <div
-            className="w-full rounded-t-[26px] bg-screen p-5 pb-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-toggle-off" />
-            <div className="font-display text-lg font-bold text-ink">{t.city}</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {CITIES.map((id) => (
-                <Chip
-                  key={id}
-                  active={city === id}
-                  accent={id !== "all" && city === id}
-                  onClick={() => {
-                    setCity(id);
-                    setCityOpen(false);
-                  }}
-                >
-                  {t.cities[id]}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </PhoneShell>
   );
 }

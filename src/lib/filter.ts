@@ -3,6 +3,7 @@ import { isAiylListing } from "./data";
 import { hasPriceDrop } from "./deal";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
+import { oblastOfListing } from "./places";
 import { isSpokenListing } from "./video-ai";
 
 /** Home chips only — leftover section search (rooms, map pin, deal type) must not empty the feed. */
@@ -43,11 +44,19 @@ export function homeFeedFilters(filters: Filters): Filters {
   };
 }
 
-export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
+function placeMatches(item: Listing, filters: Filters, city: string): boolean {
+  if (filters.settlement && filters.settlement !== "any") return item.settlement === filters.settlement;
+  if (filters.aiylOnly) return isAiylListing(item);
   const cityKey = filters.city !== "all" ? filters.city : city;
+  if (cityKey && cityKey !== "all") return item.city === cityKey;
+  if (filters.oblast && filters.oblast !== "any") return oblastOfListing(item) === filters.oblast;
+  return true;
+}
+
+export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   let out = list.filter((item) => {
     if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
-    if (cityKey && cityKey !== "all" && item.city !== cityKey) return false;
+    if (!placeMatches(item, filters, city)) return false;
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";
       if (item.section !== want) return false;
@@ -88,11 +97,6 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
     if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
     if (filters.videoOnly && !isSpokenListing(item)) return false;
-    if (filters.settlement && filters.settlement !== "any") {
-      if (item.settlement !== filters.settlement) return false;
-    } else if (filters.aiylOnly && !isAiylListing(item)) {
-      return false;
-    }
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }

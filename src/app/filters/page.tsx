@@ -1,15 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CITIES, SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms } from "@/lib/data";
+import { SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { feedHrefFromFilters, sectionHref } from "@/lib/section-tree";
+import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Toggle } from "@/components/ui";
+import { openLocationPicker } from "@/components/location-line";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { PropertyTypeChips } from "@/components/property-chips";
@@ -19,10 +21,9 @@ import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
-import { LocationChips } from "@/components/location-chips";
 
 export default function FiltersPage() {
-  const { t, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
+  const { t, lang, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
     useApp();
   const router = useRouter();
   const count = applyFilters(allListings, filters, city).length;
@@ -150,7 +151,19 @@ export default function FiltersPage() {
 
         {isRent ? <PropertyTypeChips labeled /> : null}
 
-        {isRent || isRestaurants ? <LocationChips labeled /> : null}
+        <div>
+          <Eyebrow>{t.location}</Eyebrow>
+          <button
+            type="button"
+            onClick={() => openLocationPicker(router, "/filters")}
+            className="mt-2.5 flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">
+              {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
+            </span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        </div>
 
         {isRent || isRestaurants ? (
           <div>
@@ -303,24 +316,6 @@ export default function FiltersPage() {
             ))}
           </div>
         </div>
-
-        {isRent || isRestaurants ? null : (
-          <div>
-            <Eyebrow>{t.city}</Eyebrow>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {[...CITIES].sort((a, b) => (a === "all" ? 1 : b === "all" ? -1 : 0)).map((id) => (
-                <Chip
-                  key={id}
-                  active={filters.city === id}
-                  accent={id !== "all" && filters.city === id}
-                  onClick={() => setFilters({ city: id })}
-                >
-                  {t.cities[id]}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div>
           <div className="flex items-baseline justify-between">

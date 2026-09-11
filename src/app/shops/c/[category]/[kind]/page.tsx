@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CITIES } from "@/lib/data";
 import { applyShopFilters, isShopCategory, isShopKind, parentOfShopKind, publicShops, shopKindsOf } from "@/lib/shops";
 import { shopKindLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
@@ -10,15 +9,14 @@ import type { ShopCategory, ShopKind } from "@/lib/types";
 import { PhoneShell } from "@/components/shell";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { ShopRows } from "@/components/shop-rows";
-import { Chip } from "@/components/ui";
 import { IconBack, IconSearch } from "@/components/icons";
+import { LocationLine } from "@/components/location-line";
 
 export default function ShopKindResultsPage() {
   const { category, kind } = useParams<{ category: string; kind: string }>();
   const router = useRouter();
   const { t, shops, city, ready } = useApp();
   const [query, setQuery] = useState("");
-  const [cityKey, setCityKey] = useState(city);
 
   const parentOk = isShopCategory(category);
   const all = kind === "all";
@@ -28,8 +26,8 @@ export default function ShopKindResultsPage() {
 
   const list = useMemo(() => {
     if (filter === "all") return [];
-    return applyShopFilters(publicShops(shops), { query, city: cityKey, category: filter }, city);
-  }, [shops, query, cityKey, filter, city]);
+    return applyShopFilters(publicShops(shops), { query, city, category: filter }, city);
+  }, [shops, query, filter, city]);
 
   if (!parentOk || !shopKindsOf(category).length || !kindOk) {
     return (
@@ -68,6 +66,9 @@ export default function ShopKindResultsPage() {
           <h1 className="max-w-[240px] truncate font-display text-[17px] font-bold text-ink">{title}</h1>
           <span className="w-9" />
         </div>
+        <div className="mt-1">
+          <LocationLine />
+        </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
           <input
@@ -79,13 +80,6 @@ export default function ShopKindResultsPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-        <div className="flex flex-wrap gap-2">
-          {CITIES.map((id) => (
-            <Chip key={id} active={cityKey === id} onClick={() => setCityKey(id)}>
-              {id === "all" ? t.country : t.cities[id]}
-            </Chip>
-          ))}
-        </div>
         {!ready ? <p className="mt-6 text-[14px] text-muted">{t.shopLoad}</p> : null}
         {ready && !list.length ? <p className="mt-6 text-[14px] leading-[1.45] text-muted">{t.shopEmptyFilter}</p> : null}
         <div className="mt-4">

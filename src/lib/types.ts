@@ -249,6 +249,7 @@ export type Filters = {
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
+  oblast: string;
   settlement: string;
   aiylOnly: boolean;
   priceDroppedOnly: boolean;

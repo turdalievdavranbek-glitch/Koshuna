@@ -3,26 +3,25 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CITIES } from "@/lib/data";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopRows } from "@/components/shop-rows";
 import { Chip } from "@/components/ui";
 import { IconBack, IconSearch } from "@/components/icons";
+import { LocationLine } from "@/components/location-line";
 
 export default function ShopsPage() {
   const { t, user, shops, city, ready } = useApp();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<ShopCategory | "all">("all");
-  const [cityKey, setCityKey] = useState(city);
   const [mine, setMine] = useState(false);
 
   const list = useMemo(() => {
     const source = mine ? shopsOf(shops, user) : publicShops(shops);
-    return applyShopFilters(source, { query, city: cityKey, category: cat }, city);
-  }, [shops, query, cityKey, cat, user, city, mine]);
+    return applyShopFilters(source, { query, city, category: cat }, city);
+  }, [shops, query, cat, user, city, mine]);
 
   const openCategory = (id: ShopCategory) => {
     if (shopKindsOf(id).length) {
@@ -41,6 +40,9 @@ export default function ShopsPage() {
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.shopNav}</h1>
           <span className="w-9" />
+        </div>
+        <div className="mt-1">
+          <LocationLine />
         </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
@@ -62,13 +64,6 @@ export default function ShopsPage() {
               {t.shopMine}
             </Chip>
           ) : null}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {CITIES.map((id) => (
-            <Chip key={id} active={cityKey === id} onClick={() => setCityKey(id)}>
-              {id === "all" ? t.country : t.cities[id]}
-            </Chip>
-          ))}
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
           <Chip active={cat === "all"} onClick={() => setCat("all")}>
@@ -95,7 +90,7 @@ export default function ShopsPage() {
         )}
         {!ready ? <p className="mt-6 text-[14px] text-muted">{t.shopLoad}</p> : null}
         {ready && !list.length ? (
-          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || cityKey !== "all" ? t.shopEmptyFilter : mine ? t.shopEmptyMine : t.shopEmpty}</p>
+          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : mine ? t.shopEmptyMine : t.shopEmpty}</p>
         ) : null}
         <div className="mt-4">
           <ShopRows shops={list} />

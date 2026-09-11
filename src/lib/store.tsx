@@ -83,6 +83,7 @@ const defaultFilters = (): Filters => ({
   locLng: null,
   locLat: null,
   locLabel: null,
+  oblast: "any",
   settlement: "any",
   aiylOnly: false,
   priceDroppedOnly: false,
@@ -256,6 +257,7 @@ function normalizeFilters(filters: Filters): Filters {
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
     videoOnly: Boolean(next.videoOnly),
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
+    oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
   };
 }
 

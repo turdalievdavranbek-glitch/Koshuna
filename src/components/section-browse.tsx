@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { CITIES, CONSTRUCTION_CATEGORIES, propertyIsLiving } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES, propertyIsLiving } from "@/lib/data";
 import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { searchPlaceholder } from "@/lib/i18n";
 import { isSectionId, patchForSection } from "@/lib/section";
@@ -11,11 +11,11 @@ import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
-import { LocationChips } from "@/components/location-chips";
+import { LocationLine } from "@/components/location-line";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { PhoneShell } from "@/components/shell";
-import { Chip, Eyebrow, useFiltered } from "@/components/ui";
+import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
 
 function FeedExtras({ id }: { id: SectionId }) {
@@ -26,7 +26,6 @@ function FeedExtras({ id }: { id: SectionId }) {
     return (
       <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
-        <LocationChips labeled />
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -111,7 +110,6 @@ function FeedExtras({ id }: { id: SectionId }) {
   if (id === "restaurants") {
     return (
       <div className="flex flex-col gap-3">
-        <LocationChips labeled />
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -202,7 +200,7 @@ function BranchList({
 
 export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   const router = useRouter();
-  const { t, lang, city, setCity, filters, setFilters, setPendingPath, toggleFav } = useApp();
+  const { t, lang, filters, setFilters, setPendingPath, toggleFav } = useApp();
   const listings = useFiltered();
   const state = resolveBranch(id, path);
   const pathKey = path.join("/");
@@ -266,6 +264,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             </h1>
             <span className="w-9" />
           </div>
+          <LocationLine className="px-5 pb-2" />
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
             <BranchList
               title={state.eyebrow(t)}
@@ -278,8 +277,6 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
       </PhoneShell>
     );
   }
-
-  const showCities = id !== "rent" && id !== "restaurants";
 
   return (
     <PhoneShell tab>
@@ -298,6 +295,9 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             <IconSliders size={17} color="#17140F" />
           </button>
         </div>
+        <div className="mt-1">
+          <LocationLine />
+        </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
           <input
@@ -310,19 +310,6 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        {showCities ? (
-          <div className="mt-1">
-            <Eyebrow>{t.region}</Eyebrow>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {CITIES.map((cityId) => (
-                <Chip key={cityId} active={city === cityId} onClick={() => setCity(cityId)}>
-                  {t.cities[cityId]}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         <div className="mt-3.5 flex flex-col gap-3">
           {state.showFeed ? <FeedExtras id={id} /> : null}
           {rows.length ? <BranchList title={state.eyebrow(t)} rows={rows} /> : null}

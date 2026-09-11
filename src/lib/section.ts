@@ -32,8 +32,11 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     checkOut: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkOut : null,
     dealType: id === "rent" ? prev.dealType : "any",
     stockType: id === "rent" ? prev.stockType : "any",
-    locLng: id === "rent" || id === "restaurants" ? prev.locLng : null,
-    locLat: id === "rent" || id === "restaurants" ? prev.locLat : null,
-    locLabel: id === "rent" || id === "restaurants" ? prev.locLabel : null,
+    locLng: prev.locLng,
+    locLat: prev.locLat,
+    locLabel: prev.locLabel,
+    settlement: prev.settlement,
+    oblast: prev.oblast,
+    aiylOnly: prev.aiylOnly,
   };
 }
