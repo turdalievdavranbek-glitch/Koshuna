@@ -2,11 +2,51 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { baseDislikes, baseLikes } from "@/lib/reactions";
+import { socialCounts } from "@/lib/reactions";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconChat, IconDislike, IconLike } from "@/components/icons";
 import { Eyebrow } from "@/components/ui";
+
+export function ListingSocialMeta({
+  listingId,
+  size = "md",
+  align = "start",
+}: {
+  listingId: string;
+  size?: "sm" | "md" | "lg";
+  align?: "start" | "center";
+}) {
+  const { t, reactionOf, commentsOf } = useApp();
+  const reaction = reactionOf(listingId);
+  const { likes, dislikes, comments } = socialCounts(listingId, reaction, commentsOf(listingId).length);
+  const icon = size === "sm" ? 11 : size === "lg" ? 14 : 12;
+  const text = size === "sm" ? "text-[9px]" : size === "lg" ? "text-[12px]" : "text-[11px]";
+  const gap = size === "sm" ? "gap-1.5" : "gap-2.5";
+  const likeOn = reaction === "like";
+  const dislikeOn = reaction === "dislike";
+
+  return (
+    <div
+      className={`mt-1 flex flex-wrap items-center ${gap} ${text} font-semibold text-muted-2 ${
+        align === "center" ? "justify-center" : ""
+      }`}
+    >
+      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.likeLabel}: ${likes}`}>
+        <IconLike size={icon} color={likeOn ? "#2A6B57" : "#6E6558"} filled={likeOn} />
+        <span className="tabular-nums">{likes}</span>
+      </span>
+      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.dislikeLabel}: ${dislikes}`}>
+        <IconDislike size={icon} color={dislikeOn ? "#B8452F" : "#6E6558"} filled={dislikeOn} />
+        <span className="tabular-nums">{dislikes}</span>
+      </span>
+      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.comments}: ${comments}`}>
+        <IconChat size={icon} color="#6E6558" />
+        <span className="tabular-nums">{comments}</span>
+      </span>
+    </div>
+  );
+}
 
 export function ListingSocial({ listing }: { listing: Listing }) {
   const { t, user, setPendingPath, reactionOf, setReaction, commentsOf, addComment } = useApp();
@@ -15,8 +55,7 @@ export function ListingSocial({ listing }: { listing: Listing }) {
 
   const reaction = reactionOf(listing.id);
   const comments = commentsOf(listing.id);
-  const likes = baseLikes(listing.id) + (reaction === "like" ? 1 : 0);
-  const dislikes = baseDislikes(listing.id) + (reaction === "dislike" ? 1 : 0);
+  const { likes, dislikes } = socialCounts(listing.id, reaction, comments.length);
 
   const gate = () => {
     if (!user) {

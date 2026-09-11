@@ -9,6 +9,7 @@ import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
 import { NeighborMark } from "./neighbor-seal";
 import { ListingThumb, isVideoListing } from "./listing-media";
+import { ListingSocialMeta } from "./listing-social";
 import { Price } from "./ui";
 
 export function LayoutSwitch() {
@@ -105,6 +106,11 @@ function ListingCard({
         >
           {title}
         </div>
+        <ListingSocialMeta
+          listingId={listing.id}
+          size={layout === "large" ? "lg" : layout === "small" ? "sm" : "md"}
+          align={video ? "center" : "start"}
+        />
         {listing.status === "reserved" ? (
           <div className={`mt-0.5 font-bold text-accent-dark ${layout === "small" ? "text-[9px]" : "text-[10px]"}`}>
             {listing.reservedBy
@@ -184,6 +190,7 @@ export function RecentlyViewed() {
                 {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
+              <ListingSocialMeta listingId={item.id} size="sm" align={isVideoListing(item) ? "center" : "start"} />
             </div>
           </button>
         ))}

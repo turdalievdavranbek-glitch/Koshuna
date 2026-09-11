@@ -12,6 +12,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
+import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
@@ -159,6 +160,7 @@ export default function FeedPage() {
                       {item.rooms ? `${item.rooms} ${t.roomWord}` : listingTitle(item, lang).split(" ")[0]} ·{" "}
                       {t.cities[item.city]}
                     </div>
+                    <ListingSocialMeta listingId={item.id} size="sm" align={isVideoListing(item) ? "center" : "start"} />
                   </div>
                 </button>
               ) : null,
