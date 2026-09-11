@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
-import { twoGisUrl } from "@/lib/geo";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
 import { familyShareText } from "@/lib/share";
 import { useApp } from "@/lib/store";
@@ -27,6 +26,7 @@ import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
+import { GisOnMapCard } from "@/components/gis-on-map";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -197,14 +197,9 @@ export default function ListingPage() {
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
           </div>
           {listing.lng != null && listing.lat != null ? (
-            <a
-              href={twoGisUrl(listing.city, listing.lng, listing.lat)}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex text-[13px] font-semibold text-accent"
-            >
-              {t.open2gis}
-            </a>
+            <div className="mt-3">
+              <GisOnMapCard city={listing.city} lat={listing.lat} lng={listing.lng} listingId={listing.id} compact />
+            </div>
           ) : null}
           <div className="mt-4">
             <Price listing={listing} large />

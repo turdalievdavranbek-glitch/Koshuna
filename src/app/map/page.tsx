@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DISTRICTS, formatSom } from "@/lib/data";
-import { districtLabel, gisCity, nearestCityId, nearestDistrict, twoGisUrl } from "@/lib/geo";
+import { districtLabel, gisCity, hasCoords, nearestCityId, nearestDistrict, twoGisUrl } from "@/lib/geo";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import { IconLocate, IconSearch, IconSliders } from "@/components/icons";
@@ -15,19 +15,37 @@ import { ListingThumb, isVideoListing } from "@/components/listing-media";
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
 export default function MapPage() {
-  const { t, lang, user, setPendingPath, saveCurrentSearch, filters, setFilters, setCity, city } = useApp();
+  const { t, lang, user, setPendingPath, saveCurrentSearch, filters, setFilters, setCity, city, allListings } = useApp();
   const router = useRouter();
-  const listings = useFiltered();
+  const params = useSearchParams();
+  const pinId = params.get("listing");
+  const latRaw = params.get("lat");
+  const lngRaw = params.get("lng");
+  const qLat = latRaw != null && latRaw !== "" ? Number(latRaw) : Number.NaN;
+  const qLng = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : Number.NaN;
+  const qCity = params.get("city");
+  const filtered = useFiltered();
+  const pin = pinId ? allListings.find((l) => l.id === pinId && l.status !== "draft" && l.status !== "withdrawn" && l.status !== "closed") : undefined;
+  const listings = useMemo(() => {
+    if (pin && !filtered.some((l) => l.id === pin.id)) return [pin, ...filtered];
+    return filtered;
+  }, [filtered, pin]);
   const [mode, setMode] = useState<"map" | "list">("map");
-  const [selected, setSelected] = useState(listings[0]?.id);
-  const current = listings.find((l) => l.id === selected) ?? listings[0];
+  const [selected, setSelected] = useState(pin?.id ?? listings[0]?.id);
+  const current = listings.find((l) => l.id === selected) ?? pin ?? listings[0];
+  const focused = useRef<string | null>(null);
 
   const cityId = filters.city !== "all" ? filters.city : city !== "all" ? city : "bishkek";
   const centerCity = gisCity(cityId);
   const pick =
     filters.locLat != null && filters.locLng != null
       ? { lat: filters.locLat, lng: filters.locLng }
-      : null;
+      : pin && hasCoords(pin)
+        ? { lat: pin.lat, lng: pin.lng }
+        : null;
+
+  const mapCenter = pick ?? (current && hasCoords(current) ? { lat: current.lat, lng: current.lng } : { lat: centerCity.lat, lng: centerCity.lng });
+  const mapZoom = pick || (current && hasCoords(current)) ? 15 : centerCity.zoom;
 
   const markers = useMemo(
     () =>
@@ -57,14 +75,38 @@ export default function MapPage() {
     });
   };
 
+  useEffect(() => {
+    const key = pin?.id ?? (Number.isFinite(qLat) && Number.isFinite(qLng) ? `${qLat},${qLng}` : null);
+    if (!key || focused.current === key) return;
+    focused.current = key;
+    if (pin && hasCoords(pin)) {
+      setSelected(pin.id);
+      setCity(pin.city);
+      setFilters({
+        section: pin.section === "car-rental" ? "cars" : pin.section,
+        autoType: pin.section === "car-rental" ? "rent" : pin.section === "cars" ? "sale" : filters.autoType,
+        locLat: pin.lat,
+        locLng: pin.lng,
+        locLabel: listingTitle(pin, lang),
+      });
+      return;
+    }
+    if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
+      if (qCity) setCity(qCity);
+      applyPoint(qLat, qLng);
+    }
+    // Apply deep-link once per listing/point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin?.id, qLat, qLng, qCity]);
+
   return (
     <PhoneShell tab>
       <div className="relative min-h-0 flex-1">
         {mode === "map" ? (
           <div className="absolute inset-0">
             <GisMap
-              center={pick ?? { lat: centerCity.lat, lng: centerCity.lng }}
-              zoom={pick ? 14 : centerCity.zoom}
+              center={mapCenter}
+              zoom={mapZoom}
               markers={markers}
               pick={pick}
               onPick={(lat, lng) => applyPoint(lat, lng)}

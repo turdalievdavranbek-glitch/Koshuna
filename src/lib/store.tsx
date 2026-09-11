@@ -10,8 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { persistableUrl } from "./blob-media";
+import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf, parseSellerChannel } from "./channels";
-import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
+import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
@@ -724,8 +725,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         contact: dealer ? "telegram" : "whatsapp",
         views: 0,
         favCount: 0,
-        lat: dealer?.lat ?? GIS_CITIES[d.city]?.lat,
-        lng: dealer?.lng ?? GIS_CITIES[d.city]?.lng,
+        ...(() => {
+          const coords = publishCoords({
+            lat: d.lat,
+            lng: d.lng,
+            city: d.city,
+            meetupSpot: d.meetupSpot,
+            fallbackLat: dealer?.lat,
+            fallbackLng: dealer?.lng,
+          });
+          const area = nearestDistrict(coords.lat, coords.lng, d.city);
+          return {
+            lat: coords.lat,
+            lng: coords.lng,
+            district: d.district ?? area?.name,
+          };
+        })(),
         meetupSpot: d.meetupSpot,
         specs: isCar
           ? [
@@ -1530,6 +1545,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           gearKind: listing.gearKind,
           mediaKind: "photos",
           aiConfirmed: true,
+          lat: listing.lat,
+          lng: listing.lng,
+          district: listing.district,
+          meetupSpot: listing.meetupSpot,
         },
         side: "sell",
       }));

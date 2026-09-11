@@ -13,6 +13,7 @@ import { parentOfShopKind, SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, tog
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory, ShopHoursSlot } from "@/lib/types";
 import { GisMap } from "./gis-map";
+import { GisOnMapCard } from "./gis-on-map";
 import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
 
@@ -42,6 +43,7 @@ export function ShopForm() {
   const [busy, setBusy] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const [onMap, setOnMap] = useState<{ lat: number; lng: number; city: string } | null>(null);
   const [deptParent, setDeptParent] = useState<ShopCategory | null>(null);
 
   useEffect(() => {
@@ -186,6 +188,10 @@ export function ShopForm() {
       setPendingPath(null);
       router.push(next);
       return;
+    }
+    const shop = result.shop;
+    if (shop && shop.lat != null && shop.lng != null) {
+      setOnMap({ lat: shop.lat, lng: shop.lng, city: shop.city });
     }
     setNote(t.published);
   };
@@ -473,6 +479,7 @@ export function ShopForm() {
       {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
       {busy ? <p className="text-[13px] text-muted">{busy}</p> : null}
       {note ? <p className="text-[13px] font-semibold text-success-ink">{note}</p> : null}
+      {onMap ? <GisOnMapCard city={onMap.city} lat={onMap.lat} lng={onMap.lng} compact showHint /> : null}
 
       <button type="button" onClick={save} className="h-12 rounded-2xl border border-line bg-white text-[15px] font-semibold">
         {t.shopDraftSave}

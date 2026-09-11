@@ -363,6 +363,9 @@ export type DraftListing = {
   promote: boolean;
   neighborPledge?: boolean;
   meetupSpot?: MeetupSpot;
+  lat?: number;
+  lng?: number;
+  district?: string;
   photo?: string;
   category?: string;
   goodsKind?: string;

@@ -2,21 +2,26 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, DEAL_KINDS, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import dynamic from "next/dynamic";
+import { CITIES, CATEGORIES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, DEAL_KINDS, GIS_CITIES, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { meetupSpotsFor } from "@/lib/deal";
+import { gisCity, meetupCoords, nearestDistrict } from "@/lib/geo";
 import { listingChipLabel } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { classifyListingSpeech, aiToDraftPatch } from "@/lib/video-ai";
-import { IconPin, sectionIcon } from "@/components/icons";
+import { sectionIcon } from "@/components/icons";
 import { MarketRangeCard } from "@/components/market-range";
 import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
+import { GisOnMapCard } from "@/components/gis-on-map";
 import { ShareToSocial } from "@/components/share-to-social";
 import { PhoneShell } from "@/components/shell";
-import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
+import { Chip, Eyebrow, Field, Input, Photo, SelectRow, Toggle } from "@/components/ui";
+
+const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
 export default function PostPage() {
   const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide } = useApp();
@@ -475,7 +480,11 @@ export default function PostPage() {
                   <Field label={t.city}>
                     <select
                       value={draft.city}
-                      onChange={(e) => setDraft({ city: e.target.value })}
+                      onChange={(e) => {
+                        const city = e.target.value;
+                        const gis = GIS_CITIES[city] ?? gisCity(city);
+                        setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+                      }}
                       className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
                     >
                       {CITIES.filter((c) => c !== "all").map((c) => (
@@ -566,7 +575,10 @@ export default function PostPage() {
                         key={id}
                         active={draft.meetupSpot === id}
                         accent={draft.meetupSpot === id}
-                        onClick={() => setDraft({ meetupSpot: id })}
+                        onClick={() => {
+                          const pt = meetupCoords(id, draft.city);
+                          setDraft({ meetupSpot: id, lat: pt.lat, lng: pt.lng });
+                        }}
                       >
                         {t.meetupSpots[id]}
                       </Chip>
@@ -583,12 +595,24 @@ export default function PostPage() {
                 />
               </Field>
               <Field label={t.mapPoint}>
-                <div className="relative h-24 overflow-hidden rounded-[14px] border border-line">
-                  <MapSketch />
-                  <span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-white px-3 py-[7px] text-xs font-semibold text-ink shadow-[0_4px_12px_rgba(23,20,15,.16)]">
-                    <IconPin size={13} color="#B8452F" />
-                    {t.setPlace}
-                  </span>
+                <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
+                <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
+                  <GisMap
+                    center={{
+                      lat: draft.lat ?? gisCity(draft.city).lat,
+                      lng: draft.lng ?? gisCity(draft.city).lng,
+                    }}
+                    zoom={draft.lat != null ? 15 : gisCity(draft.city).zoom}
+                    pick={
+                      draft.lat != null && draft.lng != null
+                        ? { lat: draft.lat, lng: draft.lng }
+                        : { lat: gisCity(draft.city).lat, lng: gisCity(draft.city).lng }
+                    }
+                    onPick={(lat, lng) => {
+                      const area = nearestDistrict(lat, lng, draft.city);
+                      setDraft({ lat, lng, district: area?.name });
+                    }}
+                  />
                 </div>
               </Field>
             </div>
@@ -714,6 +738,18 @@ export default function PostPage() {
             <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
             <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.publishedHint}</p>
           </div>
+          {published?.lat != null && published.lng != null ? (
+            <div className="mt-6">
+              <GisOnMapCard
+                city={published.city}
+                lat={published.lat}
+                lng={published.lng}
+                listingId={published.id}
+                label={`${published.price} KGS`}
+                showHint
+              />
+            </div>
+          ) : null}
           {published ? (
             <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
               <ShareToSocial listing={published} />

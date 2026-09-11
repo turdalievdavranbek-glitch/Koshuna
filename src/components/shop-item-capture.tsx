@@ -23,9 +23,11 @@ import {
   validQuantity,
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
+import { listingIdForProduct } from "@/lib/shop-listing";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
+import { GisOnMapCard } from "./gis-on-map";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function ShopItemCapture({
@@ -61,6 +63,7 @@ export function ShopItemCapture({
   const [ai, setAi] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [mapPin, setMapPin] = useState<{ lat: number; lng: number; city: string; listingId?: string } | null>(null);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
   const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
@@ -218,12 +221,14 @@ export function ShopItemCapture({
     setDrafts(next);
     setError("");
     setNote("");
+    setMapPin(null);
     stopCam();
   };
 
   const startVoice = async () => {
     setError("");
     setNote("");
+    setMapPin(null);
     if (!photo) {
       setError(t.shopItemNeedPhoto);
       return;
@@ -264,6 +269,7 @@ export function ShopItemCapture({
   const startVideo = async () => {
     setError("");
     setNote("");
+    setMapPin(null);
     rememberSpeech("");
     setDrafts([]);
     chunks.current = [];
@@ -335,6 +341,7 @@ export function ShopItemCapture({
   const runDemo = async () => {
     setError("");
     setNote("");
+    setMapPin(null);
     setMode("video");
     try {
       const stills = await sampleVideoStills(DEMO_VIDEO_URL, shopVideoMaxStills());
@@ -352,11 +359,13 @@ export function ShopItemCapture({
     rememberSpeech("");
     setError("");
     setNote("");
+    setMapPin(null);
   };
 
   const publish = async () => {
     setError("");
     setNote("");
+    setMapPin(null);
     if (!user) {
       setPendingPath(here);
       router.push("/login");
@@ -399,6 +408,14 @@ export function ShopItemCapture({
       return;
     }
     setNote(t.shopItemPublished);
+    if (shop.lat != null && shop.lng != null && result.product) {
+      setMapPin({
+        lat: shop.lat,
+        lng: shop.lng,
+        city: shop.city,
+        listingId: result.product.listingId || listingIdForProduct(result.product.id),
+      });
+    }
     setPhoto("");
     setTitle("");
     setPrice("");
@@ -429,6 +446,7 @@ export function ShopItemCapture({
   const publishDrafts = async () => {
     setError("");
     setNote("");
+    setMapPin(null);
     if (!user) {
       setPendingPath(here);
       router.push("/login");
@@ -441,6 +459,7 @@ export function ShopItemCapture({
     }
     const selected = drafts.filter((row) => row.selected);
     if (!selected.length) return;
+    let lastId: string | undefined;
     for (const row of selected) {
       if (!row.photo) {
         setError(t.shopItemNeedPhoto);
@@ -464,10 +483,14 @@ export function ShopItemCapture({
         setError(shopErrorText(t, result.error));
         return;
       }
+      lastId = result.product?.listingId || (result.product ? listingIdForProduct(result.product.id) : lastId);
     }
     setDrafts([]);
     rememberSpeech("");
     setNote(t.shopItemPublished);
+    if (shop.lat != null && shop.lng != null) {
+      setMapPin({ lat: shop.lat, lng: shop.lng, city: shop.city, listingId: lastId });
+    }
   };
 
   const patchDraft = (id: string, patch: Partial<ShopItemDraft>) => {
@@ -728,6 +751,11 @@ export function ShopItemCapture({
 
       {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
+      {mapPin ? (
+        <div className="mt-3">
+          <GisOnMapCard city={mapPin.city} lat={mapPin.lat} lng={mapPin.lng} listingId={mapPin.listingId} compact showHint />
+        </div>
+      ) : null}
 
       {!ready ? <p className="mt-3 text-[13px] text-muted">{t.shopLoad}</p> : null}
       {user && !shop ? (

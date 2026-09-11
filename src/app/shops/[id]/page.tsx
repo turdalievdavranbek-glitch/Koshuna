@@ -3,7 +3,6 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
-import { twoGisUrl } from "@/lib/geo";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { canSeeShop, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
@@ -14,6 +13,7 @@ import { ShopProductsEditor } from "@/components/shop-products";
 import { ShopThumb, ShopVideo } from "@/components/shop-thumb";
 import { Chip, Eyebrow } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
+import { GisOnMapCard } from "@/components/gis-on-map";
 import { starsForUser } from "@/lib/trust";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 
@@ -138,12 +138,18 @@ export default function ShopDetailPage() {
               {t.shopWeekdays}: {shop.hours.weekdays.open}–{shop.hours.weekdays.close}
             </div>
           ) : null}
-          {shop.lat != null && shop.lng != null ? (
-            <a href={twoGisUrl(shop.city, shop.lng, shop.lat)} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-[13px] font-semibold text-accent">
-              {t.shopRoute}
-            </a>
-          ) : null}
         </div>
+        {shop.lat != null && shop.lng != null ? (
+          <div className="mt-3">
+            <GisOnMapCard
+              city={shop.city}
+              lat={shop.lat}
+              lng={shop.lng}
+              listingId={linked[0]?.id}
+              compact
+            />
+          </div>
+        ) : null}
 
         <div className="mt-3 rounded-[16px] border border-line bg-white p-4">
           <Eyebrow>{t.shopFulfillment}</Eyebrow>
