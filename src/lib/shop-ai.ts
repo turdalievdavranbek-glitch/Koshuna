@@ -128,13 +128,13 @@ function unitFromSpoken(raw: string): ShopProductUnit {
 
 /** Parse a spoken count only when the seller said it. Never invent. */
 function takeCount(chunk: string): { quantity?: number; unit?: ShopProductUnit } {
-  const left = chunk.match(
-    new RegExp(`(?:осталось|остался|осталась|калды|калып|qoldi)\\s+(\\d+(?:[.,]\\d+)?)(?:\\s*(${COUNT_UNIT}))?`, "i"),
-  );
+  const left = chunk.match(/(?:осталось|остался|осталась|калды|калып|qoldi)\s+(\d+(?:[.,]\d+)?)/i);
   if (left) {
     const quantity = validQuantity(left[1]);
     if (quantity == null) return {};
-    return { quantity, unit: left[2] ? unitFromSpoken(left[2]) : undefined };
+    const after = chunk.slice((left.index ?? 0) + left[0].length);
+    const unitHit = after.match(new RegExp(`^\\s*(${COUNT_UNIT})`, "i"));
+    return { quantity, unit: unitHit ? unitFromSpoken(unitHit[1]) : undefined };
   }
   const numbered = chunk.match(new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${COUNT_UNIT})`, "i"));
   if (!numbered) return {};
