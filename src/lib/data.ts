@@ -15,16 +15,41 @@ export const CITIES = [
 ] as const;
 
 export const SECTIONS: { id: SectionId; icon: string; art: string }[] = [
+  { id: "restaurants", icon: "fork", art: "/sections/restaurants.jpg" },
   { id: "rent", icon: "home", art: "/sections/rent.jpg" },
   { id: "cars", icon: "car", art: "/sections/cars.jpg" },
-  { id: "secondhand", icon: "bag", art: "/sections/secondhand.jpg" },
   { id: "vacancies", icon: "briefcase", art: "/sections/vacancies.jpg" },
   { id: "services", icon: "pen", art: "/sections/services.jpg" },
-  { id: "stays", icon: "hotel", art: "/sections/stays.jpg" },
-  { id: "restaurants", icon: "fork", art: "/sections/restaurants.jpg" },
-  { id: "construction", icon: "blocks", art: "/sections/construction.jpg" },
+  { id: "secondhand", icon: "bag", art: "/sections/secondhand.jpg" },
   { id: "animals", icon: "animal", art: "/sections/animals.jpg" },
+  { id: "stays", icon: "hotel", art: "/sections/stays.jpg" },
+  { id: "construction", icon: "blocks", art: "/sections/construction.jpg" },
 ];
+
+/** Everyday order on the home screen — bazaar and food first, construction stays in filters. */
+export const HOME_TILE_ORDER: SectionId[] = [
+  "shops",
+  "restaurants",
+  "rent",
+  "cars",
+  "vacancies",
+  "services",
+  "secondhand",
+  "animals",
+  "stays",
+];
+
+export const HOME_HERO_COUNT = 4;
+
+export const SHOP_ART = "/sections/shops.jpg";
+
+export function homeTiles() {
+  return HOME_TILE_ORDER.map((id) => {
+    if (id === "shops") return { id, art: SHOP_ART, href: "/shops" as const };
+    const s = SECTIONS.find((item) => item.id === id);
+    return { id, art: s?.art ?? SHOP_ART, href: `/section/${id}` as const };
+  });
+}
 
 export const CATEGORIES = [
   "furniture",
@@ -809,6 +834,8 @@ export const LISTINGS: Listing[] = [
     lat: 40.5283,
     photos: [img("photo-1522708323590-d24dbb6b0267")],
     photoCredit: "Unsplash / Anna Hunko",
+    mediaKind: "video",
+    videoUrl: "/demo/listing-sample.mp4",
     description: "Уютная однокомнатная квартира с мебелью. Рядом рынок и остановки.",
     descriptionKy: "Жайлуу бир бөлмөлүү эмеректүү батир. Базар жана аялдамалар жакын.",
     descriptionEn: "A cosy one-room furnished apartment. Market and bus stops nearby.",
@@ -1531,6 +1558,8 @@ export const LISTINGS: Listing[] = [
     postedAgo: "2d",
     photos: [img("photo-1552519507-da3b142c6e3d")],
     photoCredit: "Unsplash",
+    mediaKind: "video",
+    videoUrl: "/demo/listing-sample.mp4",
     description: "Официальный ввоз, сервисная книжка. Пробег 48 000 км.",
     descriptionKy: "Расмий алып келүү, сервис китепчеси. Жүрүүсү 48 000 км.",
     descriptionEn: "Official import, service book. 48,000 km.",
@@ -2493,6 +2522,8 @@ export const LISTINGS: Listing[] = [
     postedAgo: "8h",
     photos: [img("photo-1529042410759-befb1204b468")],
     photoCredit: "Unsplash / Alex Munsell",
+    mediaKind: "video",
+    videoUrl: "/demo/listing-sample.mp4",
     description: "Домашний лагман, самса из тандыра, казы. Центр Оша, летняя веранда.",
     descriptionKy: "Үй лагманы, тандыр самса, казы. Ош борбору, жайкы веранда.",
     descriptionEn: "Homemade lagman, tandoor samsa, kazy. Osh centre, summer terrace.",

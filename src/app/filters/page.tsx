@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
+import { SECTIONS, SERVICE_CATEGORIES, SHOP_ART } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { realtyIsLiving } from "@/lib/realty";
@@ -107,9 +107,9 @@ export default function FiltersPage() {
               className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
             >
               <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
-                <img src="/sections/shops.jpg" alt="" className="h-full w-full object-cover" />
+                <img src={SHOP_ART} alt="" className="h-full w-full object-cover" />
               </span>
-              <span className="flex-1 text-[15px] font-semibold text-ink">{t.shopNav}</span>
+              <span className="flex-1 text-[15px] font-semibold text-ink">{t.sectionNames.shops}</span>
               <span className="text-muted-2">›</span>
             </button>
             {SECTIONS.map((s) => {

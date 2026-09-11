@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PROMOTED_IDS, SECTIONS, formatSom } from "@/lib/data";
+import { HOME_HERO_COUNT, PROMOTED_IDS, formatSom, homeTiles } from "@/lib/data";
 import { applyFilters, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
+import type { SectionId } from "@/lib/types";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborBanner } from "@/components/neighbor-seal";
+import { NeighborCircles } from "@/components/neighbor-circles";
 import { KonshuBridges } from "@/components/konshu-bridges";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
@@ -25,6 +27,9 @@ export default function FeedPage() {
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
+  const tiles = homeTiles();
+  const hero = tiles.slice(0, HOME_HERO_COUNT);
+  const rest = tiles.slice(HOME_HERO_COUNT);
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
@@ -38,6 +43,19 @@ export default function FeedPage() {
     setFilters({ section: null, category: null });
     router.push("/filters");
   };
+
+  const openSection = (id: SectionId, href: string) => {
+    if (id !== "shops") setFilters(patchForSection(id, filters));
+    router.push(href);
+  };
+
+  const quick = [
+    { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
+    { id: "restaurants" as const, label: t.homeQuickFood, href: "/section/restaurants" },
+    { id: "rent" as const, label: t.homeQuickRent, href: "/section/rent" },
+    { id: "cars" as const, label: t.homeQuickCars, href: "/section/cars" },
+    { id: "vacancies" as const, label: t.homeQuickJobs, href: "/section/vacancies" },
+  ];
 
   return (
     <PhoneShell tab>
@@ -80,6 +98,13 @@ export default function FeedPage() {
             <IconSliders size={17} color="#17140F" />
           </span>
         </button>
+        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5">
+          {quick.map((item) => (
+            <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
+              {item.label}
+            </Chip>
+          ))}
+        </div>
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
@@ -89,35 +114,39 @@ export default function FeedPage() {
             onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
           />
         </div>
-        <KonshuBridges />
+
+        <NeighborCircles listings={listings} />
+
         <div className="mt-[18px] flex items-baseline justify-between">
           <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
           <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2.5">
-          <button
-            type="button"
-            onClick={() => router.push("/shops")}
-            className="section-tile flex h-[118px] flex-col overflow-hidden rounded-[16px] text-center"
-          >
-            <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1.5 py-1.5 text-[11px] font-semibold leading-[1.2] text-ink">
-              {t.shopNav}
-            </span>
-            <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-              <img src="/sections/shops.jpg" alt="" className="h-full w-full object-cover" />
-            </span>
-          </button>
-          {SECTIONS.filter((s) => s.id !== "construction").map((s) => (
+        <div className="mt-3 grid grid-cols-2 gap-2.5">
+          {hero.map((s) => (
             <button
               key={s.id}
               type="button"
-              onClick={() => {
-                setFilters(patchForSection(s.id, filters));
-                router.push(`/section/${s.id}`);
-              }}
-              className="section-tile flex h-[118px] flex-col overflow-hidden rounded-[16px] text-center"
+              onClick={() => openSection(s.id, s.href)}
+              className="section-tile flex h-[148px] flex-col overflow-hidden rounded-[18px] text-center"
             >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1.5 py-1.5 text-[11px] font-semibold leading-[1.2] text-ink">
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-2 text-[13px] font-semibold leading-[1.2] text-ink">
+                {s.id === "shops" ? t.shopNav : t.sectionNames[s.id]}
+              </span>
+              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
+                <img src={s.art} alt="" className="h-full w-full object-cover" />
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
+          {rest.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => openSection(s.id, s.href)}
+              className="section-tile flex h-[102px] flex-col overflow-hidden rounded-[14px] text-center"
+            >
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1.5 text-[11px] font-semibold leading-[1.15] text-ink">
                 {t.sectionNames[s.id]}
               </span>
               <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
@@ -224,10 +253,12 @@ export default function FeedPage() {
             </button>
           </div>
         ) : (
-          <>
-            <ListingGrid listings={listings} onFav={onFav} />
-          </>
+          <ListingGrid listings={listings} onFav={onFav} />
         )}
+
+        <div className="mt-6">
+          <KonshuBridges />
+        </div>
 
         <p className="mt-4 text-xs leading-[1.5] text-muted-2">{t.disclaimer}</p>
         <div className="mt-3.5 flex flex-col gap-1.5 pb-1.5">

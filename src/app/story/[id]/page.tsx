@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BrandFacebook, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
+import { BrandFacebook, BrandInstagram, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
 import { BrandMark } from "@/components/brand";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -175,7 +175,7 @@ export default function StoryPage() {
         >
           {t.packSharePage}
         </button>
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => window.open(socialShareHref("whatsapp", listing, t, lang), "_blank", "noreferrer")}
@@ -191,6 +191,14 @@ export default function StoryPage() {
           >
             <BrandTelegram size={18} />
             Telegram
+          </button>
+          <button
+            type="button"
+            onClick={() => void shareNative()}
+            className="flex h-12 items-center justify-center gap-1.5 rounded-2xl border border-line bg-white text-[12px] font-semibold"
+          >
+            <BrandInstagram size={18} />
+            Stories
           </button>
           <button
             type="button"

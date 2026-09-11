@@ -79,6 +79,12 @@ function LoginInner() {
         </h1>
         <p className="mt-2.5 font-display text-[17px] font-bold leading-[1.3] text-accent-dark">{t.slogan}</p>
         <p className="mt-2.5 text-[15px] leading-[1.5] text-muted">{t.loginHint}</p>
+        <Link
+          href="/"
+          className="mt-4 flex h-12 items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink no-underline"
+        >
+          {t.skipCatalog}
+        </Link>
 
         <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustHow}</div>
@@ -154,6 +160,10 @@ function LoginInner() {
         )}
         {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
 
+        <div className="mt-5 rounded-[14px] border border-line bg-chip px-4 py-3.5 text-[13px] leading-[1.5] text-muted">
+          {t.loginDemo}
+        </div>
+
         <div className="mt-6 flex items-center gap-3">
           <span className="h-px flex-1 bg-line" />
           <span className="text-xs text-muted-2">{t.or}</span>
@@ -191,13 +201,6 @@ function LoginInner() {
             </button>
           ))}
         </div>
-
-        <div className="mt-5 rounded-[14px] border border-line bg-chip px-4 py-3.5 text-[13px] leading-[1.5] text-muted">
-          {t.loginDemo}
-        </div>
-        <Link href="/" className="mt-4 text-center text-[13px] font-semibold text-accent no-underline">
-          {t.skipCatalog}
-        </Link>
         <p className="mt-auto pt-[22px] text-center text-xs leading-[1.5] text-muted-2">
           {t.terms}{" "}
           <Link href="/help" className="text-accent">

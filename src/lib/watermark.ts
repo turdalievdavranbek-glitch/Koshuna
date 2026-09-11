@@ -77,7 +77,10 @@ function stampBrand(ctx: CanvasRenderingContext2D, logo: HTMLImageElement, w: nu
   ctx.fillStyle = "#F7F3EC";
   ctx.font = "800 52px ui-sans-serif, system-ui, sans-serif";
   ctx.textBaseline = "middle";
-  ctx.fillText("Koshuna", pad, y + size / 2);
+  ctx.fillText("Koshuna", pad, y + size / 2 - 16);
+  ctx.font = "600 26px ui-sans-serif, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(247,243,236,0.88)";
+  ctx.fillText("объявления от соседа", pad, y + size / 2 + 24);
 }
 
 function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
