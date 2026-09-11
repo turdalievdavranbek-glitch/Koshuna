@@ -16,6 +16,9 @@ export type AiGuess = {
   goodsKind?: string;
   housingKind?: PropertyType;
   carMake?: string;
+  carModel?: string;
+  vehicleGroup?: "passenger" | "special";
+  vehicleType?: string;
   techBrand?: string;
   techModel?: string;
   animalGroup?: AnimalGroup;
@@ -36,6 +39,9 @@ type Rule = {
   goodsKind?: string;
   housingKind?: PropertyType;
   carMake?: string;
+  carModel?: string;
+  vehicleGroup?: "passenger" | "special";
+  vehicleType?: string;
   techBrand?: string;
   techModel?: string;
   animalGroup?: AnimalGroup;
@@ -129,10 +135,27 @@ const RULES: Rule[] = [
     title: "Коммерческая",
   },
   {
+    keys: ["экскаватор-погрузчик", "jcb", "3cx"],
+    section: "cars",
+    kind: "goods",
+    vehicleGroup: "special",
+    vehicleType: "backhoe",
+    carMake: "jcb",
+    carModel: "3cx",
+    title: "Экскаватор-погрузчик",
+  },
+  {
+    keys: ["экскаватор", "excavator", "бульдозер", "самосвал", "камаз", "kamaz", "трактор", "погрузчик", "автокран"],
+    section: "cars",
+    kind: "goods",
+    vehicleGroup: "special",
+    title: "Спецтехника",
+  },
+  {
     keys: ["тойота", "toyota", "camry", "камри", "honda", "mercedes", "мерседес", "машин", "авто ", "машина"],
     section: "cars",
     kind: "goods",
-    category: undefined,
+    vehicleGroup: "passenger",
     carMake: "toyota",
     title: "Авто",
   },
@@ -313,6 +336,9 @@ export function classifyListingSpeech(raw: string): AiGuess {
     goodsKind: rule?.goodsKind,
     housingKind: rule?.housingKind,
     carMake: rule?.carMake,
+    carModel: rule?.carModel,
+    vehicleGroup: rule?.vehicleGroup,
+    vehicleType: rule?.vehicleType,
     techBrand: rule?.techBrand,
     techModel: rule?.techModel,
     animalGroup: rule?.animalGroup,
@@ -338,6 +364,9 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   if (guess.goodsKind) patch.goodsKind = guess.goodsKind;
   if (guess.housingKind) patch.housingKind = guess.housingKind;
   if (guess.carMake) patch.carMake = guess.carMake;
+  if (guess.carModel) patch.carModel = guess.carModel;
+  if (guess.vehicleGroup) patch.vehicleGroup = guess.vehicleGroup;
+  if (guess.vehicleType) patch.vehicleType = guess.vehicleType;
   if (guess.techBrand) patch.techBrand = guess.techBrand;
   if (guess.techModel) patch.techModel = guess.techModel;
   if (guess.animalGroup) patch.animalGroup = guess.animalGroup;

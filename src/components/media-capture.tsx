@@ -13,7 +13,6 @@ import {
 import {
   ANIMAL_GROUPS,
   animalKindsOf,
-  CAR_MAKES,
   CATEGORIES,
   CONSTRUCTION_CATEGORIES,
   goodsKindsOf,
@@ -25,6 +24,7 @@ import {
   techBrandsOf,
   techModelsOf,
 } from "@/lib/data";
+import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
@@ -402,13 +402,40 @@ export function AiConfirmCard({ draft, onPatch }: Props) {
           >
             {t.autoRent}
           </Chip>
-          {CAR_MAKES.map((id) => (
+          {VEHICLE_GROUPS.map((id) => (
+            <Chip
+              key={id}
+              active={(draft.vehicleGroup ?? "passenger") === id}
+              onClick={() => onPatch({ vehicleGroup: id, vehicleType: undefined, carMake: undefined, carModel: undefined, aiConfirmed: false })}
+            >
+              {t.vehicleGroups[id]}
+            </Chip>
+          ))}
+          {vehicleTypesOf(draft.vehicleGroup ?? "passenger").map((id) => (
+            <Chip
+              key={id}
+              active={draft.vehicleType === id}
+              onClick={() => onPatch({ vehicleType: id, carMake: undefined, carModel: undefined, aiConfirmed: false })}
+            >
+              {t.vehicleTypes[id]}
+            </Chip>
+          ))}
+          {vehicleMakesOf(draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
             <Chip
               key={id}
               active={draft.carMake === id}
               onClick={() => onPatch({ carMake: id, carModel: undefined, aiConfirmed: false })}
             >
-              {t.carMakes[id]}
+              {t.carMakes[id] ?? id}
+            </Chip>
+          ))}
+          {vehicleModelsOf(draft.carMake, draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
+            <Chip
+              key={id}
+              active={draft.carModel === id}
+              onClick={() => onPatch({ carModel: id, aiConfirmed: false })}
+            >
+              {t.carModels[id] ?? id}
             </Chip>
           ))}
         </div>

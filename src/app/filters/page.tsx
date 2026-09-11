@@ -228,25 +228,6 @@ export default function FiltersPage() {
 
         {isAuto ? <CarMakeChips labeled /> : null}
 
-        {isAuto ? (
-          <div>
-            <Eyebrow>{t.bodyType}</Eyebrow>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {(
-                [
-                  ["any", t.any],
-                  ["sedan", t.sedan],
-                  ["suv", t.suv],
-                ] as const
-              ).map(([id, label]) => (
-                <Chip key={id} active={filters.bodyType === id} onClick={() => setFilters({ bodyType: id })}>
-                  {label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         {isCarRental ? (
           <div>
             <Eyebrow>{t.gear}</Eyebrow>

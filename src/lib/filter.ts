@@ -24,6 +24,7 @@ export function homeFeedFilters(filters: Filters): Filters {
     autoType: "sale",
     carMake: "any",
     carModel: "any",
+    vehicleGroup: "any",
     techBrand: "any",
     techModel: "any",
     animalGroup: "any",
@@ -115,6 +116,10 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (!match) return false;
     }
     const carFilters = filters.section === "cars";
+    if (carFilters && filters.vehicleGroup && filters.vehicleGroup !== "any") {
+      const group = item.vehicleGroup === "special" ? "special" : "passenger";
+      if (group !== filters.vehicleGroup) return false;
+    }
     if (carFilters && filters.carMake && filters.carMake !== "any") {
       if (item.carMake !== filters.carMake) return false;
     }

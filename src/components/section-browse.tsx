@@ -74,19 +74,6 @@ function FeedExtras({ id }: { id: SectionId }) {
             </Chip>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["any", t.any],
-              ["sedan", t.sedan],
-              ["suv", t.suv],
-            ] as const
-          ).map(([key, label]) => (
-            <Chip key={key} active={filters.bodyType === key} onClick={() => setFilters({ bodyType: key })}>
-              {label}
-            </Chip>
-          ))}
-        </div>
         {filters.autoType === "rent" ? (
           <div className="flex flex-wrap gap-2">
             {(

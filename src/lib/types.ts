@@ -155,7 +155,8 @@ export type Listing = {
   stockKind?: "newbuild" | "resale";
   lng?: number;
   lat?: number;
-  bodyKind?: "sedan" | "suv";
+  bodyKind?: string;
+  vehicleGroup?: "passenger" | "special";
   gearKind?: "auto" | "manual";
   carMake?: string;
   carModel?: string;
@@ -219,6 +220,7 @@ export type Filters = {
   dealType: "any" | "long" | "short" | "buy";
   stockType: "any" | "newbuild" | "resale";
   autoType: "sale" | "rent";
+  vehicleGroup: "any" | "passenger" | "special";
   carMake: string;
   carModel: string;
   techBrand: string;
@@ -288,6 +290,8 @@ export type DraftListing = {
   housingKind?: PropertyType;
   animalGroup?: AnimalGroup;
   animalKind?: string;
+  vehicleGroup?: "passenger" | "special";
+  vehicleType?: string;
   carMake?: string;
   carModel?: string;
   techBrand?: string;

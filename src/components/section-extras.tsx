@@ -104,19 +104,6 @@ export function SectionExtras() {
           ))}
         </div>
         <CarMakeChips list />
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["any", t.any],
-              ["sedan", t.sedan],
-              ["suv", t.suv],
-            ] as const
-          ).map(([id, label]) => (
-            <Chip key={id} active={filters.bodyType === id} onClick={() => setFilters({ bodyType: id })}>
-              {label}
-            </Chip>
-          ))}
-        </div>
         {filters.autoType === "rent" ? (
           <div className="flex flex-wrap gap-2">
             {(

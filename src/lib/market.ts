@@ -61,7 +61,9 @@ function tightEnough(draft: DraftListing, item: Listing): boolean {
     if (draft.techBrand && item.techBrand && item.techBrand !== draft.techBrand) return false;
   }
   if (draft.section === "cars" || draft.section === "car-rental") {
+    if (draft.vehicleGroup && item.vehicleGroup && item.vehicleGroup !== draft.vehicleGroup) return false;
     if (draft.carMake && item.carMake && item.carMake !== draft.carMake) return false;
+    if (draft.carModel && item.carModel && item.carModel !== draft.carModel) return false;
   }
   if (draft.section === "animals") {
     if (draft.animalGroup && item.animalGroup && item.animalGroup !== draft.animalGroup) return false;

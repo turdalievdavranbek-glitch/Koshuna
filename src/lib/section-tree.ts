@@ -1,18 +1,23 @@
 import {
   ANIMAL_GROUPS,
-  CAR_MAKES,
   CATEGORIES,
   CONSTRUCTION_CATEGORIES,
   PROPERTY_TYPES,
   RESTAURANT_CATEGORIES,
   SERVICE_CATEGORIES,
   animalKindsOf,
-  carModelsOf,
   goodsKindsOf,
   isTechCategory,
   techBrandsOf,
   techModelsOf,
 } from "./data";
+import {
+  VEHICLE_GROUPS,
+  isVehicleGroup,
+  vehicleMakesOf,
+  vehicleModelsOf,
+  vehicleTypesOf,
+} from "./transport";
 import type { Dict } from "./i18n";
 import { isSectionId } from "./section";
 import type { AnimalGroup, Filters, SectionId } from "./types";
@@ -212,39 +217,56 @@ function secondhand(path: string[]): BranchState | null {
 function cars(path: string[]): BranchState | null {
   const base: Partial<Filters> = {
     section: "cars",
+    vehicleGroup: "any",
+    bodyType: "any",
     carMake: "any",
     carModel: "any",
   };
-  const makes = CAR_MAKES.map((id) => option(id, (t) => t.carMakes[id], carModelsOf(id).length > 0));
+  const groups = VEHICLE_GROUPS.map((id) => option(id, (t) => t.vehicleGroups[id], true));
 
   if (!path.length) {
     return {
       ok: true,
       title: (t) => t.sectionNames.cars,
       parentPath: [],
-      options: makes,
+      options: groups,
       patch: base,
-      isPicker: false,
-      showFeed: true,
-      eyebrow: (t) => t.carMake,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.category,
     };
   }
 
-  const make = path[0];
-  if (!inList(make, CAR_MAKES)) return null;
-  const models = carModelsOf(make);
-  const makePatch: Partial<Filters> = { ...base, carMake: make };
+  if (path[0] === BRANCH_ALL) {
+    if (path.length !== 1) return null;
+    return {
+      ok: true,
+      title: (t) => t.sectionNames.cars,
+      parentPath: [],
+      options: [],
+      patch: base,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.category,
+    };
+  }
+
+  const group = path[0];
+  if (!isVehicleGroup(group)) return null;
+  const types = vehicleTypesOf(group);
+  const groupPatch: Partial<Filters> = { ...base, vehicleGroup: group };
+  const typeEyebrow = (t: Dict) => (group === "special" ? t.vehicleType : t.bodyType);
 
   if (path.length === 1) {
     return {
       ok: true,
-      title: (t) => t.carMakes[make],
+      title: (t) => t.vehicleGroups[group],
       parentPath: [],
-      options: models.map((id) => option(id, (t) => t.carModels[id], false)),
-      patch: makePatch,
+      options: types.map((id) => option(id, (t) => t.vehicleTypes[id], vehicleMakesOf(group, id).length > 0)),
+      patch: groupPatch,
       isPicker: true,
       showFeed: false,
-      eyebrow: (t) => t.carModel,
+      eyebrow: typeEyebrow,
     };
   }
 
@@ -252,8 +274,72 @@ function cars(path: string[]): BranchState | null {
     if (path.length !== 2) return null;
     return {
       ok: true,
-      title: (t) => t.carMakes[make],
-      parentPath: [make],
+      title: (t) => t.vehicleGroups[group],
+      parentPath: [group],
+      options: [],
+      patch: groupPatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: typeEyebrow,
+    };
+  }
+
+  const type = path[1];
+  if (!types.includes(type)) return null;
+  const makes = vehicleMakesOf(group, type);
+  const typePatch: Partial<Filters> = { ...groupPatch, bodyType: type };
+
+  if (path.length === 2) {
+    return {
+      ok: true,
+      title: (t) => t.vehicleTypes[type] ?? type,
+      parentPath: [group],
+      options: makes.map((id) => option(id, (t) => t.carMakes[id] ?? id, vehicleModelsOf(id, group, type).length > 0)),
+      patch: typePatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.carMake,
+    };
+  }
+
+  if (path[2] === BRANCH_ALL) {
+    if (path.length !== 3) return null;
+    return {
+      ok: true,
+      title: (t) => t.vehicleTypes[type] ?? type,
+      parentPath: [group, type],
+      options: [],
+      patch: typePatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.carMake,
+    };
+  }
+
+  const make = path[2];
+  if (!makes.includes(make)) return null;
+  const models = vehicleModelsOf(make, group, type);
+  const makePatch: Partial<Filters> = { ...typePatch, carMake: make };
+
+  if (path.length === 3) {
+    return {
+      ok: true,
+      title: (t) => t.carMakes[make] ?? make,
+      parentPath: [group, type],
+      options: models.map((id) => option(id, (t) => t.carModels[id] ?? id, false)),
+      patch: makePatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.carModel,
+    };
+  }
+
+  if (path[3] === BRANCH_ALL) {
+    if (path.length !== 4) return null;
+    return {
+      ok: true,
+      title: (t) => t.carMakes[make] ?? make,
+      parentPath: [group, type, make],
       options: [],
       patch: makePatch,
       isPicker: false,
@@ -262,12 +348,12 @@ function cars(path: string[]): BranchState | null {
     };
   }
 
-  const model = path[1];
-  if (path.length !== 2 || !inList(model, models)) return null;
+  const model = path[3];
+  if (path.length !== 4 || !models.includes(model)) return null;
   return {
     ok: true,
     title: (t) => t.carModels[model] ?? model,
-    parentPath: [make],
+    parentPath: [group, type, make],
     options: [],
     patch: { ...makePatch, carModel: model },
     isPicker: false,
@@ -464,9 +550,16 @@ export function pathFromFilters(filters: Filters): string[] {
     return path;
   }
   if (section === "cars" || section === "car-rental") {
-    if (!filters.carMake || filters.carMake === "any") return [];
-    if (!filters.carModel || filters.carModel === "any") return [filters.carMake];
-    return [filters.carMake, filters.carModel];
+    const group = filters.vehicleGroup;
+    if (!isVehicleGroup(group)) return [];
+    const path: string[] = [group];
+    if (!filters.bodyType || filters.bodyType === "any") return path;
+    path.push(filters.bodyType);
+    if (!filters.carMake || filters.carMake === "any") return path;
+    path.push(filters.carMake);
+    if (!filters.carModel || filters.carModel === "any") return path;
+    path.push(filters.carModel);
+    return path;
   }
   if (section === "rent") {
     if (!filters.housingType || filters.housingType === "any") return [];
@@ -518,7 +611,8 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     locLng: null,
     locLat: null,
     locLabel: null,
-    autoType: id === "cars" ? "sale" : "sale",
+    autoType: "sale",
+    vehicleGroup: "any",
     settlement: "any",
     aiylOnly: false,
     priceDroppedOnly: false,

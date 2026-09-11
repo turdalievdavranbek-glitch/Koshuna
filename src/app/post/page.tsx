@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, CAR_MAKES, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, carModelsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { meetupSpotsFor } from "@/lib/deal";
 import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
@@ -103,25 +104,47 @@ export default function PostPage() {
                     </Chip>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {CAR_MAKES.map((id) => (
+                    {VEHICLE_GROUPS.map((id) => (
+                      <Chip
+                        key={id}
+                        active={(draft.vehicleGroup ?? "passenger") === id}
+                        onClick={() => setDraft({ vehicleGroup: id, vehicleType: undefined, carMake: undefined, carModel: undefined })}
+                      >
+                        {t.vehicleGroups[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {vehicleTypesOf(draft.vehicleGroup ?? "passenger").map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.vehicleType === id}
+                        onClick={() => setDraft({ vehicleType: id, carMake: undefined, carModel: undefined })}
+                      >
+                        {t.vehicleTypes[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {vehicleMakesOf(draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
                       <Chip
                         key={id}
                         active={draft.carMake === id}
                         onClick={() => setDraft({ carMake: id, carModel: undefined })}
                       >
-                        {t.carMakes[id]}
+                        {t.carMakes[id] ?? id}
                       </Chip>
                     ))}
                   </div>
-                  {carModelsOf(draft.carMake).length ? (
+                  {vehicleModelsOf(draft.carMake, draft.vehicleGroup ?? "passenger", draft.vehicleType).length ? (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {carModelsOf(draft.carMake).map((id) => (
+                      {vehicleModelsOf(draft.carMake, draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
                         <Chip
                           key={id}
                           active={draft.carModel === id}
                           onClick={() => setDraft({ carModel: id })}
                         >
-                          {t.carModels[id]}
+                          {t.carModels[id] ?? id}
                         </Chip>
                       ))}
                     </div>
