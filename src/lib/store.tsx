@@ -35,6 +35,7 @@ import {
   type User,
   type AppSide,
   isAppSide,
+  isLang,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
@@ -301,6 +302,7 @@ function load(): State {
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
       side: isAppSide(saved.side) ? saved.side : "buy",
+      lang: isLang(saved.lang) ? saved.lang : "ru",
     };
   } catch {
     return initial;

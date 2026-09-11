@@ -41,7 +41,6 @@ export function districtLabel(
   lang: Lang,
 ): string {
   if (lang === "ky") return d.nameKy;
-  if (lang === "en") return d.nameEn;
   return d.name;
 }
 

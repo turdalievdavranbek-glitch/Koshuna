@@ -1,5 +1,9 @@
-export const LANGS = ["ru", "ky", "uz", "en"] as const;
+export const LANGS = ["ru", "ky", "uz"] as const;
 export type Lang = (typeof LANGS)[number];
+
+export function isLang(value: unknown): value is Lang {
+  return value === "ru" || value === "ky" || value === "uz";
+}
 
 export type AuthMethod =
   | "sms"

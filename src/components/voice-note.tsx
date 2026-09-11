@@ -31,7 +31,7 @@ export function VoiceNote({ listing }: { listing: Listing }) {
     }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(script);
-    u.lang = lang === "en" ? "en-US" : lang === "uz" ? "uz-UZ" : "ru-RU";
+    u.lang = lang === "uz" ? "uz-UZ" : lang === "ky" ? "ky-KG" : "ru-RU";
     u.rate = 0.92;
     u.onend = () => setOn(false);
     setOn(true);

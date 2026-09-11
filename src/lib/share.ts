@@ -68,6 +68,5 @@ export function socialShareHref(
 
 export function voiceScript(listing: Listing, lang: Lang): string {
   if (lang === "ky") return listing.voiceTextKy || listing.voiceText || listing.titleKy;
-  if (lang === "en") return listing.voiceTextEn || listing.voiceText || listing.titleEn;
   return listing.voiceText || listing.title;
 }

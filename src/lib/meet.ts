@@ -43,10 +43,9 @@ export function travelEta(km: number): { driveMin: number; walkMin: number } {
   };
 }
 
-export function formatKm(km: number, lang: Lang): string {
+export function formatKm(km: number): string {
   const n = km < 10 ? km.toFixed(1) : String(Math.round(km));
-  const local = lang === "en" ? n : n.replace(".", ",");
-  return lang === "en" ? `${local} km` : `${local} км`;
+  return `${n.replace(".", ",")} км`;
 }
 
 export function offerWhen(offer: MeetOffer, lang: Lang): string {

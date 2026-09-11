@@ -323,7 +323,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
                 {party === "seller" ? t.meetLeftSeller(reservedBy.name) : t.meetLeftBuyer}
               </div>
               <p className="mt-1.5 text-[13px] leading-[1.45] text-ink">
-                {t.meetEta(formatKm(travel.km, lang), travel.driveMin, travel.walkMin)}
+                {t.meetEta(formatKm(travel.km), travel.driveMin, travel.walkMin)}
               </p>
             </div>
           ) : null}
