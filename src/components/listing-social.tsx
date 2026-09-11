@@ -17,9 +17,8 @@ export function ListingSocialMeta({
   size?: "sm" | "md" | "lg";
   align?: "start" | "center";
 }) {
-  const { reactionOf, commentsOf } = useApp();
-  const reaction = reactionOf(listingId);
-  const { likes, dislikes, comments } = socialCounts(listingId, reaction, commentsOf(listingId).length);
+  const { commentsOf, reactions } = useApp();
+  const { likes, dislikes, comments } = socialCounts(listingId, reactions, commentsOf(listingId).length);
   const icon = size === "sm" ? 11 : size === "lg" ? 14 : 12;
   const text = size === "sm" ? "text-[9px]" : size === "lg" ? "text-[12px]" : "text-[11px]";
   const gap = size === "sm" ? "gap-1.5" : "gap-2.5";
@@ -48,13 +47,14 @@ export function ListingSocialMeta({
 }
 
 export function ListingSocial({ listing }: { listing: Listing }) {
-  const { t, user, setPendingPath, reactionOf, setReaction, commentsOf, addComment } = useApp();
+  const { t, user, setPendingPath, reactionOf, setReaction, commentsOf, addComment, reactions } = useApp();
   const router = useRouter();
   const [text, setText] = useState("");
 
   const reaction = reactionOf(listing.id);
+  const locked = Boolean(reaction);
   const comments = commentsOf(listing.id);
-  const { likes, dislikes } = socialCounts(listing.id, reaction, comments.length);
+  const { likes, dislikes } = socialCounts(listing.id, reactions, comments.length);
 
   const gate = () => {
     if (!user) {
@@ -66,6 +66,7 @@ export function ListingSocial({ listing }: { listing: Listing }) {
   };
 
   const react = (value: "like" | "dislike") => {
+    if (locked) return;
     if (!gate()) return;
     setReaction(listing.id, value);
   };
@@ -83,7 +84,11 @@ export function ListingSocial({ listing }: { listing: Listing }) {
           onClick={() => react("like")}
           aria-label={t.likeLabel}
           aria-pressed={reaction === "like"}
+          aria-disabled={locked}
+          title={locked ? t.alreadyReacted : t.likeLabel}
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
+            locked ? "cursor-default" : ""
+          } ${
             reaction === "like" ? "border-success bg-success-tint text-success" : "border-line bg-white text-ink"
           }`}
         >
@@ -95,7 +100,11 @@ export function ListingSocial({ listing }: { listing: Listing }) {
           onClick={() => react("dislike")}
           aria-label={t.dislikeLabel}
           aria-pressed={reaction === "dislike"}
+          aria-disabled={locked}
+          title={locked ? t.alreadyReacted : t.dislikeLabel}
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
+            locked ? "cursor-default" : ""
+          } ${
             reaction === "dislike" ? "border-accent bg-accent-tint text-accent" : "border-line bg-white text-ink"
           }`}
         >

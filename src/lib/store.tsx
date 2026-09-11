@@ -13,6 +13,7 @@ import { persistableUrl } from "./blob-media";
 import { channelsOf, parseSellerChannel } from "./channels";
 import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
+import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
 import {
   type AuthMethod,
   type ChatMessage,
@@ -117,7 +118,7 @@ type State = {
   viewedIds: string[];
   reports: Record<string, string>;
   meetDeals: Record<string, MeetDeal>;
-  reactions: Record<string, ListingReaction>;
+  reactions: ReactionsByVoter;
   comments: Record<string, ListingComment[]>;
   shops: Shop[];
   shopDraft: ShopDraft | null;
@@ -292,7 +293,7 @@ function load(): State {
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
       listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
-      reactions: saved.reactions && typeof saved.reactions === "object" ? saved.reactions : {},
+      reactions: hydrateReactions(saved.reactions, (saved.user as User | null | undefined) ?? null),
       comments:
         saved.comments && typeof saved.comments === "object"
           ? { ...DEFAULT_COMMENTS, ...saved.comments }
@@ -475,14 +476,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     },
     isFav: (id) => state.favouriteIds.includes(id),
-    reactionOf: (id) => state.reactions[id] ?? null,
+    reactionOf: (id) => {
+      const vid = voterId(state.user);
+      if (!vid) return null;
+      return state.reactions[vid]?.[id] ?? null;
+    },
     setReaction: (id, reaction) => {
       if (!state.user) return false;
+      const vid = voterId(state.user);
+      if (!vid) return false;
+      if (state.reactions[vid]?.[id]) return false;
       update((s) => {
-        const next = { ...s.reactions };
-        if (next[id] === reaction) delete next[id];
-        else next[id] = reaction;
-        return { ...s, reactions: next };
+        const current = voterId(s.user);
+        if (!current) return s;
+        if (s.reactions[current]?.[id]) return s;
+        return {
+          ...s,
+          reactions: {
+            ...s.reactions,
+            [current]: { ...s.reactions[current], [id]: reaction },
+          },
+        };
       });
       return true;
     },
