@@ -115,5 +115,5 @@ export function GisMap({
     pickRef.current = L.marker([pick.lat, pick.lng], { icon, interactive: false }).addTo(map);
   }, [pick]);
 
-  return <div ref={ref} className="h-full w-full" />;
+  return <div ref={ref} className={`h-full w-full${interactive ? "" : " pointer-events-none"}`} />;
 }
