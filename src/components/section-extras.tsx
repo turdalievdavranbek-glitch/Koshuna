@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CONSTRUCTION_CATEGORIES, SERVICE_CATEGORIES, propertyIsLiving } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES, SERVICE_CATEGORIES } from "@/lib/data";
 import { patchForSection } from "@/lib/section";
+import { realtyIsLiving } from "@/lib/realty";
 import { useApp } from "@/lib/store";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
-import { PropertyTypeChips } from "@/components/property-chips";
+import { RealtyChips } from "@/components/realty-chips";
 import { DealTypeChips } from "@/components/deal-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
@@ -25,7 +26,7 @@ export function SectionExtras() {
     return (
       <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
-        <PropertyTypeChips list />
+        <RealtyChips list />
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -39,7 +40,7 @@ export function SectionExtras() {
           </span>
           <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
         </button>
-        {filters.dealType === "short" && propertyIsLiving(filters.housingType) ? (
+        {filters.dealType === "short" && realtyIsLiving(filters.realtyGroup, filters.housingType) ? (
           <StayCalendar
             checkIn={filters.checkIn}
             checkOut={filters.checkOut}

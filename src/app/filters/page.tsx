@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SECTIONS, SERVICE_CATEGORIES, propertyIsLiving, propertyShowsRooms } from "@/lib/data";
+import { SECTIONS, SERVICE_CATEGORIES } from "@/lib/data";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
+import { realtyIsLiving } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
 import { feedHrefFromFilters, sectionHref } from "@/lib/section-tree";
 import { locationLineLabel } from "@/lib/places";
@@ -14,7 +15,7 @@ import { Chip, Eyebrow, Toggle } from "@/components/ui";
 import { openLocationPicker } from "@/components/location-line";
 import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
-import { PropertyTypeChips } from "@/components/property-chips";
+import { RealtyChips } from "@/components/realty-chips";
 import { DealTypeChips } from "@/components/deal-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
@@ -27,15 +28,6 @@ export default function FiltersPage() {
     useApp();
   const router = useRouter();
   const count = applyFilters(allListings, filters, city).length;
-
-  const setRooms = (n: number | 0) => {
-    if (n === 0) {
-      setFilters({ rooms: [] });
-      return;
-    }
-    const has = filters.rooms.includes(n);
-    setFilters({ rooms: has ? filters.rooms.filter((r) => r !== n) : [...filters.rooms, n] });
-  };
 
   const isRent = filters.section === "rent";
   const isSecondhand = filters.section === "secondhand";
@@ -60,7 +52,7 @@ export default function FiltersPage() {
       ? t.priceSale
       : filters.dealType === "short"
         ? t.priceDayStay
-        : filters.dealType === "long"
+        : filters.dealType === "long" || filters.dealType === "share"
           ? t.priceMonth
           : t.priceKgs
     : isCarRental
@@ -149,7 +141,7 @@ export default function FiltersPage() {
 
         {isRent ? <DealTypeChips labeled /> : null}
 
-        {isRent ? <PropertyTypeChips labeled /> : null}
+        {isRent ? <RealtyChips labeled /> : null}
 
         <div>
           <Eyebrow>{t.location}</Eyebrow>
@@ -188,7 +180,7 @@ export default function FiltersPage() {
           </div>
         ) : null}
 
-        {isRent && filters.dealType === "short" && propertyIsLiving(filters.housingType) ? (
+        {isRent && filters.dealType === "short" && realtyIsLiving(filters.realtyGroup, filters.housingType) ? (
           <div>
             <Eyebrow>
               {t.checkIn} / {t.checkOut}
@@ -341,38 +333,6 @@ export default function FiltersPage() {
             />
           </div>
         </div>
-
-        {isRent && propertyShowsRooms(filters.housingType) ? (
-        <div>
-          <Eyebrow>{t.rooms}</Eyebrow>
-          <div className="mt-2.5 flex gap-2">
-            {[
-              [0, t.anyRooms],
-              [1, "1"],
-              [2, "2"],
-              [3, "3"],
-              [4, "4+"],
-            ].map(([n, label]) => {
-              const active = n === 0 ? filters.rooms.length === 0 : filters.rooms.includes(n as number);
-              return (
-                <button
-                  key={String(n)}
-                  type="button"
-                  onClick={() => setRooms(n as number)}
-                  className="flex-1 rounded-xl py-[11px] text-center text-sm font-semibold"
-                  style={{
-                    background: active ? "#17140F" : "#FFFFFF",
-                    color: active ? "#F7F3EC" : n === 0 ? "#6E6558" : "#17140F",
-                    border: active ? "none" : "1px solid #E4DCCE",
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        ) : null}
 
         <div className="flex flex-col">
           {(

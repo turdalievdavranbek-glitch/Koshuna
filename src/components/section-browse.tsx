@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { CONSTRUCTION_CATEGORIES, propertyIsLiving } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES } from "@/lib/data";
+import { realtyIsLiving } from "@/lib/realty";
 import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { searchPlaceholder } from "@/lib/i18n";
 import { isSectionId, patchForSection } from "@/lib/section";
@@ -12,6 +13,7 @@ import type { SectionId } from "@/lib/types";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
 import { LocationLine } from "@/components/location-line";
+import { RealtyChips } from "@/components/realty-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { PhoneShell } from "@/components/shell";
@@ -26,6 +28,7 @@ function FeedExtras({ id }: { id: SectionId }) {
     return (
       <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
+        <RealtyChips />
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -39,7 +42,7 @@ function FeedExtras({ id }: { id: SectionId }) {
           </span>
           <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
         </button>
-        {filters.dealType === "short" && propertyIsLiving(filters.housingType) ? (
+        {filters.dealType === "short" && realtyIsLiving(filters.realtyGroup, filters.housingType) ? (
           <StayCalendar
             checkIn={filters.checkIn}
             checkOut={filters.checkOut}

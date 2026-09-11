@@ -4,6 +4,7 @@ import { hasPriceDrop } from "./deal";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { oblastOfListing } from "./places";
+import { listingMatchesRealty, listingRoomsMatch } from "./realty";
 import { isSpokenListing } from "./video-ai";
 
 /** Home chips only — leftover section search (rooms, map pin, deal type) must not empty the feed. */
@@ -14,6 +15,9 @@ export function homeFeedFilters(filters: Filters): Filters {
     category: null,
     goodsKind: "any",
     housingType: "any",
+    realtyGroup: "any",
+    realtySub: "any",
+    realtyKind: "any",
     rooms: [],
     bodyType: "any",
     gear: "any",
@@ -39,6 +43,8 @@ export function homeFeedFilters(filters: Filters): Filters {
     locLabel: null,
     priceMin: null,
     priceMax: null,
+    areaMin: null,
+    areaMax: null,
     checkIn: null,
     checkOut: null,
   };
@@ -115,13 +121,24 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
     }
     const rentFilters = filters.section === "rent";
-    if (rentFilters && filters.housingType && filters.housingType !== "any") {
+    if (rentFilters && !listingMatchesRealty(item, filters)) return false;
+    if (
+      rentFilters &&
+      (!filters.realtyGroup || filters.realtyGroup === "any") &&
+      filters.housingType &&
+      filters.housingType !== "any"
+    ) {
       if (item.section !== "rent" || item.housingKind !== filters.housingType) return false;
     }
     if (rentFilters && filters.rooms.length) {
-      if (!item.rooms) return false;
-      const match = filters.rooms.some((r) => (r >= 4 ? item.rooms! >= 4 : item.rooms === r));
+      const match = filters.rooms.some((r) => listingRoomsMatch(item.rooms, r));
       if (!match) return false;
+    }
+    if (rentFilters && filters.areaMin != null) {
+      if (item.area == null || item.area < filters.areaMin) return false;
+    }
+    if (rentFilters && filters.areaMax != null) {
+      if (item.area == null || item.area > filters.areaMax) return false;
     }
     const carFilters = filters.section === "cars";
     if (carFilters && filters.vehicleGroup && filters.vehicleGroup !== "any") {

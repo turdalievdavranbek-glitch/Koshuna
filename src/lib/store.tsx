@@ -15,6 +15,7 @@ import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS 
 import { DICT } from "./i18n";
 import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
+import { isRealtyGroup } from "./realty";
 import {
   type AuthMethod,
   type ChatMessage,
@@ -52,9 +53,14 @@ const defaultFilters = (): Filters => ({
   category: null,
   goodsKind: "any",
   housingType: "any",
+  realtyGroup: "any",
+  realtySub: "any",
+  realtyKind: "any",
   city: "all",
   priceMin: null,
   priceMax: null,
+  areaMin: null,
+  areaMax: null,
   rooms: [],
   bodyType: "any",
   gear: "any",
@@ -104,6 +110,9 @@ const defaultDraft = (): DraftListing => ({
   neighborPledge: true,
   mediaKind: "photos",
   aiConfirmed: false,
+  housingKind: "apartment",
+  realtyGroup: "apartments",
+  dealKind: "long",
 });
 
 type State = {
@@ -252,6 +261,11 @@ function normalizeFilters(filters: Filters): Filters {
     jobSub: next.jobSub && next.jobSub !== "any" ? next.jobSub : "any",
     jobRole: next.jobRole && next.jobRole !== "any" ? next.jobRole : "any",
     jobType: isJobType(next.jobType) ? next.jobType : "any",
+    realtyGroup: isRealtyGroup(next.realtyGroup) ? next.realtyGroup : "any",
+    realtySub: next.realtySub && next.realtySub !== "any" ? next.realtySub : "any",
+    realtyKind: next.realtyKind && next.realtyKind !== "any" ? next.realtyKind : "any",
+    areaMin: typeof next.areaMin === "number" ? next.areaMin : null,
+    areaMax: typeof next.areaMax === "number" ? next.areaMax : null,
     neighborOnly: Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
@@ -554,6 +568,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
+        dealKind: d.section === "rent" ? d.dealKind ?? "long" : undefined,
+        realtyGroup: d.section === "rent" ? d.realtyGroup : undefined,
+        realtySub: d.section === "rent" ? d.realtySub : undefined,
+        realtyKind: d.section === "rent" ? d.realtyKind : undefined,
         animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
         animalKind: d.section === "animals" ? d.animalKind : undefined,
         carMake: d.section === "cars" || d.section === "car-rental" ? d.carMake : undefined,

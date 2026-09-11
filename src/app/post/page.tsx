@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
+import { CITIES, CATEGORIES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, DEAL_KINDS, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
+import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { meetupSpotsFor } from "@/lib/deal";
 import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
@@ -209,7 +210,7 @@ export default function PostPage() {
               <div className="mt-2.5 flex gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setDraft({ kind: "rent", section: "rent", housingKind: "apartment" })}
+                  onClick={() => setDraft({ kind: "rent", section: "rent", housingKind: "apartment", realtyGroup: "apartments" })}
                   className="flex-1 rounded-2xl p-3.5 text-left"
                   style={{
                     background: draft.kind === "rent" ? "#17140F" : "#FFFFFF",
@@ -235,17 +236,70 @@ export default function PostPage() {
                 </button>
               </div>
               {draft.section === "rent" ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {PROPERTY_TYPES.map((id) => (
-                    <Chip
-                      key={id}
-                      active={draft.housingKind === id}
-                      onClick={() => setDraft({ housingKind: id })}
-                    >
-                      {t.propertyTypes[id]}
-                    </Chip>
-                  ))}
-                </div>
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {DEAL_KINDS.map((id) => (
+                      <Chip
+                        key={id}
+                        active={(draft.dealKind ?? "long") === id}
+                        onClick={() => setDraft({ dealKind: id })}
+                      >
+                        {id === "buy" ? t.dealBuy : id === "short" ? t.dealShort : id === "long" ? t.dealLong : t.dealShare}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {REALTY_GROUPS.map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.realtyGroup === id}
+                        onClick={() =>
+                          setDraft({
+                            realtyGroup: id,
+                            realtySub: undefined,
+                            realtyKind: undefined,
+                            housingKind: housingKindOfRealty(id) === "any" ? "apartment" : (housingKindOfRealty(id) as typeof draft.housingKind),
+                          })
+                        }
+                      >
+                        {t.realtyGroups[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  {draft.realtyGroup ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {realtySubsOf(draft.realtyGroup).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.realtySub === id}
+                          onClick={() => setDraft({ realtySub: id, realtyKind: undefined })}
+                        >
+                          {t.realtySubs[id] ?? id}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                  {draft.realtyGroup && draft.realtySub ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {realtyKindsOf(draft.realtyGroup, draft.realtySub).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.realtyKind === id}
+                          onClick={() => {
+                            const rooms = roomsOfRealtyKind(id);
+                            setDraft({
+                              realtyKind: id,
+                              housingKind: housingKindOfRealty(draft.realtyGroup, id) === "any" ? draft.housingKind : (housingKindOfRealty(draft.realtyGroup, id) as typeof draft.housingKind),
+                              rooms: rooms.length ? String(rooms[0]) : draft.rooms,
+                            });
+                          }}
+                        >
+                          {t.realtyKinds[id] ?? id}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               {draft.section === "secondhand" ? (
                 <>
@@ -532,7 +586,7 @@ export default function PostPage() {
                 <div className="mt-1 text-[13px] text-muted">
                   {t.cities[draft.city]}
                   {draft.rooms ? ` · ${draft.rooms} ${t.roomWord} · ${draft.area} м²` : ""}
-                  {` · ${listingChipLabel({ section: draft.section, category: draft.category, goodsKind: draft.goodsKind, housingKind: draft.housingKind, carMake: draft.carMake, carModel: draft.carModel, techBrand: draft.techBrand, techModel: draft.techModel, animalKind: draft.animalKind, jobRole: draft.jobRole, jobSphere: draft.jobSphere }, t)}`}
+                  {` · ${listingChipLabel({ section: draft.section, category: draft.category, goodsKind: draft.goodsKind, housingKind: draft.housingKind, realtyGroup: draft.realtyGroup, realtyKind: draft.realtyKind, carMake: draft.carMake, carModel: draft.carModel, techBrand: draft.techBrand, techModel: draft.techModel, animalKind: draft.animalKind, jobRole: draft.jobRole, jobSphere: draft.jobSphere }, t)}`}
                 </div>
                 {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="mt-3 w-full" /> : null}
                 {draft.description ? <p className="mt-3 text-sm leading-[1.5] text-ink-2">{draft.description}</p> : null}

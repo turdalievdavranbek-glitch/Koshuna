@@ -9,6 +9,17 @@ import {
   JOB_TYPE_RU,
   JOB_TYPE_UZ,
 } from "./vacancies";
+import {
+  REALTY_GROUP_KY,
+  REALTY_GROUP_RU,
+  REALTY_GROUP_UZ,
+  REALTY_KIND_KY,
+  REALTY_KIND_RU,
+  REALTY_KIND_UZ,
+  REALTY_SUB_KY,
+  REALTY_SUB_RU,
+  REALTY_SUB_UZ,
+} from "./realty";
 import { OBLAST_KY, OBLAST_RU, OBLAST_UZ } from "./places";
 
 const ru = {
@@ -223,8 +234,9 @@ const ru = {
   housingType: "Тип жилья",
   dealType: "Тип сделки",
   dealLong: "Долгосрочная аренда",
-  dealShort: "Краткосрочная аренда",
-  dealBuy: "Покупка",
+  dealShort: "Посуточная аренда",
+  dealBuy: "Продажа",
+  dealShare: "Совместное проживание",
   autoSale: "Продажа",
   autoRent: "Аренда",
   carMake: "Марка",
@@ -465,6 +477,19 @@ const ru = {
   jobSubs: JOB_SUB_RU,
   jobRoles: JOB_ROLE_RU,
   jobTypes: JOB_TYPE_RU,
+  realtyGroup: "Тип недвижимости",
+  realtySub: "Категория",
+  realtyKind: "Тип",
+  realtyGroups: REALTY_GROUP_RU,
+  realtySubs: REALTY_SUB_RU,
+  realtyKinds: REALTY_KIND_RU,
+  area: "Площадь",
+  areaTo40: "до 40 м²",
+  area40to70: "40–70 м²",
+  area70to100: "70–100 м²",
+  area100plus: "от 100 м²",
+  roomsStudio: "Студия",
+  rooms5plus: "5+",
   bodyType: "Тип кузова",
   sedan: "Седан",
   suv: "SUV",
@@ -1660,8 +1685,9 @@ const ky: typeof ru = {
   housingType: "Үй түрү",
   dealType: "Келишим түрү",
   dealLong: "Узак мөөнөттүү ижара",
-  dealShort: "Кыска мөөнөттүү ижара",
-  dealBuy: "Сатып алуу",
+  dealShort: "Суткалык ижара",
+  dealBuy: "Сатуу",
+  dealShare: "Бирге жашоо",
   autoSale: "Сатуу",
   autoRent: "Ижара",
   carMake: "Марка",
@@ -1902,6 +1928,19 @@ const ky: typeof ru = {
   jobSubs: JOB_SUB_RU,
   jobRoles: JOB_ROLE_RU,
   jobTypes: JOB_TYPE_KY,
+  realtyGroup: "Кыймылсыз мүлк түрү",
+  realtySub: "Категория",
+  realtyKind: "Түрү",
+  realtyGroups: REALTY_GROUP_KY,
+  realtySubs: REALTY_SUB_KY,
+  realtyKinds: REALTY_KIND_KY,
+  area: "Аянт",
+  areaTo40: "40 м² чейин",
+  area40to70: "40–70 м²",
+  area70to100: "70–100 м²",
+  area100plus: "100 м² баштап",
+  roomsStudio: "Студия",
+  rooms5plus: "5+",
   bodyType: "Кузов түрү",
   sedan: "Седан",
   suv: "SUV",
@@ -2448,8 +2487,9 @@ const uz: typeof ru = {
   housingType: "Uy-joy turi",
   dealType: "Bitim turi",
   dealLong: "Uzoq muddatli ijara",
-  dealShort: "Qisqa muddatli ijara",
-  dealBuy: "Sotib olish",
+  dealShort: "Kunlik ijara",
+  dealBuy: "Sotish",
+  dealShare: "Birga yashash",
   autoSale: "Sotish",
   autoRent: "Ijara",
   carMake: "Marka",
@@ -2690,6 +2730,19 @@ const uz: typeof ru = {
   jobSubs: JOB_SUB_RU,
   jobRoles: JOB_ROLE_RU,
   jobTypes: JOB_TYPE_UZ,
+  realtyGroup: "Koʻchmas mulk turi",
+  realtySub: "Toifa",
+  realtyKind: "Tur",
+  realtyGroups: REALTY_GROUP_UZ,
+  realtySubs: REALTY_SUB_UZ,
+  realtyKinds: REALTY_KIND_UZ,
+  area: "Maydon",
+  areaTo40: "40 m² gacha",
+  area40to70: "40–70 m²",
+  area70to100: "70–100 m²",
+  area100plus: "100 m² dan",
+  roomsStudio: "Studiya",
+  rooms5plus: "5+",
   bodyType: "Kuzov turi",
   sedan: "Sedan",
   suv: "SUV",
@@ -3397,6 +3450,7 @@ export function housingDealLabel(
     return t.dealBuy;
   }
   if (listing.dealKind === "short") return t.dealShort;
+  if (listing.dealKind === "share") return t.dealShare;
   return t.dealLong;
 }
 
@@ -3406,6 +3460,9 @@ export function listingChipLabel(
     category?: string;
     goodsKind?: string;
     housingKind?: string;
+    realtyGroup?: string;
+    realtySub?: string;
+    realtyKind?: string;
     carMake?: string;
     carModel?: string;
     techBrand?: string;
@@ -3419,6 +3476,8 @@ export function listingChipLabel(
   t: Dict,
 ): string {
   if (listing.section === "rent") {
+    if (listing.realtyKind && t.realtyKinds[listing.realtyKind]) return t.realtyKinds[listing.realtyKind];
+    if (listing.realtyGroup && t.realtyGroups[listing.realtyGroup]) return t.realtyGroups[listing.realtyGroup];
     if (listing.housingKind && t.propertyTypes[listing.housingKind]) {
       return t.propertyTypes[listing.housingKind];
     }

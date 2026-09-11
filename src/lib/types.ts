@@ -95,6 +95,8 @@ export type PropertyType =
   | "land"
   | "dacha";
 
+export type DealKind = "long" | "short" | "buy" | "share";
+
 export type AnimalGroup = "pets" | "farm";
 
 export const SELLER_CHANNELS = ["instagram", "facebook", "telegram", "whatsapp"] as const;
@@ -162,8 +164,11 @@ export type Listing = {
   rooms?: number;
   area?: number;
   housingKind?: PropertyType;
-  dealKind?: "long" | "short" | "buy";
+  dealKind?: DealKind;
   stockKind?: "newbuild" | "resale";
+  realtyGroup?: string;
+  realtySub?: string;
+  realtyKind?: string;
   lng?: number;
   lat?: number;
   bodyKind?: string;
@@ -218,9 +223,14 @@ export type Filters = {
   category: string | null;
   goodsKind: string;
   housingType: string;
+  realtyGroup: string;
+  realtySub: string;
+  realtyKind: string;
   city: string;
   priceMin: number | null;
   priceMax: number | null;
+  areaMin: number | null;
+  areaMax: number | null;
   rooms: number[];
   bodyType: string;
   gear: string;
@@ -232,7 +242,7 @@ export type Filters = {
   sort: SortMode;
   checkIn: string | null;
   checkOut: string | null;
-  dealType: "any" | "long" | "short" | "buy";
+  dealType: "any" | DealKind;
   stockType: "any" | "newbuild" | "resale";
   autoType: "sale" | "rent";
   vehicleGroup: "any" | "passenger" | "special";
@@ -308,6 +318,10 @@ export type DraftListing = {
   category?: string;
   goodsKind?: string;
   housingKind?: PropertyType;
+  dealKind?: DealKind;
+  realtyGroup?: string;
+  realtySub?: string;
+  realtyKind?: string;
   animalGroup?: AnimalGroup;
   animalKind?: string;
   vehicleGroup?: "passenger" | "special";

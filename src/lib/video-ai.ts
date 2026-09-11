@@ -1,5 +1,6 @@
 import type { AnimalGroup, DraftListing, PropertyType, SectionId } from "./types";
 import { JOB_ROLE_RU, JOB_ROWS, type JobType } from "./vacancies";
+import { housingTypeToRealtyGroup } from "./realty";
 
 export const DEMO_VIDEO_URL = "/demo/listing-sample.mp4";
 export const DEMO_POSTER_URL = "/demo/listing-poster.jpg";
@@ -404,7 +405,11 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   };
   if (guess.category) patch.category = guess.category;
   if (guess.goodsKind) patch.goodsKind = guess.goodsKind;
-  if (guess.housingKind) patch.housingKind = guess.housingKind;
+  if (guess.housingKind) {
+    patch.housingKind = guess.housingKind;
+    const group = housingTypeToRealtyGroup(guess.housingKind);
+    if (group !== "any") patch.realtyGroup = group;
+  }
   if (guess.carMake) patch.carMake = guess.carMake;
   if (guess.carModel) patch.carModel = guess.carModel;
   if (guess.vehicleGroup) patch.vehicleGroup = guess.vehicleGroup;

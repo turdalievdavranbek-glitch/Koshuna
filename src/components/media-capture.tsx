@@ -15,9 +15,9 @@ import {
   animalKindsOf,
   CATEGORIES,
   CONSTRUCTION_CATEGORIES,
+  DEAL_KINDS,
   goodsKindsOf,
   isTechCategory,
-  PROPERTY_TYPES,
   RESTAURANT_CATEGORIES,
   SECTIONS,
   SERVICE_CATEGORIES,
@@ -26,6 +26,7 @@ import {
 } from "@/lib/data";
 import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
+import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
@@ -347,7 +348,11 @@ export function MediaCapture({ draft, onPatch }: Props) {
 function pickSection(draft: DraftListing, id: SectionId): Partial<DraftListing> {
   const kind = id === "rent" || id === "stays" ? "rent" : "goods";
   const next: Partial<DraftListing> = { section: id, kind, aiConfirmed: false };
-  if (id === "rent") next.housingKind = draft.housingKind ?? "apartment";
+  if (id === "rent") {
+    next.housingKind = draft.housingKind ?? "apartment";
+    next.realtyGroup = draft.realtyGroup ?? "apartments";
+    next.dealKind = draft.dealKind ?? "long";
+  }
   if (id === "secondhand") {
     const keep = draft.category && (CATEGORIES as readonly string[]).includes(draft.category);
     next.category = keep ? draft.category : "phones";
@@ -492,16 +497,69 @@ export function AiConfirmCard({ draft, onPatch }: Props) {
         <div className="mt-3">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickCategory}</div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {PROPERTY_TYPES.map((id) => (
+            {DEAL_KINDS.map((id) => (
               <Chip
                 key={id}
-                active={draft.housingKind === id}
-                onClick={() => onPatch({ housingKind: id, aiConfirmed: false })}
+                active={(draft.dealKind ?? "long") === id}
+                onClick={() => onPatch({ dealKind: id, aiConfirmed: false })}
               >
-                {t.propertyTypes[id]}
+                {id === "buy" ? t.dealBuy : id === "short" ? t.dealShort : id === "long" ? t.dealLong : t.dealShare}
               </Chip>
             ))}
           </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {REALTY_GROUPS.map((id) => (
+              <Chip
+                key={id}
+                active={draft.realtyGroup === id}
+                onClick={() =>
+                  onPatch({
+                    realtyGroup: id,
+                    realtySub: undefined,
+                    realtyKind: undefined,
+                    housingKind: housingKindOfRealty(id) === "any" ? "apartment" : (housingKindOfRealty(id) as DraftListing["housingKind"]),
+                    aiConfirmed: false,
+                  })
+                }
+              >
+                {t.realtyGroups[id]}
+              </Chip>
+            ))}
+          </div>
+          {draft.realtyGroup ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {realtySubsOf(draft.realtyGroup).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.realtySub === id}
+                  onClick={() => onPatch({ realtySub: id, realtyKind: undefined, aiConfirmed: false })}
+                >
+                  {t.realtySubs[id] ?? id}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+          {draft.realtyGroup && draft.realtySub ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {realtyKindsOf(draft.realtyGroup, draft.realtySub).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.realtyKind === id}
+                  onClick={() => {
+                    const rooms = roomsOfRealtyKind(id);
+                    onPatch({
+                      realtyKind: id,
+                      housingKind: housingKindOfRealty(draft.realtyGroup, id) === "any" ? draft.housingKind : (housingKindOfRealty(draft.realtyGroup, id) as DraftListing["housingKind"]),
+                      rooms: rooms.length ? String(rooms[0]) : draft.rooms,
+                      aiConfirmed: false,
+                    });
+                  }}
+                >
+                  {t.realtyKinds[id] ?? id}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

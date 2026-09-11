@@ -52,8 +52,10 @@ function tightEnough(draft: DraftListing, item: Listing): boolean {
   if (item.city !== draft.city) return false;
   if (draft.section === "rent") {
     if (draft.housingKind && item.housingKind && item.housingKind !== draft.housingKind) return false;
+    if (draft.realtyGroup && item.realtyGroup && item.realtyGroup !== draft.realtyGroup) return false;
+    if (draft.realtyKind && item.realtyKind && item.realtyKind !== draft.realtyKind) return false;
     const rooms = Number(draft.rooms);
-    if (rooms && item.rooms && item.rooms !== rooms) return false;
+    if (Number.isFinite(rooms) && draft.rooms && item.rooms != null && item.rooms !== rooms) return false;
   }
   if (draft.section === "secondhand") {
     if (draft.category && item.category && item.category !== draft.category) return false;

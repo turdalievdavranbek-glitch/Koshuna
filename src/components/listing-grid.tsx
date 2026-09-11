@@ -120,9 +120,15 @@ function ListingCard({
               : t.status.reserved}
           </div>
         ) : null}
-        {layout === "large" && listing.rooms ? (
+        {layout === "large" && (listing.rooms != null || listing.area != null) ? (
           <div className="mt-1 text-[13px] text-muted">
-            {listing.rooms} {t.roomWord} · {listing.area} м²
+            {listing.rooms != null
+              ? listing.rooms === 0
+                ? t.roomsStudio
+                : `${listing.rooms} ${t.roomWord}`
+              : null}
+            {listing.rooms != null && listing.area != null ? " · " : null}
+            {listing.area != null ? `${listing.area} м²` : null}
           </div>
         ) : null}
         {layout !== "small" ? (

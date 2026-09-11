@@ -1,13 +1,23 @@
 "use client";
 
-import { propertyIsLiving, propertyShowsStock } from "@/lib/data";
+import { DEAL_KINDS } from "@/lib/data";
+import { realtyIsLiving, realtyShowsStock } from "@/lib/realty";
 import { useApp } from "@/lib/store";
 import { Chip, Eyebrow } from "@/components/ui";
 
-const DEALS = ["buy", "short", "long", "any"] as const;
+const DEALS = [...DEAL_KINDS, "any"] as const;
+
+function dealLabel(id: (typeof DEALS)[number], t: ReturnType<typeof useApp>["t"]) {
+  if (id === "buy") return t.dealBuy;
+  if (id === "short") return t.dealShort;
+  if (id === "long") return t.dealLong;
+  if (id === "share") return t.dealShare;
+  return t.any;
+}
 
 export function DealTypeChips({ labeled }: { labeled?: boolean }) {
   const { t, filters, setFilters } = useApp();
+  const living = realtyIsLiving(filters.realtyGroup, filters.housingType);
 
   const row = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
@@ -18,20 +28,20 @@ export function DealTypeChips({ labeled }: { labeled?: boolean }) {
           onClick={() =>
             setFilters({
               dealType: id,
-              checkIn: id === "short" && propertyIsLiving(filters.housingType) ? filters.checkIn : null,
-              checkOut: id === "short" && propertyIsLiving(filters.housingType) ? filters.checkOut : null,
+              checkIn: id === "short" && living ? filters.checkIn : null,
+              checkOut: id === "short" && living ? filters.checkOut : null,
               stockType: id === "buy" ? filters.stockType : "any",
             })
           }
         >
-          {id === "buy" ? t.dealBuy : id === "short" ? t.dealShort : id === "long" ? t.dealLong : t.any}
+          {dealLabel(id, t)}
         </Chip>
       ))}
     </div>
   );
 
   const stock =
-    filters.dealType === "buy" && propertyShowsStock(filters.housingType) ? (
+    filters.dealType === "buy" && realtyShowsStock(filters.realtyGroup, filters.realtySub, filters.housingType) ? (
       <div className="mt-2.5 flex flex-wrap gap-2">
         {(
           [

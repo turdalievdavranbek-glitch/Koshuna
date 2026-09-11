@@ -274,17 +274,23 @@ export default function ListingPage() {
             <ShareToSocial listing={listing} />
           </div>
 
-          {listing.rooms ? (
+          {listing.rooms != null || listing.area != null ? (
             <div className="mt-5 grid grid-cols-3 gap-2">
               {[
-                [String(listing.rooms), t.roomWord],
-                [String(listing.area), "м²"],
+                listing.rooms != null
+                  ? [listing.rooms === 0 ? t.roomsStudio : String(listing.rooms), listing.rooms === 0 ? t.rooms : t.roomWord]
+                  : [String(listing.area ?? ""), "м²"],
+                listing.area != null && listing.rooms != null ? [String(listing.area), "м²"] : null,
                 listing.dealKind === "buy"
                   ? [t.dealBuy, t.dealType]
                   : listing.dealKind === "short" || listing.unit === "day"
                     ? ["сут", t.units.day.replace("/ ", "")]
-                    : ["мес", t.monthRent],
-              ].map(([v, l]) => (
+                    : listing.dealKind === "share"
+                      ? [t.dealShare, t.dealType]
+                      : ["мес", t.monthRent],
+              ]
+                .filter((row): row is [string, string] => Boolean(row))
+                .map(([v, l]) => (
                 <div key={l} className="rounded-[14px] border border-line bg-white px-3 py-3">
                   <div className="font-display text-[19px] font-bold text-ink">{v}</div>
                   <div className="mt-0.5 text-xs text-muted">{l}</div>

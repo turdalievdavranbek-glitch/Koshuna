@@ -19,6 +19,16 @@ import {
   vehicleTypesOf,
 } from "./transport";
 import { JOB_SPHERES, isJobSphere, jobRolesOf, jobSubsOf } from "./vacancies";
+import {
+  REALTY_GROUPS,
+  housingKindOfRealty,
+  housingTypeToRealtyGroup,
+  isRealtyGroup,
+  realtyKindsOf,
+  realtySubsOf,
+  roomsOfRealtyKind,
+  stockOfRealtyKind,
+} from "./realty";
 import type { Dict } from "./i18n";
 import { isSectionId } from "./section";
 import type { AnimalGroup, Filters, SectionId } from "./types";
@@ -363,34 +373,146 @@ function cars(path: string[]): BranchState | null {
   };
 }
 
+function rentPatch(
+  group: string = "any",
+  sub: string = "any",
+  kind: string = "any",
+): Partial<Filters> {
+  const housingType = housingKindOfRealty(group === "any" ? undefined : group, kind === "any" ? undefined : kind);
+  return {
+    section: "rent",
+    housingType,
+    realtyGroup: group,
+    realtySub: sub,
+    realtyKind: kind,
+    rooms: roomsOfRealtyKind(kind === "any" ? undefined : kind),
+    stockType: stockOfRealtyKind(kind === "any" ? undefined : kind),
+  };
+}
+
 function rent(path: string[]): BranchState | null {
-  const base: Partial<Filters> = { section: "rent", housingType: "any" };
-  const types = PROPERTY_TYPES.map((id) => option(id, (t) => t.propertyTypes[id], false));
+  const groups = REALTY_GROUPS.map((id) => option(id, (t) => t.realtyGroups[id] ?? id, realtySubsOf(id).length > 0));
 
   if (!path.length) {
     return {
       ok: true,
       title: (t) => t.sectionNames.rent,
       parentPath: [],
-      options: types,
-      patch: base,
-      isPicker: false,
-      showFeed: true,
-      eyebrow: (t) => t.housingType,
+      options: groups,
+      patch: rentPatch(),
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.realtyGroup,
     };
   }
 
-  const type = path[0];
-  if (path.length !== 1 || !inList(type, PROPERTY_TYPES)) return null;
+  if (path[0] === BRANCH_ALL) {
+    if (path.length !== 1) return null;
+    return {
+      ok: true,
+      title: (t) => t.sectionNames.rent,
+      parentPath: [],
+      options: [],
+      patch: rentPatch(),
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.realtyGroup,
+    };
+  }
+
+  if (inList(path[0], PROPERTY_TYPES) && !isRealtyGroup(path[0])) {
+    if (path.length !== 1) return null;
+    const type = path[0];
+    const group = housingTypeToRealtyGroup(type);
+    const kind = type === "dacha" ? "dacha" : "any";
+    const sub = type === "dacha" ? "houses-country" : "any";
+    return {
+      ok: true,
+      title: (t) => t.propertyTypes[type],
+      parentPath: [],
+      options: [],
+      patch: rentPatch(group, sub, kind),
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.realtyGroup,
+    };
+  }
+
+  const group = path[0];
+  if (!isRealtyGroup(group)) return null;
+  const subs = realtySubsOf(group);
+  const groupPatch = rentPatch(group);
+
+  if (path.length === 1) {
+    return {
+      ok: true,
+      title: (t) => t.realtyGroups[group] ?? group,
+      parentPath: [],
+      options: subs.map((id) => option(id, (t) => t.realtySubs[id] ?? id, realtyKindsOf(group, id).length > 0)),
+      patch: groupPatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.realtySub,
+    };
+  }
+
+  if (path[1] === BRANCH_ALL) {
+    if (path.length !== 2) return null;
+    return {
+      ok: true,
+      title: (t) => t.realtyGroups[group] ?? group,
+      parentPath: [group],
+      options: [],
+      patch: groupPatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.realtySub,
+    };
+  }
+
+  const sub = path[1];
+  if (!subs.includes(sub)) return null;
+  const kinds = realtyKindsOf(group, sub);
+  const subPatch = rentPatch(group, sub);
+
+  if (path.length === 2) {
+    return {
+      ok: true,
+      title: (t) => t.realtySubs[sub] ?? sub,
+      parentPath: [group],
+      options: kinds.map((id) => option(id, (t) => t.realtyKinds[id] ?? id, false)),
+      patch: subPatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.realtyKind,
+    };
+  }
+
+  if (path[2] === BRANCH_ALL) {
+    if (path.length !== 3) return null;
+    return {
+      ok: true,
+      title: (t) => t.realtySubs[sub] ?? sub,
+      parentPath: [group, sub],
+      options: [],
+      patch: subPatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.realtyKind,
+    };
+  }
+
+  const kind = path[2];
+  if (path.length !== 3 || !kinds.includes(kind)) return null;
   return {
     ok: true,
-    title: (t) => t.propertyTypes[type],
-    parentPath: [],
+    title: (t) => t.realtyKinds[kind] ?? kind,
+    parentPath: [group, sub],
     options: [],
-    patch: { ...base, housingType: type },
+    patch: rentPatch(group, sub, kind),
     isPicker: false,
     showFeed: true,
-    eyebrow: (t) => t.housingType,
+    eyebrow: (t) => t.realtyKind,
   };
 }
 
@@ -678,8 +800,16 @@ export function pathFromFilters(filters: Filters): string[] {
     return path;
   }
   if (section === "rent") {
-    if (!filters.housingType || filters.housingType === "any") return [];
-    return [filters.housingType];
+    if (!filters.realtyGroup || filters.realtyGroup === "any") {
+      const mapped = housingTypeToRealtyGroup(filters.housingType);
+      return mapped === "any" ? [] : [mapped];
+    }
+    const path: string[] = [filters.realtyGroup];
+    if (!filters.realtySub || filters.realtySub === "any") return path;
+    path.push(filters.realtySub);
+    if (!filters.realtyKind || filters.realtyKind === "any") return path;
+    path.push(filters.realtyKind);
+    return path;
   }
   if (section === "animals") {
     if (!filters.animalGroup || filters.animalGroup === "any") return [];
@@ -722,6 +852,8 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     priceMin: null,
     priceMax: null,
     rooms: [],
+    areaMin: null,
+    areaMax: null,
     bodyType: "any",
     gear: "any",
     photosOnly: false,
