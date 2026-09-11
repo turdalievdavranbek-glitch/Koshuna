@@ -64,7 +64,7 @@ export function RealtyChips({ labeled, list }: { labeled?: boolean; list?: boole
           onClick={() => setFilters({ areaMin: preset.min, areaMax: preset.max })}
         >
           {preset.id === "any"
-            ? t.any
+            ? t.areaAny
             : preset.id === "to40"
               ? t.areaTo40
               : preset.id === "r40-70"

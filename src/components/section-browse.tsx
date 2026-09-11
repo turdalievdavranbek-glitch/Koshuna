@@ -28,7 +28,7 @@ function FeedExtras({ id }: { id: SectionId }) {
     return (
       <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
-        <RealtyChips />
+        <RealtyChips list />
         <button
           type="button"
           onClick={() => router.push("/map")}
