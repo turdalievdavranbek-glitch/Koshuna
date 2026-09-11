@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { formatSom } from "@/lib/data";
-import { parentOfShopKind, shopKindsOf, SHOP_STOCK, SHOP_UNITS, validPrice } from "@/lib/shops";
-import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
+import { parentOfShopKind, shopKindsOf, SHOP_STOCK, SHOP_UNITS, validPrice, validQuantity } from "@/lib/shops";
+import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
 import type { Shop, ShopKind, ShopProduct, ShopStock, ShopProductUnit } from "@/lib/types";
 import { Chip, Field, Input, Toggle } from "./ui";
@@ -12,6 +12,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
   const { t, upsertShopProduct, updateShopProduct, hideShopProduct } = useApp();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [qty, setQty] = useState("");
   const [noPrice, setNoPrice] = useState(false);
   const [kind, setKind] = useState<ShopKind | undefined>(shop.kinds?.[0]);
   const [note, setNote] = useState("");
@@ -29,9 +30,15 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
       setError(t.shopNeedPrice);
       return;
     }
+    const quantity = qty.trim() ? validQuantity(qty) : undefined;
+    if (qty.trim() && quantity == null) {
+      setError(t.shopNeedQuantity);
+      return;
+    }
     const result = await upsertShopProduct(shop.id, {
       title: title.trim(),
       price: n,
+      quantity,
       category: parentOfShopKind(kind) ?? shop.category,
       kind,
     });
@@ -41,6 +48,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
     }
     setTitle("");
     setPrice("");
+    setQty("");
     setNoPrice(false);
     setNote(t.shopProductSave);
   };
@@ -77,6 +85,10 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
             }}
           />
         </div>
+        <Field label={t.shopProductQuantity}>
+          <Input value={qty} onChange={setQty} placeholder={t.shopQuantityPh} />
+        </Field>
+        <p className="-mt-1 text-[12px] leading-[1.4] text-muted">{t.shopQuantityHint}</p>
         {kids.length ? (
           <div>
             <div className="text-[12px] font-semibold text-muted">{t.shopProductKind}</div>
@@ -102,6 +114,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
             shop={shop}
             product={item}
             onPrice={(next) => void updateShopProduct(shop.id, item.id, { price: next })}
+            onQty={(quantity) => void updateShopProduct(shop.id, item.id, { quantity })}
             onStock={(stock) => void updateShopProduct(shop.id, item.id, { stock })}
             onUnit={(unit) => void updateShopProduct(shop.id, item.id, { unit })}
             onKind={(next) => void updateShopProduct(shop.id, item.id, { kind: next, category: parentOfShopKind(next) ?? shop.category })}
@@ -117,6 +130,7 @@ function ProductRow({
   shop,
   product,
   onPrice,
+  onQty,
   onStock,
   onUnit,
   onKind,
@@ -125,6 +139,7 @@ function ProductRow({
   shop: Shop;
   product: ShopProduct;
   onPrice: (n?: number) => void;
+  onQty: (n?: number) => void;
   onStock: (s: ShopStock) => void;
   onUnit: (u: ShopProductUnit) => void;
   onKind: (k?: ShopKind) => void;
@@ -132,7 +147,9 @@ function ProductRow({
 }) {
   const { t } = useApp();
   const [raw, setRaw] = useState(product.price != null ? String(product.price) : "");
+  const [qty, setQty] = useState(product.quantity != null ? String(product.quantity) : "");
   const kids = shopKindsOf(shop.category, ...shop.extraCategories);
+  const qtyLine = shopQtyLabel(t, product);
   return (
     <div className="rounded-[16px] border border-line bg-white p-3">
       <div className="flex items-start justify-between gap-2">
@@ -140,6 +157,7 @@ function ProductRow({
           <div className="text-[14px] font-semibold text-ink">{product.title}</div>
           <div className="mt-0.5 text-[11px] text-muted-2">
             {product.kind ? `${shopKindLabel(t, product.kind)} · ` : ""}
+            {qtyLine ? `${qtyLine} · ` : ""}
             {t.shopStockStale} · {product.updatedAt.slice(0, 10)}
           </div>
         </div>
@@ -170,6 +188,22 @@ function ProductRow({
           </Chip>
         </div>
         <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}</div>
+      </div>
+      <div className="mt-2">
+        <Field label={t.shopProductQuantity}>
+          <Input
+            value={qty}
+            placeholder={t.shopQuantityPh}
+            onChange={(v) => {
+              setQty(v);
+              if (!v.trim()) onQty(undefined);
+              else {
+                const n = validQuantity(v);
+                if (n != null) onQty(n);
+              }
+            }}
+          />
+        </Field>
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {SHOP_UNITS.map((id) => (

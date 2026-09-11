@@ -1,12 +1,14 @@
 import { parentOfShopKind } from "./shops";
 import { classifyShopSpeech, kindCandidates, type ShopAiProductHint } from "./shop-ai";
-import type { ShopCategory, ShopKind } from "./types";
+import type { ShopCategory, ShopKind, ShopProductUnit } from "./types";
 
 export type ShopItemDraft = {
   id: string;
   title: string;
   description?: string;
   price?: number;
+  quantity?: number;
+  unit?: ShopProductUnit;
   photo?: string;
   kind?: ShopKind;
   category?: ShopCategory;
@@ -39,6 +41,8 @@ export function draftsFromShopSpeech(
       title: item.title,
       description: item.title,
       price: item.price,
+      quantity: item.quantity,
+      unit: item.unit,
       kind,
       category: parentOfShopKind(kind) ?? fallback?.category,
       kindOptions: options,

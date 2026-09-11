@@ -459,6 +459,8 @@ export type ShopProduct = {
   currency: "KGS";
   unit: ShopProductUnit;
   stock: ShopStock;
+  /** How many units are on the counter now. Omit if the seller did not say. */
+  quantity?: number;
   listingId?: string;
   sourceId?: string;
   priceFromPhoto?: boolean;

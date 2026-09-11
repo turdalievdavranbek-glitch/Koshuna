@@ -6,7 +6,7 @@ import { formatSom } from "@/lib/data";
 import { twoGisUrl } from "@/lib/geo";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { canSeeShop, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
-import { shopKindLabel } from "@/lib/shop-copy";
+import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
@@ -197,6 +197,7 @@ export default function ShopDetailPage() {
                         {item.price != null ? `${formatSom(item.price)} KGS / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
                       </div>
                       <div className="mt-0.5 text-[12px] text-muted">
+                        {shopQtyLabel(t, item) ? `${shopQtyLabel(t, item)} · ` : ""}
                         {item.stock === "in" ? t.shopStockIn : item.stock === "out" ? t.shopStockOut : item.stock === "order" ? t.shopStockOrder : t.shopStockAsk}
                         {" · "}
                         {t.shopStockStale} {item.updatedAt.slice(0, 10)}

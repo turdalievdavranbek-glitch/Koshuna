@@ -9,7 +9,7 @@ import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/me
 import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
-import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
+import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import {
   assortmentKey,
   assortmentUseCount,
@@ -20,6 +20,7 @@ import {
   publicProduct,
   shopsOf,
   validPrice,
+  validQuantity,
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
@@ -54,6 +55,7 @@ export function ShopItemCapture({
   const [photo, setPhoto] = useState("");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [qty, setQty] = useState("");
   const [noPrice, setNoPrice] = useState(false);
   const [fromPhoto, setFromPhoto] = useState(false);
   const [ai, setAi] = useState("");
@@ -378,9 +380,15 @@ export function ShopItemCapture({
       setError(t.shopNeedPrice);
       return;
     }
+    const quantity = qty.trim() ? validQuantity(qty) : undefined;
+    if (qty.trim() && quantity == null) {
+      setError(t.shopNeedQuantity);
+      return;
+    }
     const result = await upsertShopProduct(shop.id, {
       title: title.trim(),
       price: n,
+      quantity,
       photo,
       category: parent,
       kind,
@@ -394,6 +402,7 @@ export function ShopItemCapture({
     setPhoto("");
     setTitle("");
     setPrice("");
+    setQty("");
     setNoPrice(false);
     setFromPhoto(false);
     setAi("");
@@ -405,6 +414,7 @@ export function ShopItemCapture({
     const result = await upsertShopProduct(shop.id, {
       title: item.title,
       price: item.price,
+      quantity: item.quantity,
       photo: item.photo,
       category: item.category,
       kind: item.kind,
@@ -443,6 +453,8 @@ export function ShopItemCapture({
       const result = await upsertShopProduct(shop.id, {
         title: row.title.trim(),
         price: row.price,
+        quantity: row.quantity,
+        unit: row.unit,
         photo: row.photo,
         category: row.category ?? parent,
         kind: row.kind,
@@ -522,6 +534,15 @@ export function ShopItemCapture({
                           value={row.price != null ? String(row.price) : ""}
                           placeholder={t.shopAskPrice}
                           onChange={(v) => patchDraft(row.id, { price: v.trim() ? validPrice(v) : undefined })}
+                        />
+                      </Field>
+                    </div>
+                    <div className="mt-2">
+                      <Field label={t.shopProductQuantity}>
+                        <Input
+                          value={row.quantity != null ? String(row.quantity) : ""}
+                          placeholder={t.shopQuantityPh}
+                          onChange={(v) => patchDraft(row.id, { quantity: v.trim() ? validQuantity(v) : undefined })}
                         />
                       </Field>
                     </div>
@@ -675,6 +696,10 @@ export function ShopItemCapture({
                   }}
                 />
               </Field>
+              <Field label={t.shopProductQuantity}>
+                <Input value={qty} onChange={setQty} placeholder={t.shopQuantityPh} />
+              </Field>
+              <p className="-mt-2 text-[12px] leading-[1.4] text-muted">{t.shopQuantityHint}</p>
               <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                 <div>
                   <div className="text-[15px] font-semibold text-ink">{t.shopNoPrice}</div>
@@ -803,6 +828,7 @@ function ItemCard({
         <div className="mt-0.5 text-[13px] font-semibold text-accent">
           {product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}
         </div>
+        {shopQtyLabel(t, product) ? <div className="mt-0.5 text-[11px] text-muted">{shopQtyLabel(t, product)}</div> : null}
         {product.priceFromPhoto ? <div className="mt-0.5 text-[11px] text-muted">{t.shopItemPriceAiShort}</div> : null}
         <div className="mt-0.5 text-[11px] text-muted-2">{t.shopItemReuseLeft(PRODUCT_REUSE_MAX - uses, PRODUCT_REUSE_MAX)}</div>
         <button

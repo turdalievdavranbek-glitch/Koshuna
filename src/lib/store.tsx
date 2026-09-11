@@ -62,7 +62,7 @@ import {
   isAppSide,
   isLang,
 } from "./types";
-import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice } from "./shops";
+import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice, validQuantity } from "./shops";
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { BrandMark } from "@/components/brand";
@@ -1077,6 +1077,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currency: "KGS",
         unit: product.unit ?? "piece",
         stock: product.stock ?? "in",
+        quantity: validQuantity(product.quantity),
         listingId: product.listingId || listingIdForProduct(id),
         sourceId,
         priceFromPhoto: product.priceFromPhoto,
@@ -1131,6 +1132,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!user) return { error: "auth" };
       if (!shop || !current || !isOwnShop(shop, user)) return { error: "forbidden" };
       if ("price" in patch && patch.price != null && patch.price !== 0 && validPrice(patch.price) == null) return { error: "price" };
+      if ("quantity" in patch && patch.quantity != null && patch.quantity !== 0 && validQuantity(patch.quantity) == null) {
+        return { error: "quantity" };
+      }
       const next = {
         ...current,
         ...patch,
@@ -1140,6 +1144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             : validPrice(patch.price)
           : current.price,
         photo: displayPhotoForProduct({ ...current, ...patch }),
+        quantity: "quantity" in patch ? validQuantity(patch.quantity) : current.quantity,
         updatedAt: new Date().toISOString(),
       };
       update((s) => {

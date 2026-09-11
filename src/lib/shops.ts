@@ -198,6 +198,13 @@ export function validPrice(raw: unknown): number | undefined {
   return Math.round(n);
 }
 
+export function validQuantity(raw: unknown): number | undefined {
+  if (raw == null || raw === "") return undefined;
+  const n = typeof raw === "number" ? raw : Number(String(raw).replace(/\s/g, "").replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.round(n * 100) / 100;
+}
+
 export function listingSectionForShop(
   category: ShopCategory,
   kind?: ShopKind | null,
@@ -272,7 +279,7 @@ export function hydrateShop<T extends Shop>(shop: T): T {
     kinds: pruneShopKinds({ category, extraCategories, kinds: shop.kinds ?? [] }),
     products: (shop.products ?? []).map((item) => {
       const kind = isShopKind(item.kind) ? item.kind : undefined;
-      const next = { ...item, kind };
+      const next = { ...item, kind, quantity: validQuantity(item.quantity) };
       return { ...next, photo: displayPhotoForProduct(next) };
     }),
   };

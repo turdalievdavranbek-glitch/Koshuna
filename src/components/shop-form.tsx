@@ -277,6 +277,11 @@ export function ShopForm() {
                 <div>
                   <div className="text-[13px] font-semibold text-ink">{item.title}</div>
                   {item.price ? <div className="text-[12px] text-muted">{item.price} KGS</div> : <div className="text-[12px] text-muted">{t.shopAskPrice}</div>}
+                  {item.quantity != null && item.quantity > 0 ? (
+                    <div className="text-[12px] text-muted">
+                      {item.quantity} {t.shopUnits[item.unit ?? "piece"]}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex gap-1">
                   <button
@@ -292,8 +297,9 @@ export function ShopForm() {
                             shopId: d.id,
                             title: item.title,
                             price: item.price,
+                            quantity: item.quantity,
                             currency: "KGS",
-                            unit: "piece",
+                            unit: item.unit ?? "piece",
                             stock: "in",
                             category: d.category,
                             published: true,

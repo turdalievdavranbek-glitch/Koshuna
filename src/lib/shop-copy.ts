@@ -18,6 +18,8 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopNeedContact;
     case "confirm":
       return t.shopNeedConfirm;
+    case "quantity":
+      return t.shopNeedQuantity;
     case "price":
       return t.shopNeedPrice;
     case "video-size":
@@ -38,4 +40,10 @@ export function shopErrorText(t: Dict, code?: string): string {
 export function shopKindLabel(t: Dict, id: string | undefined | null): string {
   if (!id) return "";
   return t.shopKinds[id] || t.shopCats[id] || id;
+}
+
+export function shopQtyLabel(t: Dict, product: { quantity?: number; unit: string }): string | null {
+  if (product.quantity == null || product.quantity <= 0) return null;
+  const n = Number.isInteger(product.quantity) ? String(product.quantity) : String(product.quantity);
+  return `${n} ${t.shopUnits[product.unit] ?? product.unit}`;
 }

@@ -1,10 +1,11 @@
-import { isShopCategory, isShopKind, parentOfShopKind, SHOP_CATEGORIES, validPrice } from "./shops";
+import { isShopCategory, isShopKind, parentOfShopKind, SHOP_CATEGORIES, validPrice, validQuantity } from "./shops";
 import type { ShopCategory, ShopDraft, ShopHours, ShopKind, ShopProductUnit } from "./types";
 
 export type ShopAiProductHint = {
   title: string;
   price?: number;
   unit?: ShopProductUnit;
+  quantity?: number;
 };
 
 export type ShopAiGuess = {
@@ -113,6 +114,35 @@ function extractFulfillment(text: string): { pickup?: boolean; delivery?: boolea
   return out;
 }
 
+const COUNT_UNIT =
+  "кг|килограмм(?:а|ов)?|штук(?:и|а)?|шт\\.?|даана|dona|литр(?:а|ов)?|упак(?:овк(?:а|и))?|пачк[аиу]|метр(?:а|ов)?";
+
+function unitFromSpoken(raw: string): ShopProductUnit {
+  const s = raw.toLowerCase();
+  if (/кг|кило/.test(s)) return "kg";
+  if (/литр/.test(s)) return "liter";
+  if (/метр/.test(s)) return "meter";
+  if (/упак|пачк/.test(s)) return "pack";
+  return "piece";
+}
+
+/** Parse a spoken count only when the seller said it. Never invent. */
+function takeCount(chunk: string): { quantity?: number; unit?: ShopProductUnit } {
+  const left = chunk.match(
+    new RegExp(`(?:осталось|остался|осталась|калды|калып|qoldi)\\s+(\\d+(?:[.,]\\d+)?)(?:\\s*(${COUNT_UNIT}))?`, "i"),
+  );
+  if (left) {
+    const quantity = validQuantity(left[1]);
+    if (quantity == null) return {};
+    return { quantity, unit: left[2] ? unitFromSpoken(left[2]) : undefined };
+  }
+  const numbered = chunk.match(new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(${COUNT_UNIT})`, "i"));
+  if (!numbered) return {};
+  const quantity = validQuantity(numbered[1]);
+  if (quantity == null) return {};
+  return { quantity, unit: unitFromSpoken(numbered[2]) };
+}
+
 function extractProducts(raw: string): ShopAiProductHint[] {
   const chunks = raw
     .replace(/\s+/g, " ")
@@ -123,8 +153,11 @@ function extractProducts(raw: string): ShopAiProductHint[] {
   const found: ShopAiProductHint[] = [];
   for (const chunk of chunks) {
     const som = chunk.match(/(?:от\s+)?(\d[\d\s]{1,6})\s*(?:сом|som|kgs)/i);
+    const count = takeCount(chunk);
     const title = chunk
       .replace(/(?:от\s+)?\d[\d\s]{1,6}\s*(?:сом|som|kgs)/gi, "")
+      .replace(new RegExp(`(?:осталось|остался|осталась|калды|калып|qoldi)\\s+\\d+(?:[.,]\\d+)?(?:\\s*(?:${COUNT_UNIT}))?`, "gi"), "")
+      .replace(new RegExp(`\\d+(?:[.,]\\d+)?\\s*(?:${COUNT_UNIT})`, "gi"), "")
       .replace(/,?\s*размеры?\s[^,.]+/gi, "")
       .replace(/,?\s*разные цвета/gi, "")
       .replace(/,?\s*разных цветов/gi, "")
@@ -132,7 +165,12 @@ function extractProducts(raw: string): ShopAiProductHint[] {
       .trim();
     if (title.length < 3) continue;
     if (/^(цена|баа|это|мен|я|биз|у нас|от)$/i.test(title)) continue;
-    found.push({ title: title.slice(0, 60), price: som ? validPrice(som[1]) : undefined, unit: "piece" });
+    found.push({
+      title: title.slice(0, 60),
+      price: som ? validPrice(som[1]) : undefined,
+      unit: count.unit ?? "piece",
+      quantity: count.quantity,
+    });
   }
   if (!found.length && raw.trim().length >= 4) {
     found.push({ title: raw.replace(/\s+/g, " ").trim().slice(0, 60), unit: "piece" });
