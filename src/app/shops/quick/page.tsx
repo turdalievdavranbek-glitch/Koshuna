@@ -18,7 +18,9 @@ export default function ShopQuickPage() {
       return;
     }
     setSide("sell");
-  }, [user, router, setPendingPath, setSide]);
+    // setSide/setPendingPath are new each store render — do not depend on them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (!user) return null;
 
