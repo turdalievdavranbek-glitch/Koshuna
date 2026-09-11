@@ -12,14 +12,17 @@ import { SideSwitch } from "@/components/side-switch";
 import { Field, Input } from "@/components/ui";
 
 export default function SellingPage() {
-  const { t, user, extraListings, allListings, shops, setPendingPath, setSide, realtorProfiles, partnerLeads, setRealtorTelegram } =
+  const { t, user, extraListings, allListings, shops, setPendingPath, setSide, realtorProfiles, dealerProfiles, partnerLeads, setRealtorTelegram, setDealerTelegram } =
     useApp();
   const router = useRouter();
   const mine = mineListings(allListings, extraListings, user, shops);
   const shopCount = shopsOf(shops, user).length;
   const realtor = realtorProfiles.find((row) => row.userPhone === user?.phone);
+  const dealer = dealerProfiles.find((row) => row.userPhone === user?.phone);
   const [chatId, setChatId] = useState(realtor?.telegramChatId ?? "");
+  const [dealerChat, setDealerChat] = useState(dealer?.telegramChatId ?? "");
   const listingLeads = partnerLeads.filter((row) => row.source === "listing" && row.realtorPhone === user?.phone);
+  const dealerLeads = partnerLeads.filter((row) => row.dealerId === dealer?.id);
 
   if (!user) {
     return (
@@ -86,6 +89,13 @@ export default function SellingPage() {
         >
           {t.applyDeveloper}
         </button>
+        <button
+          type="button"
+          onClick={() => router.push("/partner?kind=dealer")}
+          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+        >
+          {t.applyDealer}
+        </button>
         {user && hasRole(user, "developer") ? (
           <button
             type="button"
@@ -93,6 +103,15 @@ export default function SellingPage() {
             className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
           >
             {t.developerCabinet}
+          </button>
+        ) : null}
+        {user && hasRole(user, "dealer") ? (
+          <button
+            type="button"
+            onClick={() => router.push("/dealer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.dealerCabinet}
           </button>
         ) : null}
         {user && isAdminUser(user) ? (
@@ -124,6 +143,34 @@ export default function SellingPage() {
               <div className="mt-3">
                 <div className="text-[13px] font-semibold text-ink">{t.leadsTitle}</div>
                 {listingLeads.slice(0, 6).map((row) => (
+                  <div key={row.id} className="mt-1.5 text-[13px] text-muted">
+                    {row.name} · {row.phone}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {user && hasRole(user, "dealer") ? (
+          <div className="mt-2.5 rounded-[16px] border border-line bg-white p-3.5">
+            <div className="text-[13px] font-bold text-accent-dark">{t.dealerBadge}</div>
+            <div className="mt-2">
+              <Field label={t.telegramChatId}>
+                <Input value={dealerChat} onChange={setDealerChat} />
+              </Field>
+            </div>
+            <p className="mt-1 text-[12px] text-muted">{t.telegramHint}</p>
+            <button
+              type="button"
+              onClick={() => setDealerTelegram(dealerChat)}
+              className="mt-2 text-[13px] font-semibold text-accent"
+            >
+              {t.save}
+            </button>
+            {dealerLeads.length ? (
+              <div className="mt-3">
+                <div className="text-[13px] font-semibold text-ink">{t.leadsTitle}</div>
+                {dealerLeads.slice(0, 6).map((row) => (
                   <div key={row.id} className="mt-1.5 text-[13px] text-muted">
                     {row.name} · {row.phone}
                   </div>

@@ -141,3 +141,92 @@ export type CarMake = string;
 export function carModelsOf(make: string | null | undefined): readonly string[] {
   return vehicleModelsOf(make);
 }
+
+const MAKE_ALIASES: Record<string, string[]> = {
+  toyota: ["toyota", "тойота"],
+  lexus: ["lexus", "лексус"],
+  honda: ["honda", "хонда"],
+  nissan: ["nissan", "ниссан"],
+  mazda: ["mazda", "мазда"],
+  subaru: ["subaru", "субару"],
+  mitsubishi: ["mitsubishi", "митсубиси", "мицубиси"],
+  hyundai: ["hyundai", "хендай", "хундай"],
+  kia: ["kia", "киа"],
+  chevrolet: ["chevrolet", "шевроле"],
+  daewoo: ["daewoo", "дэу", "деу"],
+  volkswagen: ["volkswagen", "фольксваген", "vw"],
+  bmw: ["bmw", "бмв"],
+  mercedes: ["mercedes", "мерседес", "mercedes-benz"],
+  audi: ["audi", "ауди"],
+  lada: ["lada", "лада", "ваз"],
+  renault: ["renault", "рено"],
+  caterpillar: ["caterpillar", "cat", "катерпиллар"],
+  komatsu: ["komatsu", "комацу"],
+  hitachi: ["hitachi", "хитачи"],
+  jcb: ["jcb"],
+  kamaz: ["kamaz", "камаз"],
+};
+
+const MODEL_ALIASES: Record<string, string[]> = {
+  camry: ["camry", "камри"],
+  corolla: ["corolla", "королла"],
+  rav4: ["rav4", "rav 4", "рав4", "рав 4"],
+  "land-cruiser": ["land cruiser", "landcruiser", "ленд крузер", "крузер 200"],
+  prado: ["prado", "прадо"],
+  hilux: ["hilux", "хайлюкс"],
+  "cr-v": ["cr-v", "crv", "cr v"],
+  "x-trail": ["x-trail", "xtrail", "икс трейл"],
+  qashqai: ["qashqai", "кашкай"],
+  "cx-5": ["cx-5", "cx5", "cx 5"],
+  "santa-fe": ["santa fe", "santa-fe", "санта фе"],
+  "3-series": ["3 series", "3 серии", "320"],
+  "e-class": ["e-class", "e class", "е класс", "e200", "e220"],
+  "c-class": ["c-class", "c class", "с класс"],
+  "3cx": ["3cx", "3 cx"],
+};
+
+const TYPE_ALIASES: Record<string, string[]> = {
+  sedan: ["седан", "sedan"],
+  crossover: ["кроссовер", "crossover", "кросс"],
+  suv: ["внедорожник", "suv", "джип"],
+  pickup: ["пикап", "pickup"],
+  wagon: ["универсал", "wagon"],
+  excavator: ["экскаватор", "excavator"],
+  backhoe: ["экскаватор-погрузчик", "3cx"],
+  bulldozer: ["бульдозер", "bulldozer"],
+  loader: ["погрузчик", "loader"],
+  crane: ["кран", "автокран"],
+  dump: ["самосвал", "dump"],
+  tractor: ["трактор", "tractor"],
+};
+
+function aliasKeys(id: string, extra?: string[]) {
+  const spaced = id.replace(/-/g, " ");
+  return unique([id, spaced, ...(extra ?? [])].map((k) => k.toLowerCase()).filter((k) => k.length >= 2));
+}
+
+function textHas(text: string, keys: string[]) {
+  return keys.some((k) => text.includes(k));
+}
+
+export function matchTransport(raw: string): TransportRow | undefined {
+  const text = raw.toLowerCase().replace(/ё/g, "е");
+  let best: { row: TransportRow; score: number } | null = null;
+  for (const row of TRANSPORT_ROWS) {
+    const makeKeys = aliasKeys(row.make, MAKE_ALIASES[row.make]);
+    const modelKeys = aliasKeys(row.model, MODEL_ALIASES[row.model]);
+    const makeHit = textHas(text, makeKeys);
+    const modelHits = modelKeys.filter((k) => text.includes(k));
+    const modelHit = modelHits.length > 0;
+    if (!makeHit && !modelHit) continue;
+    const longestModel = modelHits.reduce((n, k) => Math.max(n, k.length), 0);
+    if (modelHit && !makeHit && longestModel < 4) continue;
+    let score = 0;
+    if (makeHit) score += 12;
+    if (modelHit) score += 40 + longestModel;
+    if (textHas(text, TYPE_ALIASES[row.type] ?? [row.type])) score += 8;
+    if (!best || score > best.score) best = { row, score };
+  }
+  if (!best || best.score < 12) return undefined;
+  return best.row;
+}

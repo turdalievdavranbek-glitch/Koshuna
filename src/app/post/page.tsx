@@ -179,6 +179,14 @@ export default function PostPage() {
                       ))}
                     </div>
                   ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Chip active={draft.gearKind === "auto"} onClick={() => setDraft({ gearKind: "auto" })}>
+                      {t.auto}
+                    </Chip>
+                    <Chip active={draft.gearKind === "manual"} onClick={() => setDraft({ gearKind: "manual" })}>
+                      {t.manual}
+                    </Chip>
+                  </div>
                 </>
               ) : null}
               {draft.section === "vacancies" ? (
@@ -488,6 +496,28 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
+              {draft.section === "cars" || draft.section === "car-rental" ? (
+                <div className="flex gap-2.5">
+                  <div className="flex-1">
+                    <Field label={t.yearField}>
+                      <Input
+                        value={draft.year != null ? String(draft.year) : ""}
+                        onChange={(v) => setDraft({ year: Number(v.replace(/\D/g, "")) || undefined })}
+                        placeholder="2018"
+                      />
+                    </Field>
+                  </div>
+                  <div className="flex-1">
+                    <Field label={t.mileageField}>
+                      <Input
+                        value={draft.mileage != null ? String(draft.mileage) : ""}
+                        onChange={(v) => setDraft({ mileage: Number(v.replace(/\D/g, "")) || undefined })}
+                        placeholder="90000"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              ) : null}
               <div className="flex gap-2.5">
                 <div className="flex-1">
                   <Field label={t.yourName}>
@@ -504,7 +534,7 @@ export default function PostPage() {
               <div className="rounded-[14px] border border-line bg-accent-tint px-3.5 py-3 text-[13px] leading-[1.45] text-safe">
                 {t.igPostHint}
               </div>
-              {hasRole(user, "realtor") ? null : (
+              {hasRole(user, "realtor") || hasRole(user, "dealer") ? null : (
                 <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                   <div>
                     <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>

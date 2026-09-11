@@ -30,7 +30,7 @@ import { SellerStarsBadge } from "@/components/trust-stars";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft, dealerProfiles } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -51,6 +51,7 @@ export default function ListingPage() {
   }
 
   const owner = ownerById(listing.ownerId);
+  const dealer = listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
   const title = listingTitle(listing, lang);
   const gate = (path: string) => {
     if (!user) {
@@ -263,7 +264,7 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
-          {!mine && listing.sellerType === "realtor" ? <ListingLeadForm listing={listing} /> : null}
+          {!mine && (listing.sellerType === "realtor" || listing.sellerType === "dealer") ? <ListingLeadForm listing={listing} /> : null}
           {off || reserved || mine ? null : <GoLookCard listing={listing} />}
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />
@@ -355,25 +356,33 @@ export default function ListingPage() {
 
           <ListingSocial listing={listing} />
 
-          {listing.shopId || listing.sellerName ? (
+          {listing.shopId || listing.sellerName || dealer ? (
             <button
               type="button"
-              onClick={() => listing.shopId && router.push(`/shops/${listing.shopId}`)}
+              onClick={() => {
+                if (listing.shopId) router.push(`/shops/${listing.shopId}`);
+                else if (dealer) router.push(`/dealers/${dealer.slug}`);
+              }}
               className="mt-6 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-4 text-left"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink font-display text-xl font-bold text-screen">
-                {(listing.sellerName || owner?.name || "?").slice(0, 1)}
+                {(dealer?.companyName || listing.sellerName || owner?.name || "?").slice(0, 1)}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-semibold text-ink">{listing.sellerName || owner?.name}</span>
+                  <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name}</span>
                   <SellerStarsBadge listing={listing} placed />
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
-                  {mine ? t.youSellerOnCard : `${t.shopFromListing} · ${postedLabel(listing, t)}`}
+                  {mine
+                    ? t.youSellerOnCard
+                    : dealer
+                      ? `${t.dealerBadge} · ${postedLabel(listing, t)}`
+                      : `${t.shopFromListing} · ${postedLabel(listing, t)}`}
                 </div>
               </div>
               {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
+              {dealer ? <span className="text-[13px] font-semibold text-accent">{t.dealersTitle}</span> : null}
             </button>
           ) : owner ? (
             <button

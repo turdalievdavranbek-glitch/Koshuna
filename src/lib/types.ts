@@ -120,7 +120,7 @@ export type User = {
   verified: boolean;
   rating: number;
   views: number;
-  roles?: Array<"realtor" | "developer" | "admin">;
+  roles?: Array<"realtor" | "developer" | "dealer" | "admin">;
 };
 
 export type Owner = {
@@ -170,8 +170,9 @@ export type Listing = {
   realtyGroup?: string;
   realtySub?: string;
   realtyKind?: string;
-  sellerType?: "owner" | "realtor";
+  sellerType?: "owner" | "realtor" | "dealer";
   sellerPhone?: string;
+  dealerId?: string;
   closedKind?: "sold" | "rented";
   leadCount?: number;
   lng?: number;
@@ -190,6 +191,7 @@ export type Listing = {
   jobRole?: string;
   jobType?: "full" | "part" | "gig" | "remote" | "shift" | "intern";
   year?: number;
+  mileage?: number;
   condition?: string;
   photos: string[];
   mediaKind?: MediaKind;
@@ -243,7 +245,7 @@ export type Filters = {
   verifiedOnly: boolean;
   noAgents: boolean;
   neighborOnly: boolean;
-  sellerKind: "any" | "neighbor" | "owner" | "realtor";
+  sellerKind: "any" | "neighbor" | "owner" | "realtor" | "private" | "dealer";
   videoOnly: boolean;
   sort: SortMode;
   checkIn: string | null;
@@ -325,7 +327,7 @@ export type DraftListing = {
   goodsKind?: string;
   housingKind?: PropertyType;
   dealKind?: DealKind;
-  sellerType?: "owner" | "realtor";
+  sellerType?: "owner" | "realtor" | "dealer";
   realtyGroup?: string;
   realtySub?: string;
   realtyKind?: string;
@@ -335,6 +337,9 @@ export type DraftListing = {
   vehicleType?: string;
   carMake?: string;
   carModel?: string;
+  year?: number;
+  mileage?: number;
+  gearKind?: "auto" | "manual";
   techBrand?: string;
   techModel?: string;
   jobSphere?: string;

@@ -145,6 +145,7 @@ export default function FiltersPage() {
         {isRent ? <RealtyChips labeled /> : null}
 
         {isRent ? <SellerKindChips labeled /> : null}
+        {isAuto ? <SellerKindChips labeled variant="auto" /> : null}
 
         <div>
           <Eyebrow>{t.location}</Eyebrow>

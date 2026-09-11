@@ -1,15 +1,21 @@
 "use client";
 
 import { isFromNeighbor, neighborFlags, type NeighborFlag } from "@/lib/neighbor";
+import { listingSellerType } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconCheck } from "./icons";
 
 const ORDER: NeighborFlag[] = ["owner", "place", "som", "noPrepay"];
 
+function dealerLabel(listing: Listing, t: ReturnType<typeof useApp>["t"]) {
+  return listing.verified ? t.dealerVerified : t.dealerBadge;
+}
+
 export function NeighborMark({ listing, compact }: { listing: Listing; compact?: boolean }) {
   const { t } = useApp();
-  if (listing.sellerType === "realtor") {
+  const seller = listingSellerType(listing);
+  if (seller === "realtor") {
     return (
       <span
         className={`pointer-events-none font-bold tracking-wide text-accent-dark ${
@@ -19,6 +25,19 @@ export function NeighborMark({ listing, compact }: { listing: Listing; compact?:
         }`}
       >
         {t.fromRealtor}
+      </span>
+    );
+  }
+  if (seller === "dealer") {
+    return (
+      <span
+        className={`pointer-events-none font-bold tracking-wide text-accent-dark ${
+          compact
+            ? "rounded-full bg-[#F3E0D9] px-1.5 py-0.5 text-[8px]"
+            : "rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px]"
+        }`}
+      >
+        {dealerLabel(listing, t)}
       </span>
     );
   }
@@ -75,11 +94,20 @@ export function NeighborBanner({
 
 export function NeighborCard({ listing }: { listing: Listing }) {
   const { t } = useApp();
-  if (listing.sellerType === "realtor") {
+  const seller = listingSellerType(listing);
+  if (seller === "realtor") {
     return (
       <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
         <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.fromRealtor}</div>
         <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.realtorBadge}</p>
+      </div>
+    );
+  }
+  if (seller === "dealer") {
+    return (
+      <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{dealerLabel(listing, t)}</div>
+        <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.fromDealer}</p>
       </div>
     );
   }

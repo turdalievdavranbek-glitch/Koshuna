@@ -17,7 +17,8 @@ export function ListingLeadForm({ listing }: { listing: Listing }) {
     const res = submitLead({
       source: "listing",
       listingId: listing.id,
-      realtorPhone: listing.sellerPhone,
+      realtorPhone: listing.sellerType === "realtor" ? listing.sellerPhone : undefined,
+      dealerId: listing.dealerId,
       name,
       phone,
       message,

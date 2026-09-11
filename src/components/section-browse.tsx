@@ -107,6 +107,18 @@ function FeedExtras({ id }: { id: SectionId }) {
             ))}
           </div>
         ) : null}
+        <SellerKindChips variant="auto" />
+        <button
+          type="button"
+          onClick={() => router.push("/dealers")}
+          className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+        >
+          <span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.dealerBadge}</span>
+            <span className="mt-0.5 block text-[13px] font-semibold text-ink">{t.dealersTitle}</span>
+          </span>
+          <span className="text-[13px] font-semibold text-accent">›</span>
+        </button>
       </div>
     );
   }
@@ -297,6 +309,19 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
                 <span className="text-muted-2">›</span>
               </button>
             ) : null}
+            {id === "cars" && !path.length ? (
+              <button
+                type="button"
+                onClick={() => router.push("/dealers")}
+                className="mb-3 flex w-full items-center justify-between rounded-[16px] border border-line bg-white px-4 py-3.5 text-left"
+              >
+                <span>
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.dealerBadge}</span>
+                  <span className="mt-0.5 block text-[15px] font-semibold text-ink">{t.dealersTitle}</span>
+                </span>
+                <span className="text-muted-2">›</span>
+              </button>
+            ) : null}
             <BranchList
               title={state.eyebrow(t)}
               rows={rows}
@@ -355,7 +380,11 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
           </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-          {id === "rent" ? <SellerKindChips /> : (
+          {id === "rent" ? (
+            <SellerKindChips />
+          ) : id === "cars" ? (
+            <SellerKindChips variant="auto" />
+          ) : (
             <Chip
               active={filters.neighborOnly}
               onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}

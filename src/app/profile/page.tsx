@@ -74,6 +74,9 @@ export default function ProfilePage() {
               {hasRole(user, "developer") ? (
                 <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
+              {hasRole(user, "dealer") ? (
+                <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
+              ) : null}
             </div>
             <div className="mt-1">
               <TrustStars n={stars} size={15} />

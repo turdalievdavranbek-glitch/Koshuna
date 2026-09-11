@@ -26,6 +26,20 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     carModel: id === "cars" && stayingOnCars ? prev.carModel : "any",
     gear: stayingOnCars && prev.autoType === "rent" ? prev.gear : "any",
     autoType: id === "cars" ? (stayingOnCars ? prev.autoType : "sale") : "sale",
+    sellerKind:
+      id === "cars"
+        ? prev.sellerKind === "private" || prev.sellerKind === "dealer" || prev.sellerKind === "any"
+          ? prev.sellerKind
+          : "any"
+        : id === "rent"
+          ? prev.sellerKind === "neighbor" ||
+              prev.sellerKind === "owner" ||
+              prev.sellerKind === "realtor" ||
+              prev.sellerKind === "any"
+            ? prev.sellerKind
+            : "any"
+          : "any",
+    neighborOnly: id === "rent" ? prev.neighborOnly : false,
     animalGroup:
       id === "animals" ? (prev.section === "animals" ? prev.animalGroup : "any") : "any",
     animalKind: id === "animals" && prev.section === "animals" ? prev.animalKind : "any",

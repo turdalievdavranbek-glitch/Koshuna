@@ -104,8 +104,10 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.noAgents && !item.noAgent) return false;
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
     if (filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
-    if (filters.sellerKind === "owner" && item.sellerType === "realtor") return false;
+    if (filters.sellerKind === "owner" && item.sellerType !== "owner" && item.sellerType) return false;
     if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
+    if (filters.sellerKind === "private" && item.sellerType === "dealer") return false;
+    if (filters.sellerKind === "dealer" && item.sellerType !== "dealer") return false;
     if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
     if (filters.videoOnly && !isSpokenListing(item)) return false;
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {

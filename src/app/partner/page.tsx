@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { hasRole } from "@/lib/partners";
+import { hasRole, type ApplicationKind } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -11,7 +11,8 @@ import { Chip, Field, Input } from "@/components/ui";
 function PartnerApplyInner() {
   const { t, user, applications, submitPartnerApplication, setPendingPath, city } = useApp();
   const router = useRouter();
-  const kind = useSearchParams().get("kind") === "developer" ? "developer" : "realtor";
+  const rawKind = useSearchParams().get("kind");
+  const kind: ApplicationKind = rawKind === "developer" || rawKind === "dealer" ? rawKind : "realtor";
   const [companyName, setCompanyName] = useState("");
   const [contactName, setContactName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
@@ -19,6 +20,8 @@ function PartnerApplyInner() {
   const [specialization, setSpecialization] = useState(kind === "realtor" ? "продажа" : "");
   const [inn, setInn] = useState("");
   const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
+  const [hours, setHours] = useState("");
 
   if (!user) {
     return (
@@ -46,6 +49,8 @@ function PartnerApplyInner() {
       specialization,
       inn,
       website,
+      address,
+      hours,
     });
   };
 
@@ -61,9 +66,10 @@ function PartnerApplyInner() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Chip active={kind === "realtor"} onClick={() => router.replace("/partner?kind=realtor")}>{t.applyRealtor}</Chip>
           <Chip active={kind === "developer"} onClick={() => router.replace("/partner?kind=developer")}>{t.applyDeveloper}</Chip>
+          <Chip active={kind === "dealer"} onClick={() => router.replace("/partner?kind=dealer")}>{t.applyDealer}</Chip>
         </div>
         {already ? <p className="mt-4 text-[15px] text-success">{t.partnerApproved}</p> : null}
         {mine && !already ? (
@@ -74,7 +80,7 @@ function PartnerApplyInner() {
         {!already && mine?.status !== "pending" ? (
           <>
             <div className="mt-4">
-              <Field label={kind === "developer" ? t.shopName : t.agencyName}>
+              <Field label={kind === "realtor" ? t.agencyName : t.shopName}>
                 <Input value={companyName} onChange={setCompanyName} />
               </Field>
             </div>
@@ -94,6 +100,19 @@ function PartnerApplyInner() {
                   <Input value={districts} onChange={setDistricts} />
                 </Field>
               </div>
+            ) : kind === "dealer" ? (
+              <>
+                <div className="mt-2">
+                  <Field label={t.shopAddress}>
+                    <Input value={address} onChange={setAddress} />
+                  </Field>
+                </div>
+                <div className="mt-2">
+                  <Field label={t.dealerHours}>
+                    <Input value={hours} onChange={setHours} />
+                  </Field>
+                </div>
+              </>
             ) : (
               <div className="mt-2">
                 <Field label={t.innField}>

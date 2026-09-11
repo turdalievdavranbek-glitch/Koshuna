@@ -9,7 +9,7 @@ export function neighborFlags(listing: Listing): Record<NeighborFlag, boolean> {
     listing.section === "rent" || listing.section === "restaurants"
       ? pin && Boolean(listing.district || listing.city)
       : Boolean(listing.city);
-  const owner = listing.noAgent && listingSellerType(listing) !== "realtor";
+  const owner = listing.noAgent && listingSellerType(listing) === "owner";
   return {
     owner,
     place,

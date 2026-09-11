@@ -7,7 +7,7 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 
 export default function AdminPage() {
-  const { t, user, applications, complexes, developerProfiles, realtorProfiles, reviewApplication, publishComplex, toggleDeveloperVerified, toggleRealtorVerified, setPendingPath } = useApp();
+  const { t, user, applications, complexes, developerProfiles, realtorProfiles, dealerProfiles, reviewApplication, publishComplex, toggleDeveloperVerified, toggleRealtorVerified, toggleDealerVerified, setPendingPath } = useApp();
   const router = useRouter();
 
   if (!user) {
@@ -42,7 +42,9 @@ export default function AdminPage() {
         <div className="mt-3 flex flex-col gap-2.5">
           {pending.length ? pending.map((row) => (
             <div key={row.id} className="rounded-[16px] border border-line bg-white p-3.5">
-              <div className="text-[11px] font-bold uppercase text-accent-dark">{row.kind === "realtor" ? t.realtorBadge : t.developerBadge}</div>
+              <div className="text-[11px] font-bold uppercase text-accent-dark">
+                {row.kind === "realtor" ? t.realtorBadge : row.kind === "dealer" ? t.dealerBadge : t.developerBadge}
+              </div>
               <div className="mt-1 text-[15px] font-semibold text-ink">{row.companyName || row.userName}</div>
               <div className="text-[13px] text-muted">{row.phone} · {row.userName}</div>
               <div className="mt-2 flex gap-2">
@@ -79,6 +81,12 @@ export default function AdminPage() {
         {realtorProfiles.map((row) => (
           <button key={row.id} type="button" onClick={() => toggleRealtorVerified(row.id)} className="mt-2 w-full rounded-[14px] border border-line bg-white px-3.5 py-3 text-left">
             {row.agencyName || row.phone} · {row.verified ? t.realtorVerified : t.realtorBadge}
+          </button>
+        ))}
+        <div className="mt-6 font-display text-[19px] font-bold text-ink">{t.dealerBadge}</div>
+        {dealerProfiles.map((row) => (
+          <button key={row.id} type="button" onClick={() => toggleDealerVerified(row.id)} className="mt-2 w-full rounded-[14px] border border-line bg-white px-3.5 py-3 text-left">
+            {row.companyName} · {row.verified ? t.dealerVerified : t.dealerBadge}
           </button>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import type { AnimalGroup, DraftListing, PropertyType, SectionId } from "./types";
 import { JOB_ROLE_RU, JOB_ROWS, type JobType } from "./vacancies";
 import { housingTypeToRealtyGroup } from "./realty";
+import { matchTransport } from "./transport";
 
 export const DEMO_VIDEO_URL = "/demo/listing-sample.mp4";
 export const DEMO_POSTER_URL = "/demo/listing-poster.jpg";
@@ -21,6 +22,9 @@ export type AiGuess = {
   carModel?: string;
   vehicleGroup?: "passenger" | "special";
   vehicleType?: string;
+  year?: number;
+  mileage?: number;
+  gearKind?: "auto" | "manual";
   techBrand?: string;
   techModel?: string;
   animalGroup?: AnimalGroup;
@@ -267,7 +271,54 @@ function firstSentence(text: string): string {
   return clean.slice(0, 80);
 }
 
+function prettyMake(id: string) {
+  return id
+    .split("-")
+    .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+    .join(" ");
+}
+
+function hasSomPrice(text: string): boolean {
+  return /(?:сом|som|kgs)/.test(text);
+}
+
+function hasUsdOnly(text: string): boolean {
+  return /(?:\$|usd|доллар|баксов)/.test(text) && !hasSomPrice(text);
+}
+
+function isYearToken(n: number): boolean {
+  return n >= 1990 && n <= 2035;
+}
+
+function extractYear(text: string): number | undefined {
+  const m = text.match(/\b(19[89]\d|20[0-3]\d)\b/);
+  if (!m) return undefined;
+  const n = Number(m[1]);
+  return isYearToken(n) ? n : undefined;
+}
+
+function extractMileage(text: string): number | undefined {
+  const byWord = text.match(/(?:^|[^\p{L}])пробег\s*[:\-–]?\s*(\d[\d\s]{1,8})/iu);
+  if (byWord) {
+    const n = Number(byWord[1].replace(/\s/g, ""));
+    if (n >= 100 && n <= 2000000) return n;
+  }
+  const byKm = text.match(/(\d[\d\s]{1,8})\s*(?:км|km)\b/i);
+  if (byKm) {
+    const n = Number(byKm[1].replace(/\s/g, ""));
+    if (n >= 100 && n <= 2000000 && !isYearToken(n)) return n;
+  }
+  return undefined;
+}
+
+function extractGear(text: string): "auto" | "manual" | undefined {
+  if (/автомат|акпп|вариатор|\bcvt\b|типтроник/.test(text)) return "auto";
+  if (/механик|мкпп|ручка|механическая/.test(text)) return "manual";
+  return undefined;
+}
+
 function extractPrice(text: string): string | undefined {
+  if (hasUsdOnly(text)) return undefined;
   const phrase: [RegExp, number][] = [
     [/пятьдесят\s+тысяч/, 50000],
     [/сорок\s+пять\s+тысяч/, 45000],
@@ -298,8 +349,16 @@ function extractPrice(text: string): string | undefined {
     const n = Number(withSom[1].replace(/\s/g, ""));
     if (n > 0) return String(n);
   }
-  const digits = text.match(/\b(\d{4,7})\b/);
-  if (digits) return digits[1];
+  const digits = text.match(/\b(\d{4,7})\b/g);
+  if (digits) {
+    for (const raw of digits) {
+      const n = Number(raw.replace(/\s/g, ""));
+      if (!n || isYearToken(n)) continue;
+      if (new RegExp(`пробег[^\\d]{0,12}${raw}`).test(text)) continue;
+      if (new RegExp(`${raw}\\s*(?:км|km)`).test(text)) continue;
+      return String(n);
+    }
+  }
   return undefined;
 }
 
@@ -368,18 +427,25 @@ export function classifyListingSpeech(raw: string): AiGuess {
     if (s > 0 && (!best || s > best.score)) best = { rule, score: s };
   }
   const rule = best?.rule;
+  const transport = matchTransport(raw);
   const price = extractPrice(text);
   const city = extractCity(text);
   const rooms = extractRooms(text);
   const area = extractArea(text);
   const dealKind = extractDealKind(text);
   const meetupSpot = extractSpot(text);
-  const titleBase = rule?.title ?? firstSentence(raw) ?? "Видеообъявление";
+  const year = extractYear(text);
+  const mileage = extractMileage(text);
+  const gearKind = extractGear(text);
+  const titleBase =
+    transport
+      ? [prettyMake(transport.make), prettyMake(transport.model), year].filter(Boolean).join(" ")
+      : (rule?.title ?? firstSentence(raw) ?? "Видеообъявление");
   let title = titleBase;
   if (rule?.techModel === "iphone-13" && /128/.test(text)) title = "iPhone 13, 128 ГБ";
   if (price && !/\d/.test(title)) title = `${title}, ${price} сом`;
   const description = raw.replace(/\s+/g, " ").trim() || title;
-  const section = rule?.section ?? "secondhand";
+  const section = transport ? "cars" : (rule?.section ?? "secondhand");
   const job = section === "vacancies" ? extractJob(text) : undefined;
   const jobType = section === "vacancies" ? extractJobType(text) ?? rule?.jobType ?? "full" : rule?.jobType;
   if (job && titleBase === "Вакансия") {
@@ -388,14 +454,17 @@ export function classifyListingSpeech(raw: string): AiGuess {
   }
   return {
     section,
-    kind: rule?.kind ?? "goods",
-    category: rule?.category,
+    kind: transport ? "goods" : (rule?.kind ?? "goods"),
+    category: transport ? undefined : rule?.category,
     goodsKind: rule?.goodsKind,
-    housingKind: rule?.housingKind,
-    carMake: rule?.carMake,
-    carModel: rule?.carModel,
-    vehicleGroup: rule?.vehicleGroup,
-    vehicleType: rule?.vehicleType,
+    housingKind: transport ? undefined : rule?.housingKind,
+    carMake: transport?.make ?? rule?.carMake,
+    carModel: transport?.model ?? rule?.carModel,
+    vehicleGroup: transport?.group ?? rule?.vehicleGroup,
+    vehicleType: transport?.type ?? rule?.vehicleType,
+    year,
+    mileage,
+    gearKind,
     techBrand: rule?.techBrand,
     techModel: rule?.techModel,
     animalGroup: rule?.animalGroup,
@@ -434,6 +503,9 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   if (guess.carModel) patch.carModel = guess.carModel;
   if (guess.vehicleGroup) patch.vehicleGroup = guess.vehicleGroup;
   if (guess.vehicleType) patch.vehicleType = guess.vehicleType;
+  if (guess.year) patch.year = guess.year;
+  if (guess.mileage) patch.mileage = guess.mileage;
+  if (guess.gearKind) patch.gearKind = guess.gearKind;
   if (guess.techBrand) patch.techBrand = guess.techBrand;
   if (guess.techModel) patch.techModel = guess.techModel;
   if (guess.animalGroup) patch.animalGroup = guess.animalGroup;
