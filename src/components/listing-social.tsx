@@ -17,30 +17,29 @@ export function ListingSocialMeta({
   size?: "sm" | "md" | "lg";
   align?: "start" | "center";
 }) {
-  const { t, reactionOf, commentsOf } = useApp();
+  const { reactionOf, commentsOf } = useApp();
   const reaction = reactionOf(listingId);
   const { likes, dislikes, comments } = socialCounts(listingId, reaction, commentsOf(listingId).length);
   const icon = size === "sm" ? 11 : size === "lg" ? 14 : 12;
   const text = size === "sm" ? "text-[9px]" : size === "lg" ? "text-[12px]" : "text-[11px]";
   const gap = size === "sm" ? "gap-1.5" : "gap-2.5";
-  const likeOn = reaction === "like";
-  const dislikeOn = reaction === "dislike";
 
   return (
     <div
-      className={`mt-1 flex flex-wrap items-center ${gap} ${text} font-semibold text-muted-2 ${
+      aria-hidden
+      className={`pointer-events-none mt-1 flex flex-wrap items-center select-none ${gap} ${text} font-semibold text-muted-2 ${
         align === "center" ? "justify-center" : ""
       }`}
     >
-      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.likeLabel}: ${likes}`}>
-        <IconLike size={icon} color={likeOn ? "#2A6B57" : "#6E6558"} filled={likeOn} />
+      <span className="inline-flex min-w-0 items-center gap-0.5">
+        <IconLike size={icon} color="#6E6558" />
         <span className="tabular-nums">{likes}</span>
       </span>
-      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.dislikeLabel}: ${dislikes}`}>
-        <IconDislike size={icon} color={dislikeOn ? "#B8452F" : "#6E6558"} filled={dislikeOn} />
+      <span className="inline-flex min-w-0 items-center gap-0.5">
+        <IconDislike size={icon} color="#6E6558" />
         <span className="tabular-nums">{dislikes}</span>
       </span>
-      <span className="inline-flex min-w-0 items-center gap-0.5" aria-label={`${t.comments}: ${comments}`}>
+      <span className="inline-flex min-w-0 items-center gap-0.5">
         <IconChat size={icon} color="#6E6558" />
         <span className="tabular-nums">{comments}</span>
       </span>
