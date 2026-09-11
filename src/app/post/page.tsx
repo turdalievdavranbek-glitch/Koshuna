@@ -8,7 +8,9 @@ import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { meetupSpotsFor } from "@/lib/deal";
 import { listingChipLabel } from "@/lib/i18n";
+import { hasRole } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { classifyListingSpeech, aiToDraftPatch } from "@/lib/video-ai";
 import { IconPin, sectionIcon } from "@/components/icons";
 import { MarketRangeCard } from "@/components/market-range";
 import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
@@ -22,6 +24,7 @@ export default function PostPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
   const [publishedId, setPublishedId] = useState<string | null>(null);
+  const [paste, setPaste] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -82,6 +85,29 @@ export default function PostPage() {
             </div>
 
             <MediaCapture draft={draft} onPatch={setDraft} />
+
+            <div className="rounded-[14px] border border-line bg-white px-3.5 py-3">
+              <div className="text-[15px] font-semibold text-ink">{t.pasteListing}</div>
+              <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.pasteListingHint}</p>
+              <textarea
+                value={paste}
+                onChange={(e) => setPaste(e.target.value)}
+                placeholder={t.pasteListingHint}
+                className="mt-2 min-h-[72px] w-full rounded-[12px] border border-line bg-screen px-3 py-2 text-[14px] leading-[1.45] outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const text = paste.trim();
+                  if (!text) return;
+                  setDraft(aiToDraftPatch(classifyListingSpeech(text)));
+                  setStep(1);
+                }}
+                className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
+              >
+                {t.pasteFill}
+              </button>
+            </div>
 
             <div>
               <Eyebrow>{t.whatPost}</Eyebrow>
@@ -478,16 +504,18 @@ export default function PostPage() {
               <div className="rounded-[14px] border border-line bg-accent-tint px-3.5 py-3 text-[13px] leading-[1.45] text-safe">
                 {t.igPostHint}
               </div>
-              <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
-                <div>
-                  <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
-                  <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.neighborPledgeHint}</p>
+              {hasRole(user, "realtor") ? null : (
+                <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+                  <div>
+                    <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
+                    <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.neighborPledgeHint}</p>
+                  </div>
+                  <Toggle
+                    on={draft.neighborPledge !== false}
+                    onChange={() => setDraft({ neighborPledge: draft.neighborPledge === false })}
+                  />
                 </div>
-                <Toggle
-                  on={draft.neighborPledge !== false}
-                  onChange={() => setDraft({ neighborPledge: draft.neighborPledge === false })}
-                />
-              </div>
+              )}
               {draft.section === "secondhand" || draft.section === "animals" || draft.section === "construction" ? (
                 <div>
                   <Eyebrow>{t.goMeetTitle}</Eyebrow>

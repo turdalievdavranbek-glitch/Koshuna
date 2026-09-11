@@ -860,6 +860,7 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     verifiedOnly: false,
     noAgents: false,
     neighborOnly: false,
+    sellerKind: "any",
     sort: "new",
     checkIn: null,
     checkOut: null,

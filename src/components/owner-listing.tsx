@@ -25,7 +25,11 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
           : stage === "reserved"
             ? t.status.reserved
             : stage === "closed"
-              ? t.closedBanner
+              ? listing.closedKind === "sold"
+                ? t.closedSold
+                : listing.closedKind === "rented"
+                  ? t.closedRented
+                  : t.closedBanner
               : t.withdrawnBanner;
   return (
     <div
@@ -85,7 +89,15 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
     } else if (listing.reservedBy) {
       ensureMeetDeal(listing.id, listing.reservedBy.id);
     }
+    if (next !== "closed") patch.closedKind = undefined;
     updateListing(listing.id, patch);
+  };
+
+  const setClosedKind = (kind: "sold" | "rented") => {
+    setError("");
+    setNote("");
+    updateListing(listing.id, { status: "closed", closedKind: kind, reservedBy: undefined });
+    clearMeetDeal(listing.id);
   };
 
   const setAccount = (account: ReserveAccount) => {
@@ -117,10 +129,20 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
         <Eyebrow>{t.stageTitle}</Eyebrow>
         <div className="mt-2 flex flex-wrap gap-2">
           {DEAL_STAGES.map((id) => (
-            <Chip key={id} active={stage === id} accent={stage === id} onClick={() => setStage(id)}>
+            <Chip key={id} active={stage === id && !listing.closedKind} accent={stage === id && !listing.closedKind} onClick={() => setStage(id)}>
               {t.status[id]}
             </Chip>
           ))}
+          {listing.section === "rent" ? (
+            <>
+              <Chip active={listing.closedKind === "sold"} accent={listing.closedKind === "sold"} onClick={() => setClosedKind("sold")}>
+                {t.closedSold}
+              </Chip>
+              <Chip active={listing.closedKind === "rented"} accent={listing.closedKind === "rented"} onClick={() => setClosedKind("rented")}>
+                {t.closedRented}
+              </Chip>
+            </>
+          ) : null}
         </div>
       </div>
       <div className="mt-4">

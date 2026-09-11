@@ -120,6 +120,7 @@ export type User = {
   verified: boolean;
   rating: number;
   views: number;
+  roles?: Array<"realtor" | "developer" | "admin">;
 };
 
 export type Owner = {
@@ -169,6 +170,10 @@ export type Listing = {
   realtyGroup?: string;
   realtySub?: string;
   realtyKind?: string;
+  sellerType?: "owner" | "realtor";
+  sellerPhone?: string;
+  closedKind?: "sold" | "rented";
+  leadCount?: number;
   lng?: number;
   lat?: number;
   bodyKind?: string;
@@ -238,6 +243,7 @@ export type Filters = {
   verifiedOnly: boolean;
   noAgents: boolean;
   neighborOnly: boolean;
+  sellerKind: "any" | "neighbor" | "owner" | "realtor";
   videoOnly: boolean;
   sort: SortMode;
   checkIn: string | null;
@@ -319,6 +325,7 @@ export type DraftListing = {
   goodsKind?: string;
   housingKind?: PropertyType;
   dealKind?: DealKind;
+  sellerType?: "owner" | "realtor";
   realtyGroup?: string;
   realtySub?: string;
   realtyKind?: string;

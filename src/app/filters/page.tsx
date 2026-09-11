@@ -17,6 +17,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { SecondhandChips } from "@/components/secondhand-chips";
 import { RealtyChips } from "@/components/realty-chips";
 import { DealTypeChips } from "@/components/deal-chips";
+import { SellerKindChips } from "@/components/seller-chips";
 import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
@@ -142,6 +143,8 @@ export default function FiltersPage() {
         {isRent ? <DealTypeChips labeled /> : null}
 
         {isRent ? <RealtyChips labeled /> : null}
+
+        {isRent ? <SellerKindChips labeled /> : null}
 
         <div>
           <Eyebrow>{t.location}</Eyebrow>
@@ -340,7 +343,7 @@ export default function FiltersPage() {
               ["photosOnly", t.photosOnly],
               ["verifiedOnly", t.verifiedOwners],
               ["noAgents", t.noAgents],
-              ["neighborOnly", t.neighborOnly],
+              ...(isRent ? [] : ([["neighborOnly", t.neighborOnly]] as const)),
               ["priceDroppedOnly", t.priceDropped],
               ["videoOnly", t.videoOnly],
               ["aiylOnly", t.bridgeAiyl],

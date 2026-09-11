@@ -34,6 +34,8 @@ export type AiGuess = {
   price?: string;
   city?: string;
   rooms?: string;
+  area?: string;
+  dealKind?: "buy" | "short" | "long" | "share";
   meetupSpot?: DraftListing["meetupSpot"];
 };
 
@@ -121,7 +123,7 @@ const RULES: Rule[] = [
     title: "Мебель",
   },
   {
-    keys: ["квартир", "батир", "студи", "комнатн", "сдаю квартир", "ижара батир"],
+    keys: ["квартир", "батир", "студи", "комнатн", "комн", "сдаю квартир", "ижара батир"],
     section: "rent",
     kind: "rent",
     category: "rent",
@@ -309,11 +311,25 @@ function extractCity(text: string): string | undefined {
 }
 
 function extractRooms(text: string): string | undefined {
-  if (/двухкомнат|2[- ]комнат|эки бөлмө/.test(text)) return "2";
-  if (/трехкомнат|трёхкомнат|3[- ]комнат/.test(text)) return "3";
-  if (/однокомнат|1[- ]комнат|студи/.test(text)) return "1";
-  const m = text.match(/(\d)\s*(?:комнат|бөлмө)/);
+  if (/студи/.test(text)) return "0";
+  if (/двухкомнат|2[- ]?комн|эки бөлмө|2\s*xona/.test(text)) return "2";
+  if (/трехкомнат|трёхкомнат|3[- ]?комн/.test(text)) return "3";
+  if (/однокомнат|1[- ]?комн/.test(text)) return "1";
+  const m = text.match(/(\d)\s*(?:комнат|комн|бөлмө|xona)/);
   return m ? m[1] : undefined;
+}
+
+function extractArea(text: string): string | undefined {
+  const m = text.match(/(\d{2,3})\s*(?:м²|м2|кв\.?м|m2)/);
+  return m ? m[1] : undefined;
+}
+
+function extractDealKind(text: string): "buy" | "short" | "long" | "share" | undefined {
+  if (/посуточн|суткалык|kunlik/.test(text)) return "short";
+  if (/совместн|койко|birga yasha/.test(text)) return "share";
+  if (/продаю|продажа|сатам|sotaman|sotiladi/.test(text)) return "buy";
+  if (/сдам|сдаётся|ижара|ijara/.test(text)) return "long";
+  return undefined;
 }
 
 function extractSpot(text: string): DraftListing["meetupSpot"] | undefined {
@@ -355,6 +371,8 @@ export function classifyListingSpeech(raw: string): AiGuess {
   const price = extractPrice(text);
   const city = extractCity(text);
   const rooms = extractRooms(text);
+  const area = extractArea(text);
+  const dealKind = extractDealKind(text);
   const meetupSpot = extractSpot(text);
   const titleBase = rule?.title ?? firstSentence(raw) ?? "Видеообъявление";
   let title = titleBase;
@@ -391,6 +409,8 @@ export function classifyListingSpeech(raw: string): AiGuess {
     price,
     city,
     rooms,
+    area,
+    dealKind,
     meetupSpot,
   };
 }
@@ -424,7 +444,16 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   if (guess.jobType) patch.jobType = guess.jobType;
   if (guess.price) patch.price = guess.price;
   if (guess.city) patch.city = guess.city;
-  if (guess.rooms) patch.rooms = guess.rooms;
+  if (guess.rooms) {
+    patch.rooms = guess.rooms;
+    if (guess.housingKind === "apartment" || !guess.housingKind) {
+      patch.realtyGroup = patch.realtyGroup ?? "apartments";
+      patch.realtySub = "by-rooms";
+      patch.realtyKind = guess.rooms === "0" ? "studio" : guess.rooms === "5" ? "5plus" : guess.rooms;
+    }
+  }
+  if (guess.area) patch.area = guess.area;
+  if (guess.dealKind) patch.dealKind = guess.dealKind;
   if (guess.meetupSpot) patch.meetupSpot = guess.meetupSpot;
   return patch;
 }

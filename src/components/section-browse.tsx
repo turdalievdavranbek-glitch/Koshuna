@@ -14,6 +14,7 @@ import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
 import { LocationLine } from "@/components/location-line";
 import { RealtyChips } from "@/components/realty-chips";
+import { SellerKindChips } from "@/components/seller-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { PhoneShell } from "@/components/shell";
@@ -29,6 +30,20 @@ function FeedExtras({ id }: { id: SectionId }) {
       <div className="flex flex-col gap-3">
         <DealTypeChips labeled />
         <RealtyChips list />
+        <SellerKindChips />
+        {filters.realtyKind === "newbuild" || filters.stockType === "newbuild" || filters.realtyGroup === "apartments" ? (
+          <button
+            type="button"
+            onClick={() => router.push("/complexes")}
+            className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
+          >
+            <span>
+              <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.developerBadge}</span>
+              <span className="mt-0.5 block text-[13px] font-semibold text-ink">{t.complexesTitle}</span>
+            </span>
+            <span className="text-[13px] font-semibold text-accent">›</span>
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => router.push("/map")}
@@ -275,6 +290,19 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
               allLabel={t.sectionAllInCat}
               onAll={() => router.push(sectionHref(id, [...path, BRANCH_ALL]))}
             />
+            {id === "rent" && path[0] === "apartments" ? (
+              <button
+                type="button"
+                onClick={() => router.push("/complexes")}
+                className="mt-3 flex w-full items-center justify-between rounded-[16px] border border-line bg-white px-4 py-3.5 text-left"
+              >
+                <span>
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.developerBadge}</span>
+                  <span className="mt-0.5 block text-[15px] font-semibold text-ink">{t.complexesTitle}</span>
+                </span>
+                <span className="text-muted-2">›</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </PhoneShell>
@@ -327,12 +355,14 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
           </div>
         </div>
         <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-          <Chip
-            active={filters.neighborOnly}
-            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
-          >
-            {t.fromNeighbor}
-          </Chip>
+          {id === "rent" ? <SellerKindChips /> : (
+            <Chip
+              active={filters.neighborOnly}
+              onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
+            >
+              {t.fromNeighbor}
+            </Chip>
+          )}
           <Chip
             active={filters.priceDroppedOnly}
             onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}

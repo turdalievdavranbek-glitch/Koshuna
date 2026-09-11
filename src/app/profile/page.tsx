@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { mineListings, threadSide } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
+import { hasRole } from "@/lib/partners";
 import { starsForUser } from "@/lib/trust";
 import { useApp } from "@/lib/store";
 import { LANGS } from "@/lib/types";
@@ -66,6 +67,12 @@ export default function ProfilePage() {
               {user.verified ? <IconVerified size={17} /> : null}
               {selling && userHasShopBadge(shops, user) ? (
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
+              ) : null}
+              {hasRole(user, "realtor") ? (
+                <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
+              ) : null}
+              {hasRole(user, "developer") ? (
+                <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
             </div>
             <div className="mt-1">

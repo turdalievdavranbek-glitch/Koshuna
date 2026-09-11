@@ -17,6 +17,24 @@ import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
 import { isRealtyGroup } from "./realty";
 import {
+  SEED_COMPLEX,
+  SEED_DEVELOPER,
+  SEED_UNITS,
+  createOrUpdateUnits,
+  hasRole,
+  isAdminUser,
+  kyrgyzPhoneOk,
+  rolesForPhone,
+  slugify,
+  type ComplexUnit,
+  type DeveloperProfile,
+  type PartnerApplication,
+  type PartnerLead,
+  type RealtorProfile,
+  type ResidentialComplex,
+  type TelegramOutboxItem,
+} from "./partners";
+import {
   type AuthMethod,
   type ChatMessage,
   type DraftListing,
@@ -68,6 +86,7 @@ const defaultFilters = (): Filters => ({
   verifiedOnly: false,
   noAgents: false,
   neighborOnly: false,
+  sellerKind: "any",
   videoOnly: false,
   sort: "new",
   checkIn: null,
@@ -138,6 +157,13 @@ type State = {
   shops: Shop[];
   shopDraft: ShopDraft | null;
   side: AppSide;
+  applications: PartnerApplication[];
+  realtorProfiles: RealtorProfile[];
+  developerProfiles: DeveloperProfile[];
+  complexes: ResidentialComplex[];
+  complexUnits: ComplexUnit[];
+  partnerLeads: PartnerLead[];
+  telegramOutbox: TelegramOutboxItem[];
 };
 
 const initial: State = {
@@ -163,6 +189,13 @@ const initial: State = {
   shops: [],
   shopDraft: null,
   side: "buy",
+  applications: [],
+  realtorProfiles: [],
+  developerProfiles: [SEED_DEVELOPER],
+  complexes: [SEED_COMPLEX],
+  complexUnits: SEED_UNITS,
+  partnerLeads: [],
+  telegramOutbox: [],
 };
 
 type Store = State & {
@@ -223,6 +256,21 @@ type Store = State & {
   hideShopProduct: (shopId: string, productId: string) => void;
   publishProductListing: (shopId: string, productId: string) => Listing | { missing: string[] } | null;
   reportShop: (id: string, reason: string) => void;
+  submitPartnerApplication: (input: Omit<PartnerApplication, "id" | "status" | "createdAt" | "note" | "userPhone" | "userName"> & { kind: PartnerApplication["kind"] }) => string | null;
+  reviewApplication: (id: string, status: "approved" | "rejected", note?: string) => void;
+  setRealtorTelegram: (chatId: string) => void;
+  setDeveloperTelegram: (chatId: string) => void;
+  patchDeveloperProfile: (patch: Partial<DeveloperProfile>) => void;
+  saveComplex: (input: Partial<ResidentialComplex> & { name: string }) => ResidentialComplex | null;
+  setComplexUnits: (complexId: string, rows: Array<Partial<ComplexUnit> & { id?: string }>) => void;
+  bumpComplexViews: (id: string) => void;
+  submitLead: (input: Omit<PartnerLead, "id" | "createdAt" | "status"> & { honeypot?: string }) => { ok: boolean; error?: string };
+  setLeadStatus: (id: string, status: PartnerLead["status"]) => void;
+  setUnitStatus: (id: string, status: ComplexUnit["status"]) => void;
+  duplicateListingToDraft: (listing: Listing) => void;
+  toggleRealtorVerified: (id: string) => void;
+  toggleDeveloperVerified: (id: string) => void;
+  publishComplex: (id: string, published: boolean) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -270,6 +318,7 @@ function normalizeFilters(filters: Filters): Filters {
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
     videoOnly: Boolean(next.videoOnly),
+    sellerKind: next.sellerKind === "neighbor" || next.sellerKind === "owner" || next.sellerKind === "realtor" ? next.sellerKind : "any",
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
     oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
   };
@@ -285,6 +334,13 @@ function emptyMeetDeal(listingId: string, reservedById: string): MeetDeal {
     buyerLeft: false,
     calendarSaved: false,
   };
+}
+
+function mergeById<T extends { id: string }>(saved: T[], seed: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const row of seed) map.set(row.id, row);
+  for (const row of saved) map.set(row.id, row);
+  return [...map.values()];
 }
 
 function persistShop(shop: Shop): Shop {
@@ -329,6 +385,13 @@ function load(): State {
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
       side: isAppSide(saved.side) ? saved.side : "buy",
       lang: isLang(saved.lang) ? saved.lang : "ru",
+      applications: Array.isArray(saved.applications) ? saved.applications : [],
+      realtorProfiles: Array.isArray(saved.realtorProfiles) ? saved.realtorProfiles : [],
+      developerProfiles: mergeById(Array.isArray(saved.developerProfiles) ? saved.developerProfiles : [], [SEED_DEVELOPER]),
+      complexes: mergeById(Array.isArray(saved.complexes) ? saved.complexes : [], [SEED_COMPLEX]),
+      complexUnits: mergeById(Array.isArray(saved.complexUnits) ? saved.complexUnits : [], SEED_UNITS),
+      partnerLeads: Array.isArray(saved.partnerLeads) ? saved.partnerLeads : [],
+      telegramOutbox: Array.isArray(saved.telegramOutbox) ? saved.telegramOutbox : [],
     };
   } catch {
     return initial;
@@ -432,31 +495,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? phone
           : `+996 ${phone}`
         : "+996 555 12 34 56";
-      const nextUser = {
-        name: displayName,
-        phone: displayPhone,
-        email,
-        method,
-        linkedChannels: (() => {
-          const ch = parseSellerChannel(method);
-          return ch ? [ch] : [];
-        })(),
-        cardLinked: false,
-        joinedYear: 2024,
-        verified: method === "sms",
-        rating: 4.9,
-        views: 1284,
-      };
-      update((s) => ({
-        ...s,
-        user: nextUser,
-        extraListings: syncShopListings(s.extraListings, s.shops, nextUser),
-        draft: {
-          ...s.draft,
+      update((s) => {
+        const nextUser = {
           name: displayName,
           phone: displayPhone,
-        },
-      }));
+          email,
+          method,
+          linkedChannels: (() => {
+            const ch = parseSellerChannel(method);
+            return ch ? [ch] : [];
+          })(),
+          cardLinked: false,
+          joinedYear: 2024,
+          verified: method === "sms",
+          rating: 4.9,
+          views: 1284,
+          roles: rolesForPhone(displayPhone, isAida, s.realtorProfiles, s.developerProfiles),
+        };
+        return {
+          ...s,
+          user: nextUser,
+          extraListings: syncShopListings(s.extraListings, s.shops, nextUser),
+          draft: {
+            ...s.draft,
+            name: displayName,
+            phone: displayPhone,
+          },
+        };
+      });
     },
     logout: () => update({ user: null }),
     linkCard: () =>
@@ -572,6 +638,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         realtyGroup: d.section === "rent" ? d.realtyGroup : undefined,
         realtySub: d.section === "rent" ? d.realtySub : undefined,
         realtyKind: d.section === "rent" ? d.realtyKind : undefined,
+        sellerType: hasRole(state.user, "realtor") ? "realtor" : "owner",
+        sellerPhone: state.user?.phone,
         animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
         animalKind: d.section === "animals" ? d.animalKind : undefined,
         carMake: d.section === "cars" || d.section === "car-rental" ? d.carMake : undefined,
@@ -605,9 +673,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         descriptionKy: d.description || d.title,
         descriptionEn: d.description || d.title,
         ownerId: "aida",
+        sellerName: state.user?.name,
         hasPhoto: true,
-        verified: d.neighborPledge !== false,
-        noAgent: d.neighborPledge !== false,
+        verified: hasRole(state.user, "realtor") ? true : d.neighborPledge !== false,
+        noAgent: hasRole(state.user, "realtor") ? false : d.neighborPledge !== false,
         status: d.promote ? "promoted" : "active",
         safetyKind: d.kind === "rent" ? "home" : "goods",
         mapX: 40,
@@ -1095,6 +1164,296 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...s,
         reports: { ...s.reports, [id]: reason },
       })),
+    submitPartnerApplication: (input) => {
+      const user = state.user;
+      if (!user) return null;
+      const pending = state.applications.find((row) => row.kind === input.kind && row.userPhone === user.phone && row.status === "pending");
+      if (pending) return pending.id;
+      const id = `app-${input.kind}-${Date.now()}`;
+      const row: PartnerApplication = {
+        id,
+        kind: input.kind,
+        userPhone: user.phone,
+        userName: user.name,
+        companyName: input.companyName,
+        contactName: input.contactName,
+        phone: input.phone,
+        city: input.city,
+        districts: input.districts,
+        specialization: input.specialization,
+        inn: input.inn,
+        website: input.website,
+        status: "pending",
+        note: "",
+        createdAt: new Date().toISOString(),
+      };
+      update((s) => ({ ...s, applications: [row, ...s.applications] }));
+      return id;
+    },
+    reviewApplication: (id, status, note) => {
+      if (!isAdminUser(state.user)) return;
+      const app = state.applications.find((row) => row.id === id);
+      if (!app) return;
+      update((s) => {
+        const applications = s.applications.map((row) => (row.id === id ? { ...row, status, note: note ?? row.note } : row));
+        if (status !== "approved") return { ...s, applications };
+        const now = new Date().toISOString();
+        const sameUser = s.user && s.user.phone === app.userPhone;
+        const roles = sameUser ? Array.from(new Set([...(s.user?.roles ?? []), app.kind])) : s.user?.roles;
+        let realtorProfiles = s.realtorProfiles;
+        let developerProfiles = s.developerProfiles;
+        if (app.kind === "realtor" && !realtorProfiles.some((row) => row.userPhone === app.userPhone)) {
+          realtorProfiles = [
+            {
+              id: `realtor-${Date.now()}`,
+              userPhone: app.userPhone,
+              agencyName: app.companyName,
+              phone: app.phone,
+              cities: app.city,
+              districts: app.districts,
+              specialization: app.specialization,
+              telegramChatId: "",
+              verified: true,
+              createdAt: now,
+            },
+            ...realtorProfiles,
+          ];
+        }
+        if (app.kind === "developer" && !developerProfiles.some((row) => row.userPhone === app.userPhone)) {
+          developerProfiles = [
+            {
+              id: `dev-${Date.now()}`,
+              userPhone: app.userPhone,
+              slug: slugify(app.companyName || app.userName),
+              companyName: app.companyName || app.userName,
+              description: "",
+              logoUrl: "",
+              phone: app.phone,
+              website: app.website,
+              telegramChatId: "",
+              verified: true,
+              verifiedAt: now,
+              createdAt: now,
+            },
+            ...developerProfiles,
+          ];
+        }
+        return {
+          ...s,
+          applications,
+          realtorProfiles,
+          developerProfiles,
+          user: sameUser && s.user ? { ...s.user, roles } : s.user,
+        };
+      });
+    },
+    setRealtorTelegram: (chatId) => {
+      const user = state.user;
+      if (!user) return;
+      update((s) => ({
+        ...s,
+        realtorProfiles: s.realtorProfiles.map((row) => (row.userPhone === user.phone ? { ...row, telegramChatId: chatId } : row)),
+      }));
+    },
+    setDeveloperTelegram: (chatId) => {
+      const user = state.user;
+      if (!user) return;
+      update((s) => ({
+        ...s,
+        developerProfiles: s.developerProfiles.map((row) => (row.userPhone === user.phone ? { ...row, telegramChatId: chatId } : row)),
+      }));
+    },
+    patchDeveloperProfile: (patch) => {
+      const user = state.user;
+      if (!user) return;
+      update((s) => ({
+        ...s,
+        developerProfiles: s.developerProfiles.map((row) => (row.userPhone === user.phone ? { ...row, ...patch } : row)),
+      }));
+    },
+    saveComplex: (input) => {
+      const user = state.user;
+      if (!user || !hasRole(user, "developer")) return null;
+      const profile = state.developerProfiles.find((row) => row.userPhone === user.phone);
+      if (!profile) return null;
+      const now = new Date().toISOString();
+      const current = input.id ? state.complexes.find((row) => row.id === input.id) : undefined;
+      if (current && current.developerId !== profile.id && !isAdminUser(user)) return null;
+      const row: ResidentialComplex = {
+        id: current?.id ?? `jk-${Date.now()}`,
+        developerId: profile.id,
+        name: input.name,
+        slug: input.slug || slugify(input.name),
+        city: input.city ?? current?.city ?? "bishkek",
+        district: input.district ?? current?.district ?? "",
+        address: input.address ?? current?.address ?? "",
+        lat: input.lat ?? current?.lat ?? 42.8746,
+        lng: input.lng ?? current?.lng ?? 74.5698,
+        class: input.class ?? current?.class ?? "comfort",
+        stage: input.stage ?? current?.stage ?? "under_construction",
+        deadlineQuarter: input.deadlineQuarter ?? current?.deadlineQuarter,
+        deadlineYear: input.deadlineYear ?? current?.deadlineYear,
+        totalBuildings: input.totalBuildings ?? current?.totalBuildings ?? 1,
+        description: input.description ?? current?.description ?? "",
+        amenities: input.amenities ?? current?.amenities ?? [],
+        coverUrl: input.coverUrl ?? current?.coverUrl ?? "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=70",
+        gallery: input.gallery ?? current?.gallery ?? [],
+        tourUrl: input.tourUrl ?? current?.tourUrl,
+        isPublished: false,
+        views: current?.views ?? 0,
+        createdAt: current?.createdAt ?? now,
+        updatedAt: now,
+      };
+      update((s) => ({
+        ...s,
+        complexes: current ? s.complexes.map((item) => (item.id === row.id ? row : item)) : [row, ...s.complexes],
+      }));
+      return row;
+    },
+    setComplexUnits: (complexId, rows) => {
+      const user = state.user;
+      const complex = state.complexes.find((row) => row.id === complexId);
+      const profile = state.developerProfiles.find((row) => row.userPhone === user?.phone);
+      if (!user || !complex || !profile) return;
+      if (complex.developerId !== profile.id && !isAdminUser(user)) return;
+      update((s) => ({ ...s, complexUnits: createOrUpdateUnits(s.complexUnits, complexId, rows) }));
+    },
+    bumpComplexViews: (id) =>
+      update((s) => ({
+        ...s,
+        complexes: s.complexes.map((row) => (row.id === id ? { ...row, views: row.views + 1 } : row)),
+      })),
+    submitLead: (input) => {
+      if (input.honeypot) return { ok: true };
+      if (!input.name.trim() || !kyrgyzPhoneOk(input.phone)) return { ok: false, error: "phone" };
+      const last = state.partnerLeads.find((row) => row.phone === input.phone);
+      if (last && Date.now() - new Date(last.createdAt).getTime() < 30000) return { ok: false, error: "rate" };
+      const now = new Date().toISOString();
+      const lead: PartnerLead = {
+        id: `lead-${Date.now()}`,
+        source: input.source,
+        complexId: input.complexId,
+        unitId: input.unitId,
+        listingId: input.listingId,
+        developerId: input.developerId,
+        realtorPhone: input.realtorPhone,
+        name: input.name.trim(),
+        phone: input.phone.trim(),
+        message: input.message ?? "",
+        status: "new",
+        createdAt: now,
+      };
+      const complex = input.complexId ? state.complexes.find((row) => row.id === input.complexId) : undefined;
+      const developer = input.developerId
+        ? state.developerProfiles.find((row) => row.id === input.developerId)
+        : complex
+          ? state.developerProfiles.find((row) => row.id === complex.developerId)
+          : undefined;
+      const realtor = input.realtorPhone ? state.realtorProfiles.find((row) => row.userPhone === input.realtorPhone) : undefined;
+      const chatId = developer?.telegramChatId || realtor?.telegramChatId;
+      const unit = input.unitId ? state.complexUnits.find((row) => row.id === input.unitId) : undefined;
+      const text = [
+        "Заявка Koshuna",
+        complex ? `ЖК: ${complex.name}` : "",
+        unit ? `Юнит: корп. ${unit.buildingLabel}, эт. ${unit.floor}, ${unit.rooms || "ст."} комн.` : "",
+        input.listingId ? `Объявление: ${input.listingId}` : "",
+        `${input.name.trim()}, ${input.phone.trim()}`,
+        input.message,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      update((s) => ({
+        ...s,
+        partnerLeads: [lead, ...s.partnerLeads],
+        extraListings: input.listingId
+          ? s.extraListings.map((item) => (item.id === input.listingId ? { ...item, leadCount: (item.leadCount ?? 0) + 1 } : item))
+          : s.extraListings,
+        listingEdits: input.listingId && !s.extraListings.some((item) => item.id === input.listingId)
+          ? {
+              ...s.listingEdits,
+              [input.listingId]: {
+                ...s.listingEdits[input.listingId],
+                leadCount: (s.listingEdits[input.listingId]?.leadCount ?? 0) + 1,
+              },
+            }
+          : s.listingEdits,
+        telegramOutbox: chatId
+          ? [{ id: `tg-${Date.now()}`, chatId, text, createdAt: now }, ...s.telegramOutbox].slice(0, 40)
+          : s.telegramOutbox,
+      }));
+      return { ok: true };
+    },
+    setLeadStatus: (id, status) => {
+      const user = state.user;
+      if (!user) return;
+      update((s) => ({
+        ...s,
+        partnerLeads: s.partnerLeads.map((row) => (row.id === id ? { ...row, status } : row)),
+      }));
+    },
+    setUnitStatus: (id, status) => {
+      const user = state.user;
+      const unit = state.complexUnits.find((row) => row.id === id);
+      const complex = unit ? state.complexes.find((row) => row.id === unit.complexId) : undefined;
+      const profile = state.developerProfiles.find((row) => row.userPhone === user?.phone);
+      if (!user || !unit || !complex || !profile) return;
+      if (complex.developerId !== profile.id && !isAdminUser(user)) return;
+      update((s) => ({
+        ...s,
+        complexUnits: s.complexUnits.map((row) => (row.id === id ? { ...row, status, updatedAt: new Date().toISOString() } : row)),
+      }));
+    },
+    duplicateListingToDraft: (listing) => {
+      update((s) => ({
+        ...s,
+        draft: {
+          ...s.draft,
+          section: listing.section,
+          kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
+          title: `${listing.title}`,
+          city: listing.city,
+          price: String(listing.price),
+          rooms: listing.rooms != null ? String(listing.rooms) : "",
+          area: listing.area != null ? String(listing.area) : "",
+          description: listing.description,
+          photo: listing.photos[0],
+          category: listing.category,
+          goodsKind: listing.goodsKind,
+          housingKind: listing.housingKind,
+          dealKind: listing.dealKind,
+          realtyGroup: listing.realtyGroup,
+          realtySub: listing.realtySub,
+          realtyKind: listing.realtyKind,
+          sellerType: listing.sellerType,
+          mediaKind: "photos",
+          aiConfirmed: true,
+        },
+        side: "sell",
+      }));
+    },
+    toggleRealtorVerified: (id) => {
+      if (!isAdminUser(state.user)) return;
+      update((s) => ({
+        ...s,
+        realtorProfiles: s.realtorProfiles.map((row) => (row.id === id ? { ...row, verified: !row.verified } : row)),
+      }));
+    },
+    toggleDeveloperVerified: (id) => {
+      if (!isAdminUser(state.user)) return;
+      update((s) => ({
+        ...s,
+        developerProfiles: s.developerProfiles.map((row) =>
+          row.id === id ? { ...row, verified: !row.verified, verifiedAt: !row.verified ? new Date().toISOString() : undefined } : row,
+        ),
+      }));
+    },
+    publishComplex: (id, published) => {
+      if (!isAdminUser(state.user)) return;
+      update((s) => ({
+        ...s,
+        complexes: s.complexes.map((row) => (row.id === id ? { ...row, isPublished: published, updatedAt: new Date().toISOString() } : row)),
+      }));
+    },
   };
 
   return (

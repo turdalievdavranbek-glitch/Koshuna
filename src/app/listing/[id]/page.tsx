@@ -11,6 +11,7 @@ import { familyShareText } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
+import { ListingLeadForm } from "@/components/listing-lead";
 import { NeighborCard } from "@/components/neighbor-seal";
 import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
@@ -29,7 +30,7 @@ import { SellerStarsBadge } from "@/components/trust-stars";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -239,6 +240,18 @@ export default function ListingPage() {
               })()
             : null}
           {mine ? <OwnerListingTools listing={listing} /> : null}
+          {mine ? (
+            <button
+              type="button"
+              onClick={() => {
+                duplicateListingToDraft(listing);
+                router.push("/post");
+              }}
+              className="mt-2 h-11 w-full rounded-[14px] border border-line bg-white text-[13px] font-bold"
+            >
+              {t.duplicateListing}
+            </button>
+          ) : null}
           {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
           <PayAfterNote listing={listing} />
           {isStay && nights ? (
@@ -249,6 +262,7 @@ export default function ListingPage() {
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
           <NeighborCard listing={listing} />
+          {!mine && listing.sellerType === "realtor" ? <ListingLeadForm listing={listing} /> : null}
           {off || reserved || mine ? null : <GoLookCard listing={listing} />}
           <VoiceNote listing={listing} />
           <AiylRoad listing={listing} />

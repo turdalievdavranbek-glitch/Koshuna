@@ -24,6 +24,8 @@ export function homeFeedFilters(filters: Filters): Filters {
     photosOnly: false,
     verifiedOnly: false,
     noAgents: false,
+    neighborOnly: false,
+    sellerKind: "any",
     dealType: "any",
     stockType: "any",
     autoType: "sale",
@@ -101,6 +103,9 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
     if (filters.neighborOnly && !isFromNeighbor(item)) return false;
+    if (filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
+    if (filters.sellerKind === "owner" && item.sellerType === "realtor") return false;
+    if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
     if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
     if (filters.videoOnly && !isSpokenListing(item)) return false;
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {

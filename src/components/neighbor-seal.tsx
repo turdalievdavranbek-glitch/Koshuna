@@ -9,6 +9,19 @@ const ORDER: NeighborFlag[] = ["owner", "place", "som", "noPrepay"];
 
 export function NeighborMark({ listing, compact }: { listing: Listing; compact?: boolean }) {
   const { t } = useApp();
+  if (listing.sellerType === "realtor") {
+    return (
+      <span
+        className={`pointer-events-none font-bold tracking-wide text-accent-dark ${
+          compact
+            ? "rounded-full bg-[#F3E0D9] px-1.5 py-0.5 text-[8px]"
+            : "rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px]"
+        }`}
+      >
+        {t.fromRealtor}
+      </span>
+    );
+  }
   if (!isFromNeighbor(listing)) return null;
   return (
     <span
@@ -62,6 +75,14 @@ export function NeighborBanner({
 
 export function NeighborCard({ listing }: { listing: Listing }) {
   const { t } = useApp();
+  if (listing.sellerType === "realtor") {
+    return (
+      <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.fromRealtor}</div>
+        <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.realtorBadge}</p>
+      </div>
+    );
+  }
   const flags = neighborFlags(listing);
   const ok = isFromNeighbor(listing);
   const labels: Record<NeighborFlag, string> = {

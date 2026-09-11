@@ -3,16 +3,23 @@
 import { useRouter } from "next/navigation";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf } from "@/lib/shops";
+import { useState } from "react";
+import { hasRole, isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
 import { SideSwitch } from "@/components/side-switch";
+import { Field, Input } from "@/components/ui";
 
 export default function SellingPage() {
-  const { t, user, extraListings, allListings, shops, setPendingPath, setSide } = useApp();
+  const { t, user, extraListings, allListings, shops, setPendingPath, setSide, realtorProfiles, partnerLeads, setRealtorTelegram } =
+    useApp();
   const router = useRouter();
   const mine = mineListings(allListings, extraListings, user, shops);
   const shopCount = shopsOf(shops, user).length;
+  const realtor = realtorProfiles.find((row) => row.userPhone === user?.phone);
+  const [chatId, setChatId] = useState(realtor?.telegramChatId ?? "");
+  const listingLeads = partnerLeads.filter((row) => row.source === "listing" && row.realtorPhone === user?.phone);
 
   if (!user) {
     return (
@@ -65,6 +72,66 @@ export default function SellingPage() {
           <span className="text-[15px] font-semibold text-ink">{t.shopMine}</span>
           <span className="text-[13px] font-semibold text-accent">{t.allN(shopCount)}</span>
         </button>
+        <button
+          type="button"
+          onClick={() => router.push("/partner?kind=realtor")}
+          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+        >
+          {t.applyRealtor}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/partner?kind=developer")}
+          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+        >
+          {t.applyDeveloper}
+        </button>
+        {user && hasRole(user, "developer") ? (
+          <button
+            type="button"
+            onClick={() => router.push("/developer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.developerCabinet}
+          </button>
+        ) : null}
+        {user && isAdminUser(user) ? (
+          <button
+            type="button"
+            onClick={() => router.push("/admin")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.adminTitle}
+          </button>
+        ) : null}
+        {user && hasRole(user, "realtor") ? (
+          <div className="mt-2.5 rounded-[16px] border border-line bg-white p-3.5">
+            <div className="text-[13px] font-bold text-accent-dark">{t.realtorBadge}</div>
+            <div className="mt-2">
+              <Field label={t.telegramChatId}>
+                <Input value={chatId} onChange={setChatId} />
+              </Field>
+            </div>
+            <p className="mt-1 text-[12px] text-muted">{t.telegramHint}</p>
+            <button
+              type="button"
+              onClick={() => setRealtorTelegram(chatId)}
+              className="mt-2 text-[13px] font-semibold text-accent"
+            >
+              {t.save}
+            </button>
+            {listingLeads.length ? (
+              <div className="mt-3">
+                <div className="text-[13px] font-semibold text-ink">{t.leadsTitle}</div>
+                {listingLeads.slice(0, 6).map((row) => (
+                  <div key={row.id} className="mt-1.5 text-[13px] text-muted">
+                    {row.name} · {row.phone}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="mt-4">
           <MyListings />
         </div>
