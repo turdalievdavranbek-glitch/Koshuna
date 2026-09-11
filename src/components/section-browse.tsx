@@ -284,17 +284,11 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
           </div>
           <LocationLine className="px-5 pb-2" />
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-            <BranchList
-              title={state.eyebrow(t)}
-              rows={rows}
-              allLabel={t.sectionAllInCat}
-              onAll={() => router.push(sectionHref(id, [...path, BRANCH_ALL]))}
-            />
             {id === "rent" && path[0] === "apartments" ? (
               <button
                 type="button"
                 onClick={() => router.push("/complexes")}
-                className="mt-3 flex w-full items-center justify-between rounded-[16px] border border-line bg-white px-4 py-3.5 text-left"
+                className="mb-3 flex w-full items-center justify-between rounded-[16px] border border-line bg-white px-4 py-3.5 text-left"
               >
                 <span>
                   <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.developerBadge}</span>
@@ -303,6 +297,12 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
                 <span className="text-muted-2">›</span>
               </button>
             ) : null}
+            <BranchList
+              title={state.eyebrow(t)}
+              rows={rows}
+              allLabel={t.sectionAllInCat}
+              onAll={() => router.push(sectionHref(id, [...path, BRANCH_ALL]))}
+            />
           </div>
         </div>
       </PhoneShell>

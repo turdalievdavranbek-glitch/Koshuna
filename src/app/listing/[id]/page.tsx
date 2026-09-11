@@ -12,7 +12,7 @@ import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
-import { NeighborCard } from "@/components/neighbor-seal";
+import { NeighborCard, NeighborMark } from "@/components/neighbor-seal";
 import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
@@ -169,6 +169,7 @@ export default function ListingPage() {
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
               {listingChipLabel(listing, t)}
             </span>
+            <NeighborMark listing={listing} />
             {isVideoListing(listing) ? (
               <span className="rounded-full bg-ink px-[11px] py-1 text-xs font-semibold text-screen">{t.videoListing}</span>
             ) : null}

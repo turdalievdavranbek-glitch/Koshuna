@@ -656,7 +656,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         titleKy: d.title,
         titleEn: d.title,
         price: Number(d.price.replace(/\s/g, "")) || 0,
-        unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || d.kind === "rent" ? "month" : undefined,
+        unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy") ? "month" : undefined,
         city: d.city,
         postedAgo: "2h",
         rooms: d.rooms ? Number(d.rooms) : undefined,
