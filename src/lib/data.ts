@@ -2473,6 +2473,12 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 91,
     favCount: 6,
+    menu: [
+      { id: "naryn-besh", title: "Бешбармак", price: 450, kind: "main-meat", category: "mains" },
+      { id: "naryn-plov", title: "Плов", price: 320, kind: "main-meat", category: "mains" },
+      { id: "naryn-shorpo", title: "Шорпо", price: 180, kind: "soup-national", category: "soups" },
+      { id: "naryn-tea", title: "Чай чёрный", kind: "drink-hot", category: "drinks" },
+    ],
   },
   {
     id: "supara-osh",
@@ -2503,6 +2509,10 @@ export const LISTINGS: Listing[] = [
     contact: "telegram",
     views: 64,
     favCount: 4,
+    menu: [
+      { id: "supara-lagman", title: "Лагман жареный", price: 280, kind: "main-meat", category: "mains" },
+      { id: "supara-samsa", title: "Самса", price: 80, kind: "bake-national", category: "bakery" },
+    ],
   },
   {
     id: "sakura-sushi",
@@ -2533,6 +2543,10 @@ export const LISTINGS: Listing[] = [
     contact: "whatsapp",
     views: 112,
     favCount: 8,
+    menu: [
+      { id: "sakura-philly", title: "Филадельфия ролл", price: 890, kind: "east-sushi", category: "eastern" },
+      { id: "sakura-wok", title: "WOK с курицей", price: 420, kind: "east-wok", category: "eastern" },
+    ],
   },
   {
     id: "bella-pasta",
@@ -2563,6 +2577,10 @@ export const LISTINGS: Listing[] = [
     contact: "telegram",
     views: 73,
     favCount: 5,
+    menu: [
+      { id: "bella-caesar", title: "Салат Цезарь", price: 390, kind: "salad-dressed", category: "salads" },
+      { id: "bella-borsch", title: "Борщ", price: 250, kind: "soup-european", category: "soups" },
+    ],
   },
   {
     id: "house-sokuluk",

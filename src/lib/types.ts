@@ -140,6 +140,46 @@ export type Owner = {
 
 export type SpecRow = { label: string; value: string };
 
+export const MENU_CATEGORIES = [
+  "soups",
+  "mains",
+  "salads",
+  "fastfood",
+  "eastern",
+  "bakery",
+  "desserts",
+  "drinks",
+  "kids",
+  "breakfast",
+  "other",
+] as const;
+export type MenuCategory = (typeof MENU_CATEGORIES)[number];
+
+export const MENU_KINDS = {
+  soups: ["soup-national", "soup-european"],
+  mains: ["main-meat", "main-poultry", "main-fish", "main-veg"],
+  salads: ["salad-fresh", "salad-dressed", "salad-national"],
+  fastfood: ["ff-burger", "ff-shawarma", "ff-pizza", "ff-hotdog"],
+  eastern: ["east-sushi", "east-wok"],
+  bakery: ["bake-national", "bake-bread"],
+  desserts: ["sweet-cake", "sweet-cold", "sweet-national"],
+  drinks: ["drink-hot", "drink-cold", "drink-fresh"],
+  kids: ["kids-food", "kids-drink"],
+  breakfast: ["bf-eggs", "bf-porridge"],
+  other: ["menu-other"],
+} as const satisfies Record<MenuCategory, readonly string[]>;
+
+export type MenuKind = (typeof MENU_KINDS)[MenuCategory][number];
+
+export type RestaurantDish = {
+  id: string;
+  title: string;
+  price?: number;
+  photo?: string;
+  category?: MenuCategory;
+  kind?: MenuKind;
+};
+
 export type Listing = {
   id: string;
   section: SectionId;
@@ -208,6 +248,7 @@ export type Listing = {
   sellerCardLinked?: boolean;
   shopId?: string;
   shopProductId?: string;
+  menu?: RestaurantDish[];
   reservedBy?: ReserveAccount;
   verified: boolean;
   hasPhoto: boolean;

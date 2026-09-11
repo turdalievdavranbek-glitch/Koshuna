@@ -19,7 +19,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, MapSketch, Photo, SelectRow, Toggle } from "@/components/ui";
 
 export default function PostPage() {
-  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, allListings, setSide } = useApp();
+  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
@@ -34,6 +34,16 @@ export default function PostPage() {
       setSide("sell");
     }
   }, [user, router, setPendingPath, setSide]);
+
+  useEffect(() => {
+    if (step !== 3) return;
+    if (!pendingPath?.startsWith("/restaurants/quick")) return;
+    const next = pendingPath;
+    setPendingPath(null);
+    router.push(next);
+    // pendingPath/setPendingPath change identity each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   if (!user) return null;
 
@@ -716,6 +726,15 @@ export default function PostPage() {
           >
             {t.viewListing}
           </button>
+          {published?.section === "restaurants" ? (
+            <button
+              type="button"
+              onClick={() => router.push("/restaurants/quick")}
+              className="mt-3 h-[54px] w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
+            >
+              {t.restaurantQuickCta}
+            </button>
+          ) : null}
           <button type="button" onClick={() => setStep(1)} className="mt-3 h-[54px] w-full rounded-2xl border border-line bg-white text-[15px] font-semibold">
             {t.postAnother}
           </button>

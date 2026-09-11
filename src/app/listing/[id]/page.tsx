@@ -25,6 +25,7 @@ import { ShareToSocial } from "@/components/share-to-social";
 import { ListingSocial } from "@/components/listing-social";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
+import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
 
 export default function ListingPage() {
@@ -353,6 +354,18 @@ export default function ListingPage() {
             <p className="mt-2.5 text-[15px] leading-[1.6] text-ink-2">{listingDesc(listing, lang)}</p>
             <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>
+
+          {listing.section === "restaurants" ? <RestaurantMenu listing={listing} /> : null}
+
+          {mine && listing.section === "restaurants" ? (
+            <button
+              type="button"
+              onClick={() => router.push("/restaurants/quick")}
+              className="mt-3 h-11 w-full rounded-[14px] border border-line bg-white text-[13px] font-bold"
+            >
+              {t.restaurantQuickCta}
+            </button>
+          ) : null}
 
           <ListingSocial listing={listing} />
 
