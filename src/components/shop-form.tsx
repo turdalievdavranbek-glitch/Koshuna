@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { CITIES, GIS_CITIES } from "@/lib/data";
 import { captureVideoPoster, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
@@ -27,7 +28,10 @@ export function ShopForm() {
     saveShopDraft,
     publishShop,
     startShopDraft,
+    pendingPath,
+    setPendingPath,
   } = useApp();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
@@ -175,6 +179,12 @@ export function ShopForm() {
     if (result.error) {
       setError(shopErrorText(t, result.error));
       saveShopDraft();
+      return;
+    }
+    const next = pendingPath;
+    if (next && (next.startsWith("/shops/quick") || next.startsWith("/shops/c/"))) {
+      setPendingPath(null);
+      router.push(next);
       return;
     }
     setNote(t.published);

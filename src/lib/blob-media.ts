@@ -56,6 +56,54 @@ export function captureVideoPoster(src: string): Promise<string | null> {
   });
 }
 
+export function sampleVideoStills(src: string, count: number): Promise<string[]> {
+  const n = Math.max(1, Math.min(8, Math.round(count) || 1));
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src = src;
+    const stills: string[] = [];
+    const fail = () => resolve(stills);
+    video.onerror = fail;
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 1;
+      const times = n === 1 ? [Math.min(0.3, duration * 0.1)] : Array.from({ length: n }, (_, i) => ((i + 0.5) / n) * duration);
+      let i = 0;
+      const next = () => {
+        if (i >= times.length) {
+          resolve(stills);
+          return;
+        }
+        try {
+          video.currentTime = Math.min(duration - 0.05, Math.max(0, times[i] ?? 0));
+        } catch {
+          fail();
+        }
+      };
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 720;
+          canvas.height = video.videoHeight || 1280;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stills.push(canvas.toDataURL("image/jpeg", 0.72));
+          }
+        } catch {
+          /* skip frame */
+        }
+        i += 1;
+        next();
+      };
+      window.setTimeout(fail, 8000);
+      next();
+    };
+  });
+}
+
 type SpeechRec = {
   lang: string;
   continuous: boolean;

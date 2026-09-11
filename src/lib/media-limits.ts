@@ -9,6 +9,17 @@ export function videoMaxSeconds(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 180;
 }
 
+/** Product-counter walkthrough is shorter than a shop intro. */
+export function shopVideoMaxSeconds(): number {
+  const raw = Number(process.env.SHOP_VIDEO_MAX_SECONDS || process.env.NEXT_PUBLIC_SHOP_VIDEO_MAX_SECONDS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 60;
+}
+
+export function shopVideoMaxStills(): number {
+  const raw = Number(process.env.SHOP_VIDEO_MAX_STILLS || process.env.NEXT_PUBLIC_SHOP_VIDEO_MAX_STILLS);
+  return Number.isFinite(raw) && raw > 0 ? Math.min(8, raw) : 6;
+}
+
 export function videoLimitError(sizeBytes?: number, durationSec?: number): string | null {
   if (sizeBytes != null && sizeBytes > videoMaxBytes()) return "video-size";
   if (durationSec != null && durationSec > videoMaxSeconds()) return "video-duration";

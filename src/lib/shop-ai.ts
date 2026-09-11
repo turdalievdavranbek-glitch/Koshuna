@@ -56,8 +56,8 @@ const KIND_RULES: { id: ShopKind; keys: string[] }[] = [
   { id: "el-tv", keys: ["телевизор"] },
   { id: "el-appliances", keys: ["холодильник", "стирал", "плита"] },
   { id: "el-audio", keys: ["колонк", "наушник"] },
-  { id: "ap-men", keys: ["мужск"] },
-  { id: "ap-women", keys: ["женск"] },
+  { id: "ap-men", keys: ["мужск", "куртка"] },
+  { id: "ap-women", keys: ["женск", "платье", "плать", "куртка"] },
   { id: "ap-kids", keys: ["детск", "балалар"] },
   { id: "ap-shoes", keys: ["обув", "кроссов"] },
   { id: "ap-acc", keys: ["сумк", "ремень"] },
@@ -114,16 +114,28 @@ function extractFulfillment(text: string): { pickup?: boolean; delivery?: boolea
 }
 
 function extractProducts(raw: string): ShopAiProductHint[] {
-  const text = raw.replace(/\s+/g, " ");
+  const chunks = raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=(?:сом|som|kgs))\s*[,.]?\s+|(?<=[.!;])\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
   const found: ShopAiProductHint[] = [];
-  const re = /([A-Za-zА-Яа-яЁёҮүҢңӨөІі\-]{3,}(?:\s+[A-Za-zА-Яа-яЁёҮүҢңӨөІі\-]{2,}){0,3})\s+(\d[\d\s]{1,6})\s*(?:сом|som|kgs)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const title = m[1].trim();
-    const price = validPrice(m[2]);
+  for (const chunk of chunks) {
+    const som = chunk.match(/(?:от\s+)?(\d[\d\s]{1,6})\s*(?:сом|som|kgs)/i);
+    const title = chunk
+      .replace(/(?:от\s+)?\d[\d\s]{1,6}\s*(?:сом|som|kgs)/gi, "")
+      .replace(/,?\s*размеры?\s[^,.]+/gi, "")
+      .replace(/,?\s*разные цвета/gi, "")
+      .replace(/,?\s*разных цветов/gi, "")
+      .replace(/^[,.\s]+|[,.\s]+$/g, "")
+      .trim();
     if (title.length < 3) continue;
-    if (/^(цена|баа|это|мен|я|биз|у нас)$/i.test(title)) continue;
-    found.push({ title: title.slice(0, 60), price, unit: "piece" });
+    if (/^(цена|баа|это|мен|я|биз|у нас|от)$/i.test(title)) continue;
+    found.push({ title: title.slice(0, 60), price: som ? validPrice(som[1]) : undefined, unit: "piece" });
+  }
+  if (!found.length && raw.trim().length >= 4) {
+    found.push({ title: raw.replace(/\s+/g, " ").trim().slice(0, 60), unit: "piece" });
   }
   const uniq = new Map<string, ShopAiProductHint>();
   for (const item of found) {
@@ -132,6 +144,17 @@ function extractProducts(raw: string): ShopAiProductHint[] {
   }
   return [...uniq.values()].slice(0, 8);
 }
+
+export function kindCandidates(text: string): ShopKind[] {
+  return KIND_RULES.map((rule) => ({ id: rule.id, score: score(norm(text), rule.keys) }))
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((row) => row.id);
+}
+
+export const DEMO_SHOP_COUNTER =
+  "Детские кроссовки, размеры с 30 по 35, разные цвета, от 800 сом. Платье синее, 1200 сом. Куртка зимняя.";
 
 function categoriesFrom(text: string): { category?: ShopCategory; extra: ShopCategory[] } {
   const ranked = CAT_RULES.map((rule) => ({ id: rule.id, score: score(text, rule.keys) }))

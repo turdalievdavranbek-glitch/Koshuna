@@ -69,6 +69,13 @@ export default function SellingPage() {
         </button>
         <button
           type="button"
+          onClick={() => router.push("/shops/quick")}
+          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+        >
+          {t.shopQuickCta}
+        </button>
+        <button
+          type="button"
           onClick={() => router.push("/shops")}
           className="mt-2.5 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left"
         >

@@ -76,9 +76,14 @@ export default function ShopsPage() {
           ))}
         </div>
         {user ? (
-          <Link href="/shops/new" className="shadow-btn mt-4 flex h-12 items-center justify-center rounded-2xl bg-accent text-[15px] font-semibold text-accent-on no-underline">
-            {t.shopNew}
-          </Link>
+          <>
+            <Link href="/shops/quick" className="shadow-btn mt-4 flex h-12 items-center justify-center rounded-2xl bg-accent text-[15px] font-semibold text-accent-on no-underline">
+              {t.shopQuickCta}
+            </Link>
+            <Link href="/shops/new" className="mt-2.5 flex h-12 items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink no-underline">
+              {t.shopNew}
+            </Link>
+          </>
         ) : (
           <button
             type="button"
