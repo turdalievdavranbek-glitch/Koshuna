@@ -112,7 +112,11 @@ export function citiesOfOblast(oblast: string): string[] {
 }
 
 export function districtsOfOblast(oblast: string) {
-  return DISTRICTS.filter((d) => CITY_OBLAST[d.city] === oblast);
+  return DISTRICTS.filter((d) => {
+    if (CITY_OBLAST[d.city] !== oblast) return false;
+    if (d.id === `${d.city}-center` && !/центр/i.test(d.name)) return false;
+    return true;
+  });
 }
 
 export function settlementsOfOblast(oblast: string) {
