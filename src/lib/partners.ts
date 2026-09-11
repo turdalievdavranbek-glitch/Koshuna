@@ -367,7 +367,7 @@ export const SEED_UNITS: ComplexUnit[] = [
   { id: "u-6", complexId: "jk-asanbai-park", buildingLabel: "3", floor: 4, rooms: 2, area: 58, price: 5800000, status: "available", updatedAt: "2026-08-01T00:00:00.000Z" },
 ];
 
-const CAMRY_PHOTO = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1200&q=70";
+const CAMRY_PHOTO = "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=1200&q=70";
 const RAV4_PHOTO = "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1200&q=70";
 
 export const SEED_DEALER: DealerProfile = {
