@@ -1,4 +1,5 @@
 import type { AnimalGroup, DraftListing, PropertyType, SectionId } from "./types";
+import { JOB_ROLE_RU, JOB_ROWS, type JobType } from "./vacancies";
 
 export const DEMO_VIDEO_URL = "/demo/listing-sample.mp4";
 export const DEMO_POSTER_URL = "/demo/listing-poster.jpg";
@@ -23,6 +24,10 @@ export type AiGuess = {
   techModel?: string;
   animalGroup?: AnimalGroup;
   animalKind?: string;
+  jobSphere?: string;
+  jobSub?: string;
+  jobRole?: string;
+  jobType?: JobType;
   title: string;
   description: string;
   price?: string;
@@ -46,6 +51,10 @@ type Rule = {
   techModel?: string;
   animalGroup?: AnimalGroup;
   animalKind?: string;
+  jobSphere?: string;
+  jobSub?: string;
+  jobRole?: string;
+  jobType?: JobType;
   title?: string;
 };
 
@@ -192,6 +201,7 @@ const RULES: Rule[] = [
     keys: ["ваканси", "требуется", "ищем сотрудника", "жумуш", "работа "],
     section: "vacancies",
     kind: "goods",
+    jobType: "full",
     title: "Вакансия",
   },
   {
@@ -312,6 +322,27 @@ function extractSpot(text: string): DraftListing["meetupSpot"] | undefined {
   return undefined;
 }
 
+function extractJob(text: string) {
+  let best: { row: (typeof JOB_ROWS)[number]; score: number } | null = null;
+  for (const row of JOB_ROWS) {
+    const label = JOB_ROLE_RU[row.role] ?? row.role;
+    const keys = [norm(label), norm(label.replace(/-/g, " ")), row.role.replace(/-/g, " ")];
+    const s = score(text, keys);
+    if (s > 0 && (!best || s > best.score)) best = { row, score: s };
+  }
+  return best?.row;
+}
+
+function extractJobType(text: string): JobType | undefined {
+  if (/(удаленн|удалённ|алыстан|remote|masofaviy)/.test(text)) return "remote";
+  if (/(вахт|vaxta)/.test(text)) return "shift";
+  if (/(стажир|stajir|intern)/.test(text)) return "intern";
+  if (/(подработ|кошумча иш|qoshimcha)/.test(text)) return "gig";
+  if (/(частичн|неполн|жарым ставка|qisman)/.test(text)) return "part";
+  if (/(полн(ая|ый)|толук жумуш|toʻliq)/.test(text)) return "full";
+  return undefined;
+}
+
 export function classifyListingSpeech(raw: string): AiGuess {
   const text = norm(raw);
   let best: { rule: Rule; score: number } | null = null;
@@ -329,8 +360,15 @@ export function classifyListingSpeech(raw: string): AiGuess {
   if (rule?.techModel === "iphone-13" && /128/.test(text)) title = "iPhone 13, 128 ГБ";
   if (price && !/\d/.test(title)) title = `${title}, ${price} сом`;
   const description = raw.replace(/\s+/g, " ").trim() || title;
+  const section = rule?.section ?? "secondhand";
+  const job = section === "vacancies" ? extractJob(text) : undefined;
+  const jobType = section === "vacancies" ? extractJobType(text) ?? rule?.jobType ?? "full" : rule?.jobType;
+  if (job && titleBase === "Вакансия") {
+    title = JOB_ROLE_RU[job.role] ?? job.role;
+    if (price && !/\d/.test(title)) title = `${title}, ${price} сом`;
+  }
   return {
-    section: rule?.section ?? "secondhand",
+    section,
     kind: rule?.kind ?? "goods",
     category: rule?.category,
     goodsKind: rule?.goodsKind,
@@ -343,6 +381,10 @@ export function classifyListingSpeech(raw: string): AiGuess {
     techModel: rule?.techModel,
     animalGroup: rule?.animalGroup,
     animalKind: rule?.animalKind,
+    jobSphere: job?.sphere ?? rule?.jobSphere,
+    jobSub: job?.sub ?? rule?.jobSub,
+    jobRole: job?.role ?? rule?.jobRole,
+    jobType,
     title: title.slice(0, 80),
     description,
     price,
@@ -371,6 +413,10 @@ export function aiToDraftPatch(guess: AiGuess): Partial<DraftListing> {
   if (guess.techModel) patch.techModel = guess.techModel;
   if (guess.animalGroup) patch.animalGroup = guess.animalGroup;
   if (guess.animalKind) patch.animalKind = guess.animalKind;
+  if (guess.jobSphere) patch.jobSphere = guess.jobSphere;
+  if (guess.jobSub) patch.jobSub = guess.jobSub;
+  if (guess.jobRole) patch.jobRole = guess.jobRole;
+  if (guess.jobType) patch.jobType = guess.jobType;
   if (guess.price) patch.price = guess.price;
   if (guess.city) patch.city = guess.city;
   if (guess.rooms) patch.rooms = guess.rooms;

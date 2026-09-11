@@ -14,6 +14,7 @@ import { channelsOf, parseSellerChannel } from "./channels";
 import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, GIS_CITIES, LISTINGS } from "./data";
 import { DICT } from "./i18n";
 import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
+import { isJobType } from "./vacancies";
 import {
   type AuthMethod,
   type ChatMessage,
@@ -75,6 +76,10 @@ const defaultFilters = (): Filters => ({
   techModel: "any",
   animalGroup: "pets",
   animalKind: "any",
+  jobSphere: "any",
+  jobSub: "any",
+  jobRole: "any",
+  jobType: "any",
   locLng: null,
   locLat: null,
   locLabel: null,
@@ -242,6 +247,10 @@ function normalizeFilters(filters: Filters): Filters {
     carModel: next.carModel && next.carModel !== "any" ? next.carModel : "any",
     techBrand: next.techBrand && next.techBrand !== "any" ? next.techBrand : "any",
     techModel: next.techModel && next.techModel !== "any" ? next.techModel : "any",
+    jobSphere: next.jobSphere && next.jobSphere !== "any" ? next.jobSphere : "any",
+    jobSub: next.jobSub && next.jobSub !== "any" ? next.jobSub : "any",
+    jobRole: next.jobRole && next.jobRole !== "any" ? next.jobRole : "any",
+    jobType: isJobType(next.jobType) ? next.jobType : "any",
     neighborOnly: Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
@@ -528,17 +537,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: `user-${Date.now()}`,
         section: d.section,
         category:
-          d.section === "services"
-            ? d.category ?? "repairs-finish"
-            : d.section === "secondhand"
-              ? d.category ?? "furniture"
-              : d.section === "construction"
-                ? d.category ?? "cement"
-                : d.section === "restaurants"
-                  ? d.category ?? "national"
-                  : d.kind === "rent"
-                    ? "rent"
-                    : "furniture",
+          d.section === "vacancies"
+            ? undefined
+            : d.section === "services"
+              ? d.category ?? "repairs-finish"
+              : d.section === "secondhand"
+                ? d.category ?? "furniture"
+                : d.section === "construction"
+                  ? d.category ?? "cement"
+                  : d.section === "restaurants"
+                    ? d.category ?? "national"
+                    : d.kind === "rent"
+                      ? "rent"
+                      : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
         animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
@@ -549,11 +560,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         bodyKind: d.section === "cars" || d.section === "car-rental" ? d.vehicleType : undefined,
         techBrand: d.section === "secondhand" ? d.techBrand : undefined,
         techModel: d.section === "secondhand" ? d.techModel : undefined,
+        jobSphere: d.section === "vacancies" ? d.jobSphere : undefined,
+        jobSub: d.section === "vacancies" ? d.jobSub : undefined,
+        jobRole: d.section === "vacancies" ? d.jobRole : undefined,
+        jobType: d.section === "vacancies" ? d.jobType : undefined,
         title: d.title,
         titleKy: d.title,
         titleEn: d.title,
         price: Number(d.price.replace(/\s/g, "")) || 0,
-        unit: d.section === "car-rental" ? "day" : d.kind === "rent" ? "month" : undefined,
+        unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || d.kind === "rent" ? "month" : undefined,
         city: d.city,
         postedAgo: "2h",
         rooms: d.rooms ? Number(d.rooms) : undefined,

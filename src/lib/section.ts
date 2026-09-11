@@ -24,6 +24,10 @@ export function patchForSection(id: SectionId, prev: Filters): Partial<Filters> 
     animalGroup:
       id === "animals" ? (prev.section === "animals" ? prev.animalGroup : "any") : "any",
     animalKind: id === "animals" && prev.section === "animals" ? prev.animalKind : "any",
+    jobSphere: id === "vacancies" && prev.section === "vacancies" ? prev.jobSphere : "any",
+    jobSub: id === "vacancies" && prev.section === "vacancies" ? prev.jobSub : "any",
+    jobRole: id === "vacancies" && prev.section === "vacancies" ? prev.jobRole : "any",
+    jobType: id === "vacancies" && prev.section === "vacancies" ? prev.jobType : "any",
     checkIn: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkIn : null,
     checkOut: id === "stays" || (id === "rent" && prev.dealType === "short") ? prev.checkOut : null,
     dealType: id === "rent" ? prev.dealType : "any",

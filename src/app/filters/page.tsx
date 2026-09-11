@@ -18,6 +18,7 @@ import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
+import { VacancyChips } from "@/components/vacancy-chips";
 import { LocationChips } from "@/components/location-chips";
 
 export default function FiltersPage() {
@@ -44,6 +45,7 @@ export default function FiltersPage() {
   const isStays = filters.section === "stays";
   const isConstruction = filters.section === "construction";
   const isRestaurants = filters.section === "restaurants";
+  const isVacancies = filters.section === "vacancies";
 
   const openSection = (id: (typeof SECTIONS)[number]["id"]) => {
     setFilters(patchForSection(id, filters));
@@ -64,7 +66,9 @@ export default function FiltersPage() {
       ? t.priceDay
       : filters.section === "stays"
         ? t.priceNight
-        : t.priceKgs;
+        : filters.section === "vacancies"
+          ? t.priceMonth
+          : t.priceKgs;
 
   return (
     <PhoneShell>
@@ -270,6 +274,8 @@ export default function FiltersPage() {
         {isConstruction ? <ConstructionChips labeled /> : null}
 
         {isRestaurants ? <RestaurantChips labeled /> : null}
+
+        {isVacancies ? <VacancyChips labeled /> : null}
 
         <div>
           <Eyebrow>{t.sort}</Eyebrow>

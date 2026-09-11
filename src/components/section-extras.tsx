@@ -12,6 +12,7 @@ import { AnimalChips } from "@/components/animal-chips";
 import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
+import { VacancyChips } from "@/components/vacancy-chips";
 import { LocationChips } from "@/components/location-chips";
 import { SectionList } from "@/components/section-list";
 import { Chip } from "@/components/ui";
@@ -135,6 +136,10 @@ export function SectionExtras() {
 
   if (section === "animals") {
     return <AnimalChips list />;
+  }
+
+  if (section === "vacancies") {
+    return <VacancyChips list />;
   }
 
   if (section === "services") {

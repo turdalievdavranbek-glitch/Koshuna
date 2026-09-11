@@ -29,6 +29,10 @@ export function homeFeedFilters(filters: Filters): Filters {
     techModel: "any",
     animalGroup: "any",
     animalKind: "any",
+    jobSphere: "any",
+    jobSub: "any",
+    jobRole: "any",
+    jobType: "any",
     locLng: null,
     locLat: null,
     locLabel: null,
@@ -131,6 +135,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (carFilters && filters.autoType === "rent" && filters.gear && filters.gear !== "any") {
       if (item.gearKind !== filters.gear) return false;
+    }
+    if (filters.section === "vacancies") {
+      if (filters.jobSphere && filters.jobSphere !== "any" && item.jobSphere !== filters.jobSphere) return false;
+      if (filters.jobSub && filters.jobSub !== "any" && item.jobSub !== filters.jobSub) return false;
+      if (filters.jobRole && filters.jobRole !== "any" && item.jobRole !== filters.jobRole) return false;
+      if (filters.jobType && filters.jobType !== "any" && item.jobType !== filters.jobType) return false;
     }
     if (filters.priceMin != null && item.price < filters.priceMin) return false;
     if (filters.priceMax != null && item.price > filters.priceMax) return false;

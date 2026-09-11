@@ -69,6 +69,12 @@ function tightEnough(draft: DraftListing, item: Listing): boolean {
     if (draft.animalGroup && item.animalGroup && item.animalGroup !== draft.animalGroup) return false;
     if (draft.animalKind && item.animalKind && item.animalKind !== draft.animalKind) return false;
   }
+  if (draft.section === "vacancies") {
+    if (draft.jobSphere && item.jobSphere && item.jobSphere !== draft.jobSphere) return false;
+    if (draft.jobSub && item.jobSub && item.jobSub !== draft.jobSub) return false;
+    if (draft.jobRole && item.jobRole && item.jobRole !== draft.jobRole) return false;
+    if (draft.jobType && item.jobType && item.jobType !== draft.jobType) return false;
+  }
   if (
     (draft.section === "services" || draft.section === "construction" || draft.section === "restaurants") &&
     draft.category &&

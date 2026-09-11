@@ -175,6 +175,10 @@ export type Listing = {
   techModel?: string;
   animalGroup?: AnimalGroup;
   animalKind?: string;
+  jobSphere?: string;
+  jobSub?: string;
+  jobRole?: string;
+  jobType?: "full" | "part" | "gig" | "remote" | "shift" | "intern";
   year?: number;
   condition?: string;
   photos: string[];
@@ -238,6 +242,10 @@ export type Filters = {
   techModel: string;
   animalGroup: AnimalGroup | "any";
   animalKind: string;
+  jobSphere: string;
+  jobSub: string;
+  jobRole: string;
+  jobType: "any" | "full" | "part" | "gig" | "remote" | "shift" | "intern";
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
@@ -307,6 +315,10 @@ export type DraftListing = {
   carModel?: string;
   techBrand?: string;
   techModel?: string;
+  jobSphere?: string;
+  jobSub?: string;
+  jobRole?: string;
+  jobType?: "full" | "part" | "gig" | "remote" | "shift" | "intern";
   mediaKind?: MediaKind;
   videoUrl?: string;
   voiceUrl?: string;

@@ -18,6 +18,7 @@ import {
   vehicleModelsOf,
   vehicleTypesOf,
 } from "./transport";
+import { JOB_SPHERES, isJobSphere, jobRolesOf, jobSubsOf } from "./vacancies";
 import type { Dict } from "./i18n";
 import { isSectionId } from "./section";
 import type { AnimalGroup, Filters, SectionId } from "./types";
@@ -494,6 +495,120 @@ function flatCats(
   };
 }
 
+function vacancies(path: string[]): BranchState | null {
+  const base: Partial<Filters> = {
+    section: "vacancies",
+    jobSphere: "any",
+    jobSub: "any",
+    jobRole: "any",
+  };
+  const spheres = JOB_SPHERES.map((id) => option(id, (t) => t.jobSpheres[id] ?? id, jobSubsOf(id).length > 0));
+
+  if (!path.length) {
+    return {
+      ok: true,
+      title: (t) => t.sectionNames.vacancies,
+      parentPath: [],
+      options: spheres,
+      patch: base,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.jobSphere,
+    };
+  }
+
+  if (path[0] === BRANCH_ALL) {
+    if (path.length !== 1) return null;
+    return {
+      ok: true,
+      title: (t) => t.sectionNames.vacancies,
+      parentPath: [],
+      options: [],
+      patch: base,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.jobSphere,
+    };
+  }
+
+  const sphere = path[0];
+  if (!isJobSphere(sphere)) return null;
+  const subs = jobSubsOf(sphere);
+  const spherePatch: Partial<Filters> = { ...base, jobSphere: sphere };
+
+  if (path.length === 1) {
+    return {
+      ok: true,
+      title: (t) => t.jobSpheres[sphere] ?? sphere,
+      parentPath: [],
+      options: subs.map((id) => option(id, (t) => t.jobSubs[id] ?? id, jobRolesOf(sphere, id).length > 0)),
+      patch: spherePatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.jobSub,
+    };
+  }
+
+  if (path[1] === BRANCH_ALL) {
+    if (path.length !== 2) return null;
+    return {
+      ok: true,
+      title: (t) => t.jobSpheres[sphere] ?? sphere,
+      parentPath: [sphere],
+      options: [],
+      patch: spherePatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.jobSub,
+    };
+  }
+
+  const sub = path[1];
+  if (!subs.includes(sub)) return null;
+  const roles = jobRolesOf(sphere, sub);
+  const subPatch: Partial<Filters> = { ...spherePatch, jobSub: sub };
+
+  if (path.length === 2) {
+    return {
+      ok: true,
+      title: (t) => t.jobSubs[sub] ?? sub,
+      parentPath: [sphere],
+      options: roles.map((id) => option(id, (t) => t.jobRoles[id] ?? id, false)),
+      patch: subPatch,
+      isPicker: true,
+      showFeed: false,
+      eyebrow: (t) => t.jobRole,
+    };
+  }
+
+  if (path[2] === BRANCH_ALL) {
+    if (path.length !== 3) return null;
+    return {
+      ok: true,
+      title: (t) => t.jobSubs[sub] ?? sub,
+      parentPath: [sphere, sub],
+      options: [],
+      patch: subPatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.jobRole,
+    };
+  }
+
+  const role = path[2];
+  if (path.length !== 3 || !roles.includes(role)) return null;
+  return {
+    ok: true,
+    title: (t) => t.jobRoles[role] ?? role,
+    parentPath: [sphere, sub],
+    options: [],
+    patch: { ...subPatch, jobRole: role },
+    isPicker: false,
+    showFeed: true,
+    eyebrow: (t) => t.jobRole,
+  };
+}
+
 function leafSection(id: SectionId, path: string[]): BranchState | null {
   if (path.length) return null;
   return {
@@ -525,8 +640,9 @@ export function resolveBranch(section: SectionId, path: string[]): BranchState |
       return flatCats("construction", CONSTRUCTION_CATEGORIES, (t) => t.category, path);
     case "restaurants":
       return flatCats("restaurants", RESTAURANT_CATEGORIES, (t) => t.cuisine, path);
-    case "stays":
     case "vacancies":
+      return vacancies(path);
+    case "stays":
       return leafSection(section, path);
     default:
       return null;
@@ -574,6 +690,15 @@ export function pathFromFilters(filters: Filters): string[] {
     if (!filters.category) return [];
     return [filters.category];
   }
+  if (section === "vacancies") {
+    if (!filters.jobSphere || filters.jobSphere === "any") return [];
+    const path: string[] = [filters.jobSphere];
+    if (!filters.jobSub || filters.jobSub === "any") return path;
+    path.push(filters.jobSub);
+    if (!filters.jobRole || filters.jobRole === "any") return path;
+    path.push(filters.jobRole);
+    return path;
+  }
   return [];
 }
 
@@ -613,6 +738,7 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     locLabel: null,
     autoType: "sale",
     vehicleGroup: "any",
+    jobType: "any",
     settlement: "any",
     aiylOnly: false,
     priceDroppedOnly: false,

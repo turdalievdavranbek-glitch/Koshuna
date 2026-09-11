@@ -1,4 +1,14 @@
 import type { Lang, SectionId } from "./types";
+import {
+  JOB_ROLE_RU,
+  JOB_SPHERE_KY,
+  JOB_SPHERE_RU,
+  JOB_SPHERE_UZ,
+  JOB_SUB_RU,
+  JOB_TYPE_KY,
+  JOB_TYPE_RU,
+  JOB_TYPE_UZ,
+} from "./vacancies";
 
 const ru = {
   brand: "Koshuna",
@@ -428,6 +438,14 @@ const ru = {
     tractor: "Трактор",
   } as Record<string, string>,
   vehicleType: "Тип техники",
+  jobSphere: "Сфера",
+  jobSub: "Направление",
+  jobRole: "Должность",
+  jobType: "Занятость",
+  jobSpheres: JOB_SPHERE_RU,
+  jobSubs: JOB_SUB_RU,
+  jobRoles: JOB_ROLE_RU,
+  jobTypes: JOB_TYPE_RU,
   bodyType: "Тип кузова",
   sedan: "Седан",
   suv: "SUV",
@@ -437,6 +455,7 @@ const ru = {
   priceDay: "Цена, KGS / в день",
   priceNight: "Цена, KGS / за ночь",
   searchCars: "Camry, RAV4, экскаватор…",
+  searchVacancies: "Повар, водитель, продавец…",
   searchServices: "Уборка, репетитор, ремонт…",
   searchStays: "Иссык-Куль, Каракол, гостевой дом…",
   searchAnimals: "Щенок, кошка, куры…",
@@ -1838,6 +1857,14 @@ const ky: typeof ru = {
     tractor: "Трактор",
   },
   vehicleType: "Техника түрү",
+  jobSphere: "Чөйрө",
+  jobSub: "Багыт",
+  jobRole: "Кызмат",
+  jobType: "Жумуш түрү",
+  jobSpheres: JOB_SPHERE_KY,
+  jobSubs: JOB_SUB_RU,
+  jobRoles: JOB_ROLE_RU,
+  jobTypes: JOB_TYPE_KY,
   bodyType: "Кузов түрү",
   sedan: "Седан",
   suv: "SUV",
@@ -1847,6 +1874,7 @@ const ky: typeof ru = {
   priceDay: "Баа, KGS / күнүнө",
   priceNight: "Баа, KGS / түнүнө",
   searchCars: "Camry, RAV4, экскаватор…",
+  searchVacancies: "Ашпоз, айдоочу, сатуучу…",
   searchServices: "Тазалоо, репетитор, оңдоо…",
   searchStays: "Ысык-Көл, Каракол, конок үйү…",
   searchAnimals: "Күчүк, мышык, тоок…",
@@ -2599,6 +2627,14 @@ const uz: typeof ru = {
     tractor: "Traktor",
   },
   vehicleType: "Texnika turi",
+  jobSphere: "Soha",
+  jobSub: "Yoʻnalish",
+  jobRole: "Lavozim",
+  jobType: "Bandlik",
+  jobSpheres: JOB_SPHERE_UZ,
+  jobSubs: JOB_SUB_RU,
+  jobRoles: JOB_ROLE_RU,
+  jobTypes: JOB_TYPE_UZ,
   bodyType: "Kuzov turi",
   sedan: "Sedan",
   suv: "SUV",
@@ -2608,6 +2644,7 @@ const uz: typeof ru = {
   priceDay: "Narx, KGS / kuniga",
   priceNight: "Narx, KGS / kechasiga",
   searchCars: "Camry, RAV4, ekskavator…",
+  searchVacancies: "Oshpaz, haydovchi, sotuvchi…",
   searchServices: "Tozalash, repetitor, ta’mirlash…",
   searchStays: "Issiqkoʻl, Qorakoʻl, mehmon uy…",
   searchAnimals: "Kuchukcha, mushuk, tovuq…",
@@ -3277,6 +3314,8 @@ export function searchPlaceholder(section: SectionId | null | undefined, t: Dict
       return t.searchStays;
     case "animals":
       return t.searchAnimals;
+    case "vacancies":
+      return t.searchVacancies;
     case "construction":
       return t.searchConstruction;
     case "restaurants":
@@ -3317,6 +3356,8 @@ export function listingChipLabel(
     techBrand?: string;
     techModel?: string;
     animalKind?: string;
+    jobRole?: string;
+    jobSphere?: string;
     dealKind?: string;
     stockKind?: string;
   },
@@ -3334,6 +3375,11 @@ export function listingChipLabel(
     const name = [make, model].filter(Boolean).join(" ");
     if (name) return name;
     return listing.section === "car-rental" ? t.autoRent : t.autoSale;
+  }
+  if (listing.section === "vacancies") {
+    if (listing.jobRole && t.jobRoles[listing.jobRole]) return t.jobRoles[listing.jobRole];
+    if (listing.jobSphere && t.jobSpheres[listing.jobSphere]) return t.jobSpheres[listing.jobSphere];
+    return t.sectionNames.vacancies;
   }
   if (listing.section === "animals" && listing.animalKind && t.animalKinds[listing.animalKind]) {
     return t.animalKinds[listing.animalKind];

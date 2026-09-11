@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CITIES, CATEGORIES, PROPERTY_TYPES, ANIMAL_GROUPS, SECTIONS, SERVICE_CATEGORIES, CONSTRUCTION_CATEGORIES, RESTAURANT_CATEGORIES, animalKindsOf, goodsKindsOf, isTechCategory, techBrandsOf, techModelsOf } from "@/lib/data";
 import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
+import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { meetupSpotsFor } from "@/lib/deal";
 import { listingChipLabel } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
@@ -147,6 +148,58 @@ export default function PostPage() {
                           onClick={() => setDraft({ carModel: id })}
                         >
                           {t.carModels[id] ?? id}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              {draft.section === "vacancies" ? (
+                <>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    {JOB_TYPES.map((id) => (
+                      <Chip
+                        key={id}
+                        active={(draft.jobType ?? "full") === id}
+                        onClick={() => setDraft({ jobType: id })}
+                      >
+                        {t.jobTypes[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {JOB_SPHERES.map((id) => (
+                      <Chip
+                        key={id}
+                        active={draft.jobSphere === id}
+                        onClick={() => setDraft({ jobSphere: id, jobSub: undefined, jobRole: undefined })}
+                      >
+                        {t.jobSpheres[id]}
+                      </Chip>
+                    ))}
+                  </div>
+                  {draft.jobSphere ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {jobSubsOf(draft.jobSphere).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.jobSub === id}
+                          onClick={() => setDraft({ jobSub: id, jobRole: undefined })}
+                        >
+                          {t.jobSubs[id] ?? id}
+                        </Chip>
+                      ))}
+                    </div>
+                  ) : null}
+                  {draft.jobSphere && draft.jobSub ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {jobRolesOf(draft.jobSphere, draft.jobSub).map((id) => (
+                        <Chip
+                          key={id}
+                          active={draft.jobRole === id}
+                          onClick={() => setDraft({ jobRole: id })}
+                        >
+                          {t.jobRoles[id] ?? id}
                         </Chip>
                       ))}
                     </div>
@@ -479,7 +532,7 @@ export default function PostPage() {
                 <div className="mt-1 text-[13px] text-muted">
                   {t.cities[draft.city]}
                   {draft.rooms ? ` · ${draft.rooms} ${t.roomWord} · ${draft.area} м²` : ""}
-                  {` · ${listingChipLabel({ section: draft.section, category: draft.category, goodsKind: draft.goodsKind, housingKind: draft.housingKind, carMake: draft.carMake, carModel: draft.carModel, techBrand: draft.techBrand, techModel: draft.techModel, animalKind: draft.animalKind }, t)}`}
+                  {` · ${listingChipLabel({ section: draft.section, category: draft.category, goodsKind: draft.goodsKind, housingKind: draft.housingKind, carMake: draft.carMake, carModel: draft.carModel, techBrand: draft.techBrand, techModel: draft.techModel, animalKind: draft.animalKind, jobRole: draft.jobRole, jobSphere: draft.jobSphere }, t)}`}
                 </div>
                 {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="mt-3 w-full" /> : null}
                 {draft.description ? <p className="mt-3 text-sm leading-[1.5] text-ink-2">{draft.description}</p> : null}

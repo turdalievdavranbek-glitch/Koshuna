@@ -25,6 +25,7 @@ import {
   techModelsOf,
 } from "@/lib/data";
 import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
+import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
@@ -355,6 +356,7 @@ function pickSection(draft: DraftListing, id: SectionId): Partial<DraftListing> 
   if (id === "services") next.category = draft.category ?? SERVICE_CATEGORIES[0];
   if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
   if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
+  if (id === "vacancies") next.jobType = draft.jobType ?? "full";
   return next;
 }
 
@@ -438,6 +440,51 @@ export function AiConfirmCard({ draft, onPatch }: Props) {
               {t.carModels[id] ?? id}
             </Chip>
           ))}
+        </div>
+      ) : null}
+
+      {draft.section === "vacancies" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {JOB_TYPES.map((id) => (
+            <Chip
+              key={id}
+              active={(draft.jobType ?? "full") === id}
+              onClick={() => onPatch({ jobType: id, aiConfirmed: false })}
+            >
+              {t.jobTypes[id]}
+            </Chip>
+          ))}
+          {JOB_SPHERES.map((id) => (
+            <Chip
+              key={id}
+              active={draft.jobSphere === id}
+              onClick={() => onPatch({ jobSphere: id, jobSub: undefined, jobRole: undefined, aiConfirmed: false })}
+            >
+              {t.jobSpheres[id]}
+            </Chip>
+          ))}
+          {draft.jobSphere
+            ? jobSubsOf(draft.jobSphere).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.jobSub === id}
+                  onClick={() => onPatch({ jobSub: id, jobRole: undefined, aiConfirmed: false })}
+                >
+                  {t.jobSubs[id] ?? id}
+                </Chip>
+              ))
+            : null}
+          {draft.jobSphere && draft.jobSub
+            ? jobRolesOf(draft.jobSphere, draft.jobSub).map((id) => (
+                <Chip
+                  key={id}
+                  active={draft.jobRole === id}
+                  onClick={() => onPatch({ jobRole: id, aiConfirmed: false })}
+                >
+                  {t.jobRoles[id] ?? id}
+                </Chip>
+              ))
+            : null}
         </div>
       ) : null}
 

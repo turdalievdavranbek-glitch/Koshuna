@@ -12,6 +12,7 @@ import type { SectionId } from "@/lib/types";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
 import { LocationChips } from "@/components/location-chips";
+import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, useFiltered } from "@/components/ui";
@@ -101,6 +102,10 @@ function FeedExtras({ id }: { id: SectionId }) {
         onChange={(next) => setFilters(next)}
       />
     );
+  }
+
+  if (id === "vacancies") {
+    return <VacancyChips list />;
   }
 
   if (id === "restaurants") {
