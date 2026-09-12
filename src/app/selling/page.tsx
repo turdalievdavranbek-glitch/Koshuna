@@ -6,6 +6,7 @@ import { shopsOf } from "@/lib/shops";
 import { useState } from "react";
 import { hasRole, isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
 import { SideSwitch } from "@/components/side-switch";
@@ -49,7 +50,15 @@ export default function SellingPage() {
     <PhoneShell tab>
       <div className="px-5 pt-2">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.myListings}</h1>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+            aria-label={t.feed}
+          >
+            <IconBack size={16} color="#17140F" />
+          </button>
+          <h1 className="min-w-0 flex-1 font-display text-[24px] font-extrabold tracking-[-0.02em] text-ink">{t.myListings}</h1>
           <span className="text-[13px] font-semibold text-muted">{t.nListings(mine.length)}</span>
         </div>
         <div className="mt-3.5">

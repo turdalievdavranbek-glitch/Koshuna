@@ -78,7 +78,7 @@ export function StatusBar() {
   );
 }
 
-export function PhoneShell({ children, tab }: { children: ReactNode; tab?: boolean }) {
+export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?: boolean }) {
   return (
     <div className="flex min-h-[100dvh] justify-center bg-canvas md:items-center md:py-6">
       <div
@@ -87,7 +87,9 @@ export function PhoneShell({ children, tab }: { children: ReactNode; tab?: boole
       >
         <StatusBar />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-        {tab ? <TabBar /> : null}
+        <div className="sticky bottom-0 z-30 shrink-0 bg-surface">
+          <TabBar />
+        </div>
       </div>
     </div>
   );
