@@ -7,12 +7,13 @@ import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, t
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopRows } from "@/components/shop-rows";
+import { ListingGrid } from "@/components/listing-grid";
 import { Chip } from "@/components/ui";
 import { IconBack, IconSearch } from "@/components/icons";
 import { LocationLine } from "@/components/location-line";
 
 export default function ShopsPage() {
-  const { t, user, shops, city, ready } = useApp();
+  const { t, user, shops, city, ready, allListings, toggleFav, setPendingPath } = useApp();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<ShopCategory | "all">("all");
@@ -22,6 +23,17 @@ export default function ShopsPage() {
     const source = mine ? shopsOf(shops, user) : publicShops(shops);
     return applyShopFilters(source, { query, city, category: cat }, city);
   }, [shops, query, cat, user, city, mine]);
+  const cards = useMemo(() => {
+    const shopIds = new Set(list.map((shop) => shop.id));
+    const q = query.trim().toLowerCase();
+    return allListings.filter((item) => {
+      if (item.section !== "shops") return false;
+      if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
+      if (item.shopId && !shopIds.has(item.shopId)) return false;
+      if (q && !`${item.title} ${item.description}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [allListings, list, query]);
 
   const openCategory = (id: ShopCategory) => {
     if (shopKindsOf(id).length) {
@@ -100,6 +112,23 @@ export default function ShopsPage() {
         <div className="mt-4">
           <ShopRows shops={list} />
         </div>
+        {cards.length ? (
+          <div className="mt-6">
+            <h2 className="font-display text-[19px] font-bold text-ink">{t.shopFeedTitle}</h2>
+            <div className="mt-3">
+              <ListingGrid
+                listings={cards}
+                onFav={(id) => {
+                  const ok = toggleFav(id);
+                  if (!ok) {
+                    setPendingPath("/shops");
+                    router.push("/login");
+                  }
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </PhoneShell>
   );

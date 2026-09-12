@@ -46,6 +46,7 @@ import {
   type Filters,
   type Lang,
   type Listing,
+  type HonestyScore,
   type ListingComment,
   type ListingLayout,
   type ListingReaction,
@@ -66,6 +67,7 @@ import {
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice, validQuantity } from "./shops";
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
+import { SEED_SHOPS } from "./seed-shops";
 import { BrandMark } from "@/components/brand";
 
 const STORAGE = "konshu-state-v1";
@@ -159,6 +161,7 @@ type State = {
   meetDeals: Record<string, MeetDeal>;
   reactions: ReactionsByVoter;
   comments: Record<string, ListingComment[]>;
+  honesty: Record<string, Record<string, HonestyScore>>;
   shops: Shop[];
   shopDraft: ShopDraft | null;
   side: AppSide;
@@ -192,7 +195,8 @@ const initial: State = {
   meetDeals: {},
   reactions: {},
   comments: DEFAULT_COMMENTS,
-  shops: [],
+  honesty: {},
+  shops: SEED_SHOPS,
   shopDraft: null,
   side: "buy",
   applications: [],
@@ -228,6 +232,8 @@ type Store = State & {
   setReaction: (id: string, reaction: ListingReaction) => boolean;
   commentsOf: (id: string) => ListingComment[];
   addComment: (id: string, text: string) => boolean;
+  honestyOf: (id: string) => { avg: number; count: number; mine: HonestyScore | null };
+  rateHonesty: (id: string, score: HonestyScore) => boolean;
   requireAuth: (path: string) => boolean;
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
@@ -385,7 +391,10 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
     const saved = JSON.parse(raw) as Partial<State>;
-    const shops = Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [];
+    const shops = mergeById(
+      Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [],
+      SEED_SHOPS,
+    );
     const extraListings = Array.isArray(saved.extraListings) ? (saved.extraListings as Listing[]) : [];
     const { viewerPlace: _viewerPlace, ...rest } = saved as Partial<State> & { viewerPlace?: unknown };
     return {
@@ -402,6 +411,7 @@ function load(): State {
         saved.comments && typeof saved.comments === "object"
           ? { ...DEFAULT_COMMENTS, ...saved.comments }
           : DEFAULT_COMMENTS,
+      honesty: saved.honesty && typeof saved.honesty === "object" ? saved.honesty : {},
       shops,
       extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
@@ -638,6 +648,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
       return true;
     },
+    honestyOf: (id) => {
+      const votes = state.honesty[id] ?? {};
+      const scores = Object.values(votes);
+      const count = scores.length;
+      const avg = count ? scores.reduce((a, b) => a + b, 0) / count : 0;
+      const vid = voterId(state.user);
+      const mine = vid ? votes[vid] ?? null : null;
+      return { avg, count, mine };
+    },
+    rateHonesty: (id, score) => {
+      if (!state.user) return false;
+      const vid = voterId(state.user);
+      if (!vid) return false;
+      if (state.honesty[id]?.[vid]) return false;
+      update((s) => {
+        const current = voterId(s.user);
+        if (!current) return s;
+        if (s.honesty[id]?.[current]) return s;
+        return {
+          ...s,
+          honesty: {
+            ...s.honesty,
+            [id]: { ...s.honesty[id], [current]: score },
+          },
+        };
+      });
+      return true;
+    },
     requireAuth: () => Boolean(state.user),
     setPendingPath: (path) => update({ pendingPath: path }),
     setDraft: (patch) => update((s) => ({ ...s, draft: { ...s.draft, ...patch } })),
@@ -666,9 +704,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   ? d.category ?? "cement"
                   : d.section === "restaurants"
                     ? d.category ?? "national"
-                    : d.kind === "rent"
-                      ? "rent"
-                      : "furniture",
+                    : d.section === "shops"
+                      ? d.category ?? "food"
+                      : d.kind === "rent"
+                        ? "rent"
+                        : "furniture",
         goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
         housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
         dealKind: d.section === "rent" ? d.dealKind ?? "long" : undefined,
@@ -708,6 +748,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         videoUrl: d.videoUrl,
         voiceUrl: d.voiceUrl,
         transcript: d.transcript,
+        address: d.address,
+        foodType: d.foodType,
+        calories: d.calories,
+        ingredients: d.ingredients,
         voiceText: d.transcript,
         voiceSec: d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined,
         description: d.description || d.transcript || d.title,

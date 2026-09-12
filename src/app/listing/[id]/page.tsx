@@ -22,6 +22,7 @@ import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
 import { ListingSocial } from "@/components/listing-social";
+import { HonestyCard } from "@/components/honesty-card";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { RestaurantMenu } from "@/components/restaurant-menu";
@@ -350,6 +351,35 @@ export default function ListingPage() {
             <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>
 
+          {listing.section === "restaurants" && (listing.address || listing.foodType || listing.calories || listing.ingredients) ? (
+            <div className="mt-5 overflow-hidden rounded-[18px] border border-line bg-white">
+              {listing.address ? (
+                <div className="flex justify-between px-4 py-3.5 text-sm">
+                  <span className="text-muted">{t.venueAddress}</span>
+                  <span className="max-w-[60%] text-right font-semibold text-ink">{listing.address}</span>
+                </div>
+              ) : null}
+              {listing.foodType ? (
+                <div className="flex justify-between border-t border-line px-4 py-3.5 text-sm">
+                  <span className="text-muted">{t.foodType}</span>
+                  <span className="font-semibold text-ink">{t.menuCats[listing.foodType as keyof typeof t.menuCats] ?? listing.foodType}</span>
+                </div>
+              ) : null}
+              {listing.calories ? (
+                <div className="flex justify-between border-t border-line px-4 py-3.5 text-sm">
+                  <span className="text-muted">{t.caloriesField}</span>
+                  <span className="font-semibold text-ink">{listing.calories}</span>
+                </div>
+              ) : null}
+              {listing.ingredients ? (
+                <div className="flex justify-between border-t border-line px-4 py-3.5 text-sm">
+                  <span className="text-muted">{t.ingredientsField}</span>
+                  <span className="max-w-[60%] text-right font-semibold text-ink">{listing.ingredients}</span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {listing.section === "restaurants" ? <RestaurantMenu listing={listing} /> : null}
 
           {mine && listing.section === "restaurants" ? (
@@ -362,6 +392,7 @@ export default function ListingPage() {
             </button>
           ) : null}
 
+          <HonestyCard listing={listing} />
           <ListingSocial listing={listing} />
 
           {listing.shopId || listing.sellerName || dealer ? (
