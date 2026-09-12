@@ -34,6 +34,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const recRef = useRef<MediaRecorder | null>(null);
   const stopSpeech = useRef<(() => void) | null>(null);
   const [recording, setRecording] = useState(false);
+  const [recMode, setRecMode] = useState<"video" | "audio" | null>(null);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
 
@@ -48,12 +49,12 @@ export function MediaCapture({ draft, onPatch }: Props) {
   };
 
   const setKind = (next: MediaKind) => {
-    if (next !== "video") dropBlob("video");
-    if (next !== "voice") dropBlob("voice");
+    if (next !== "video" && next !== "voice") dropBlob("video");
+    if (next !== "voice" && next !== "video") dropBlob("voice");
     onPatch({
       mediaKind: next,
-      videoUrl: next === "video" ? draft.videoUrl : undefined,
-      voiceUrl: next === "voice" ? draft.voiceUrl : undefined,
+      videoUrl: next === "video" || next === "voice" ? draft.videoUrl : undefined,
+      voiceUrl: next === "voice" || next === "video" ? draft.voiceUrl : undefined,
       aiConfirmed: false,
       transcript: next === "photos" ? undefined : draft.transcript,
     });
@@ -78,6 +79,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
     stream?.getTracks().forEach((track) => track.stop());
     if (videoRef.current) videoRef.current.srcObject = null;
     setRecording(false);
+    setRecMode(null);
   };
 
   const startRec = async (mode: "video" | "audio") => {
@@ -112,11 +114,17 @@ export function MediaCapture({ draft, onPatch }: Props) {
           const poster = (await captureVideoPoster(url)) ?? undefined;
           onPatch({ mediaKind: "video", videoUrl: url, photo: poster || draft.photo, aiConfirmed: false });
         } else {
-          onPatch({ mediaKind: "voice", voiceUrl: url, aiConfirmed: false });
+          onPatch({
+            mediaKind: draft.videoUrl ? "video" : "voice",
+            voiceUrl: url,
+            videoUrl: draft.videoUrl,
+            aiConfirmed: false,
+          });
         }
       };
       rec.start();
       recRef.current = rec;
+      setRecMode(mode);
       setRecording(true);
       setLive("");
       stopSpeech.current?.();
@@ -207,18 +215,22 @@ export function MediaCapture({ draft, onPatch }: Props) {
         <Chip active={kind === "photos"} onClick={() => setKind("photos")}>
           {t.mediaPhotos}
         </Chip>
+        <Chip active={kind === "text"} onClick={() => setKind("text")}>
+          {t.mediaText}
+        </Chip>
       </div>
       <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.mediaHint}</p>
 
       {kind === "video" ? (
         <div className="mt-3 overflow-hidden rounded-[16px] border border-line bg-ink">
-          {draft.videoUrl && !recording ? (
+          {draft.videoUrl && recMode !== "video" ? (
             <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="aspect-[9/16] max-h-[280px] w-full object-cover" />
           ) : (
             <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
           )}
           <div className="flex flex-col gap-2 bg-white p-3">
-            {draft.videoUrl && !recording ? (
+            {draft.videoUrl && recMode !== "video" ? (
+              <>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -234,7 +246,16 @@ export function MediaCapture({ draft, onPatch }: Props) {
                 >
                   {t.mediaDiscard}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void startRec("audio")}
+                  className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
+                >
+                  {t.mediaAddVoice}
+                </button>
               </div>
+              {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="w-full" /> : null}
+              </>
             ) : (
               <div className="flex gap-2">
                 <button
@@ -349,7 +370,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
         }}
       />
 
-      {kind !== "photos" ? (
+      {kind !== "photos" && kind !== "text" ? (
         <button
           type="button"
           onClick={kind === "video" ? useDemoVideo : useDemoVoice}
@@ -359,7 +380,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
         </button>
       ) : null}
 
-      {kind !== "photos" ? (
+      {kind !== "photos" && kind !== "text" ? (
         <label className="mt-3 block">
           <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.mediaTranscript}</span>
           <textarea

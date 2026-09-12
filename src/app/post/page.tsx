@@ -62,7 +62,7 @@ export default function PostPage() {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => router.push("/selling")}
+            onClick={() => router.replace("/")}
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
           >
@@ -107,28 +107,29 @@ export default function PostPage() {
 
             <MediaCapture draft={draft} onPatch={setDraft} />
 
-            <div className="rounded-[14px] border border-line bg-white px-3.5 py-3">
-              <div className="text-[15px] font-semibold text-ink">{t.pasteListing}</div>
-              <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.pasteListingHint}</p>
-              <textarea
-                value={paste}
-                onChange={(e) => setPaste(e.target.value)}
-                placeholder={t.pasteListingHint}
-                className="mt-2 min-h-[72px] w-full rounded-[12px] border border-line bg-screen px-3 py-2 text-[14px] leading-[1.45] outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const text = paste.trim();
-                  if (!text) return;
-                  setDraft(aiToDraftPatch(classifyListingSpeech(text)));
-                  setStep(1);
-                }}
-                className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
-              >
-                {t.pasteFill}
-              </button>
-            </div>
+            {draft.mediaKind === "text" ? (
+              <div className="rounded-[14px] border border-line bg-white px-3.5 py-3">
+                <div className="text-[15px] font-semibold text-ink">{t.pasteListing}</div>
+                <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.pasteListingHint}</p>
+                <textarea
+                  value={paste}
+                  onChange={(e) => setPaste(e.target.value)}
+                  placeholder={t.pasteListingHint}
+                  className="mt-2 min-h-[72px] w-full rounded-[12px] border border-line bg-screen px-3 py-2 text-[14px] leading-[1.45] outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = paste.trim();
+                    if (!text) return;
+                    setDraft({ mediaKind: "text", ...aiToDraftPatch(classifyListingSpeech(text)) });
+                  }}
+                  className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
+                >
+                  {t.pasteFill}
+                </button>
+              </div>
+            ) : null}
 
             <div>
               <Eyebrow>{t.whatPost}</Eyebrow>
