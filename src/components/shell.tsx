@@ -80,14 +80,14 @@ export function StatusBar() {
 
 export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?: boolean }) {
   return (
-    <div className="flex min-h-[100dvh] justify-center bg-canvas md:items-center md:py-6">
+    <div className="flex h-[100%] max-h-[100dvh] min-h-0 justify-center overflow-hidden bg-canvas md:h-[100dvh] md:items-center md:py-6">
       <div
         id="konshu-phone"
-        className="relative flex min-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:min-h-0 md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)]"
+        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)]"
       >
         <StatusBar />
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
-        <div className="sticky bottom-0 z-30 shrink-0 bg-surface">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
+        <div className="z-30 shrink-0 bg-surface">
           <TabBar />
         </div>
       </div>

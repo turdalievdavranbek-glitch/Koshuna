@@ -33,7 +33,10 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   background: #ede7dc;
   color: #17140f;
   font-family: var(--font-sans);
