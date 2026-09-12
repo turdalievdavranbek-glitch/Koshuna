@@ -14,6 +14,10 @@ const config: CapacitorConfig = {
     cleartext: false,
     androidScheme: "https",
   },
+  android: {
+    allowMixedContent: true,
+    webContentsDebuggingEnabled: true,
+  },
 };
 
 export default config;
