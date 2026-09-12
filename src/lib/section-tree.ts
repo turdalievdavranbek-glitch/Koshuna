@@ -32,6 +32,7 @@ import {
 import type { Dict } from "./i18n";
 import { isSectionId } from "./section";
 import type { AnimalGroup, Filters, SectionId } from "./types";
+import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 
 export const BRANCH_ALL = "all";
 
@@ -834,6 +835,15 @@ export function pathFromFilters(filters: Filters): string[] {
 
 export function feedHrefFromFilters(filters: Filters): string {
   const section = filters.section;
+  if (section === "shops") {
+    const cat = filters.category;
+    if (cat && isShopKind(cat)) {
+      const parent = parentOfShopKind(cat);
+      return parent ? `/shops/c/${parent}/${cat}` : "/shops";
+    }
+    if (cat && isShopCategory(cat) && cat !== "other") return `/shops/c/${cat}`;
+    return "/shops";
+  }
   if (!section || !isSectionId(section === "car-rental" ? "cars" : section)) {
     return "/";
   }

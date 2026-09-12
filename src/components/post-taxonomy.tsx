@@ -19,6 +19,7 @@ import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from 
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { useApp } from "@/lib/store";
+import { applySellerShopCategory } from "@/components/shop-chips";
 import type { DraftListing, SectionId } from "@/lib/types";
 import { SectionList } from "@/components/section-list";
 import { Chip } from "@/components/ui";
@@ -50,7 +51,7 @@ export function pickSection(draft: DraftListing, id: SectionId): Partial<DraftLi
 }
 
 export function PostTaxonomy({ draft, onPatch }: Props) {
-  const { t } = useApp();
+  const { t, setFilters } = useApp();
 
   return (
     <div className="mt-2.5 flex flex-col gap-3">
@@ -319,7 +320,10 @@ export function PostTaxonomy({ draft, onPatch }: Props) {
             id: c,
             label: t.shopCats[c],
             active: draft.category === c,
-            onClick: () => onPatch({ category: c }),
+            onClick: () => {
+              onPatch({ category: c });
+              setFilters(applySellerShopCategory(c));
+            },
           }))}
         />
       ) : null}

@@ -16,6 +16,7 @@ import { GisMap } from "./gis-map";
 import { GisOnMapCard } from "./gis-on-map";
 import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
+import { applySellerShopCategory } from "./shop-chips";
 
 type AiState = "idle" | "recording" | "analyzing" | "ready" | "empty" | "error";
 
@@ -31,6 +32,7 @@ export function ShopForm() {
     startShopDraft,
     pendingPath,
     setPendingPath,
+    setFilters,
   } = useApp();
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -354,6 +356,7 @@ export function ShopForm() {
               accent={d.category === id}
               onClick={() => {
                 lock("category", setPrimaryCategory(d, id as ShopCategory));
+                setFilters(applySellerShopCategory(id));
                 if (shopKindsOf(id).length) setDeptParent(id);
               }}
             >
@@ -361,6 +364,13 @@ export function ShopForm() {
             </Chip>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => router.push(d.category && shopKindsOf(d.category).length ? `/shops/c/${d.category}` : "/shops")}
+          className="mt-2 text-[13px] font-semibold text-accent"
+        >
+          {t.shopSeeBuyer}
+        </button>
         <div className="mt-3 text-[13px] font-semibold text-ink">{t.shopExtraCats}</div>
         <div className="mt-2 flex flex-wrap gap-2">
           {SHOP_CATEGORIES.filter((id) => id !== d.category).map((id) => (

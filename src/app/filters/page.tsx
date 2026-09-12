@@ -23,6 +23,7 @@ import { CarMakeChips } from "@/components/car-chips";
 import { ConstructionChips } from "@/components/construction-chips";
 import { RestaurantChips } from "@/components/restaurant-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
+import { ShopCategoryChips } from "@/components/shop-chips";
 
 export default function FiltersPage() {
   const { t, lang, filters, setFilters, resetFilters, city, allListings, user, setPendingPath, saveCurrentSearch } =
@@ -40,6 +41,7 @@ export default function FiltersPage() {
   const isConstruction = filters.section === "construction";
   const isRestaurants = filters.section === "restaurants";
   const isVacancies = filters.section === "vacancies";
+  const isShops = filters.section === "shops";
 
   const openSection = (id: (typeof SECTIONS)[number]["id"]) => {
     setFilters(patchForSection(id, filters));
@@ -103,14 +105,17 @@ export default function FiltersPage() {
           <div className="mt-2.5 overflow-hidden rounded-[16px] border border-line bg-surface">
             <button
               type="button"
-              onClick={() => router.push("/shops")}
+              onClick={() => setFilters(patchForSection("shops", filters))}
               className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
+              style={{ background: isShops ? "#17140F" : "#FFFFFF" }}
             >
               <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
                 <img src={SHOP_ART} alt="" className="h-full w-full object-cover" />
               </span>
-              <span className="flex-1 text-[15px] font-semibold text-ink">{t.sectionNames.shops}</span>
-              <span className="text-muted-2">›</span>
+              <span className="flex-1 text-[15px] font-semibold" style={{ color: isShops ? "#F7F3EC" : "#17140F" }}>
+                {t.sectionNames.shops}
+              </span>
+              <span style={{ color: isShops ? "rgba(247,243,236,.45)" : "#A79C8C" }}>›</span>
             </button>
             {SECTIONS.map((s) => {
               const on = filters.section === s.id;
@@ -285,6 +290,8 @@ export default function FiltersPage() {
         {isRestaurants ? <RestaurantChips labeled /> : null}
 
         {isVacancies ? <VacancyChips labeled /> : null}
+
+        {isShops ? <ShopCategoryChips labeled list /> : null}
 
         <div>
           <Eyebrow>{t.sort}</Eyebrow>

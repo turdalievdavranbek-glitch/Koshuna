@@ -4,6 +4,7 @@ import { hasPriceDrop } from "./deal";
 import { haversineKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { oblastOfListing } from "./places";
+import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
 import { isSpokenListing } from "./video-ai";
 
@@ -80,6 +81,15 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
         item.category !== filters.category
       ) {
         return false;
+      }
+      if (filters.section === "shops") {
+        const want = filters.category;
+        const listingParent = isShopKind(item.category) ? parentOfShopKind(item.category) : item.category;
+        if (isShopKind(want)) {
+          if (item.category !== want && listingParent !== parentOfShopKind(want)) return false;
+        } else if (isShopCategory(want)) {
+          if (item.category !== want && listingParent !== want) return false;
+        }
       }
     }
     if (filters.section === "secondhand" && filters.goodsKind && filters.goodsKind !== "any") {
