@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Koshuna</string>
+    <string name="title_activity_main">Koshuna</string>
+    <string name="package_name">com.koshuna.app</string>
+    <string name="custom_url_scheme">com.koshuna.app</string>
+</resources>
