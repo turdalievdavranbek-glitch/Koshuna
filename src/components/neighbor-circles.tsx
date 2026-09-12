@@ -9,7 +9,8 @@ import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { ListingThumb } from "./listing-media";
 
-export function NeighborCircles({ listings: _feed }: { listings: Listing[] }) {
+export function NeighborCircles({ listings }: { listings: Listing[] }) {
+  void listings;
   const { t, lang, city, filters, allListings, comments, reactions } = useApp();
   const router = useRouter();
   const [tick, setTick] = useState(0);

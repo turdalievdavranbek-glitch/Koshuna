@@ -62,7 +62,10 @@ export default function PostPage() {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => router.replace("/")}
+            onClick={() => {
+              router.replace("/");
+              window.location.assign("/");
+            }}
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
           >
@@ -260,9 +263,6 @@ export default function PostPage() {
                 </div>
               </div>
               <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
-              <div className="rounded-[14px] border border-line bg-accent-tint px-3.5 py-3 text-[13px] leading-[1.45] text-safe">
-                {t.igPostHint}
-              </div>
               {hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
                 <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                   <div>
