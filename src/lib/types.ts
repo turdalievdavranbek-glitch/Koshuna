@@ -143,14 +143,17 @@ export type SpecRow = { label: string; value: string };
 export const MENU_CATEGORIES = [
   "soups",
   "mains",
+  "grill",
   "salads",
   "fastfood",
   "eastern",
   "bakery",
   "desserts",
   "drinks",
+  "coffee",
   "kids",
   "breakfast",
+  "lunch",
   "other",
 ] as const;
 export type MenuCategory = (typeof MENU_CATEGORIES)[number];
@@ -158,14 +161,17 @@ export type MenuCategory = (typeof MENU_CATEGORIES)[number];
 export const MENU_KINDS = {
   soups: ["soup-national", "soup-european"],
   mains: ["main-meat", "main-poultry", "main-fish", "main-veg"],
+  grill: ["grill-shashlyk", "grill-meat", "grill-sides"],
   salads: ["salad-fresh", "salad-dressed", "salad-national"],
-  fastfood: ["ff-burger", "ff-shawarma", "ff-pizza", "ff-hotdog"],
-  eastern: ["east-sushi", "east-wok"],
+  fastfood: ["ff-burger", "ff-shawarma", "ff-pizza", "ff-hotdog", "ff-samsa"],
+  eastern: ["east-sushi", "east-wok", "east-plov"],
   bakery: ["bake-national", "bake-bread"],
   desserts: ["sweet-cake", "sweet-cold", "sweet-national"],
-  drinks: ["drink-hot", "drink-cold", "drink-fresh"],
+  drinks: ["drink-hot", "drink-cold", "drink-fresh", "drink-ayran"],
+  coffee: ["coffee-drink", "coffee-dessert"],
   kids: ["kids-food", "kids-drink"],
-  breakfast: ["bf-eggs", "bf-porridge"],
+  breakfast: ["bf-eggs", "bf-porridge", "bf-pastry"],
+  lunch: ["lunch-set", "lunch-combo"],
   other: ["menu-other"],
 } as const satisfies Record<MenuCategory, readonly string[]>;
 

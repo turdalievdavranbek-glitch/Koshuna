@@ -136,6 +136,11 @@ export default function PostPage() {
                 <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
               </div>
               <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {draft.section === "shops" || draft.section === "restaurants" ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">
+                  {draft.section === "shops" ? t.shopQuickHint : t.restaurantQuickHint}
+                </p>
+              ) : null}
               {draft.section === "shops" ? (
                 <button
                   type="button"
@@ -186,24 +191,24 @@ export default function PostPage() {
                   </Field>
                 </div>
               </div>
+              {draft.section === "restaurants" || draft.section === "shops" ? (
+                <Field label={t.venueAddress}>
+                  <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
+                </Field>
+              ) : null}
               {draft.section === "restaurants" ? (
-                <>
-                  <Field label={t.venueAddress}>
-                    <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
-                  </Field>
-                  <div className="flex gap-2.5">
-                    <div className="flex-1">
-                      <Field label={t.caloriesField}>
-                        <Input value={draft.calories ?? ""} onChange={(v) => setDraft({ calories: v })} placeholder="320" />
-                      </Field>
-                    </div>
-                    <div className="flex-1">
-                      <Field label={t.ingredientsField}>
-                        <Input value={draft.ingredients ?? ""} onChange={(v) => setDraft({ ingredients: v })} />
-                      </Field>
-                    </div>
+                <div className="flex gap-2.5">
+                  <div className="flex-1">
+                    <Field label={t.caloriesField}>
+                      <Input value={draft.calories ?? ""} onChange={(v) => setDraft({ calories: v })} placeholder="320" />
+                    </Field>
                   </div>
-                </>
+                  <div className="flex-1">
+                    <Field label={t.ingredientsField}>
+                      <Input value={draft.ingredients ?? ""} onChange={(v) => setDraft({ ingredients: v })} />
+                    </Field>
+                  </div>
+                </div>
               ) : null}
               {draft.kind === "rent" ? (
                 <div className="flex gap-2.5">
