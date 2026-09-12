@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HOME_HERO_COUNT, PROMOTED_IDS, formatSom, homeTiles } from "@/lib/data";
-import { applyFilters, homeFeedFilters } from "@/lib/filter";
+import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
 import { locationLineLabel } from "@/lib/places";
@@ -15,14 +15,13 @@ import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborCircles } from "@/components/neighbor-circles";
-import { SharedFeedFilters } from "@/components/feed-filters";
+import { HomeFreshFilters } from "@/components/home-fresh-filters";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, resetFilters, user, setPendingPath, toggleFav, allListings } =
-    useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings } = useApp();
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
@@ -220,21 +219,17 @@ export default function FeedPage() {
             <LayoutSwitch />
           </div>
         </div>
-        <SharedFeedFilters
-          section="home"
-          extra={
-            <Chip onClick={openSearch}>
-              {t.allCategories}
-              <span className="ml-1 text-[10px] text-muted-2">▾</span>
-            </Chip>
-          }
-        />
+        <HomeFreshFilters />
 
         {listings.length === 0 ? (
           <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
             <div className="text-[15px] font-semibold text-ink">{t.empty}</div>
             <p className="mt-2 text-[13px] text-muted">{t.emptyHint}</p>
-            <button type="button" onClick={resetFilters} className="mt-4 text-[13px] font-semibold text-accent">
+            <button
+              type="button"
+              onClick={() => setFilters(clearFreshListPatch(filters))}
+              className="mt-4 text-[13px] font-semibold text-accent"
+            >
               {t.resetFilters}
             </button>
           </div>

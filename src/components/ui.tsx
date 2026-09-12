@@ -23,20 +23,23 @@ export function Chip({
   onClick,
   accent,
   className,
+  size = "md",
 }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   accent?: boolean;
   className?: string;
+  size?: "md" | "sm";
 }) {
   const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
   const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
+  const pad = size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full px-[15px] py-2 text-[13px] font-semibold ${className ?? ""}`}
+      className={`shrink-0 whitespace-nowrap rounded-full font-semibold ${pad} ${className ?? ""}`}
       style={{
         background: bg,
         color,

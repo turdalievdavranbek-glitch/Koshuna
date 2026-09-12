@@ -8,10 +8,51 @@ import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
 import { isSpokenListing } from "./video-ai";
 
-/** Home chips only — leftover section search (rooms, map pin, deal type) must not empty the feed. */
+/** Home «Свежее» list: apply section/category chips, keep place, drop leftover map-pin / price-range. */
 export function homeFeedFilters(filters: Filters): Filters {
+  const section = filters.section;
   return {
     ...filters,
+    photosOnly: false,
+    verifiedOnly: false,
+    noAgents: false,
+    locLng: null,
+    locLat: null,
+    locLabel: null,
+    priceMin: null,
+    priceMax: null,
+    rooms: section === "rent" ? filters.rooms : [],
+    housingType: section === "rent" ? filters.housingType : "any",
+    realtyGroup: section === "rent" ? filters.realtyGroup : "any",
+    realtySub: section === "rent" ? filters.realtySub : "any",
+    realtyKind: section === "rent" ? filters.realtyKind : "any",
+    dealType: section === "rent" ? filters.dealType : "any",
+    stockType: section === "rent" ? filters.stockType : "any",
+    areaMin: section === "rent" ? filters.areaMin : null,
+    areaMax: section === "rent" ? filters.areaMax : null,
+    checkIn: section === "stays" ? filters.checkIn : null,
+    checkOut: section === "stays" ? filters.checkOut : null,
+    bodyType: section === "cars" ? filters.bodyType : "any",
+    gear: section === "cars" ? filters.gear : "any",
+    autoType: section === "cars" ? filters.autoType : "sale",
+    carMake: section === "cars" ? filters.carMake : "any",
+    carModel: section === "cars" ? filters.carModel : "any",
+    vehicleGroup: section === "cars" ? filters.vehicleGroup : "any",
+    goodsKind: section === "secondhand" ? filters.goodsKind : "any",
+    techBrand: section === "secondhand" ? filters.techBrand : "any",
+    techModel: section === "secondhand" ? filters.techModel : "any",
+    animalGroup: section === "animals" ? filters.animalGroup : "any",
+    animalKind: section === "animals" ? filters.animalKind : "any",
+    jobSphere: section === "vacancies" ? filters.jobSphere : "any",
+    jobSub: section === "vacancies" ? filters.jobSub : "any",
+    jobRole: section === "vacancies" ? filters.jobRole : "any",
+    jobType: section === "vacancies" ? filters.jobType : "any",
+    sellerKind: section === "rent" || section === "cars" ? filters.sellerKind : "any",
+  };
+}
+
+export function clearFreshListPatch(filters: Filters): Partial<Filters> {
+  return {
     section: null,
     category: null,
     goodsKind: "any",
@@ -22,11 +63,12 @@ export function homeFeedFilters(filters: Filters): Filters {
     rooms: [],
     bodyType: "any",
     gear: "any",
-    photosOnly: false,
-    verifiedOnly: false,
-    noAgents: false,
     neighborOnly: false,
     sellerKind: "any",
+    videoOnly: false,
+    sort: "new",
+    checkIn: null,
+    checkOut: null,
     dealType: "any",
     stockType: "any",
     autoType: "sale",
@@ -48,8 +90,12 @@ export function homeFeedFilters(filters: Filters): Filters {
     priceMax: null,
     areaMin: null,
     areaMax: null,
-    checkIn: null,
-    checkOut: null,
+    priceDroppedOnly: false,
+    city: filters.city,
+    oblast: filters.oblast,
+    settlement: filters.settlement,
+    aiylOnly: filters.aiylOnly,
+    query: filters.query,
   };
 }
 
