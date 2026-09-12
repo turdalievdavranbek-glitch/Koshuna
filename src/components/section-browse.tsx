@@ -20,6 +20,7 @@ import { StayCalendar } from "@/components/stay-calendar";
 import { PhoneShell } from "@/components/shell";
 import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
+import { FeedFilterBar, SharedFeedFilters } from "@/components/feed-filters";
 
 function FeedExtras({ id }: { id: SectionId }) {
   const { t, filters, setFilters } = useApp();
@@ -71,7 +72,7 @@ function FeedExtras({ id }: { id: SectionId }) {
   if (id === "cars") {
     return (
       <div className="flex flex-col gap-2.5">
-        <div className="flex flex-wrap gap-2">
+        <FeedFilterBar>
           {(
             [
               ["sale", t.autoSale],
@@ -91,9 +92,9 @@ function FeedExtras({ id }: { id: SectionId }) {
               {label}
             </Chip>
           ))}
-        </div>
+        </FeedFilterBar>
         {filters.autoType === "rent" ? (
-          <div className="flex flex-wrap gap-2">
+          <FeedFilterBar>
             {(
               [
                 ["any", t.any],
@@ -105,7 +106,7 @@ function FeedExtras({ id }: { id: SectionId }) {
                 {label}
               </Chip>
             ))}
-          </div>
+          </FeedFilterBar>
         ) : null}
         <button
           type="button"
@@ -378,43 +379,18 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             <LayoutSwitch />
           </div>
         </div>
-        <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-          {id === "rent" ? (
-            <SellerKindChips />
-          ) : id === "cars" ? (
-            <SellerKindChips variant="auto" />
-          ) : (
-            <Chip
-              active={filters.neighborOnly}
-              onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
-            >
-              {t.fromNeighbor}
-            </Chip>
-          )}
-          <Chip
-            active={filters.priceDroppedOnly}
-            onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
-          >
-            {t.priceDropped}
-          </Chip>
-          <Chip active={filters.videoOnly} onClick={() => setFilters({ videoOnly: !filters.videoOnly })}>
-            {t.videoOnly}
-          </Chip>
-          <Chip onClick={() => router.push("/filters")}>
-            {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
-            <span className="ml-1 text-[10px] text-muted-2">▾</span>
-          </Chip>
-          {id === "stays" && filters.checkIn ? (
-            <Chip onClick={() => router.push("/filters")}>
-              {filters.checkOut
-                ? formatStayRange(filters.checkIn, filters.checkOut, lang)
-                : formatStayDay(filters.checkIn, lang)}
-            </Chip>
-          ) : null}
-          <button type="button" onClick={reset} className="shrink-0 px-[13px] py-[7px] text-[13px] font-semibold text-accent">
-            {t.resetFilters}
-          </button>
-        </div>
+        <SharedFeedFilters
+          section={id === "rent" ? "rent" : id === "cars" ? "cars" : "other"}
+          extra={
+            id === "stays" && filters.checkIn ? (
+              <Chip onClick={() => router.push("/filters")}>
+                {filters.checkOut
+                  ? formatStayRange(filters.checkIn, filters.checkOut, lang)
+                  : formatStayDay(filters.checkIn, lang)}
+              </Chip>
+            ) : null
+          }
+        />
 
         {listings.length === 0 ? (
           <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">

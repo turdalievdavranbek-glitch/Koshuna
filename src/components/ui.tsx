@@ -36,7 +36,7 @@ export function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full px-[15px] py-2 text-[13px] font-semibold ${className ?? ""}`}
+      className={`shrink-0 whitespace-nowrap rounded-full px-[15px] py-2 text-[13px] font-semibold ${className ?? ""}`}
       style={{
         background: bg,
         color,

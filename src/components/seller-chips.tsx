@@ -21,25 +21,22 @@ export function SellerKindChips({
     if (id === "private") return t.sellerPrivate;
     return t.sellerDealer;
   };
-  const row = (
-    <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      {kinds.map((id) => (
-        <Chip
-          key={id}
-          active={filters.sellerKind === id}
-          onClick={() =>
-            setFilters({
-              sellerKind: id,
-              neighborOnly: variant === "realty" && id === "neighbor",
-            })
-          }
-        >
-          {labelOf(id)}
-        </Chip>
-      ))}
-    </div>
-  );
-  if (!labeled) return row;
+  const chips = kinds.map((id) => (
+    <Chip
+      key={id}
+      active={filters.sellerKind === id}
+      onClick={() =>
+        setFilters({
+          sellerKind: id,
+          neighborOnly: variant === "realty" && id === "neighbor",
+        })
+      }
+    >
+      {labelOf(id)}
+    </Chip>
+  ));
+  if (!labeled) return chips;
+  const row = <div className="mt-2.5 flex flex-wrap gap-2">{chips}</div>;
   return (
     <div>
       <Eyebrow>{t.sellerWho}</Eyebrow>
