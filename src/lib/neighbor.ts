@@ -1,15 +1,6 @@
 import type { Listing, SectionId } from "./types";
 import { listingSellerType } from "./partners";
 
-const PERSONAL_NEIGHBOR_SECTIONS: SectionId[] = [
-  "secondhand",
-  "animals",
-  "rent",
-  "cars",
-  "car-rental",
-  "construction",
-];
-
 export function showsNeighborPledge(section: SectionId | null | undefined): boolean {
   return section === "secondhand";
 }
