@@ -10,27 +10,13 @@ import {
   aiToDraftPatch,
   classifyListingSpeech,
 } from "@/lib/video-ai";
-import {
-  ANIMAL_GROUPS,
-  animalKindsOf,
-  CATEGORIES,
-  CONSTRUCTION_CATEGORIES,
-  DEAL_KINDS,
-  goodsKindsOf,
-  isTechCategory,
-  RESTAURANT_CATEGORIES,
-  SECTIONS,
-  SERVICE_CATEGORIES,
-  techBrandsOf,
-  techModelsOf,
-} from "@/lib/data";
-import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
-import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
-import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
+import { priceFromPhoto } from "@/lib/photo-price";
 import { useApp } from "@/lib/store";
-import type { DraftListing, MediaKind, SectionId } from "@/lib/types";
+import type { DraftListing, MediaKind } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
+import { PostTypePicker } from "./post-type-picker";
+import { PostTaxonomy, pickSection } from "./post-taxonomy";
 
 type Props = {
   draft: DraftListing;
@@ -40,11 +26,15 @@ type Props = {
 export function MediaCapture({ draft, onPatch }: Props) {
   const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const camRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const camFileRef = useRef<HTMLInputElement>(null);
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
+  const camStream = useRef<MediaStream | null>(null);
   const stopSpeech = useRef<(() => void) | null>(null);
   const [recording, setRecording] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
 
@@ -70,6 +60,59 @@ export function MediaCapture({ draft, onPatch }: Props) {
     });
   };
 
+  const stopCam = () => {
+    camStream.current?.getTracks().forEach((track) => track.stop());
+    camStream.current = null;
+    if (camRef.current) camRef.current.srcObject = null;
+    setCamOn(false);
+  };
+
+  const startCam = async () => {
+    setBusy("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      camFileRef.current?.click();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      camStream.current?.getTracks().forEach((track) => track.stop());
+      camStream.current = stream;
+      if (camRef.current) {
+        camRef.current.srcObject = stream;
+        await camRef.current.play().catch(() => undefined);
+      }
+      setCamOn(true);
+    } catch {
+      setBusy(t.mediaNoCamera);
+      camFileRef.current?.click();
+    }
+  };
+
+  const shotCam = async () => {
+    if (!camRef.current) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = camRef.current.videoWidth || 720;
+    canvas.height = camRef.current.videoHeight || 960;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(camRef.current, 0, 0, canvas.width, canvas.height);
+    const photo = canvas.toDataURL("image/jpeg", 0.86);
+    stopCam();
+    onPatch({ photo, mediaKind: "photos" });
+    setBusy(t.mediaPhotoAiBusy);
+    try {
+      const guess = await priceFromPhoto(photo);
+      if (guess.price != null) {
+        onPatch({ photo, price: String(guess.price), aiConfirmed: false });
+        setBusy(t.shopItemPriceAi);
+      } else {
+        setBusy(t.shopItemPriceNoAi);
+      }
+    } catch {
+      setBusy(t.shopItemPriceNoAi);
+    }
+  };
+
   const stopRec = () => {
     recRef.current?.stop();
     recRef.current = null;
@@ -84,7 +127,11 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const startRec = async (mode: "video" | "audio") => {
     setBusy("");
     if (!navigator.mediaDevices?.getUserMedia) {
-      setBusy(t.mediaNoCamera);
+      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
+      return;
+    }
+    if (typeof MediaRecorder === "undefined") {
+      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
       return;
     }
     try {
@@ -117,12 +164,19 @@ export function MediaCapture({ draft, onPatch }: Props) {
       setRecording(true);
       setLive("");
       stopSpeech.current?.();
-      stopSpeech.current = startSpeech((text) => {
-        setLive(text);
-        applySpeech(text);
-      });
+      const Speech = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
+        .SpeechRecognition ||
+        (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+      if (Speech) {
+        stopSpeech.current = startSpeech((text) => {
+          setLive(text);
+          applySpeech(text);
+        });
+      } else {
+        setBusy(t.mediaSttOff);
+      }
     } catch {
-      setBusy(t.mediaNoCamera);
+      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
     }
   };
 
@@ -138,8 +192,22 @@ export function MediaCapture({ draft, onPatch }: Props) {
       onPatch({ mediaKind: "voice", voiceUrl: url, aiConfirmed: false });
     } else {
       const reader = new FileReader();
-      reader.onload = () =>
-        onPatch({ photo: String(reader.result), mediaKind: kind === "voice" ? "voice" : "photos" });
+      reader.onload = async () => {
+        const photo = String(reader.result);
+        onPatch({ photo, mediaKind: kind === "voice" ? "voice" : "photos" });
+        setBusy(t.mediaPhotoAiBusy);
+        try {
+          const guess = await priceFromPhoto(photo);
+          if (guess.price != null) {
+            onPatch({ photo, price: String(guess.price), aiConfirmed: false });
+            setBusy(t.shopItemPriceAi);
+          } else {
+            setBusy(t.shopItemPriceNoAi);
+          }
+        } catch {
+          setBusy(t.shopItemPriceNoAi);
+        }
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -260,52 +328,79 @@ export function MediaCapture({ draft, onPatch }: Props) {
       ) : null}
 
       {kind === "photos" ? (
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              onPatch({
-                photo: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70",
-              })
-            }
-            className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
-          >
-            {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
-            <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
-              {t.mainPhoto}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (fileRef.current) {
-                fileRef.current.accept = "image/*";
-                fileRef.current.click();
-              }
-            }}
-            className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
-          >
-            <IconCamera size={22} color="#B8452F" />
-            <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              onPatch({
-                photo: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1200&q=70",
-              })
-            }
-            className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
-          >
-            <IconImage size={22} color="#6E6558" />
-            <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
-          </button>
+        <div className="mt-3">
+          {camOn ? (
+            <div className="overflow-hidden rounded-[16px] border border-line bg-ink">
+              <video ref={camRef} muted playsInline className="aspect-[4/3] max-h-[240px] w-full object-cover" />
+              <div className="flex gap-2 bg-white p-3">
+                <button type="button" onClick={() => void shotCam()} className="h-11 flex-1 rounded-[12px] bg-accent text-[13px] font-semibold text-accent-on">
+                  {t.camera}
+                </button>
+                <button type="button" onClick={stopCam} className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold">
+                  {t.mediaStop}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (fileRef.current) {
+                    fileRef.current.accept = "image/*";
+                    fileRef.current.removeAttribute("capture");
+                    fileRef.current.click();
+                  }
+                }}
+                className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
+              >
+                {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
+                <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
+                  {t.mainPhoto}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void startCam()}
+                className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
+              >
+                <IconCamera size={22} color="#B8452F" />
+                <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (fileRef.current) {
+                    fileRef.current.accept = "image/*";
+                    fileRef.current.removeAttribute("capture");
+                    fileRef.current.click();
+                  }
+                }}
+                className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
+              >
+                <IconImage size={22} color="#6E6558" />
+                <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : null}
 
       <input
         ref={fileRef}
         type="file"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void onFile(file);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={camFileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -345,29 +440,8 @@ export function MediaCapture({ draft, onPatch }: Props) {
   );
 }
 
-function pickSection(draft: DraftListing, id: SectionId): Partial<DraftListing> {
-  const kind = id === "rent" || id === "stays" ? "rent" : "goods";
-  const next: Partial<DraftListing> = { section: id, kind, aiConfirmed: false };
-  if (id === "rent") {
-    next.housingKind = draft.housingKind ?? "apartment";
-    next.realtyGroup = draft.realtyGroup ?? "apartments";
-    next.dealKind = draft.dealKind ?? "long";
-  }
-  if (id === "secondhand") {
-    const keep = draft.category && (CATEGORIES as readonly string[]).includes(draft.category);
-    next.category = keep ? draft.category : "phones";
-  }
-  if (id === "animals") next.animalGroup = draft.animalGroup ?? "pets";
-  if (id === "services") next.category = draft.category ?? SERVICE_CATEGORIES[0];
-  if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
-  if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
-  if (id === "vacancies") next.jobType = draft.jobType ?? "full";
-  return next;
-}
-
 export function AiConfirmCard({ draft, onPatch }: Props) {
   const { t } = useApp();
-  const visualSection = draft.section === "car-rental" ? "cars" : draft.section;
   const heard = (draft.transcript ?? "").trim();
 
   return (
@@ -384,301 +458,11 @@ export function AiConfirmCard({ draft, onPatch }: Props) {
       <div className="mt-3">
         <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickSection}</div>
         <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.confirmAiFix}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {SECTIONS.map((s) => (
-            <Chip
-              key={s.id}
-              active={visualSection === s.id}
-              accent={visualSection === s.id}
-              onClick={() => onPatch(pickSection(draft, s.id))}
-            >
-              {t.sectionNames[s.id]}
-            </Chip>
-          ))}
+        <div className="mt-2">
+          <PostTypePicker value={draft.section} onPick={(id) => onPatch(pickSection(draft, id))} />
         </div>
+        <PostTaxonomy draft={draft} onPatch={(patch) => onPatch({ ...patch, aiConfirmed: false })} />
       </div>
-
-      {visualSection === "cars" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Chip active={draft.section === "cars"} onClick={() => onPatch({ section: "cars", kind: "goods", aiConfirmed: false })}>
-            {t.autoSale}
-          </Chip>
-          <Chip
-            active={draft.section === "car-rental"}
-            onClick={() => onPatch({ section: "car-rental", kind: "goods", aiConfirmed: false })}
-          >
-            {t.autoRent}
-          </Chip>
-          {VEHICLE_GROUPS.map((id) => (
-            <Chip
-              key={id}
-              active={(draft.vehicleGroup ?? "passenger") === id}
-              onClick={() => onPatch({ vehicleGroup: id, vehicleType: undefined, carMake: undefined, carModel: undefined, aiConfirmed: false })}
-            >
-              {t.vehicleGroups[id]}
-            </Chip>
-          ))}
-          {vehicleTypesOf(draft.vehicleGroup ?? "passenger").map((id) => (
-            <Chip
-              key={id}
-              active={draft.vehicleType === id}
-              onClick={() => onPatch({ vehicleType: id, carMake: undefined, carModel: undefined, aiConfirmed: false })}
-            >
-              {t.vehicleTypes[id]}
-            </Chip>
-          ))}
-          {vehicleMakesOf(draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
-            <Chip
-              key={id}
-              active={draft.carMake === id}
-              onClick={() => onPatch({ carMake: id, carModel: undefined, aiConfirmed: false })}
-            >
-              {t.carMakes[id] ?? id}
-            </Chip>
-          ))}
-          {vehicleModelsOf(draft.carMake, draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => (
-            <Chip
-              key={id}
-              active={draft.carModel === id}
-              onClick={() => onPatch({ carModel: id, aiConfirmed: false })}
-            >
-              {t.carModels[id] ?? id}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-
-      {draft.section === "vacancies" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {JOB_TYPES.map((id) => (
-            <Chip
-              key={id}
-              active={(draft.jobType ?? "full") === id}
-              onClick={() => onPatch({ jobType: id, aiConfirmed: false })}
-            >
-              {t.jobTypes[id]}
-            </Chip>
-          ))}
-          {JOB_SPHERES.map((id) => (
-            <Chip
-              key={id}
-              active={draft.jobSphere === id}
-              onClick={() => onPatch({ jobSphere: id, jobSub: undefined, jobRole: undefined, aiConfirmed: false })}
-            >
-              {t.jobSpheres[id]}
-            </Chip>
-          ))}
-          {draft.jobSphere
-            ? jobSubsOf(draft.jobSphere).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.jobSub === id}
-                  onClick={() => onPatch({ jobSub: id, jobRole: undefined, aiConfirmed: false })}
-                >
-                  {t.jobSubs[id] ?? id}
-                </Chip>
-              ))
-            : null}
-          {draft.jobSphere && draft.jobSub
-            ? jobRolesOf(draft.jobSphere, draft.jobSub).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.jobRole === id}
-                  onClick={() => onPatch({ jobRole: id, aiConfirmed: false })}
-                >
-                  {t.jobRoles[id] ?? id}
-                </Chip>
-              ))
-            : null}
-        </div>
-      ) : null}
-
-      {draft.section === "rent" ? (
-        <div className="mt-3">
-          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickCategory}</div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {DEAL_KINDS.map((id) => (
-              <Chip
-                key={id}
-                active={(draft.dealKind ?? "long") === id}
-                onClick={() => onPatch({ dealKind: id, aiConfirmed: false })}
-              >
-                {id === "buy" ? t.dealBuy : id === "short" ? t.dealShort : id === "long" ? t.dealLong : t.dealShare}
-              </Chip>
-            ))}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {REALTY_GROUPS.map((id) => (
-              <Chip
-                key={id}
-                active={draft.realtyGroup === id}
-                onClick={() =>
-                  onPatch({
-                    realtyGroup: id,
-                    realtySub: undefined,
-                    realtyKind: undefined,
-                    housingKind: housingKindOfRealty(id) === "any" ? "apartment" : (housingKindOfRealty(id) as DraftListing["housingKind"]),
-                    aiConfirmed: false,
-                  })
-                }
-              >
-                {t.realtyGroups[id]}
-              </Chip>
-            ))}
-          </div>
-          {draft.realtyGroup ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {realtySubsOf(draft.realtyGroup).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.realtySub === id}
-                  onClick={() => onPatch({ realtySub: id, realtyKind: undefined, aiConfirmed: false })}
-                >
-                  {t.realtySubs[id] ?? id}
-                </Chip>
-              ))}
-            </div>
-          ) : null}
-          {draft.realtyGroup && draft.realtySub ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {realtyKindsOf(draft.realtyGroup, draft.realtySub).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.realtyKind === id}
-                  onClick={() => {
-                    const rooms = roomsOfRealtyKind(id);
-                    onPatch({
-                      realtyKind: id,
-                      housingKind: housingKindOfRealty(draft.realtyGroup, id) === "any" ? draft.housingKind : (housingKindOfRealty(draft.realtyGroup, id) as DraftListing["housingKind"]),
-                      rooms: rooms.length ? String(rooms[0]) : draft.rooms,
-                      aiConfirmed: false,
-                    });
-                  }}
-                >
-                  {t.realtyKinds[id] ?? id}
-                </Chip>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {draft.section === "secondhand" ? (
-        <div className="mt-3">
-          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.confirmAiPickCategory}</div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <Chip
-                key={c}
-                active={draft.category === c}
-                onClick={() =>
-                  onPatch({
-                    category: c,
-                    goodsKind: undefined,
-                    techBrand: undefined,
-                    techModel: undefined,
-                    aiConfirmed: false,
-                  })
-                }
-              >
-                {t.cats[c]}
-              </Chip>
-            ))}
-          </div>
-          {goodsKindsOf(draft.category).length ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {goodsKindsOf(draft.category).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.goodsKind === id}
-                  onClick={() => onPatch({ goodsKind: id, aiConfirmed: false })}
-                >
-                  {t.goodsKinds[id]}
-                </Chip>
-              ))}
-            </div>
-          ) : null}
-          {isTechCategory(draft.category) ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {techBrandsOf(draft.category).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.techBrand === id}
-                  onClick={() => onPatch({ techBrand: id, techModel: undefined, aiConfirmed: false })}
-                >
-                  {t.techBrands[id]}
-                </Chip>
-              ))}
-            </div>
-          ) : null}
-          {techModelsOf(draft.category, draft.techBrand).length ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {techModelsOf(draft.category, draft.techBrand).map((id) => (
-                <Chip
-                  key={id}
-                  active={draft.techModel === id}
-                  onClick={() => onPatch({ techModel: id, aiConfirmed: false })}
-                >
-                  {t.techModels[id]}
-                </Chip>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {draft.section === "animals" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {ANIMAL_GROUPS.map((id) => (
-            <Chip
-              key={id}
-              active={(draft.animalGroup ?? "pets") === id}
-              onClick={() => onPatch({ animalGroup: id, animalKind: undefined, aiConfirmed: false })}
-            >
-              {id === "pets" ? t.animalPets : t.animalFarm}
-            </Chip>
-          ))}
-          {animalKindsOf(draft.animalGroup ?? "pets").map((id) => (
-            <Chip
-              key={id}
-              active={draft.animalKind === id}
-              onClick={() => onPatch({ animalKind: id, aiConfirmed: false })}
-            >
-              {t.animalKinds[id]}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-
-      {draft.section === "services" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SERVICE_CATEGORIES.map((c) => (
-            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
-              {t.cats[c]}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-
-      {draft.section === "construction" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {CONSTRUCTION_CATEGORIES.map((c) => (
-            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
-              {t.cats[c]}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-
-      {draft.section === "restaurants" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {RESTAURANT_CATEGORIES.map((c) => (
-            <Chip key={c} active={draft.category === c} onClick={() => onPatch({ category: c, aiConfirmed: false })}>
-              {t.cats[c]}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
 
       <label className="mt-3 block">
         <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.title}</span>

@@ -8,6 +8,8 @@ import { listingTitle } from "@/lib/i18n";
 import { listingPublicUrl, ownerShareText, socialShareHref } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
+import { isVideoListing } from "@/lib/video-ai";
+import { shareFileSupported, watermarkFeedStill, watermarkVideoFrame } from "@/lib/watermark";
 
 export function ShareToSocial({ listing }: { listing: Listing }) {
   const { t, lang, user } = useApp();
@@ -29,6 +31,34 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
       ping(t.shareCopied);
     } catch {
       ping(url);
+    }
+  };
+
+  const shareWatermark = async () => {
+    const src = listing.photos[0];
+    if (!src) {
+      ping(t.packNeedPhoto);
+      return;
+    }
+    try {
+      const blob = isVideoListing(listing) && listing.videoUrl
+        ? await watermarkVideoFrame(listing.videoUrl).catch(() => watermarkFeedStill(src))
+        : await watermarkFeedStill(src);
+      const file = new File([blob], `koshuna-${listing.id}.jpg`, { type: "image/jpeg" });
+      if (shareFileSupported() && navigator.share) {
+        await navigator.share({ files: [file], title, text });
+        ping(t.packReady);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      URL.revokeObjectURL(url);
+      ping(t.packReady);
+    } catch {
+      ping(t.packNeedPhoto);
     }
   };
 
@@ -75,10 +105,17 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
       {toast ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{toast}</p> : null}
       <button
         type="button"
-        onClick={() => router.push(`/story/${listing.id}`)}
+        onClick={() => void shareWatermark()}
         className="mt-3 h-11 w-full rounded-[14px] bg-ink text-[13px] font-semibold text-screen"
       >
         {t.packOpen}
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push(`/story/${listing.id}`)}
+        className="mt-2 h-11 w-full rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
+      >
+        {t.packShareFile}
       </button>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {cell("wa", t.shareWa, <BrandWhatsApp size={28} />, () => {
