@@ -32,6 +32,15 @@ export function dropAmount(listing: Listing): number {
   return listing.previousPrice - listing.price;
 }
 
+/** Percent badge: explicit promo % or computed from old vs new price. */
+export function dropPercent(listing: Pick<Listing, "price" | "previousPrice" | "promoPercent">): number | null {
+  if (listing.promoPercent != null && listing.promoPercent > 0) return Math.round(listing.promoPercent);
+  if (listing.previousPrice != null && listing.previousPrice > listing.price && listing.price > 0) {
+    return Math.round((1 - listing.price / listing.previousPrice) * 100);
+  }
+  return null;
+}
+
 export function goLookKind(listing: Listing): GoLookKind {
   if (listing.section === "stays" || listing.dealKind === "short") return "none";
   if (listing.section === "rent" || listing.section === "cars" || listing.section === "car-rental") {

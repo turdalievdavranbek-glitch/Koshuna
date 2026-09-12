@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { dropAmount, hasPriceDrop, listingHasPrice } from "@/lib/deal";
+import { dropAmount, dropPercent, hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { isVideoListing } from "@/lib/video-ai";
@@ -122,7 +122,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
             {formatSom(listing.previousPrice)}
           </span>
           {compact ? (
-            <span className="text-[10px] font-bold text-success">−{formatSom(dropAmount(listing))}</span>
+            <span className="text-[10px] font-bold text-success">−{dropPercent(listing)}%</span>
           ) : (
             <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[10px] font-bold text-success">
               {t.priceDropped}

@@ -1141,6 +1141,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         listingId: product.listingId || listingIdForProduct(id),
         sourceId,
         priceFromPhoto: product.priceFromPhoto,
+        previousPrice: product.previousPrice,
+        promoPercent: product.promoPercent,
         published: product.published !== false,
         createdAt: product.createdAt ?? now,
         updatedAt: now,

@@ -118,6 +118,7 @@ export function ShopProductsEditor({ shop }: { shop: Shop }) {
             onStock={(stock) => void updateShopProduct(shop.id, item.id, { stock })}
             onUnit={(unit) => void updateShopProduct(shop.id, item.id, { unit })}
             onKind={(next) => void updateShopProduct(shop.id, item.id, { kind: next, category: parentOfShopKind(next) ?? shop.category })}
+            onPromo={(patch) => void updateShopProduct(shop.id, item.id, patch)}
             onHide={() => hideShopProduct(shop.id, item.id)}
           />
         ))}
@@ -134,6 +135,7 @@ function ProductRow({
   onStock,
   onUnit,
   onKind,
+  onPromo,
   onHide,
 }: {
   shop: Shop;
@@ -143,11 +145,14 @@ function ProductRow({
   onStock: (s: ShopStock) => void;
   onUnit: (u: ShopProductUnit) => void;
   onKind: (k?: ShopKind) => void;
+  onPromo: (patch: { previousPrice?: number; promoPercent?: number }) => void;
   onHide: () => void;
 }) {
   const { t } = useApp();
   const [raw, setRaw] = useState(product.price != null ? String(product.price) : "");
   const [qty, setQty] = useState(product.quantity != null ? String(product.quantity) : "");
+  const [oldPrice, setOldPrice] = useState(product.previousPrice != null ? String(product.previousPrice) : "");
+  const [promoPct, setPromoPct] = useState(product.promoPercent != null ? String(product.promoPercent) : "");
   const kids = shopKindsOf(shop.category, ...shop.extraCategories);
   const qtyLine = shopQtyLabel(t, product);
   return (
@@ -188,6 +193,32 @@ function ProductRow({
           </Chip>
         </div>
         <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}</div>
+      </div>
+      <div className="mt-2">
+        <div className="text-[12px] font-semibold text-muted">{t.shopPromo}</div>
+        <p className="mt-1 text-[11px] leading-[1.35] text-muted-2">{t.shopPromoHint}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Field label={t.shopPromoOld}>
+            <Input
+              value={oldPrice}
+              onChange={(v) => {
+                setOldPrice(v);
+                const n = validPrice(v);
+                onPromo({ previousPrice: n ?? undefined });
+              }}
+            />
+          </Field>
+          <Field label={t.shopPromoPct}>
+            <Input
+              value={promoPct}
+              onChange={(v) => {
+                setPromoPct(v);
+                const n = Number(v.replace(/\D/g, ""));
+                onPromo({ promoPercent: Number.isFinite(n) && n > 0 ? n : undefined });
+              }}
+            />
+          </Field>
+        </div>
       </div>
       <div className="mt-2">
         <Field label={t.shopProductQuantity}>

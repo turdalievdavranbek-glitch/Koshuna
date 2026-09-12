@@ -38,8 +38,19 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
   const mapped = listingSectionForShop(product.category || shop.category, product.kind);
   const price = product.price && product.price > 0 ? product.price : 0;
   const had = prev && listingHasPrice(prev) ? prev.price : 0;
+  const fromPromo =
+    product.previousPrice != null && product.previousPrice > 0 && price > 0 && product.previousPrice > price
+      ? product.previousPrice
+      : undefined;
   const previousPrice =
-    had > 0 && price > 0 && price < had ? had : price > 0 && prev?.previousPrice && prev.previousPrice > price ? prev.previousPrice : undefined;
+    fromPromo ??
+    (had > 0 && price > 0 && price < had ? had : price > 0 && prev?.previousPrice && prev.previousPrice > price ? prev.previousPrice : undefined);
+  const promoPercent =
+    product.promoPercent != null && product.promoPercent > 0
+      ? product.promoPercent
+      : previousPrice && price > 0 && previousPrice > price
+        ? Math.round((1 - price / previousPrice) * 100)
+        : undefined;
   const photo = displayPhotoForProduct(product, shop.coverUrl || "/sections/shops.jpg");
   const id = prev?.id || product.listingId || listingIdForProduct(product.id);
   return {
@@ -51,6 +62,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     titleEn: product.title,
     price,
     previousPrice,
+    promoPercent,
     city: shop.city === "all" ? "bishkek" : shop.city,
     postedAgo: postedAgoFrom(product.createdAt),
     postedAt: product.createdAt,

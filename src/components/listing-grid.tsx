@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/data";
-import { dropAmount, hasPriceDrop, listingHasPrice } from "@/lib/deal";
+import { dropPercent, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
 import { IconCols, IconHeart } from "./icons";
@@ -71,9 +71,12 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {!video && hasPriceDrop(listing) ? (
-          <span className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen">
-            −{formatSom(dropAmount(listing))}
+        {!video && dropPercent(listing) != null ? (
+          <span
+            data-testid="promo-badge"
+            className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen"
+          >
+            −{dropPercent(listing)}%
           </span>
         ) : null}
         {!video ? (
