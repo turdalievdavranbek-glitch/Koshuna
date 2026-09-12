@@ -84,7 +84,7 @@ export type ReportReason = "agent" | "prepay" | "currency" | "photos" | "other";
 
 export type GoLookKind = "view" | "meet" | "none";
 
-export type MediaKind = "photos" | "video" | "voice";
+export type MediaKind = "photos" | "video" | "voice" | "text";
 
 export type PropertyType =
   | "apartment"
@@ -198,6 +198,7 @@ export type Listing = {
   titleEn: string;
   price: number;
   previousPrice?: number;
+  promoPercent?: number;
   meetupSpot?: MeetupSpot;
   payAfter?: PayAfter[];
   unit?: "month" | "day" | "night" | "bag" | "service";
@@ -485,6 +486,8 @@ export type ShopProduct = {
   listingId?: string;
   sourceId?: string;
   priceFromPhoto?: boolean;
+  previousPrice?: number;
+  promoPercent?: number;
   updatedAt: string;
   createdAt: string;
   published: boolean;
@@ -512,6 +515,7 @@ export type Shop = {
   videoUrl?: string;
   coverUrl?: string;
   transcript?: string;
+  venueKind?: "shop" | "stall";
   status: ShopStatus;
   products: ShopProduct[];
   createdAt: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
@@ -10,6 +10,9 @@ import { useApp } from "@/lib/store";
 export default function ShopQuickPage() {
   const { t, user, setPendingPath, setSide } = useApp();
   const router = useRouter();
+  const params = useSearchParams();
+  const raw = params.get("card");
+  const card = raw === "stall" || raw === "shop" ? raw : undefined;
 
   useEffect(() => {
     if (!user) {
@@ -31,12 +34,14 @@ export default function ShopQuickPage() {
           <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
             <IconBack size={16} color="#17140F" />
           </button>
-          <span className="font-display text-[16px] font-bold">{t.shopQuickCta}</span>
+          <span className="font-display text-[16px] font-bold">
+            {card === "stall" ? t.sellCardStall : card === "shop" ? t.sellCardShop : t.shopQuickCta}
+          </span>
           <span className="w-9" />
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <ShopItemCapture />
+        <ShopItemCapture card={card} />
       </div>
     </PhoneShell>
   );

@@ -10,6 +10,7 @@ import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
 import { SideSwitch } from "@/components/side-switch";
+import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { Field, Input } from "@/components/ui";
 
 export default function SellingPage() {
@@ -76,20 +77,9 @@ export default function SellingPage() {
         >
           {t.sellPostCta}
         </button>
-        <button
-          type="button"
-          onClick={() => router.push("/shops/quick")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.shopQuickCta}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/restaurants/quick")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.restaurantQuickCta}
-        </button>
+        <div className="mt-2.5">
+          <SellerEntryCards />
+        </div>
         <button
           type="button"
           onClick={() => router.push("/shops")}
