@@ -15,13 +15,15 @@ import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import type { MediaKind, RestaurantDish } from "@/lib/types";
 import { IconCamera } from "./icons";
+import { NativePhotoInputs } from "./native-photo";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function RestaurantMenuCapture() {
   const { t, lang, user, shops, extraListings, allListings, ready, setPendingPath, setDraft, updateListing } = useApp();
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const recStreamRef = useRef<MediaStream | null>(null);
@@ -474,11 +476,11 @@ export function RestaurantMenuCapture() {
                   {t.shopItemShot}
                 </button>
               ) : (
-                <button type="button" onClick={() => void startCam()} className="h-11 rounded-2xl bg-ink text-[13px] font-semibold text-screen">
+                <button type="button" onClick={() => cameraRef.current?.click()} className="h-11 rounded-2xl bg-ink text-[13px] font-semibold text-screen">
                   {t.camera}
                 </button>
               )}
-              <button type="button" onClick={() => fileRef.current?.click()} className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold">
+              <button type="button" onClick={() => galleryRef.current?.click()} className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold">
                 {t.gallery}
               </button>
             </div>
@@ -511,18 +513,7 @@ export function RestaurantMenuCapture() {
           <button type="button" onClick={() => void runDemo()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
             {t.restaurantQuickDemo}
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFile(file);
-              e.target.value = "";
-            }}
-          />
+          <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onFile(file)} />
 
           {mode === "photos" ? (
             <div className="mt-4 flex flex-col gap-3">

@@ -14,6 +14,7 @@ import { priceFromPhoto } from "@/lib/photo-price";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
+import { NativePhotoInputs } from "./native-photo";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 import { PostTypePicker } from "./post-type-picker";
 import { PostTaxonomy, pickSection } from "./post-taxonomy";
@@ -26,15 +27,13 @@ type Props = {
 export function MediaCapture({ draft, onPatch }: Props) {
   const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const camRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const camFileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
-  const camStream = useRef<MediaStream | null>(null);
   const stopSpeech = useRef<(() => void) | null>(null);
   const [recording, setRecording] = useState(false);
-  const [camOn, setCamOn] = useState(false);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
 
@@ -60,57 +59,14 @@ export function MediaCapture({ draft, onPatch }: Props) {
     });
   };
 
-  const stopCam = () => {
-    camStream.current?.getTracks().forEach((track) => track.stop());
-    camStream.current = null;
-    if (camRef.current) camRef.current.srcObject = null;
-    setCamOn(false);
+  const discardVideo = () => {
+    dropBlob("video");
+    onPatch({ videoUrl: undefined, aiConfirmed: false });
   };
 
-  const startCam = async () => {
-    setBusy("");
-    if (!navigator.mediaDevices?.getUserMedia) {
-      camFileRef.current?.click();
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-      camStream.current?.getTracks().forEach((track) => track.stop());
-      camStream.current = stream;
-      if (camRef.current) {
-        camRef.current.srcObject = stream;
-        await camRef.current.play().catch(() => undefined);
-      }
-      setCamOn(true);
-    } catch {
-      setBusy(t.mediaNoCamera);
-      camFileRef.current?.click();
-    }
-  };
-
-  const shotCam = async () => {
-    if (!camRef.current) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = camRef.current.videoWidth || 720;
-    canvas.height = camRef.current.videoHeight || 960;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(camRef.current, 0, 0, canvas.width, canvas.height);
-    const photo = canvas.toDataURL("image/jpeg", 0.86);
-    stopCam();
-    onPatch({ photo, mediaKind: "photos" });
-    setBusy(t.mediaPhotoAiBusy);
-    try {
-      const guess = await priceFromPhoto(photo);
-      if (guess.price != null) {
-        onPatch({ photo, price: String(guess.price), aiConfirmed: false });
-        setBusy(t.shopItemPriceAi);
-      } else {
-        setBusy(t.shopItemPriceNoAi);
-      }
-    } catch {
-      setBusy(t.shopItemPriceNoAi);
-    }
+  const retakeVideo = () => {
+    discardVideo();
+    void startRec("video");
   };
 
   const stopRec = () => {
@@ -261,27 +217,48 @@ export function MediaCapture({ draft, onPatch }: Props) {
           ) : (
             <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
           )}
-          <div className="flex gap-2 bg-white p-3">
-            <button
-              type="button"
-              onClick={() => (recording ? stopRec() : startRec("video"))}
-              className="h-11 flex-1 rounded-[12px] text-[13px] font-semibold"
-              style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
-            >
-              {recording ? t.mediaStop : t.mediaRecord}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (fileRef.current) {
-                  fileRef.current.accept = "video/*";
-                  fileRef.current.click();
-                }
-              }}
-              className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
-            >
-              {t.mediaFile}
-            </button>
+          <div className="flex flex-col gap-2 bg-white p-3">
+            {draft.videoUrl && !recording ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={retakeVideo}
+                  className="h-11 flex-1 rounded-[12px] bg-accent text-[13px] font-semibold text-accent-on"
+                >
+                  {t.mediaRetake}
+                </button>
+                <button
+                  type="button"
+                  onClick={discardVideo}
+                  className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
+                >
+                  {t.mediaDiscard}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => (recording ? stopRec() : startRec("video"))}
+                  className="h-11 flex-1 rounded-[12px] text-[13px] font-semibold"
+                  style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
+                >
+                  {recording ? t.mediaStop : t.mediaRecord}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fileRef.current) {
+                      fileRef.current.accept = "video/*";
+                      fileRef.current.click();
+                    }
+                  }}
+                  className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
+                >
+                  {t.mediaFile}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -329,78 +306,41 @@ export function MediaCapture({ draft, onPatch }: Props) {
 
       {kind === "photos" ? (
         <div className="mt-3">
-          {camOn ? (
-            <div className="overflow-hidden rounded-[16px] border border-line bg-ink">
-              <video ref={camRef} muted playsInline className="aspect-[4/3] max-h-[240px] w-full object-cover" />
-              <div className="flex gap-2 bg-white p-3">
-                <button type="button" onClick={() => void shotCam()} className="h-11 flex-1 rounded-[12px] bg-accent text-[13px] font-semibold text-accent-on">
-                  {t.camera}
-                </button>
-                <button type="button" onClick={stopCam} className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold">
-                  {t.mediaStop}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (fileRef.current) {
-                    fileRef.current.accept = "image/*";
-                    fileRef.current.removeAttribute("capture");
-                    fileRef.current.click();
-                  }
-                }}
-                className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
-              >
-                {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
-                <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
-                  {t.mainPhoto}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => void startCam()}
-                className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
-              >
-                <IconCamera size={22} color="#B8452F" />
-                <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (fileRef.current) {
-                    fileRef.current.accept = "image/*";
-                    fileRef.current.removeAttribute("capture");
-                    fileRef.current.click();
-                  }
-                }}
-                className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
-              >
-                <IconImage size={22} color="#6E6558" />
-                <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
-              </button>
-            </div>
-          )}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
+            >
+              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
+              <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
+                {t.mainPhoto}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
+            >
+              <IconCamera size={22} color="#B8452F" />
+              <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryRef.current?.click()}
+              className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
+            >
+              <IconImage size={22} color="#6E6558" />
+              <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
+            </button>
+          </div>
+          <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onFile(file)} />
         </div>
       ) : null}
 
       <input
         ref={fileRef}
         type="file"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void onFile(file);
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={camFileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

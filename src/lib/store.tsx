@@ -67,6 +67,7 @@ import {
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice, validQuantity } from "./shops";
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
+import { showsNeighborPledge } from "./neighbor";
 import { SEED_SHOPS } from "./seed-shops";
 import { BrandMark } from "@/components/brand";
 
@@ -760,8 +761,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ownerId: "aida",
         sellerName: dealer?.companyName ?? state.user?.name,
         hasPhoto: true,
-        verified: sellerType !== "owner" ? true : d.neighborPledge !== false,
-        noAgent: sellerType !== "owner" ? false : d.neighborPledge !== false,
+        verified: sellerType !== "owner" ? true : showsNeighborPledge(d.section) && d.neighborPledge !== false,
+        noAgent: sellerType !== "owner" ? false : showsNeighborPledge(d.section) && d.neighborPledge !== false,
         status: d.promote ? "promoted" : "active",
         safetyKind: d.kind === "rent" ? "home" : "goods",
         mapX: 40,

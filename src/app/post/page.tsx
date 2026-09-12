@@ -18,6 +18,8 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, Photo, Toggle } from "@/components/ui";
 import { PostTypePicker } from "@/components/post-type-picker";
 import { PostTaxonomy, pickSection } from "@/components/post-taxonomy";
+import { IconBack } from "@/components/icons";
+import { showsNeighborPledge } from "@/lib/neighbor";
 
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
@@ -58,10 +60,16 @@ export default function PostPage() {
     <PhoneShell>
       <div className="px-5 pb-3.5 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => (step === 1 ? router.back() : setStep((s) => (s === 3 ? 1 : ((s - 1) as 1))))} className="text-base text-muted">
-            ×
+          <button
+            type="button"
+            onClick={() => router.push("/selling")}
+            className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
+            aria-label={t.backLeave}
+          >
+            <IconBack size={16} color="#17140F" />
+            {t.backLeave}
           </button>
-          <span className="font-display text-lg font-bold text-ink">{t.newListing}</span>
+          <span className="font-display text-[16px] font-bold text-ink">{t.newListing}</span>
           <span className="text-[13px] font-semibold text-accent">{t.draft}</span>
         </div>
         <div className="mt-3.5 flex items-center gap-2">
@@ -249,7 +257,7 @@ export default function PostPage() {
               <div className="rounded-[14px] border border-line bg-accent-tint px-3.5 py-3 text-[13px] leading-[1.45] text-safe">
                 {t.igPostHint}
               </div>
-              {hasRole(user, "realtor") || hasRole(user, "dealer") ? null : (
+              {hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
                 <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                   <div>
                     <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
