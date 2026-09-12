@@ -22,7 +22,6 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   return (
     <div className="mt-4" data-testid="neighbor-circles">
       <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.homeCircles}</h2>
-      <p className="mt-1 line-clamp-2 text-[12px] leading-[1.35] text-muted">{t.homeCirclesHint}</p>
       <div className="sc mt-2.5 flex gap-3 overflow-x-auto pb-1">
         {videos.map((item) => {
           const title = listingTitle(item, lang);
@@ -40,6 +39,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
           );
         })}
       </div>
+      <p className="mt-1.5 text-[10px] leading-[1.3] text-muted-2">{t.homeCirclesHint}</p>
     </div>
   );
 }

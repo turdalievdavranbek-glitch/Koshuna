@@ -16,7 +16,7 @@ import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { NeighborCircles } from "@/components/neighbor-circles";
-import { KonshuBridges } from "@/components/konshu-bridges";
+import { SharedFeedFilters } from "@/components/feed-filters";
 import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
@@ -216,34 +216,15 @@ export default function FeedPage() {
             <LayoutSwitch />
           </div>
         </div>
-        <div className="sc mt-2.5 flex gap-2 overflow-x-auto pb-0.5">
-          <Chip
-            active={filters.neighborOnly}
-            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
-          >
-            {t.fromNeighbor}
-          </Chip>
-          <Chip
-            active={filters.priceDroppedOnly}
-            onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
-          >
-            {t.priceDropped}
-          </Chip>
-          <Chip active={filters.videoOnly} onClick={() => setFilters({ videoOnly: !filters.videoOnly })}>
-            {t.videoOnly}
-          </Chip>
-          <Chip onClick={openSearch}>
-            {t.allCategories}
-            <span className="ml-1 text-[10px] text-muted-2">▾</span>
-          </Chip>
-          <Chip onClick={openSearch}>
-            {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
-            <span className="ml-1 text-[10px] text-muted-2">▾</span>
-          </Chip>
-          <button type="button" onClick={resetFilters} className="shrink-0 px-[13px] py-[7px] text-[13px] font-semibold text-accent">
-            {t.resetFilters}
-          </button>
-        </div>
+        <SharedFeedFilters
+          section="home"
+          extra={
+            <Chip onClick={openSearch}>
+              {t.allCategories}
+              <span className="ml-1 text-[10px] text-muted-2">▾</span>
+            </Chip>
+          }
+        />
 
         {listings.length === 0 ? (
           <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
@@ -256,10 +237,6 @@ export default function FeedPage() {
         ) : (
           <ListingGrid listings={listings} onFav={onFav} />
         )}
-
-        <div className="mt-6">
-          <KonshuBridges />
-        </div>
 
         <p className="mt-4 text-xs leading-[1.5] text-muted-2">{t.disclaimer}</p>
         <div className="mt-3.5 flex flex-col gap-1.5 pb-1.5">

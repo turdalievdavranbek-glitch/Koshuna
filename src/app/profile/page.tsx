@@ -15,6 +15,7 @@ import { TrustStars } from "@/components/trust-stars";
 import { SellerHub } from "@/components/seller-hub";
 import { SideSwitch } from "@/components/side-switch";
 import { MyListings } from "@/components/my-listings";
+import { KonshuBridges } from "@/components/konshu-bridges";
 
 export default function ProfilePage() {
   const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, side, threads } =
@@ -43,6 +44,9 @@ export default function ProfilePage() {
           >
             {t.loginCta}
           </button>
+          <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
+            <KonshuBridges />
+          </div>
           <div className="mt-8 rounded-[18px] border border-line bg-white p-4">
             <div className="mb-3 text-[13px] font-semibold text-ink">{t.language}</div>
             <LangSwitch />
@@ -179,6 +183,10 @@ export default function ProfilePage() {
             <span className="text-[13px] font-semibold text-accent">›</span>
           </button>
         )}
+
+        <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
+          <KonshuBridges />
+        </div>
 
         <div className="mt-6 overflow-hidden rounded-[18px] border border-line bg-white">
           <Row

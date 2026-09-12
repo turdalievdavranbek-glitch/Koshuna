@@ -67,27 +67,24 @@ export function NeighborBanner({
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-[18px] border px-4 py-3 text-left"
+      className="w-full rounded-[14px] border px-3 py-2 text-left"
       style={{
         background: active ? "#17140F" : "#FFFFFF",
         borderColor: active ? "#17140F" : "#E4DCCE",
       }}
     >
       <div
-        className="text-[11px] font-bold uppercase tracking-[0.12em]"
+        className="text-[10px] font-bold uppercase tracking-[0.1em]"
         style={{ color: active ? "#E8C4B8" : "#8E3423" }}
       >
         {t.fromNeighbor}
       </div>
       <div
-        className="mt-1 font-display text-[16px] font-bold leading-[1.2] tracking-[-0.015em]"
+        className="mt-0.5 font-display text-[14px] font-bold leading-[1.2] tracking-[-0.015em]"
         style={{ color: active ? "#F7F3EC" : "#17140F" }}
       >
         {t.neighborSlogan}
       </div>
-      <p className="mt-1.5 text-[13px] leading-[1.45]" style={{ color: active ? "rgba(247,243,236,.72)" : "#6E6558" }}>
-        {t.neighborPitch}
-      </p>
     </button>
   );
 }
