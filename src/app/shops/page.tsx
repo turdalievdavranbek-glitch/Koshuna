@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
 import { useApp } from "@/lib/store";
@@ -13,11 +13,17 @@ import { IconBack, IconSearch } from "@/components/icons";
 import { LocationLine } from "@/components/location-line";
 
 export default function ShopsPage() {
-  const { t, user, shops, city, ready, allListings, toggleFav, setPendingPath } = useApp();
+  const { t, user, shops, city, ready, allListings, toggleFav, setPendingPath, filters } = useApp();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<ShopCategory | "all">("all");
   const [mine, setMine] = useState(false);
+
+  useEffect(() => {
+    if (filters.section === "shops" && filters.category && (SHOP_CATEGORIES as readonly string[]).includes(filters.category)) {
+      setCat(filters.category as ShopCategory);
+    }
+  }, [filters.section, filters.category]);
 
   const list = useMemo(() => {
     const source = mine ? shopsOf(shops, user) : publicShops(shops);
@@ -36,6 +42,10 @@ export default function ShopsPage() {
   }, [allListings, list, query]);
 
   const openCategory = (id: ShopCategory) => {
+    if (cat === id) {
+      setCat("all");
+      return;
+    }
     if (shopKindsOf(id).length) {
       router.push(`/shops/c/${id}`);
       return;
@@ -68,19 +78,14 @@ export default function ShopsPage() {
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         <div className="flex flex-wrap gap-2">
-          <Chip active={!mine} onClick={() => setMine(false)}>
-            {t.shopAllPoints}
-          </Chip>
           {user ? (
-            <Chip active={mine} onClick={() => setMine(true)}>
+            <Chip
+              active={mine}
+              onClick={() => setMine((v) => !v)}
+            >
               {t.shopMine}
             </Chip>
           ) : null}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Chip active={cat === "all"} onClick={() => setCat("all")}>
-            {t.shopCats.all}
-          </Chip>
           {SHOP_CATEGORIES.map((id) => (
             <Chip key={id} active={cat === id} onClick={() => openCategory(id)}>
               {t.shopCats[id]}
