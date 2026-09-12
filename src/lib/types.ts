@@ -178,6 +178,8 @@ export type RestaurantDish = {
   photo?: string;
   category?: MenuCategory;
   kind?: MenuKind;
+  calories?: string;
+  ingredients?: string;
 };
 
 export type Listing = {
@@ -249,6 +251,10 @@ export type Listing = {
   shopId?: string;
   shopProductId?: string;
   menu?: RestaurantDish[];
+  address?: string;
+  foodType?: string;
+  calories?: string;
+  ingredients?: string;
   reservedBy?: ReserveAccount;
   verified: boolean;
   hasPhoto: boolean;
@@ -339,6 +345,8 @@ export type ListingComment = {
   time: string;
 };
 
+export type HonestyScore = 1 | 2 | 3 | 4 | 5;
+
 export type Thread = {
   id: string;
   listingId: string;
@@ -395,6 +403,10 @@ export type DraftListing = {
   voiceUrl?: string;
   transcript?: string;
   aiConfirmed?: boolean;
+  address?: string;
+  foodType?: string;
+  calories?: string;
+  ingredients?: string;
 };
 
 export const SHOP_CATEGORIES = [

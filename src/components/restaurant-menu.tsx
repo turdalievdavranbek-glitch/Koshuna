@@ -38,6 +38,11 @@ export function RestaurantMenu({ listing }: { listing: Listing }) {
                     <div className="mt-0.5 text-[13px] font-semibold text-accent">
                       {item.price != null ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
                     </div>
+                    {item.calories || item.ingredients ? (
+                      <div className="mt-0.5 text-[11px] leading-[1.35] text-muted">
+                        {[item.calories, item.ingredients].filter(Boolean).join(" · ")}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}

@@ -103,6 +103,9 @@ export function RestaurantMenuCapture() {
       } else {
         setAi(t.shopItemPriceNoAi);
       }
+      if (spokenRef.current.trim()) {
+        await applyTranscript(spokenRef.current, [compact], "photos");
+      }
     } catch {
       setAi(t.shopItemPriceNoAi);
     }
