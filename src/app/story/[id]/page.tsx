@@ -126,15 +126,22 @@ export default function StoryPage() {
         </div>
 
         <div className="relative overflow-hidden rounded-[24px] bg-ink">
-          {packUrl ? (
+          {video ? (
+            <video
+              src={listing.videoUrl}
+              poster={listing.photos[0]}
+              autoPlay
+              controls
+              playsInline
+              className="aspect-[4/5] w-full object-cover"
+            />
+          ) : packUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={packUrl} alt="" className="aspect-[4/5] w-full object-cover" />
-          ) : video ? (
-            <video src={listing.videoUrl} poster={listing.photos[0]} muted playsInline className="aspect-[4/5] w-full object-cover opacity-80" />
           ) : (
             <Photo src={listing.photos[0]} alt={title} className="aspect-[4/5] w-full object-cover opacity-80" />
           )}
-          {!packUrl ? (
+          {!video && !packUrl ? (
             <>
               <div className="absolute inset-0 bg-gradient-to-t from-[rgba(23,20,15,.92)] via-transparent to-transparent" />
               <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
@@ -155,6 +162,13 @@ export default function StoryPage() {
           ) : null}
         </div>
 
+        <button
+          type="button"
+          onClick={() => router.push(`/listing/${listing.id}`)}
+          className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+        >
+          {t.viewListing}
+        </button>
         <p className="mt-3 text-[13px] leading-[1.45] text-muted">{t.packHow}</p>
         {video ? <p className="mt-1.5 text-[12px] leading-[1.4] text-muted-2">{t.packVideoNote}</p> : null}
         {packError ? <p className="mt-1.5 text-[12px] text-accent">{t.packFail}</p> : null}

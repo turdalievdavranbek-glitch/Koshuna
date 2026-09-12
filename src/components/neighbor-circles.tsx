@@ -1,22 +1,35 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CIRCLE_TTL_MS, pickNeighborCircles } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
-import { ListingThumb, isVideoListing } from "./listing-media";
+import { ListingThumb } from "./listing-media";
 
-export function NeighborCircles({ listings }: { listings: Listing[] }) {
-  const { t, lang, city, allListings } = useApp();
+export function NeighborCircles({ listings: _feed }: { listings: Listing[] }) {
+  const { t, lang, city, filters, allListings, comments, reactions } = useApp();
   const router = useRouter();
-  const fromFeed = listings.filter(isVideoListing);
-  const seen = new Set(fromFeed.map((item) => item.id));
-  const rest = allListings
-    .filter(isVideoListing)
-    .filter((item) => !seen.has(item.id))
-    .sort((a, b) => Number(b.city === city) - Number(a.city === city));
-  const videos = [...fromFeed, ...rest].slice(0, 12);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((n) => n + 1), CIRCLE_TTL_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const { listings: videos, widened } = useMemo(
+    () =>
+      pickNeighborCircles(
+        allListings,
+        { city, oblast: filters.oblast },
+        reactions,
+        comments,
+      ),
+    [allListings, city, filters.oblast, comments, reactions, tick],
+  );
+
   if (videos.length === 0) return null;
 
   return (
@@ -29,7 +42,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
             <button
               key={item.id}
               type="button"
-              onClick={() => router.push(`/story/${item.id}`)}
+              onClick={() => router.push(`/listing/${item.id}`)}
               className="flex w-[76px] shrink-0 flex-col items-center text-center"
             >
               <ListingThumb listing={item} alt={title} compact className="w-[68px]" />
@@ -39,7 +52,9 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
           );
         })}
       </div>
-      <p className="mt-1.5 text-[10px] leading-[1.3] text-muted-2">{t.homeCirclesHint}</p>
+      <p className="mt-1.5 text-[10px] leading-[1.3] text-muted-2">
+        {widened ? t.homeCirclesWiden : t.homeCirclesHint}
+      </p>
     </div>
   );
 }
