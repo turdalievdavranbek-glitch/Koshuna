@@ -47,6 +47,8 @@ WebView needs CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS. Camera/mic hardware i
 
 Serve `/opt/cursor/artifacts` on :8765 and tunnel that port. File name: `Koshuna-tiles-checkpoint.apk`
 
+Last APK (tiles pass): 6034086 bytes, sha256 `302b5442684e0e888389517d338db3b77f8d0afa3cd79e9c3a443d6e5fd8803b`
+
 ## What still needs a real server
 
 - Real SMS / WhatsApp / Telegram OTP (now any code)
