@@ -12,6 +12,7 @@ import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, I
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
 import { NeighborCard, NeighborMark } from "@/components/neighbor-seal";
+import { showsPersonalNeighborBlocks } from "@/lib/neighbor";
 import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
@@ -80,7 +81,8 @@ export default function ListingPage() {
   const off = isOffMarket(listing);
   const reserved = listing.status === "reserved";
   const isStay = listing.section === "stays" || listing.dealKind === "short";
-  const look = goLookKind(listing);
+  const personal = showsPersonalNeighborBlocks(listing);
+  const look = personal ? goLookKind(listing) : "none";
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
   const stayTotal = nights ? listing.price * nights : 0;
 
@@ -172,7 +174,7 @@ export default function ListingPage() {
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
               {listingChipLabel(listing, t)}
             </span>
-            <NeighborMark listing={listing} />
+            {personal ? <NeighborMark listing={listing} /> : null}
             {isVideoListing(listing) ? (
               <span className="rounded-full bg-ink px-[11px] py-1 text-xs font-semibold text-screen">{t.videoListing}</span>
             ) : null}
@@ -252,7 +254,7 @@ export default function ListingPage() {
             </button>
           ) : null}
           {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
-          <PayAfterNote listing={listing} />
+          {personal ? <PayAfterNote listing={listing} /> : null}
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
               {t.stayTotal}: {formatSom(stayTotal)} KGS · {t.nights(nights)}
@@ -260,10 +262,10 @@ export default function ListingPage() {
           ) : null}
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
-          <NeighborCard listing={listing} />
+          {personal ? <NeighborCard listing={listing} /> : null}
           {!mine && (listing.sellerType === "realtor" || listing.sellerType === "dealer") ? <ListingLeadForm listing={listing} /> : null}
-          {off || reserved || mine ? null : <GoLookCard listing={listing} />}
-          <VoiceNote listing={listing} />
+          {personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
+          {personal ? <VoiceNote listing={listing} /> : null}
           <AiylRoad listing={listing} />
 
           <div className="mt-3 grid grid-cols-2 gap-2">

@@ -11,7 +11,16 @@ const PERSONAL_NEIGHBOR_SECTIONS: SectionId[] = [
 ];
 
 export function showsNeighborPledge(section: SectionId | null | undefined): boolean {
-  return !!section && PERSONAL_NEIGHBOR_SECTIONS.includes(section);
+  return section === "secondhand";
+}
+
+/** Detail blocks: pay-after-meet, neighbor checklist, go-look, owner voice. */
+export function showsPersonalNeighborBlocks(listing: Pick<Listing, "section" | "shopId" | "shopProductId" | "sellerType" | "dealerId">): boolean {
+  if (listing.section !== "secondhand") return false;
+  if (listing.shopId || listing.shopProductId) return false;
+  if (listing.sellerType === "realtor" || listing.sellerType === "dealer") return false;
+  if (listing.dealerId) return false;
+  return true;
 }
 
 export type NeighborFlag = "owner" | "place" | "som" | "noPrepay";

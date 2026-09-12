@@ -30,6 +30,30 @@ export default function PostPage() {
   const [error, setError] = useState("");
   const [publishedId, setPublishedId] = useState<string | null>(null);
   const [paste, setPaste] = useState("");
+  const [entryCard, setEntryCard] = useState<string | null>(null);
+
+  useEffect(() => {
+    const card = new URLSearchParams(window.location.search).get("card");
+    setEntryCard(card);
+    if (card === "developer") {
+      setDraft({
+        ...pickSection(draft, "rent"),
+        dealKind: "buy",
+        realtyGroup: "apartments",
+        neighborPledge: false,
+        sellerType: "realtor",
+      });
+    }
+    if (card === "dealer") {
+      setDraft({
+        ...pickSection(draft, "cars"),
+        neighborPledge: false,
+        sellerType: "dealer",
+      });
+    }
+    // Apply once when opening a seller-card shortcut.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -140,6 +164,12 @@ export default function PostPage() {
                 <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
               </div>
               <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {entryCard === "developer" ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDeveloperHint}</p>
+              ) : null}
+              {entryCard === "dealer" ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDealerHint}</p>
+              ) : null}
               {draft.section === "shops" || draft.section === "restaurants" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">
                   {draft.section === "shops" ? t.shopQuickHint : t.restaurantQuickHint}
