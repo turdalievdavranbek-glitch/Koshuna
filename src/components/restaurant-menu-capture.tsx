@@ -72,26 +72,6 @@ export function RestaurantMenuCapture() {
     setLive(false);
   };
 
-  const startCam = async () => {
-    setError("");
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError(t.mediaNoCamera);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
-      }
-      setLive(true);
-    } catch {
-      setError(t.mediaNoCamera);
-    }
-  };
-
   const applyPhoto = async (dataUrl: string) => {
     setError("");
     setAi(t.shopItemAiBusy);
