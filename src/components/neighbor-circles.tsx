@@ -20,7 +20,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   if (videos.length === 0) return null;
 
   return (
-    <div className="mt-4" data-testid="neighbor-circles">
+    <div className="mt-1" data-testid="neighbor-circles">
       <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.homeCircles}</h2>
       <div className="sc mt-2.5 flex gap-3 overflow-x-auto pb-1">
         {videos.map((item) => {

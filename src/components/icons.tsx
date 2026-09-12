@@ -183,6 +183,13 @@ export function IconBack(p: P) {
     </svg>
   );
 }
+export function IconChevronDown(p: P) {
+  return (
+    <svg {...base(p)} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6.6 9 12l5-5.4" />
+    </svg>
+  );
+}
 export function IconChat(p: P) {
   return (
     <svg {...base(p)} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

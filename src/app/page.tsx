@@ -17,7 +17,7 @@ import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborBanner } from "@/components/neighbor-seal";
 import { NeighborCircles } from "@/components/neighbor-circles";
 import { SharedFeedFilters } from "@/components/feed-filters";
-import { Flag, IconBell, IconPin, IconSearch, IconSliders } from "@/components/icons";
+import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
 
@@ -74,7 +74,9 @@ export default function FeedPage() {
               <span className="max-w-[140px] truncate">
                 {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
               </span>
-              <span className="text-[10px] text-muted-2">▾</span>
+              <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
+                <IconChevronDown size={14} color="#17140F" />
+              </span>
             </button>
             <Link
               href="/notifications"
@@ -108,7 +110,9 @@ export default function FeedPage() {
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        <div className="mt-1">
+        <NeighborCircles listings={listings} />
+
+        <div className="mt-3">
           <NeighborBanner
             active={filters.neighborOnly}
             onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
@@ -136,8 +140,6 @@ export default function FeedPage() {
             </button>
           ))}
         </div>
-
-        <NeighborCircles listings={listings} />
 
         <div className="mt-2.5 grid grid-cols-3 gap-2">
           {rest.map((s) => (

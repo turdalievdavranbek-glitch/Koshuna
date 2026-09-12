@@ -69,7 +69,7 @@ export default function ShopsPage() {
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         <div className="flex flex-wrap gap-2">
           <Chip active={!mine} onClick={() => setMine(false)}>
-            {t.shopCats.all}
+            {t.shopAllPoints}
           </Chip>
           {user ? (
             <Chip active={mine} onClick={() => setMine(true)}>
