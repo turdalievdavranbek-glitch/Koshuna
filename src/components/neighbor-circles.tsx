@@ -28,20 +28,18 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   }, []);
 
   const { listings: videos } = useMemo(
-    () =>
-      pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), true),
+    () => pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), true),
     [allListings, scope.city, scope.oblast, comments, reactions, tick],
   );
 
   return (
-    <div className="mt-1" data-testid="neighbor-circles">
-      <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.homeCircles}</h2>
+    <div data-testid="neighbor-circles">
       {videos.length === 0 ? (
-        <p className="mt-2.5 text-[13px] leading-[1.4] text-muted" data-testid="circles-empty">
+        <p className="text-[12px] leading-[1.35] text-muted" data-testid="circles-empty">
           {t.homeCirclesEmpty}
         </p>
       ) : (
-        <div className="sc mt-2.5 flex gap-3 overflow-x-auto pb-1">
+        <div className="sc flex gap-2.5 overflow-x-auto pb-0.5">
           {videos.map((item) => {
             const title = listingTitle(item, lang);
             return (
@@ -49,11 +47,11 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
                 key={item.id}
                 type="button"
                 onClick={() => router.push(`/listing/${item.id}`)}
-                className="flex w-[84px] shrink-0 flex-col items-center text-center"
+                className="flex w-[76px] shrink-0 flex-col items-center text-center"
               >
-                <ListingThumb listing={item} alt={title} compact className="w-[68px]" />
-                <div className="mt-1.5 w-full truncate text-[11px] font-bold leading-[1.2] text-ink">{title}</div>
-                <div className="w-full truncate text-[10px] leading-[1.2] text-muted">
+                <ListingThumb listing={item} alt={title} compact className="w-[60px]" />
+                <div className="mt-1 w-full truncate text-[10px] font-bold leading-[1.2] text-ink">{title}</div>
+                <div className="w-full truncate text-[9px] leading-[1.2] text-muted">
                   {formatSom(item.price)} · {t.cities[item.city]}
                 </div>
               </button>
@@ -61,7 +59,9 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
           })}
         </div>
       )}
-      <p className="mt-1.5 text-[10px] leading-[1.3] text-muted-2">{t.homeCirclesHint}</p>
+      <p className="mt-1.5 text-[12px] font-semibold leading-[1.3] text-ink" data-testid="circles-caption">
+        {t.homeCirclesCaption}
+      </p>
     </div>
   );
 }

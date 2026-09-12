@@ -52,7 +52,6 @@ export function ListingSocial({ listing }: { listing: Listing }) {
   const [text, setText] = useState("");
 
   const reaction = reactionOf(listing.id);
-  const locked = Boolean(reaction);
   const comments = commentsOf(listing.id);
   const { likes, dislikes } = socialCounts(listing.id, reactions, comments.length);
 
@@ -66,7 +65,6 @@ export function ListingSocial({ listing }: { listing: Listing }) {
   };
 
   const react = (value: "like" | "dislike") => {
-    if (locked) return;
     if (!gate()) return;
     setReaction(listing.id, value);
   };
@@ -82,13 +80,11 @@ export function ListingSocial({ listing }: { listing: Listing }) {
         <button
           type="button"
           onClick={() => react("like")}
+          data-testid="react-like"
           aria-label={t.likeLabel}
           aria-pressed={reaction === "like"}
-          aria-disabled={locked}
-          title={locked ? t.alreadyReacted : t.likeLabel}
+          title={t.likeLabel}
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
-            locked ? "cursor-default" : ""
-          } ${
             reaction === "like" ? "border-success bg-success-tint text-success" : "border-line bg-white text-ink"
           }`}
         >
@@ -98,13 +94,11 @@ export function ListingSocial({ listing }: { listing: Listing }) {
         <button
           type="button"
           onClick={() => react("dislike")}
+          data-testid="react-dislike"
           aria-label={t.dislikeLabel}
           aria-pressed={reaction === "dislike"}
-          aria-disabled={locked}
-          title={locked ? t.alreadyReacted : t.dislikeLabel}
+          title={t.dislikeLabel}
           className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
-            locked ? "cursor-default" : ""
-          } ${
             reaction === "dislike" ? "border-accent bg-accent-tint text-accent" : "border-line bg-white text-ink"
           }`}
         >

@@ -617,16 +617,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!state.user) return false;
       const vid = voterId(state.user);
       if (!vid) return false;
-      if (state.reactions[vid]?.[id]) return false;
       update((s) => {
         const current = voterId(s.user);
         if (!current) return s;
-        if (s.reactions[current]?.[id]) return s;
+        const prev = s.reactions[current]?.[id] ?? null;
+        const next = prev === reaction ? null : reaction;
+        const map = { ...s.reactions[current] };
+        if (next) map[id] = next;
+        else delete map[id];
         return {
           ...s,
           reactions: {
             ...s.reactions,
-            [current]: { ...s.reactions[current], [id]: reaction },
+            [current]: map,
           },
         };
       });

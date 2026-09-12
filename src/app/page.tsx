@@ -14,7 +14,6 @@ import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
-import { NeighborBanner } from "@/components/neighbor-seal";
 import { NeighborCircles } from "@/components/neighbor-circles";
 import { SharedFeedFilters } from "@/components/feed-filters";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
@@ -49,9 +48,11 @@ export default function FeedPage() {
     router.push(href);
   };
 
-  const quick = [
+  const feedQuick = [
     { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
     { id: "restaurants" as const, label: t.homeQuickFood, href: "/section/restaurants" },
+  ];
+  const moreQuick = [
     { id: "rent" as const, label: t.homeQuickRent, href: "/section/rent" },
     { id: "cars" as const, label: t.homeQuickCars, href: "/section/cars" },
     { id: "vacancies" as const, label: t.homeQuickJobs, href: "/section/vacancies" },
@@ -59,7 +60,7 @@ export default function FeedPage() {
 
   return (
     <PhoneShell tab>
-      <header className="shrink-0 bg-screen px-5 pb-3.5 pt-1.5">
+      <header className="z-20 shrink-0 border-b border-line/70 bg-screen px-5 pb-2 pt-1.5" data-testid="home-sticky">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BrandMark size={26} wordClass="text-[23px] text-ink" />
@@ -90,33 +91,34 @@ export default function FeedPage() {
         <button
           type="button"
           onClick={openSearch}
-          className="mt-3 flex h-12 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 text-left"
+          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 text-left"
+          data-testid="home-search"
         >
           <IconSearch size={17} color="#A79C8C" />
-          <span className="h-full flex-1 truncate text-[15px] leading-[48px] text-muted-2">
+          <span className="h-full flex-1 truncate text-[15px] leading-[44px] text-muted-2">
             {filters.query || searchPlaceholder(null, t)}
           </span>
           <span aria-label={t.filters}>
             <IconSliders size={17} color="#17140F" />
           </span>
         </button>
-        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5">
-          {quick.map((item) => (
+        <div className="mt-2">
+          <NeighborCircles listings={listings} />
+        </div>
+      </header>
+
+      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
+        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
+          {feedQuick.map((item) => (
             <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
               {item.label}
             </Chip>
           ))}
-        </div>
-      </header>
-
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        <NeighborCircles listings={listings} />
-
-        <div className="mt-3">
-          <NeighborBanner
-            active={filters.neighborOnly}
-            onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}
-          />
+          {moreQuick.map((item) => (
+            <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
+              {item.label}
+            </Chip>
+          ))}
         </div>
 
         <div className="mt-[16px] flex items-baseline justify-between">
