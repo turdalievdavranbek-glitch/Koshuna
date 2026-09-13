@@ -4,7 +4,7 @@ import type { Listing } from "./types";
 import { isVideoListing } from "./video-ai";
 
 export const CIRCLE_TTL_MS = 60 * 60 * 1000;
-export const CIRCLE_MAX = 10;
+export const CIRCLE_MAX = 20;
 
 export type CircleScope = {
   city: string;
@@ -80,7 +80,7 @@ function rankVideos(
 }
 
 function scopeKey(scope: CircleScope, stamp: string[]): string {
-  return `${scope.city}|${scope.oblast}|${stamp.join(",")}`;
+  return `${scope.city}|${scope.oblast}|${CIRCLE_MAX}|${stamp.join(",")}`;
 }
 
 /** Rank neighbor circles by likes+comments in the selected city/oblast only. Never widen. */
@@ -103,9 +103,18 @@ export function pickNeighborCircles(
     };
   }
 
-  const listings = rankVideos(all, reactions, comments)
+  const videos = rankVideos(all, reactions, comments).filter((item) => inSelectedRegion(item, scope));
+  const used = new Set(videos.map((item) => item.id));
+  const fill = [...all]
+    .filter((item) => !used.has(item.id))
+    .filter((item) => item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed")
     .filter((item) => inSelectedRegion(item, scope))
-    .slice(0, CIRCLE_MAX);
+    .sort((a, b) => {
+      const ea = engagementScore(a.id, reactions, comments[a.id]?.length ?? 0);
+      const eb = engagementScore(b.id, reactions, comments[b.id]?.length ?? 0);
+      return eb - ea;
+    });
+  const listings = [...videos, ...fill].slice(0, CIRCLE_MAX);
   saveCache({ key, at: now, ids: listings.map((item) => item.id) });
   return { listings, widened: false };
 }

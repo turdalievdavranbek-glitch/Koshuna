@@ -53,9 +53,9 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
                 onClick={() => router.push(`/listing/${item.id}`)}
                 className="flex w-[76px] shrink-0 flex-col items-center text-center"
               >
-                <ListingThumb listing={item} alt={title} compact playInline className="w-[60px]" />
-                <div className="mt-1 w-full truncate text-[10px] font-bold leading-[1.2] text-ink">{title}</div>
-                <div className="w-full truncate text-[9px] leading-[1.2] text-muted">
+                <ListingThumb listing={item} alt={title} compact playInline circle className="w-[60px]" />
+                <div className="mt-1 w-full truncate text-[12px] font-bold leading-[1.2] text-ink">{title}</div>
+                <div className="w-full truncate text-[12px] leading-[1.2] text-muted">
                   {formatSom(item.price)} · {t.cities[item.city]}
                 </div>
               </button>

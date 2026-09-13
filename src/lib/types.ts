@@ -365,6 +365,7 @@ export type Thread = {
 };
 
 export type DraftListing = {
+  id?: string;
   section: SectionId;
   kind: "rent" | "goods";
   title: string;

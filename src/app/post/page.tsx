@@ -24,7 +24,7 @@ import { showsNeighborPledge } from "@/lib/neighbor";
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
 export default function PostPage() {
-  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide } = useApp();
+  const { t, user, draft, setDraft, publishDraft, saveDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
@@ -257,7 +257,7 @@ export default function PostPage() {
               {bizCard ? (
                 <Field label={t.mapPoint}>
                   <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
-                  <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
+                  <div className="relative isolate z-0 h-52 overflow-hidden rounded-[14px] border border-line">
                     <GisMap
                       center={{
                         lat: draft.lat ?? gisCity(draft.city).lat,
@@ -396,7 +396,7 @@ export default function PostPage() {
               {bizCard ? null : (
               <Field label={t.mapPoint}>
                 <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
-                <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
+                <div className="relative isolate z-0 h-52 overflow-hidden rounded-[14px] border border-line">
                   <GisMap
                     center={{
                       lat: draft.lat ?? gisCity(draft.city).lat,
@@ -429,14 +429,37 @@ export default function PostPage() {
             )}
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
           </div>
-          <div className="flex shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
-            <button type="button" className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold text-ink">
+          <div className="relative z-20 flex shrink-0 flex-col gap-2 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
+            {error ? <p className="text-[13px] text-accent">{error}</p> : null}
+            <div className="flex gap-2.5">
+            <button
+              type="button"
+              data-testid="post-save"
+              onClick={() => {
+                const item = saveDraft();
+                if (!item) {
+                  setError(t.needFields);
+                  return;
+                }
+                setError("");
+                setSide("sell");
+                router.push("/selling");
+              }}
+              className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold text-ink"
+            >
               {t.save}
             </button>
             <button
               type="button"
+              data-testid="post-next"
               onClick={() => {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
+                if (draft.mediaKind === "text" && paste.trim() && !draft.description.trim()) {
+                  const guess = classifyListingSpeech(paste.trim());
+                  const patch = aiToDraftPatch(guess);
+                  if (!paste.match(/\d/) || !guess.price) delete patch.price;
+                  setDraft({ mediaKind: "text", description: paste.trim(), ...patch });
+                }
                 if (spoken && draft.mediaKind === "video" && !draft.videoUrl) {
                   setError(t.mediaNeed);
                   return;
@@ -449,7 +472,11 @@ export default function PostPage() {
                   setError(t.mediaNeed);
                   return;
                 }
-                if (!draft.title.trim() || !draft.price.trim()) {
+                if (!spoken && !draft.title.trim()) {
+                  setError(t.needFields);
+                  return;
+                }
+                if (!spoken && !draft.price.trim() && draft.section !== "vacancies") {
                   setError(t.needFields);
                   return;
                 }
@@ -460,6 +487,7 @@ export default function PostPage() {
             >
               {t.nextReview}
             </button>
+            </div>
           </div>
         </>
       ) : null}
