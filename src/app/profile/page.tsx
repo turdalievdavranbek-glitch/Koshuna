@@ -157,6 +157,13 @@ export default function ProfilePage() {
             <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
             <button
               type="button"
+              onClick={() => router.push("/shops/quick")}
+              className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
+            >
+              {t.shopQuickCta}
+            </button>
+            <button
+              type="button"
               onClick={() => router.push("/shops/new")}
               className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
             >

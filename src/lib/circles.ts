@@ -4,7 +4,7 @@ import type { Listing } from "./types";
 import { isVideoListing } from "./video-ai";
 
 export const CIRCLE_TTL_MS = 60 * 60 * 1000;
-export const CIRCLE_MAX = 12;
+export const CIRCLE_MAX = 10;
 
 export type CircleScope = {
   city: string;

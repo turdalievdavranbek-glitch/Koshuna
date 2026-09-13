@@ -22,7 +22,6 @@ export function PropertyTypeChips({ labeled, list }: { labeled?: boolean; list?:
       <SectionList
         title={t.housingType}
         rows={[
-          { id: "any", label: t.allCategories, active: filters.housingType === "any", onClick: () => pick("any") },
           ...PROPERTY_TYPES.map((id) => ({
             id,
             label: t.propertyTypes[id],
@@ -36,11 +35,8 @@ export function PropertyTypeChips({ labeled, list }: { labeled?: boolean; list?:
 
   const row = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      <Chip active={filters.housingType === "any"} onClick={() => pick("any")}>
-        {t.allCategories}
-      </Chip>
       {PROPERTY_TYPES.map((id) => (
-        <Chip key={id} active={filters.housingType === id} onClick={() => pick(id)}>
+        <Chip key={id} active={filters.housingType === id} onClick={() => pick(filters.housingType === id ? "any" : id)}>
           {t.propertyTypes[id]}
         </Chip>
       ))}

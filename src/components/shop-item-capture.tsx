@@ -10,8 +10,7 @@ import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
-import {
-  assortmentKey,
+import { SHOP_CATEGORIES } from "@/lib/shops";
   assortmentUseCount,
   canReuseAssortment,
   isOwnShop,
@@ -21,6 +20,7 @@ import {
   shopsOf,
   validPrice,
   validQuantity,
+  SHOP_CATEGORIES,
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
@@ -69,6 +69,9 @@ export function ShopItemCapture({
   const [placeName, setPlaceName] = useState("");
   const [placeAddress, setPlaceAddress] = useState("");
   const [hoursNote, setHoursNote] = useState("");
+  const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
+  const [placeLat, setPlaceLat] = useState<number | undefined>();
+  const [placeLng, setPlaceLng] = useState<number | undefined>();
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
   const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
@@ -366,8 +369,10 @@ export function ShopItemCapture({
       address: placeAddress.trim() || t.cities[draft.city] || draft.city,
       hoursNote: hoursNote.trim(),
       venueKind: card ?? "shop",
-      category: parent ?? draft.category,
+      category: parent ?? cardCat ?? draft.category,
       status: "draft",
+      lat: placeLat ?? draft.lat,
+      lng: placeLng ?? draft.lng,
     });
     const saved = await publishShop();
     return saved.shop;
@@ -422,7 +427,7 @@ export function ShopItemCapture({
       price: n,
       quantity,
       photo: photo || undefined,
-      category: parent,
+      category: parent ?? cardCat,
       kind,
       priceFromPhoto: fromPhoto,
     });
@@ -545,20 +550,6 @@ export function ShopItemCapture({
         {card === "stall" ? t.sellCardStallHint : card === "shop" ? t.sellCardShopHint : t.shopQuickHint}
       </p>
 
-      {card ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <Field label={t.shopName}>
-            <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
-          </Field>
-          <Field label={t.venueAddress}>
-            <Input value={placeAddress} onChange={setPlaceAddress} />
-          </Field>
-          <Field label={t.shopHoursOptional}>
-            <Input value={hoursNote} onChange={setHoursNote} />
-          </Field>
-        </div>
-      ) : null}
-
       <div className="mt-3 flex flex-wrap gap-2">
         <Chip active={mode === "photos"} onClick={() => changeMode("photos")}>
           {t.mediaPhotos}
@@ -573,6 +564,40 @@ export function ShopItemCapture({
           {t.mediaText}
         </Chip>
       </div>
+
+      {card ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <Field label={t.shopName}>
+            <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
+          </Field>
+          <Field label={t.venueAddress}>
+            <Input value={placeAddress} onChange={setPlaceAddress} />
+          </Field>
+          <button
+            type="button"
+            onClick={() => {
+              if (!navigator.geolocation) return;
+              navigator.geolocation.getCurrentPosition((pos) => {
+                setPlaceLat(pos.coords.latitude);
+                setPlaceLng(pos.coords.longitude);
+              });
+            }}
+            className="h-10 rounded-xl border border-line text-[13px] font-semibold"
+          >
+            {t.locationGeo}
+          </button>
+          <div className="flex flex-wrap gap-2">
+            {SHOP_CATEGORIES.map((id) => (
+              <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>
+                {t.shopCats[id]}
+              </Chip>
+            ))}
+          </div>
+          <Field label={t.shopHoursOptional}>
+            <Input value={hoursNote} onChange={setHoursNote} />
+          </Field>
+        </div>
+      ) : null}
 
       {confirming ? (
         <div className="mt-4">

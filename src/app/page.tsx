@@ -104,15 +104,17 @@ export default function FeedPage() {
         <div className="mt-2">
           <NeighborCircles listings={listings} />
         </div>
-      </header>
-
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
-        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
+        <div className="sc mt-2 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
           {feedQuick.map((item) => (
-            <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
+            <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
               {item.label}
             </Chip>
           ))}
+        </div>
+      </header>
+
+      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
+        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5">
           {moreQuick.map((item) => (
             <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
               {item.label}
@@ -238,12 +240,9 @@ export default function FeedPage() {
         )}
 
         <p className="mt-4 text-xs leading-[1.5] text-muted-2">{t.disclaimer}</p>
-        <div className="mt-3.5 flex flex-col gap-1.5 pb-1.5">
-          <span className="font-display text-base font-bold text-ink">{t.footerSlogan}</span>
-          <span className="flex items-center gap-[7px] text-xs text-muted">
-            <Flag />
-            {t.country} · KGS
-          </span>
+        <div className="mt-3.5 flex items-center gap-[7px] pb-1.5 text-xs text-muted">
+          <Flag />
+          {t.country} · KGS
         </div>
       </div>
     </PhoneShell>

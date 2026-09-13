@@ -20,7 +20,6 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
         <SectionList
           title={t.category}
           rows={[
-            { id: "any", label: t.allCategories, active: group === "any", onClick: () => setFilters({ animalGroup: "any", animalKind: "any" }) },
             ...ANIMAL_GROUPS.map((id) => ({
               id,
               label: id === "pets" ? t.animalPets : t.animalFarm,
@@ -49,9 +48,6 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
 
   const groupRow = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      <Chip active={group === "any"} onClick={() => setFilters({ animalGroup: "any", animalKind: "any" })}>
-        {t.allCategories}
-      </Chip>
       {ANIMAL_GROUPS.map((id) => (
         <Chip key={id} active={group === id} onClick={() => pickGroup(id)}>
           {id === "pets" ? t.animalPets : t.animalFarm}

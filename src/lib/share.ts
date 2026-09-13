@@ -47,6 +47,25 @@ export function listingPublicUrl(id: string): string {
   return `${window.location.origin}/listing/${id}`;
 }
 
+export async function shareListingLink(id: string, title: string): Promise<"shared" | "copied" | "shown"> {
+  const url = listingPublicUrl(id);
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share({ title, url, text: `${title}\n${url}` });
+      return "shared";
+    } catch {
+      /* cancelled or unsupported */
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    return "copied";
+  } catch {
+    window.prompt(title, url);
+    return "shown";
+  }
+}
+
 export function socialShareHref(
   network: "whatsapp" | "telegram" | "facebook" | "vk",
   listing: Listing,

@@ -1,4 +1,3 @@
-import { MY_LISTING_IDS } from "./data";
 import { isOwnShop } from "./shops";
 import type { AppSide, DealStage, Listing, ListingStatus, Shop, Thread, User } from "./types";
 
@@ -12,7 +11,6 @@ export function isOwnListing(
 ): boolean {
   if (!user) return false;
   if (extra.some((item) => item.id === listing.id)) return true;
-  if (MY_LISTING_IDS.includes(listing.id)) return true;
   if (listing.shopId) {
     const shop = shops.find((item) => item.id === listing.shopId);
     return Boolean(shop && isOwnShop(shop, user));
@@ -37,7 +35,7 @@ export function statusForStage(listing: Listing, stage: DealStage): ListingStatu
 }
 
 export function ownListingIds(extra: Listing[]): string[] {
-  return [...new Set([...extra.map((item) => item.id), ...MY_LISTING_IDS])];
+  return [...new Set(extra.map((item) => item.id))];
 }
 
 export function mineListings(all: Listing[], extra: Listing[], user: User | null, shops: Pick<Shop, "id" | "ownerPhone">[] = []): Listing[] {

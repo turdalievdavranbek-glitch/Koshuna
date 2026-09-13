@@ -1,6 +1,6 @@
 "use client";
 
-import { isFromNeighbor, neighborFlags, type NeighborFlag } from "@/lib/neighbor";
+import { isFromNeighbor, neighborFlags, showsPersonalNeighborBlocks, type NeighborFlag } from "@/lib/neighbor";
 import { listingSellerType } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
@@ -41,7 +41,7 @@ export function NeighborMark({ listing, compact }: { listing: Listing; compact?:
       </span>
     );
   }
-  if (!isFromNeighbor(listing)) return null;
+  if (!showsPersonalNeighborBlocks(listing) || !isFromNeighbor(listing)) return null;
   return (
     <span
       className={`pointer-events-none font-bold tracking-wide text-success ${

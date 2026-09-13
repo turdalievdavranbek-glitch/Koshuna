@@ -28,15 +28,12 @@ export function SecondhandChips({ labeled, list }: { labeled?: boolean; list?: b
       <div className="flex flex-col gap-3">
         <SectionList
           title={t.category}
-          rows={[
-            { id: "all", label: t.allCategories, active: !filters.category, onClick: () => pickCategory(null) },
-            ...CATEGORIES.map((c) => ({
+          rows={CATEGORIES.map((c) => ({
               id: c,
               label: t.cats[c],
               active: filters.category === c,
               onClick: () => pickCategory(c),
             })),
-          ]}
         />
         {kinds.length ? (
           <SectionList
@@ -86,11 +83,8 @@ export function SecondhandChips({ labeled, list }: { labeled?: boolean; list?: b
 
   const categoryRow = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      <Chip active={!filters.category} onClick={() => pickCategory(null)}>
-        {t.allCategories}
-      </Chip>
       {CATEGORIES.map((c) => (
-        <Chip key={c} active={filters.category === c} onClick={() => pickCategory(c)}>
+        <Chip key={c} active={filters.category === c} onClick={() => pickCategory(filters.category === c ? null : c)}>
           {t.cats[c]}
         </Chip>
       ))}

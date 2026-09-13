@@ -53,7 +53,6 @@ export function VacancyChips({ labeled, list }: { labeled?: boolean; list?: bool
         <SectionList
           title={t.jobSphere}
           rows={[
-            { id: "any", label: t.allCategories, active: !sphere, onClick: () => pickSphere("any") },
             ...JOB_SPHERES.map((id) => ({
               id,
               label: t.jobSpheres[id],

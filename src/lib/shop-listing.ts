@@ -79,7 +79,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     shopProductId: product.id,
     hasPhoto: photo !== "/sections/shops.jpg" || Boolean(product.photo || shop.coverUrl),
     verified: Boolean(shop.aiConfirmed),
-    noAgent: true,
+    noAgent: false,
     status: listingStatusForProduct(shop, product, prev),
     safetyKind: "goods",
     mapX: prev?.mapX ?? 40,

@@ -749,6 +749,7 @@ const ru = {
   mediaPhotos: "Только фото",
   mediaText: "Текстом",
   mediaAddVoice: "Добавить голос",
+  mediaSilentHint: "Если сняли без звука — нажмите микрофон. ИИ сделает текст из голоса и не придумает цену.",
   mediaHint:
     "Видео, фото, голос или текст вручную. ИИ переведёт речь в поля, цену не придумает. Публикация — только после вашей проверки.",
   mediaRecord: "Записать видео",
@@ -2527,6 +2528,7 @@ const ky: typeof ru = {
   mediaPhotos: "Сүрөт гана",
   mediaText: "Текст",
   mediaAddVoice: "Үн кошуу",
+  mediaSilentHint: "Үнсүз тартсаңыз — микрофонду басыңыз. ИИ үндөн текст кылат, бааны ойлоп таппайт.",
   mediaHint:
     "Видео, сүрөт, үн же кол менен текст. ИИ сөздү талааларга которот, бааны ойлоп таппайт. Жайгаштыруудан мурун сиз текшересиз.",
   mediaRecord: "Видео жазуу",
@@ -3445,6 +3447,7 @@ const uz: typeof ru = {
   mediaPhotos: "Faqat rasm",
   mediaText: "Matn",
   mediaAddVoice: "Ovoz qo‘shish",
+  mediaSilentHint: "Ovozsiz yozgan bo‘lsangiz — mikrofonni bosing. SI ovozdan matn qiladi, narx o‘ylab topilmaydi.",
   mediaHint:
     "Video, rasm, ovoz yoki qo‘lda matn. SI nutqni maydonlarga o‘giradi, narx o‘ylab topilmaydi. E’lon — faqat tekshirgandan keyin.",
   mediaRecord: "Video yozish",

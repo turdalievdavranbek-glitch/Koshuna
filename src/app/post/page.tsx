@@ -87,8 +87,7 @@ export default function PostPage() {
           <button
             type="button"
             onClick={() => {
-              router.replace("/");
-              window.location.assign("/");
+              window.location.href = "/";
             }}
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
@@ -149,7 +148,10 @@ export default function PostPage() {
                   onClick={() => {
                     const text = paste.trim();
                     if (!text) return;
-                    setDraft({ mediaKind: "text", ...aiToDraftPatch(classifyListingSpeech(text)) });
+                    const guess = classifyListingSpeech(text);
+                    const patch = aiToDraftPatch(guess);
+                    if (!text.match(/\d/) || !guess.price) delete patch.price;
+                    setDraft({ mediaKind: "text", description: text, ...patch });
                   }}
                   className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
                 >
@@ -159,45 +161,29 @@ export default function PostPage() {
             ) : null}
 
             <div>
-              <Eyebrow>{t.whatPost}</Eyebrow>
-              <div className="mt-2.5">
-                <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
-              </div>
-              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {entryCard ? null : (
+                <>
+                  <Eyebrow>{t.whatPost}</Eyebrow>
+                  <div className="mt-2.5">
+                    <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
+                  </div>
+                </>
+              )}
               {entryCard === "developer" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDeveloperHint}</p>
               ) : null}
               {entryCard === "dealer" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDealerHint}</p>
               ) : null}
-              {draft.section === "shops" || draft.section === "restaurants" ? (
-                <p className="mt-2 text-[12px] leading-[1.4] text-muted">
-                  {draft.section === "shops" ? t.shopQuickHint : t.restaurantQuickHint}
-                </p>
-              ) : null}
-              {draft.section === "shops" ? (
-                <button
-                  type="button"
-                  onClick={() => router.push("/shops/quick")}
-                  className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
-                >
-                  {t.shopQuickCta}
-                </button>
-              ) : null}
-              {draft.section === "restaurants" ? (
-                <button
-                  type="button"
-                  onClick={() => router.push("/restaurants/quick")}
-                  className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
-                >
-                  {t.restaurantQuickCta}
-                </button>
-              ) : null}
+              <PostTaxonomy draft={draft} onPatch={setDraft} />
             </div>
 
             <div className="flex flex-col gap-3.5">
               <Field label={t.title}>
                 <Input value={draft.title} onChange={(v) => setDraft({ title: v })} placeholder={t.title} />
+              </Field>
+              <Field label={t.venueAddress}>
+                <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
               </Field>
               <div className="flex gap-2.5">
                 <div className="flex-1">
@@ -225,11 +211,6 @@ export default function PostPage() {
                   </Field>
                 </div>
               </div>
-              {draft.section === "restaurants" || draft.section === "shops" ? (
-                <Field label={t.venueAddress}>
-                  <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
-                </Field>
-              ) : null}
               {draft.section === "restaurants" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
@@ -376,6 +357,10 @@ export default function PostPage() {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (spoken && draft.mediaKind === "video" && !draft.videoUrl) {
                   setError(t.mediaNeed);
+                  return;
+                }
+                if (draft.mediaKind === "text" && !draft.title.trim() && !draft.description.trim() && !paste.trim()) {
+                  setError(t.needFields);
                   return;
                 }
                 if (spoken && !draft.transcript?.trim() && !draft.description.trim() && !draft.voiceUrl && !draft.videoUrl) {

@@ -8,8 +8,8 @@ import { SellerHub } from "@/components/seller-hub";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
 import { CHANNEL_DEMO_POST, hasChannel, parseSellerChannel } from "@/lib/channels";
-import { MY_LISTING_IDS } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { mineListings } from "@/lib/listing-owner";
 import { useApp } from "@/lib/store";
 import { aiToDraftPatch, classifyListingSpeech } from "@/lib/video-ai";
 import type { SellerChannel } from "@/lib/types";
@@ -25,7 +25,7 @@ const ICONS: Record<SellerChannel, ReactNode> = {
 export default function FromChannelPage() {
   const raw = useParams<{ channel: string }>().channel;
   const channel = parseSellerChannel(raw);
-  const { t, lang, user, setPendingPath, setDraft, linkChannel, extraListings, allListings } = useApp();
+  const { t, lang, user, setPendingPath, setDraft, linkChannel, extraListings, allListings, shops } = useApp();
   const router = useRouter();
   const [paste, setPaste] = useState("");
   const [busy, setBusy] = useState("");
@@ -40,11 +40,10 @@ export default function FromChannelPage() {
           ? t.bridgeWa
           : t.bridgeIg;
   const linked = channel ? hasChannel(user, channel) : false;
-  const mine = useMemo(() => {
-    const extras = extraListings;
-    const seeded = MY_LISTING_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
-    return [...extras, ...seeded].filter((item, i, all) => all.findIndex((row) => row && row.id === item?.id) === i);
-  }, [allListings, extraListings]);
+  const mine = useMemo(
+    () => mineListings(allListings, extraListings, user, shops),
+    [allListings, extraListings, shops, user],
+  );
   const listing = mine.find((item) => item && item.id === pickedId) ?? mine[0];
 
   if (!channel) {
@@ -146,6 +145,7 @@ export default function FromChannelPage() {
           </button>
         </div>
 
+        {channel !== "instagram" ? (
         <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
           <div className="font-display text-[16px] font-bold text-ink">2. {t.channelAct2Title}</div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelAct2Body(name)}</p>
@@ -170,9 +170,10 @@ export default function FromChannelPage() {
             {t.channelImport}
           </button>
         </div>
+        ) : null}
 
         <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
-          <div className="font-display text-[16px] font-bold text-ink">3. {t.channelAct3Title}</div>
+          <div className="font-display text-[16px] font-bold text-ink">{channel === "instagram" ? "2" : "3"}. {t.channelAct3Title}</div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.channelAct3Body(name)}</p>
           {mine.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -200,15 +201,6 @@ export default function FromChannelPage() {
           </button>
         </div>
 
-        {channel === "instagram" ? (
-          <button
-            type="button"
-            onClick={() => router.push("/story/apt-sunny")}
-            className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
-          >
-            {t.igExample}
-          </button>
-        ) : null}
         {busy ? <p className="mt-3 text-[13px] font-semibold text-success-ink">{busy}</p> : null}
       </div>
     </PhoneShell>

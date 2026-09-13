@@ -273,11 +273,8 @@ export default function FiltersPage() {
         <div>
           <Eyebrow>{t.category}</Eyebrow>
           <div className="mt-2.5 flex flex-wrap gap-2">
-            <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
-              {t.allCategories}
-            </Chip>
             {SERVICE_CATEGORIES.map((c) => (
-              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+              <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: filters.category === c ? null : c })}>
                 {t.cats[c]}
               </Chip>
             ))}

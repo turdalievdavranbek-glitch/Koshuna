@@ -255,6 +255,9 @@ export function MediaCapture({ draft, onPatch }: Props) {
                 </button>
               </div>
               {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="w-full" /> : null}
+              {!draft.transcript && !draft.voiceUrl ? (
+                <p className="text-[12px] leading-[1.4] text-muted">{t.mediaSilentHint}</p>
+              ) : null}
               </>
             ) : (
               <div className="flex gap-2">
