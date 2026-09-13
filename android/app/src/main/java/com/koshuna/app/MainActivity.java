@@ -8,11 +8,13 @@ import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
+import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
     private static final int MEDIA_PERMISSIONS_REQUEST = 4281;
+    private boolean webViewConfigured = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -21,14 +23,11 @@ public class MainActivity extends BridgeActivity {
         configureWebView();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        configureWebView();
-    }
-
     @SuppressLint("SetJavaScriptEnabled")
     private void configureWebView() {
+        if (webViewConfigured) {
+            return;
+        }
         if (getBridge() == null || getBridge().getWebView() == null) {
             return;
         }
@@ -41,24 +40,9 @@ public class MainActivity extends BridgeActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        if (getBridge() != null) {
-            webView.setWebChromeClient(
-                new BridgeWebChromeClient(getBridge()) {
-                    @Override
-                    public void onPermissionRequest(PermissionRequest request) {
-                        request.grant(request.getResources());
-                    }
-
-                    @Override
-                    public void onGeolocationPermissionsShowPrompt(
-                        String origin,
-                        GeolocationPermissions.Callback callback
-                    ) {
-                        callback.invoke(origin, true, false);
-                    }
-                }
-            );
-        }
+        // Constructed only from onCreate (CREATED), never from onResume (STARTED).
+        webView.setWebChromeClient(new KoshunaWebChromeClient(getBridge()));
+        webViewConfigured = true;
     }
 
     private void requestRuntimePermissions() {
@@ -73,5 +57,29 @@ public class MainActivity extends BridgeActivity {
             },
             MEDIA_PERMISSIONS_REQUEST
         );
+    }
+
+    /**
+     * Extends Capacitor's chrome client so file-chooser / activity-result
+     * launchers register during onCreate, then auto-grants WebView camera,
+     * mic, and geolocation after those Android permissions are requested.
+     */
+    private static final class KoshunaWebChromeClient extends BridgeWebChromeClient {
+        KoshunaWebChromeClient(Bridge bridge) {
+            super(bridge);
+        }
+
+        @Override
+        public void onPermissionRequest(PermissionRequest request) {
+            request.grant(request.getResources());
+        }
+
+        @Override
+        public void onGeolocationPermissionsShowPrompt(
+            String origin,
+            GeolocationPermissions.Callback callback
+        ) {
+            callback.invoke(origin, true, false);
+        }
     }
 }
