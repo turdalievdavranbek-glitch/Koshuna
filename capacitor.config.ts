@@ -1,18 +1,17 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Tunnel-dependent WebView shell (last resort).
- * next.config output:'export' breaks critical App Router routes
- * (e.g. /chat/[id], /listing/[id], /section/[id], shop APIs) without UI rewrites.
+ * WebView shell loads the live VPS (nginx → Next).
+ * Use the IP until koshuna.ru DNS is ready; HTTP needs cleartext.
  */
 const config: CapacitorConfig = {
   appId: "com.koshuna.app",
   appName: "Koshuna",
   webDir: "public",
   server: {
-    url: "https://arg-cell-bedford-postcards.trycloudflare.com",
-    cleartext: false,
-    androidScheme: "https",
+    url: "http://147.45.98.245",
+    cleartext: true,
+    androidScheme: "http",
   },
   android: {
     allowMixedContent: true,
