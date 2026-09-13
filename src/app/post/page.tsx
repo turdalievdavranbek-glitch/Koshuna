@@ -527,12 +527,15 @@ export default function PostPage() {
             ) : null}
             {error ? <p className="mt-3 text-[13px] text-accent">{error}</p> : null}
           </div>
-          <div className="flex shrink-0 gap-2.5 border-t border-line px-5 pb-[26px] pt-3.5">
+          <div className="relative z-20 flex shrink-0 flex-col gap-2 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
+            {error ? <p className="text-[13px] text-accent">{error}</p> : null}
+            <div className="flex gap-2.5">
             <button type="button" onClick={() => setStep(1)} className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold">
               {t.edit}
             </button>
             <button
               type="button"
+              data-testid="post-publish"
               onClick={() => {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (spoken && !draft.aiConfirmed) {
@@ -562,6 +565,7 @@ export default function PostPage() {
             >
               {t.publish}
             </button>
+            </div>
           </div>
         </>
       ) : null}
