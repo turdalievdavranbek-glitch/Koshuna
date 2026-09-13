@@ -17,7 +17,7 @@ export function RestaurantChips({ labeled, list }: { labeled?: boolean; list?: b
             label: t.cats[c],
             active: filters.category === c,
             onClick: () => setFilters({ category: filters.category === c ? null : c }),
-          })),
+          }))}
       />
     );
   }

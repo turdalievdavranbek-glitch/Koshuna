@@ -32,8 +32,8 @@ export function SecondhandChips({ labeled, list }: { labeled?: boolean; list?: b
               id: c,
               label: t.cats[c],
               active: filters.category === c,
-              onClick: () => pickCategory(c),
-            })),
+              onClick: () => pickCategory(filters.category === c ? null : c),
+            }))}
         />
         {kinds.length ? (
           <SectionList

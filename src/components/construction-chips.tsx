@@ -17,7 +17,7 @@ export function ConstructionChips({ labeled, list }: { labeled?: boolean; list?:
             label: t.cats[c],
             active: filters.category === c,
             onClick: () => setFilters({ category: filters.category === c ? null : c }),
-          })),
+          }))}
       />
     );
   }

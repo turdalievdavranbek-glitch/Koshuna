@@ -10,7 +10,8 @@ import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
-import { SHOP_CATEGORIES } from "@/lib/shops";
+import {
+  assortmentKey,
   assortmentUseCount,
   canReuseAssortment,
   isOwnShop,

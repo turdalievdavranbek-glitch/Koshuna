@@ -150,7 +150,7 @@ export function SectionExtras() {
             label: t.cats[c],
             active: filters.category === c,
             onClick: () => setFilters({ category: filters.category === c ? null : c }),
-          })),
+          }))}
       />
     );
   }
