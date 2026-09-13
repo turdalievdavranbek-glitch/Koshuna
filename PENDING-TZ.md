@@ -24,4 +24,8 @@
 
 ## Ссылки
 - GitHub: https://github.com/turdalievdavranbek-glitch/Koshuna
-- Ветка: `cursor/pending-tz-finish-050b`
+- PR: https://github.com/turdalievdavranbek-glitch/Koshuna/pull/2
+- Приложение: https://arg-cell-bedford-postcards.trycloudflare.com
+- APK: https://penguin-blacks-bars-threatening.trycloudflare.com/Koshuna-tiles-checkpoint.apk
+- APK sha256: `b1dbf648dc9f73e7bb4bd97ae89f2857fda7ae8d631118a2420829909b900847` (6034410 bytes)
+- Файл: `/opt/cursor/artifacts/Koshuna-tiles-checkpoint.apk`
