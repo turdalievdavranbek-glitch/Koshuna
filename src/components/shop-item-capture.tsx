@@ -234,11 +234,13 @@ export function ShopItemCapture({
     stopCam();
   };
 
-  const startVoice = async () => {
+  const startVoice = async (cover?: string) => {
     setError("");
     setNote("");
     setMapPin(null);
-    if (!photo) {
+    const shot = cover || photo;
+    if (cover) setPhoto(cover);
+    if (!shot) {
       setError(t.shopItemNeedPhoto);
       return;
     }
@@ -339,9 +341,17 @@ export function ShopItemCapture({
     const url = URL.createObjectURL(blob);
     try {
       const stills = await sampleVideoStills(url, shopVideoMaxStills());
-      await applyTranscript(spokenRef.current, stills, "video");
+      if (stills[0]) setPhoto(stills[0]);
+      if (spokenRef.current.trim()) {
+        await applyTranscript(spokenRef.current, stills, "video");
+      } else {
+        window.setTimeout(() => {
+          void startVoice(stills[0]);
+        }, 400);
+      }
     } catch {
-      setError(t.shopAiNeedSpeech);
+      if (spokenRef.current.trim()) setError(t.shopAiNeedSpeech);
+      else window.setTimeout(() => void startVoice(), 400);
     } finally {
       URL.revokeObjectURL(url);
     }

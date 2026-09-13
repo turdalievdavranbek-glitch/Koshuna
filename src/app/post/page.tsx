@@ -193,32 +193,52 @@ export default function PostPage() {
               <Field label={t.venueAddress}>
                 <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
               </Field>
-              <div className="flex gap-2.5">
-                <div className="flex-1">
-                  <Field label={t.city}>
-                    <select
-                      value={draft.city}
-                      onChange={(e) => {
-                        const city = e.target.value;
-                        const gis = GIS_CITIES[city] ?? gisCity(city);
-                        setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
-                      }}
-                      className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
-                    >
-                      {CITIES.filter((c) => c !== "all").map((c) => (
-                        <option key={c} value={c}>
-                          {t.cities[c]}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+              {bizCard ? (
+                <Field label={t.city}>
+                  <select
+                    value={draft.city}
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const gis = GIS_CITIES[city] ?? gisCity(city);
+                      setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+                    }}
+                    className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
+                  >
+                    {CITIES.filter((c) => c !== "all").map((c) => (
+                      <option key={c} value={c}>
+                        {t.cities[c]}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <div className="flex gap-2.5">
+                  <div className="flex-1">
+                    <Field label={t.city}>
+                      <select
+                        value={draft.city}
+                        onChange={(e) => {
+                          const city = e.target.value;
+                          const gis = GIS_CITIES[city] ?? gisCity(city);
+                          setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+                        }}
+                        className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
+                      >
+                        {CITIES.filter((c) => c !== "all").map((c) => (
+                          <option key={c} value={c}>
+                            {t.cities[c]}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="flex-1">
+                    <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                      <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
+                    </Field>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
-                    <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
-                  </Field>
-                </div>
-              </div>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -234,7 +254,35 @@ export default function PostPage() {
               >
                 {t.locationGeo}
               </button>
+              {bizCard ? (
+                <Field label={t.mapPoint}>
+                  <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
+                  <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
+                    <GisMap
+                      center={{
+                        lat: draft.lat ?? gisCity(draft.city).lat,
+                        lng: draft.lng ?? gisCity(draft.city).lng,
+                      }}
+                      zoom={draft.lat != null ? 15 : gisCity(draft.city).zoom}
+                      pick={
+                        draft.lat != null && draft.lng != null
+                          ? { lat: draft.lat, lng: draft.lng }
+                          : { lat: gisCity(draft.city).lat, lng: gisCity(draft.city).lng }
+                      }
+                      onPick={(lat, lng) => {
+                        const area = nearestDistrict(lat, lng, draft.city);
+                        setDraft({ lat, lng, district: area?.name });
+                      }}
+                    />
+                  </div>
+                </Field>
+              ) : null}
               <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {bizCard ? (
+                <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                  <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
+                </Field>
+              ) : null}
               {bizCard ? null : draft.section === "restaurants" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
@@ -345,6 +393,7 @@ export default function PostPage() {
                   />
                 </Field>
               )}
+              {bizCard ? null : (
               <Field label={t.mapPoint}>
                 <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
                 <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
@@ -366,6 +415,7 @@ export default function PostPage() {
                   />
                 </div>
               </Field>
+              )}
             </div>
 
             {bizCard ? null : (

@@ -42,11 +42,13 @@ export function ListingThumb({
   alt,
   compact,
   className,
+  playInline,
 }: {
   listing: { id?: string; ownerId?: string; sellerMethod?: AuthMethod; sellerCardLinked?: boolean; photos: string[]; mediaKind?: string; videoUrl?: string; voiceUrl?: string };
   alt: string;
   compact?: boolean;
   className?: string;
+  playInline?: boolean;
 }) {
   const video = isVideoListing(listing);
   const inner = video ? "rounded-full" : "rounded-[10px]";
@@ -56,7 +58,11 @@ export function ListingThumb({
       style={video ? { background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" } : undefined}
     >
       <div className={`relative aspect-square overflow-hidden bg-chip ${inner}`}>
-        <Photo src={listing.photos[0]} alt={alt} />
+        {playInline && video && listing.videoUrl ? (
+          <video src={listing.videoUrl} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+        ) : (
+          <Photo src={listing.photos[0]} alt={alt} />
+        )}
         {video ? <PlayBadge compact={compact} /> : isVoiceListing(listing) ? <VoiceBadge compact={compact} /> : null}
         {listing.id && listing.ownerId ? (
           <SellerStarsBadge

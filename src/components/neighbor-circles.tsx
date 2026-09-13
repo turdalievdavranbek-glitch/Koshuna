@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CIRCLE_TTL_MS, pickNeighborCircles, resetCircleCache } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
@@ -16,10 +16,14 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   const [tick, setTick] = useState(0);
   const scope = { city: filters.city && filters.city !== "all" ? filters.city : city, oblast: filters.oblast };
   const scopeKey = `${scope.city}|${scope.oblast}`;
+  const prevScope = useRef<string | null>(null);
 
   useEffect(() => {
-    resetCircleCache();
-    setTick((n) => n + 1);
+    if (prevScope.current !== null && prevScope.current !== scopeKey) {
+      resetCircleCache();
+      setTick((n) => n + 1);
+    }
+    prevScope.current = scopeKey;
   }, [scopeKey]);
 
   useEffect(() => {
@@ -49,7 +53,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
                 onClick={() => router.push(`/listing/${item.id}`)}
                 className="flex w-[76px] shrink-0 flex-col items-center text-center"
               >
-                <ListingThumb listing={item} alt={title} compact className="w-[60px]" />
+                <ListingThumb listing={item} alt={title} compact playInline className="w-[60px]" />
                 <div className="mt-1 w-full truncate text-[10px] font-bold leading-[1.2] text-ink">{title}</div>
                 <div className="w-full truncate text-[9px] leading-[1.2] text-muted">
                   {formatSom(item.price)} · {t.cities[item.city]}

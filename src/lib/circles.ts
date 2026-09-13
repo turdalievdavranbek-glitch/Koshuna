@@ -18,7 +18,36 @@ export type CirclePick = {
 
 type CacheRow = { key: string; at: number; ids: string[] };
 
+const CACHE_KEY = "koshuna-circle-cache";
+
 let cache: CacheRow | null = null;
+
+function loadCache(): CacheRow | null {
+  if (cache) return cache;
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheRow;
+    if (parsed && typeof parsed.at === "number" && Array.isArray(parsed.ids) && typeof parsed.key === "string") {
+      cache = parsed;
+      return cache;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function saveCache(row: CacheRow) {
+  cache = row;
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(row));
+  } catch {
+    /* ignore */
+  }
+}
 
 export function engagementScore(
   id: string,
@@ -65,10 +94,11 @@ export function pickNeighborCircles(
 ): CirclePick {
   const stamp = all.filter(isVideoListing).map((item) => item.id).sort();
   const key = scopeKey(scope, stamp);
-  if (!force && cache && cache.key === key && now - cache.at < CIRCLE_TTL_MS) {
+  const hit = force ? null : loadCache();
+  if (hit && hit.key === key && now - hit.at < CIRCLE_TTL_MS) {
     const map = new Map(all.map((item) => [item.id, item]));
     return {
-      listings: cache.ids.map((id) => map.get(id)).filter((item): item is Listing => Boolean(item)),
+      listings: hit.ids.map((id) => map.get(id)).filter((item): item is Listing => Boolean(item)),
       widened: false,
     };
   }
@@ -76,10 +106,16 @@ export function pickNeighborCircles(
   const listings = rankVideos(all, reactions, comments)
     .filter((item) => inSelectedRegion(item, scope))
     .slice(0, CIRCLE_MAX);
-  cache = { key, at: now, ids: listings.map((item) => item.id) };
+  saveCache({ key, at: now, ids: listings.map((item) => item.id) });
   return { listings, widened: false };
 }
 
 export function resetCircleCache() {
   cache = null;
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
