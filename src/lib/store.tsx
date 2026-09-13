@@ -822,6 +822,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         status: "draft",
       });
       update((s) => ({
+        ...s,
         extraListings: upsertExtraListing(s.extraListings, listing),
         draft: { ...s.draft, id: listing.id },
         side: "sell",
@@ -830,6 +831,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     markInboxRead: () =>
       update((s) => ({
+        ...s,
         threads: s.threads.map((th) => ({ ...th, unread: false })),
         savedSearches: s.savedSearches.map((row) => ({ ...row, newCount: 0 })),
       })),
@@ -843,6 +845,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         status: d.promote ? "promoted" : "active",
       });
       update((s) => ({
+        ...s,
         extraListings: upsertExtraListing(s.extraListings, listing),
         draft: { ...s.draft, id: listing.id },
         side: "sell",
