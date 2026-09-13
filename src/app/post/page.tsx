@@ -41,7 +41,6 @@ export default function PostPage() {
         dealKind: "buy",
         realtyGroup: "apartments",
         neighborPledge: false,
-        sellerType: "realtor",
       });
     }
     if (card === "dealer") {
@@ -49,6 +48,12 @@ export default function PostPage() {
         ...pickSection(draft, "cars"),
         neighborPledge: false,
         sellerType: "dealer",
+      });
+    }
+    if (card === "cafe") {
+      setDraft({
+        ...pickSection(draft, "restaurants"),
+        neighborPledge: false,
       });
     }
     // Apply once when opening a seller-card shortcut.
@@ -76,6 +81,7 @@ export default function PostPage() {
 
   if (!user) return null;
 
+  const bizCard = entryCard === "developer" || entryCard === "dealer" || entryCard === "cafe";
   const published = publishedId ? allListings.find((item) => item.id === publishedId) : undefined;
 
   const bars = [step >= 1, step >= 2, step >= 3];
@@ -175,7 +181,9 @@ export default function PostPage() {
               {entryCard === "dealer" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDealerHint}</p>
               ) : null}
-              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {entryCard === "cafe" ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardCafeHint}</p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-3.5">
@@ -211,7 +219,23 @@ export default function PostPage() {
                   </Field>
                 </div>
               </div>
-              {draft.section === "restaurants" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!navigator.geolocation) return;
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const area = nearestDistrict(lat, lng, draft.city);
+                    setDraft({ lat, lng, district: area?.name });
+                  });
+                }}
+                className="h-11 rounded-[14px] border border-line bg-white text-[13px] font-semibold"
+              >
+                {t.locationGeo}
+              </button>
+              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {bizCard ? null : draft.section === "restaurants" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.caloriesField}>
@@ -225,7 +249,7 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              {draft.kind === "rent" ? (
+              {bizCard ? null : draft.kind === "rent" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.roomsField}>
@@ -239,7 +263,7 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              {draft.section === "cars" || draft.section === "car-rental" ? (
+              {bizCard ? null : draft.section === "cars" || draft.section === "car-rental" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.yearField}>
@@ -261,20 +285,24 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="flex gap-2.5">
-                <div className="flex-1">
-                  <Field label={t.yourName}>
-                    <Input value={draft.name} onChange={(v) => setDraft({ name: v })} />
-                  </Field>
-                </div>
-                <div className="flex-1">
-                  <Field label={t.phone}>
-                    <Input value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
-                  </Field>
-                </div>
-              </div>
-              <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
-              {hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
+              {bizCard ? null : (
+                <>
+                  <div className="flex gap-2.5">
+                    <div className="flex-1">
+                      <Field label={t.yourName}>
+                        <Input value={draft.name} onChange={(v) => setDraft({ name: v })} />
+                      </Field>
+                    </div>
+                    <div className="flex-1">
+                      <Field label={t.phone}>
+                        <Input value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
+                      </Field>
+                    </div>
+                  </div>
+                  <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
+                </>
+              )}
+              {bizCard || hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
                 <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                   <div>
                     <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
@@ -286,7 +314,7 @@ export default function PostPage() {
                   />
                 </div>
               )}
-              {draft.section === "secondhand" || draft.section === "animals" || draft.section === "construction" ? (
+              {bizCard || (draft.section !== "secondhand" && draft.section !== "animals" && draft.section !== "construction") ? null : (
                 <div>
                   <Eyebrow>{t.goMeetTitle}</Eyebrow>
                   <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.goMeetHint}</p>
@@ -306,15 +334,17 @@ export default function PostPage() {
                     ))}
                   </div>
                 </div>
-              ) : null}
-              <Field label={t.description}>
-                <textarea
-                  value={draft.description}
-                  onChange={(e) => setDraft({ description: e.target.value })}
-                  placeholder={t.descPh}
-                  className="min-h-[88px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
-                />
-              </Field>
+              )}
+              {bizCard ? null : (
+                <Field label={t.description}>
+                  <textarea
+                    value={draft.description}
+                    onChange={(e) => setDraft({ description: e.target.value })}
+                    placeholder={t.descPh}
+                    className="min-h-[88px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
+                  />
+                </Field>
+              )}
               <Field label={t.mapPoint}>
                 <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
                 <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
@@ -338,6 +368,7 @@ export default function PostPage() {
               </Field>
             </div>
 
+            {bizCard ? null : (
             <div className="rounded-[18px] bg-ink p-4">
               <div className="flex items-center justify-between">
                 <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
@@ -345,6 +376,7 @@ export default function PostPage() {
               </div>
               <p className="mt-2 text-[13px] leading-[1.5] text-[rgba(247,243,236,.72)]">{t.promoteHint}</p>
             </div>
+            )}
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
           </div>
           <div className="flex shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">

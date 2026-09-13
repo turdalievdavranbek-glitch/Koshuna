@@ -13,6 +13,7 @@ import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { SellerHub } from "@/components/seller-hub";
+import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { SideSwitch } from "@/components/side-switch";
 import { MyListings } from "@/components/my-listings";
 import { KonshuBridges } from "@/components/konshu-bridges";
@@ -155,6 +156,9 @@ export default function ProfilePage() {
               </button>
             </div>
             <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+            <div className="mt-3">
+              <SellerEntryCards />
+            </div>
             <button
               type="button"
               onClick={() => router.push("/shops/quick")}

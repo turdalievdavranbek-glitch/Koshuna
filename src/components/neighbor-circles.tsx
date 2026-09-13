@@ -28,7 +28,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   }, []);
 
   const { listings: videos } = useMemo(
-    () => pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), true),
+    () => pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), false),
     [allListings, scope.city, scope.oblast, comments, reactions, tick],
   );
 

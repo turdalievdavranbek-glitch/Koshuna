@@ -566,40 +566,6 @@ export function ShopItemCapture({
         </Chip>
       </div>
 
-      {card ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <Field label={t.shopName}>
-            <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
-          </Field>
-          <Field label={t.venueAddress}>
-            <Input value={placeAddress} onChange={setPlaceAddress} />
-          </Field>
-          <button
-            type="button"
-            onClick={() => {
-              if (!navigator.geolocation) return;
-              navigator.geolocation.getCurrentPosition((pos) => {
-                setPlaceLat(pos.coords.latitude);
-                setPlaceLng(pos.coords.longitude);
-              });
-            }}
-            className="h-10 rounded-xl border border-line text-[13px] font-semibold"
-          >
-            {t.locationGeo}
-          </button>
-          <div className="flex flex-wrap gap-2">
-            {SHOP_CATEGORIES.map((id) => (
-              <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>
-                {t.shopCats[id]}
-              </Chip>
-            ))}
-          </div>
-          <Field label={t.shopHoursOptional}>
-            <Input value={hoursNote} onChange={setHoursNote} />
-          </Field>
-        </div>
-      ) : null}
-
       {confirming ? (
         <div className="mt-4">
           <div className="font-display text-[16px] font-bold text-ink">{t.shopDraftsTitle}</div>
@@ -760,6 +726,7 @@ export function ShopItemCapture({
               >
                 {recording ? t.mediaStop : t.mediaAddVoice}
               </button>
+              {!spoken ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.mediaSilentHint}</p> : null}
             </>
           ) : null}
 
@@ -792,6 +759,40 @@ export function ShopItemCapture({
               e.target.value = "";
             }}
           />
+
+          {card ? (
+            <div className="mt-3 flex flex-col gap-3">
+              <Field label={t.shopName}>
+                <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
+              </Field>
+              <Field label={t.venueAddress}>
+                <Input value={placeAddress} onChange={setPlaceAddress} />
+              </Field>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!navigator.geolocation) return;
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    setPlaceLat(pos.coords.latitude);
+                    setPlaceLng(pos.coords.longitude);
+                  });
+                }}
+                className="h-10 rounded-xl border border-line text-[13px] font-semibold"
+              >
+                {t.locationGeo}
+              </button>
+              <div className="flex flex-wrap gap-2">
+                {SHOP_CATEGORIES.map((id) => (
+                  <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>
+                    {t.shopCats[id]}
+                  </Chip>
+                ))}
+              </div>
+              <Field label={t.shopHoursOptional}>
+                <Input value={hoursNote} onChange={setHoursNote} />
+              </Field>
+            </div>
+          ) : null}
 
           {mode === "photos" ? (
             <div className="mt-4 flex flex-col gap-3">

@@ -252,8 +252,8 @@ export function RestaurantMenuCapture() {
 
   const goNeedPlace = () => {
     setPendingPath(here);
-    setDraft({ section: "restaurants", kind: "goods", category: "national" });
-    router.push("/post");
+    setDraft({ section: "restaurants", kind: "goods", category: "national", neighborPledge: false });
+    router.push("/post?card=cafe");
   };
 
   const toDish = (row: MenuItemDraft, index: number): RestaurantDish => ({
