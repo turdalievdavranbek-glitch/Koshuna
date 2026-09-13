@@ -142,6 +142,136 @@ const defaultDraft = (): DraftListing => ({
   dealKind: "long",
 });
 
+function userListingFromDraft(
+  d: DraftListing,
+  ctx: {
+    user: User | null;
+    dealerProfiles: DealerProfile[];
+    untitled: string;
+    status: Listing["status"];
+  },
+): Listing {
+  const isCar = d.section === "cars" || d.section === "car-rental";
+  const dealer =
+    isCar && hasRole(ctx.user, "dealer")
+      ? ctx.dealerProfiles.find((row) => ctx.user && phoneDigitsMatch(row.userPhone, ctx.user.phone))
+      : undefined;
+  const asRealtor = !dealer && hasRole(ctx.user, "realtor") && d.section === "rent";
+  const sellerType = dealer ? "dealer" : asRealtor ? "realtor" : "owner";
+  const title = d.title.trim() || ctx.untitled;
+  return {
+    id: d.id && d.id.startsWith("user-") ? d.id : `user-${Date.now()}`,
+    section: d.section,
+    category:
+      d.section === "vacancies"
+        ? undefined
+        : d.section === "services"
+          ? d.category ?? "repairs-finish"
+          : d.section === "secondhand"
+            ? d.category ?? "furniture"
+            : d.section === "construction"
+              ? d.category ?? "cement"
+              : d.section === "restaurants"
+                ? d.category ?? "national"
+                : d.section === "shops"
+                  ? d.category ?? "food"
+                  : d.kind === "rent"
+                    ? "rent"
+                    : "furniture",
+    goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
+    housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
+    dealKind: d.section === "rent" ? d.dealKind ?? "long" : undefined,
+    realtyGroup: d.section === "rent" ? d.realtyGroup : undefined,
+    realtySub: d.section === "rent" ? d.realtySub : undefined,
+    realtyKind: d.section === "rent" ? d.realtyKind : undefined,
+    sellerType,
+    sellerPhone: dealer?.phone ?? ctx.user?.phone,
+    dealerId: dealer?.id,
+    animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
+    animalKind: d.section === "animals" ? d.animalKind : undefined,
+    carMake: isCar ? d.carMake : undefined,
+    carModel: isCar ? d.carModel : undefined,
+    vehicleGroup: isCar ? d.vehicleGroup ?? "passenger" : undefined,
+    bodyKind: isCar ? d.vehicleType : undefined,
+    year: isCar ? d.year : undefined,
+    mileage: isCar ? d.mileage : undefined,
+    gearKind: isCar ? d.gearKind : undefined,
+    techBrand: d.section === "secondhand" ? d.techBrand : undefined,
+    techModel: d.section === "secondhand" ? d.techModel : undefined,
+    jobSphere: d.section === "vacancies" ? d.jobSphere : undefined,
+    jobSub: d.section === "vacancies" ? d.jobSub : undefined,
+    jobRole: d.section === "vacancies" ? d.jobRole : undefined,
+    jobType: d.section === "vacancies" ? d.jobType : undefined,
+    title,
+    titleKy: title,
+    titleEn: title,
+    price: Number(d.price.replace(/\s/g, "")) || 0,
+    unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy") ? "month" : undefined,
+    city: d.city,
+    postedAgo: "2h",
+    rooms: d.rooms ? Number(d.rooms) : undefined,
+    area: d.area ? Number(d.area) : undefined,
+    photos: [d.photo || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70"],
+    photoCredit: "Demo",
+    mediaKind: d.mediaKind ?? "photos",
+    videoUrl: d.videoUrl,
+    voiceUrl: d.voiceUrl,
+    transcript: d.transcript,
+    address: d.address,
+    foodType: d.foodType,
+    calories: d.calories,
+    ingredients: d.ingredients,
+    voiceText: d.transcript,
+    voiceSec: d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined,
+    description: d.description || d.transcript || title,
+    descriptionKy: d.description || title,
+    descriptionEn: d.description || title,
+    ownerId: "aida",
+    sellerName: dealer?.companyName ?? ctx.user?.name,
+    hasPhoto: true,
+    verified: sellerType !== "owner" ? true : showsNeighborPledge(d.section) && d.neighborPledge !== false,
+    noAgent: sellerType !== "owner" ? false : showsNeighborPledge(d.section) && d.neighborPledge !== false,
+    status: ctx.status,
+    safetyKind: d.kind === "rent" ? "home" : "goods",
+    mapX: 40,
+    mapY: 40,
+    contact: dealer ? "telegram" : "whatsapp",
+    views: 0,
+    favCount: 0,
+    ...(() => {
+      const coords = publishCoords({
+        lat: d.lat,
+        lng: d.lng,
+        city: d.city,
+        meetupSpot: d.meetupSpot,
+        fallbackLat: dealer?.lat,
+        fallbackLng: dealer?.lng,
+      });
+      const area = nearestDistrict(coords.lat, coords.lng, d.city);
+      return {
+        lat: coords.lat,
+        lng: coords.lng,
+        district: d.district ?? area?.name,
+      };
+    })(),
+    meetupSpot: d.meetupSpot,
+    specs: isCar
+      ? [
+          d.year ? { label: "year", value: String(d.year) } : null,
+          d.mileage ? { label: "mileage", value: `${d.mileage.toLocaleString("ru-RU")} км` } : null,
+          d.gearKind ? { label: "gear", value: d.gearKind === "auto" ? "Автомат" : "Механика" } : null,
+        ].filter((row): row is { label: string; value: string } => Boolean(row))
+      : undefined,
+  };
+}
+
+function upsertExtraListing(extra: Listing[], listing: Listing): Listing[] {
+  if (extra.some((item) => item.id === listing.id)) {
+    return extra.map((item) => (item.id === listing.id ? listing : item));
+  }
+  return [listing, ...extra];
+}
+
 type State = {
   user: User | null;
   lang: Lang;
@@ -239,6 +369,8 @@ type Store = State & {
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
   publishDraft: () => Listing | null;
+  saveDraft: () => Listing | null;
+  markInboxRead: () => void;
   updateListing: (id: string, patch: Partial<Listing>) => void;
   ensureMeetDeal: (listingId: string, reservedById: string) => void;
   clearMeetDeal: (listingId: string) => void;
@@ -250,7 +382,6 @@ type Store = State & {
   declineMeet: (listingId: string) => void;
   leaveForMeet: (listingId: string) => void;
   clearPostedDraft: () => void;
-  saveDraft: () => void;
   addMessage: (threadId: string, text: string, from?: ChatMessage["from"]) => void;
   ensureThread: (listingId: string) => string;
   toggleSearchNotify: (id: string) => void;
@@ -683,122 +814,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     requireAuth: () => Boolean(state.user),
     setPendingPath: (path) => update({ pendingPath: path }),
     setDraft: (patch) => update((s) => ({ ...s, draft: { ...s.draft, ...patch } })),
-    saveDraft: () => update({ draft: { ...state.draft } }),
+    saveDraft: () => {
+      const listing = userListingFromDraft(state.draft, {
+        user: state.user,
+        dealerProfiles: state.dealerProfiles,
+        untitled: t.draft,
+        status: "draft",
+      });
+      update((s) => ({
+        ...s,
+        extraListings: upsertExtraListing(s.extraListings, listing),
+        draft: { ...s.draft, id: listing.id },
+        side: "sell",
+      }));
+      return listing;
+    },
+    markInboxRead: () =>
+      update((s) => ({
+        ...s,
+        threads: s.threads.map((th) => ({ ...th, unread: false })),
+        savedSearches: s.savedSearches.map((row) => ({ ...row, newCount: 0 })),
+      })),
     publishDraft: () => {
       const d = state.draft;
       if (!d.title.trim() || !d.price.trim()) return null;
-      const isCar = d.section === "cars" || d.section === "car-rental";
-      const dealer =
-        isCar && hasRole(state.user, "dealer")
-          ? state.dealerProfiles.find((row) => state.user && phoneDigitsMatch(row.userPhone, state.user.phone))
-          : undefined;
-      const asRealtor = !dealer && hasRole(state.user, "realtor") && d.section === "rent";
-      const sellerType = dealer ? "dealer" : asRealtor ? "realtor" : "owner";
-      const listing: Listing = {
-        id: `user-${Date.now()}`,
-        section: d.section,
-        category:
-          d.section === "vacancies"
-            ? undefined
-            : d.section === "services"
-              ? d.category ?? "repairs-finish"
-              : d.section === "secondhand"
-                ? d.category ?? "furniture"
-                : d.section === "construction"
-                  ? d.category ?? "cement"
-                  : d.section === "restaurants"
-                    ? d.category ?? "national"
-                    : d.section === "shops"
-                      ? d.category ?? "food"
-                      : d.kind === "rent"
-                        ? "rent"
-                        : "furniture",
-        goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
-        housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
-        dealKind: d.section === "rent" ? d.dealKind ?? "long" : undefined,
-        realtyGroup: d.section === "rent" ? d.realtyGroup : undefined,
-        realtySub: d.section === "rent" ? d.realtySub : undefined,
-        realtyKind: d.section === "rent" ? d.realtyKind : undefined,
-        sellerType,
-        sellerPhone: dealer?.phone ?? state.user?.phone,
-        dealerId: dealer?.id,
-        animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
-        animalKind: d.section === "animals" ? d.animalKind : undefined,
-        carMake: isCar ? d.carMake : undefined,
-        carModel: isCar ? d.carModel : undefined,
-        vehicleGroup: isCar ? d.vehicleGroup ?? "passenger" : undefined,
-        bodyKind: isCar ? d.vehicleType : undefined,
-        year: isCar ? d.year : undefined,
-        mileage: isCar ? d.mileage : undefined,
-        gearKind: isCar ? d.gearKind : undefined,
-        techBrand: d.section === "secondhand" ? d.techBrand : undefined,
-        techModel: d.section === "secondhand" ? d.techModel : undefined,
-        jobSphere: d.section === "vacancies" ? d.jobSphere : undefined,
-        jobSub: d.section === "vacancies" ? d.jobSub : undefined,
-        jobRole: d.section === "vacancies" ? d.jobRole : undefined,
-        jobType: d.section === "vacancies" ? d.jobType : undefined,
-        title: d.title,
-        titleKy: d.title,
-        titleEn: d.title,
-        price: Number(d.price.replace(/\s/g, "")) || 0,
-        unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy") ? "month" : undefined,
-        city: d.city,
-        postedAgo: "2h",
-        rooms: d.rooms ? Number(d.rooms) : undefined,
-        area: d.area ? Number(d.area) : undefined,
-        photos: [d.photo || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70"],
-        photoCredit: "Demo",
-        mediaKind: d.mediaKind ?? "photos",
-        videoUrl: d.videoUrl,
-        voiceUrl: d.voiceUrl,
-        transcript: d.transcript,
-        address: d.address,
-        foodType: d.foodType,
-        calories: d.calories,
-        ingredients: d.ingredients,
-        voiceText: d.transcript,
-        voiceSec: d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined,
-        description: d.description || d.transcript || d.title,
-        descriptionKy: d.description || d.title,
-        descriptionEn: d.description || d.title,
-        ownerId: "aida",
-        sellerName: dealer?.companyName ?? state.user?.name,
-        hasPhoto: true,
-        verified: sellerType !== "owner" ? true : showsNeighborPledge(d.section) && d.neighborPledge !== false,
-        noAgent: sellerType !== "owner" ? false : showsNeighborPledge(d.section) && d.neighborPledge !== false,
+      const listing = userListingFromDraft(d, {
+        user: state.user,
+        dealerProfiles: state.dealerProfiles,
+        untitled: t.draft,
         status: d.promote ? "promoted" : "active",
-        safetyKind: d.kind === "rent" ? "home" : "goods",
-        mapX: 40,
-        mapY: 40,
-        contact: dealer ? "telegram" : "whatsapp",
-        views: 0,
-        favCount: 0,
-        ...(() => {
-          const coords = publishCoords({
-            lat: d.lat,
-            lng: d.lng,
-            city: d.city,
-            meetupSpot: d.meetupSpot,
-            fallbackLat: dealer?.lat,
-            fallbackLng: dealer?.lng,
-          });
-          const area = nearestDistrict(coords.lat, coords.lng, d.city);
-          return {
-            lat: coords.lat,
-            lng: coords.lng,
-            district: d.district ?? area?.name,
-          };
-        })(),
-        meetupSpot: d.meetupSpot,
-        specs: isCar
-          ? [
-              d.year ? { label: "year", value: String(d.year) } : null,
-              d.mileage ? { label: "mileage", value: `${d.mileage.toLocaleString("ru-RU")} км` } : null,
-              d.gearKind ? { label: "gear", value: d.gearKind === "auto" ? "Автомат" : "Механика" } : null,
-            ].filter((row): row is { label: string; value: string } => Boolean(row))
-          : undefined,
-      };
-      update({ extraListings: [listing, ...state.extraListings], side: "sell" });
+      });
+      update((s) => ({
+        ...s,
+        extraListings: upsertExtraListing(s.extraListings, listing),
+        draft: { ...s.draft, id: listing.id },
+        side: "sell",
+      }));
       return listing;
     },
     updateListing: (id, patch) => {

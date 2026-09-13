@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { IconHeart, IconHome, IconListings, IconPin, IconPlus, IconUser } from "./icons";
@@ -13,6 +12,15 @@ export function TabBar() {
   const path = usePathname();
   const router = useRouter();
   const selling = side === "sell";
+
+  const go = (href: string) => {
+    if ((href === "/selling" || href === "/profile" || href === "/favorites") && !user) {
+      setPendingPath(href);
+      router.push("/login");
+      return;
+    }
+    router.push(href);
+  };
 
   const goPost = () => {
     if (!user) {
@@ -30,19 +38,21 @@ export function TabBar() {
     active: boolean,
     filled?: boolean,
   ) => (
-    <Link
-      href={href}
-      className="flex flex-1 flex-col items-center gap-1 pt-2 no-underline"
+    <button
+      type="button"
+      onClick={() => go(href)}
+      data-testid={`tab-${href.replace(/^\//, "") || "home"}`}
+      className="flex flex-1 flex-col items-center gap-1 pt-2"
     >
       <Icon size={21} color={active ? "#B8452F" : "#A79C8C"} filled={filled && active ? true : undefined} />
-      <span className="text-[10px] font-semibold" style={{ color: active ? "#B8452F" : "#A79C8C" }}>
+      <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#B8452F" : "#A79C8C" }}>
         {label}
       </span>
-    </Link>
+    </button>
   );
 
   return (
-    <nav className="flex h-[78px] shrink-0 items-center border-t border-line bg-surface pb-2 px-1.5">
+    <nav className="z-30 flex h-[78px] shrink-0 items-center border-t border-line bg-surface pb-2 px-1.5">
       {item("/", t.feed, IconHome, path === "/" || path.startsWith("/section"))}
       {item("/map", t.map, IconPin, path === "/map")}
       <div className="flex flex-1 justify-center">

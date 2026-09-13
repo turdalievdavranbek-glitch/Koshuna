@@ -43,19 +43,22 @@ export function ListingThumb({
   compact,
   className,
   playInline,
+  circle,
 }: {
   listing: { id?: string; ownerId?: string; sellerMethod?: AuthMethod; sellerCardLinked?: boolean; photos: string[]; mediaKind?: string; videoUrl?: string; voiceUrl?: string };
   alt: string;
   compact?: boolean;
   className?: string;
   playInline?: boolean;
+  circle?: boolean;
 }) {
   const video = isVideoListing(listing);
-  const inner = video ? "rounded-full" : "rounded-[10px]";
+  const round = video || circle;
+  const inner = round ? "rounded-full" : "rounded-[10px]";
   return (
     <div
-      className={`relative ${video ? "rounded-full p-[2.5px]" : ""} ${className ?? ""}`}
-      style={video ? { background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" } : undefined}
+      className={`relative ${round ? "rounded-full p-[2.5px]" : ""} ${className ?? ""}`}
+      style={round ? { background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" } : undefined}
     >
       <div className={`relative aspect-square overflow-hidden bg-chip ${inner}`}>
         {playInline && video && listing.videoUrl ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -7,8 +8,13 @@ import { RoundBtn } from "@/components/ui";
 import { useApp } from "@/lib/store";
 
 export default function NotificationsPage() {
-  const { t } = useApp();
+  const { t, markInboxRead } = useApp();
   const router = useRouter();
+  useEffect(() => {
+    markInboxRead();
+    // Store actions are new each render; mark once when opening the inbox.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const items = [
     { id: "1", text: t.notif1, time: "09:20" },
     { id: "2", text: t.notif2, time: "09:16" },

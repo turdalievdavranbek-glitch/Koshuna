@@ -6,7 +6,7 @@ import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
-import { familyShareText, shareListingLink } from "@/lib/share";
+import { shareListingLink } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -202,6 +202,9 @@ export default function ListingPage() {
             {title}
           </h1>
           <ListingStageBanner listing={listing} />
+          <div className="mt-4">
+            <Price listing={listing} large />
+          </div>
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
@@ -211,9 +214,6 @@ export default function ListingPage() {
               <GisOnMapCard city={listing.city} lat={listing.lat} lng={listing.lng} listingId={listing.id} compact />
             </div>
           ) : null}
-          <div className="mt-4">
-            <Price listing={listing} large />
-          </div>
           {listing.shopId
             ? (() => {
                 const shop = shops.find((item) => item.id === listing.shopId);
@@ -275,23 +275,13 @@ export default function ListingPage() {
           {personal ? <VoiceNote listing={listing} /> : null}
           <AiylRoad listing={listing} />
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => router.push(`/story/${listing.id}`)}
-              className="h-[48px] rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
-            >
-              {t.storyToIg}
-            </button>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(familyShareText(listing, t, lang))}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex h-[48px] items-center justify-center rounded-[14px] bg-success text-[13px] font-semibold text-white"
-            >
-              {t.showApa}
-            </a>
-          </div>
+          <button
+            type="button"
+            onClick={() => router.push(`/story/${listing.id}`)}
+            className="mt-3 h-[48px] w-full rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
+          >
+            {t.storyToIg}
+          </button>
           <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
             <ShareToSocial listing={listing} />
           </div>
@@ -506,11 +496,11 @@ export default function ListingPage() {
           ) : null}
 
           <ReportListing listing={listing} />
-          <div className="h-[120px]" />
+          <div className="h-[132px]" />
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-[26px] pt-3.5">
+      <div className="absolute inset-x-0 bottom-[78px] z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5">
         {mine ? (
           <>
             <button

@@ -21,7 +21,7 @@ import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings } = useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, threads, savedSearches } = useApp();
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
@@ -37,8 +37,7 @@ export default function FeedPage() {
     }
   };
 
-  const openSearch = () => {
-    setFilters({ section: null, category: null });
+  const openFilters = () => {
     router.push("/filters");
   };
 
@@ -47,11 +46,13 @@ export default function FeedPage() {
     router.push(href);
   };
 
+  const hasUnread =
+    threads.some((th) => th.unread) || savedSearches.some((row) => row.newCount > 0);
+
   const feedQuick = [
     { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
     { id: "restaurants" as const, label: t.homeQuickFood, href: "/section/restaurants" },
-  ];
-  const moreQuick = [
+    { id: "services" as const, label: t.sectionNames.services, href: "/section/services" },
     { id: "rent" as const, label: t.homeQuickRent, href: "/section/rent" },
     { id: "cars" as const, label: t.homeQuickCars, href: "/section/cars" },
     { id: "vacancies" as const, label: t.homeQuickJobs, href: "/section/vacancies" },
@@ -83,40 +84,47 @@ export default function FeedPage() {
               className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
             >
               <IconBell size={16} color="#17140F" />
-              <span className="absolute top-1.5 right-[7px] h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent" />
+              {hasUnread ? (
+                <span
+                  data-testid="notif-dot"
+                  className="absolute top-1.5 right-[7px] h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent"
+                />
+              ) : null}
             </Link>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={openSearch}
-          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 text-left"
-          data-testid="home-search"
-        >
-          <IconSearch size={17} color="#A79C8C" />
-          <span className="h-full flex-1 truncate text-[15px] leading-[44px] text-muted-2">
-            {filters.query || searchPlaceholder(null, t)}
-          </span>
-          <span aria-label={t.filters}>
-            <IconSliders size={17} color="#17140F" />
-          </span>
-        </button>
         <div className="mt-2">
           <NeighborCircles listings={listings} />
         </div>
-        <div className="sc mt-2 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
-          {feedQuick.map((item) => (
-            <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
-              {item.label}
-            </Chip>
-          ))}
+        <div
+          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4"
+          data-testid="home-search"
+        >
+          <IconSearch size={17} color="#A79C8C" />
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(e) => setFilters({ query: e.target.value })}
+            placeholder={searchPlaceholder(filters.section, t)}
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted-2"
+            aria-label={t.filters}
+          />
+          <button
+            type="button"
+            onClick={openFilters}
+            aria-label={t.filters}
+            data-testid="home-filters"
+            className="flex h-9 w-9 shrink-0 items-center justify-center"
+          >
+            <IconSliders size={17} color="#17140F" />
+          </button>
         </div>
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
-        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5">
-          {moreQuick.map((item) => (
-            <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
+        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
+          {feedQuick.map((item) => (
+            <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
               {item.label}
             </Chip>
           ))}
@@ -152,7 +160,7 @@ export default function FeedPage() {
               onClick={() => openSection(s.id, s.href)}
               className="section-tile flex h-[96px] flex-col overflow-hidden rounded-[14px] text-center"
             >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1 text-[10px] font-semibold leading-[1.15] text-ink">
+              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1 text-[12px] font-semibold leading-[1.15] text-ink">
                 {t.sectionNames[s.id]}
               </span>
               <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
