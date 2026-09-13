@@ -145,15 +145,12 @@ export function SectionExtras() {
     return (
       <SectionList
         title={t.category}
-        rows={[
-          { id: "all", label: t.allCategories, active: !filters.category, onClick: () => setFilters({ category: null }) },
-          ...SERVICE_CATEGORIES.map((c) => ({
+          rows={SERVICE_CATEGORIES.map((c) => ({
             id: c,
             label: t.cats[c],
             active: filters.category === c,
-            onClick: () => setFilters({ category: c }),
-          })),
-        ]}
+            onClick: () => setFilters({ category: filters.category === c ? null : c }),
+          }))}
       />
     );
   }

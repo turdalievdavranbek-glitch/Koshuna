@@ -21,6 +21,7 @@ import {
   shopsOf,
   validPrice,
   validQuantity,
+  SHOP_CATEGORIES,
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
@@ -69,6 +70,9 @@ export function ShopItemCapture({
   const [placeName, setPlaceName] = useState("");
   const [placeAddress, setPlaceAddress] = useState("");
   const [hoursNote, setHoursNote] = useState("");
+  const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
+  const [placeLat, setPlaceLat] = useState<number | undefined>();
+  const [placeLng, setPlaceLng] = useState<number | undefined>();
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
   const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
@@ -230,11 +234,13 @@ export function ShopItemCapture({
     stopCam();
   };
 
-  const startVoice = async () => {
+  const startVoice = async (cover?: string) => {
     setError("");
     setNote("");
     setMapPin(null);
-    if (!photo) {
+    const shot = cover || photo;
+    if (cover) setPhoto(cover);
+    if (!shot) {
       setError(t.shopItemNeedPhoto);
       return;
     }
@@ -335,9 +341,17 @@ export function ShopItemCapture({
     const url = URL.createObjectURL(blob);
     try {
       const stills = await sampleVideoStills(url, shopVideoMaxStills());
-      await applyTranscript(spokenRef.current, stills, "video");
+      if (stills[0]) setPhoto(stills[0]);
+      if (spokenRef.current.trim()) {
+        await applyTranscript(spokenRef.current, stills, "video");
+      } else {
+        window.setTimeout(() => {
+          void startVoice(stills[0]);
+        }, 400);
+      }
     } catch {
-      setError(t.shopAiNeedSpeech);
+      if (spokenRef.current.trim()) setError(t.shopAiNeedSpeech);
+      else window.setTimeout(() => void startVoice(), 400);
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -366,8 +380,10 @@ export function ShopItemCapture({
       address: placeAddress.trim() || t.cities[draft.city] || draft.city,
       hoursNote: hoursNote.trim(),
       venueKind: card ?? "shop",
-      category: parent ?? draft.category,
+      category: parent ?? cardCat ?? draft.category,
       status: "draft",
+      lat: placeLat ?? draft.lat,
+      lng: placeLng ?? draft.lng,
     });
     const saved = await publishShop();
     return saved.shop;
@@ -422,7 +438,7 @@ export function ShopItemCapture({
       price: n,
       quantity,
       photo: photo || undefined,
-      category: parent,
+      category: parent ?? cardCat,
       kind,
       priceFromPhoto: fromPhoto,
     });
@@ -544,20 +560,6 @@ export function ShopItemCapture({
       <p className="mt-1 text-[13px] leading-[1.45] text-muted">
         {card === "stall" ? t.sellCardStallHint : card === "shop" ? t.sellCardShopHint : t.shopQuickHint}
       </p>
-
-      {card ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <Field label={t.shopName}>
-            <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
-          </Field>
-          <Field label={t.venueAddress}>
-            <Input value={placeAddress} onChange={setPlaceAddress} />
-          </Field>
-          <Field label={t.shopHoursOptional}>
-            <Input value={hoursNote} onChange={setHoursNote} />
-          </Field>
-        </div>
-      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Chip active={mode === "photos"} onClick={() => changeMode("photos")}>
@@ -734,6 +736,7 @@ export function ShopItemCapture({
               >
                 {recording ? t.mediaStop : t.mediaAddVoice}
               </button>
+              {!spoken ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.mediaSilentHint}</p> : null}
             </>
           ) : null}
 
@@ -766,6 +769,40 @@ export function ShopItemCapture({
               e.target.value = "";
             }}
           />
+
+          {card ? (
+            <div className="mt-3 flex flex-col gap-3">
+              <Field label={t.shopName}>
+                <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
+              </Field>
+              <Field label={t.venueAddress}>
+                <Input value={placeAddress} onChange={setPlaceAddress} />
+              </Field>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!navigator.geolocation) return;
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    setPlaceLat(pos.coords.latitude);
+                    setPlaceLng(pos.coords.longitude);
+                  });
+                }}
+                className="h-10 rounded-xl border border-line text-[13px] font-semibold"
+              >
+                {t.locationGeo}
+              </button>
+              <div className="flex flex-wrap gap-2">
+                {SHOP_CATEGORIES.map((id) => (
+                  <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>
+                    {t.shopCats[id]}
+                  </Chip>
+                ))}
+              </div>
+              <Field label={t.shopHoursOptional}>
+                <Input value={hoursNote} onChange={setHoursNote} />
+              </Field>
+            </div>
+          ) : null}
 
           {mode === "photos" ? (
             <div className="mt-4 flex flex-col gap-3">

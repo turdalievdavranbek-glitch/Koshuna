@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { captureVideoPoster, dropBlob, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
 import {
   DEMO_POSTER_URL,
@@ -33,6 +33,8 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
   const stopSpeech = useRef<(() => void) | null>(null);
+  const heardRef = useRef("");
+  const autoMicFor = useRef<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [recMode, setRecMode] = useState<"video" | "audio" | null>(null);
   const [busy, setBusy] = useState("");
@@ -40,11 +42,28 @@ export function MediaCapture({ draft, onPatch }: Props) {
 
   const kind: MediaKind = draft.mediaKind ?? "photos";
 
+  useEffect(() => {
+    if (kind !== "video" || recording) return;
+    const url = draft.videoUrl;
+    if (!url || draft.transcript?.trim() || draft.voiceUrl) return;
+    if (autoMicFor.current === url) return;
+    autoMicFor.current = url;
+    const id = window.setTimeout(() => {
+      void startRec("audio");
+    }, 400);
+    return () => window.clearTimeout(id);
+    // startRec is stable enough for this prompt-once path.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, draft.videoUrl, draft.transcript, draft.voiceUrl, recording]);
+
   const applySpeech = (text: string) => {
+    heardRef.current = text;
     const guess = classifyListingSpeech(text);
+    const patch = aiToDraftPatch(guess);
+    if (!guess.price) delete patch.price;
     onPatch({
       transcript: text,
-      ...aiToDraftPatch(guess),
+      ...patch,
     });
   };
 
@@ -127,6 +146,8 @@ export function MediaCapture({ draft, onPatch }: Props) {
       setRecMode(mode);
       setRecording(true);
       setLive("");
+      heardRef.current = draft.transcript ?? "";
+      if (mode === "video") heardRef.current = "";
       stopSpeech.current?.();
       const Speech = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
         .SpeechRecognition ||
@@ -255,6 +276,9 @@ export function MediaCapture({ draft, onPatch }: Props) {
                 </button>
               </div>
               {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="w-full" /> : null}
+              {!draft.transcript && !draft.voiceUrl ? (
+                <p className="text-[12px] leading-[1.4] text-muted">{t.mediaSilentHint}</p>
+              ) : null}
               </>
             ) : (
               <div className="flex gap-2">

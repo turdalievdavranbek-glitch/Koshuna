@@ -30,11 +30,11 @@ export function Chip({
   onClick?: () => void;
   accent?: boolean;
   className?: string;
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "xs";
 }) {
   const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
   const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
-  const pad = size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
+  const pad = size === "xs" ? "px-2 py-[3px] text-[10px]" : size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
   return (
     <button
       type="button"

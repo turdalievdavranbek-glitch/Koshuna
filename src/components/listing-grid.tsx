@@ -71,7 +71,7 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {!video && dropPercent(listing) != null ? (
+        {dropPercent(listing) != null ? (
           <span
             data-testid="promo-badge"
             className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen"

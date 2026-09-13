@@ -6,7 +6,7 @@ import { formatSom, ownerById } from "@/lib/data";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
-import { familyShareText } from "@/lib/share";
+import { familyShareText, shareListingLink } from "@/lib/share";
 import { useApp } from "@/lib/store";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -117,9 +117,16 @@ export default function ListingPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => router.push(`/story/${listing.id}`)}
+                onClick={() => {
+                  void shareListingLink(listing.id, title).then((how) => {
+                    if (how === "copied") {
+                      setToast(t.shareCopied);
+                      setTimeout(() => setToast(""), 1800);
+                    }
+                  });
+                }}
                 className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
-                aria-label={t.storyToIg}
+                aria-label={t.shareCopyLink}
               >
                 <IconShare size={17} color="#17140F" />
               </button>

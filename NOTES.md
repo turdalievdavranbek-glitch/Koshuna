@@ -17,7 +17,7 @@ Dev (`npm run dev`) works for local edits. Prefer `next start` on 43123 so there
 
 Point Cloudflare to port 43123. Preferred hostname:
 
-`https://priced-reminder-begin-paths.trycloudflare.com`
+`https://arg-cell-bedford-postcards.trycloudflare.com`
 
 If the hostname changes, set it in `capacitor.config.ts` → `server.url` and rebuild **one** APK.
 
@@ -41,13 +41,14 @@ cd android && ./gradlew assembleDebug
 
 Output: `android/app/build/outputs/apk/debug/app-debug.apk`
 
-WebView needs CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS. Camera/mic hardware is `required=false`. `BridgeWebChromeClient` grants `getUserMedia`.
+WebView needs CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION. Camera/mic/location hardware is `required=false`. Runtime prompt + WebView geolocation grant.
 
 ## APK download (this VM)
 
 Serve `/opt/cursor/artifacts` on :8765 and tunnel that port. File name: `Koshuna-tiles-checkpoint.apk`
 
-Last APK (home sticky + like toggle): 6034086 bytes, sha256 `302b5442684e0e888389517d338db3b77f8d0afa3cd79e9c3a443d6e5fd8803b`
+Last APK: 6034410 bytes, sha256 `b1dbf648dc9f73e7bb4bd97ae89f2857fda7ae8d631118a2420829909b900847`
+Download: https://penguin-blacks-bars-threatening.trycloudflare.com/Koshuna-tiles-checkpoint.apk
 
 ## What still needs a real server
 

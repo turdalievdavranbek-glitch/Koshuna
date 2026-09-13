@@ -41,7 +41,6 @@ export default function PostPage() {
         dealKind: "buy",
         realtyGroup: "apartments",
         neighborPledge: false,
-        sellerType: "realtor",
       });
     }
     if (card === "dealer") {
@@ -49,6 +48,12 @@ export default function PostPage() {
         ...pickSection(draft, "cars"),
         neighborPledge: false,
         sellerType: "dealer",
+      });
+    }
+    if (card === "cafe") {
+      setDraft({
+        ...pickSection(draft, "restaurants"),
+        neighborPledge: false,
       });
     }
     // Apply once when opening a seller-card shortcut.
@@ -76,6 +81,7 @@ export default function PostPage() {
 
   if (!user) return null;
 
+  const bizCard = entryCard === "developer" || entryCard === "dealer" || entryCard === "cafe";
   const published = publishedId ? allListings.find((item) => item.id === publishedId) : undefined;
 
   const bars = [step >= 1, step >= 2, step >= 3];
@@ -87,8 +93,7 @@ export default function PostPage() {
           <button
             type="button"
             onClick={() => {
-              router.replace("/");
-              window.location.assign("/");
+              window.location.href = "/";
             }}
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
@@ -149,7 +154,10 @@ export default function PostPage() {
                   onClick={() => {
                     const text = paste.trim();
                     if (!text) return;
-                    setDraft({ mediaKind: "text", ...aiToDraftPatch(classifyListingSpeech(text)) });
+                    const guess = classifyListingSpeech(text);
+                    const patch = aiToDraftPatch(guess);
+                    if (!text.match(/\d/) || !guess.price) delete patch.price;
+                    setDraft({ mediaKind: "text", description: text, ...patch });
                   }}
                   className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
                 >
@@ -159,39 +167,22 @@ export default function PostPage() {
             ) : null}
 
             <div>
-              <Eyebrow>{t.whatPost}</Eyebrow>
-              <div className="mt-2.5">
-                <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
-              </div>
-              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {entryCard ? null : (
+                <>
+                  <Eyebrow>{t.whatPost}</Eyebrow>
+                  <div className="mt-2.5">
+                    <PostTypePicker value={draft.section} onPick={(id) => setDraft(pickSection(draft, id))} />
+                  </div>
+                </>
+              )}
               {entryCard === "developer" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDeveloperHint}</p>
               ) : null}
               {entryCard === "dealer" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardDealerHint}</p>
               ) : null}
-              {draft.section === "shops" || draft.section === "restaurants" ? (
-                <p className="mt-2 text-[12px] leading-[1.4] text-muted">
-                  {draft.section === "shops" ? t.shopQuickHint : t.restaurantQuickHint}
-                </p>
-              ) : null}
-              {draft.section === "shops" ? (
-                <button
-                  type="button"
-                  onClick={() => router.push("/shops/quick")}
-                  className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
-                >
-                  {t.shopQuickCta}
-                </button>
-              ) : null}
-              {draft.section === "restaurants" ? (
-                <button
-                  type="button"
-                  onClick={() => router.push("/restaurants/quick")}
-                  className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
-                >
-                  {t.restaurantQuickCta}
-                </button>
+              {entryCard === "cafe" ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardCafeHint}</p>
               ) : null}
             </div>
 
@@ -199,38 +190,100 @@ export default function PostPage() {
               <Field label={t.title}>
                 <Input value={draft.title} onChange={(v) => setDraft({ title: v })} placeholder={t.title} />
               </Field>
-              <div className="flex gap-2.5">
-                <div className="flex-1">
-                  <Field label={t.city}>
-                    <select
-                      value={draft.city}
-                      onChange={(e) => {
-                        const city = e.target.value;
-                        const gis = GIS_CITIES[city] ?? gisCity(city);
-                        setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+              <Field label={t.venueAddress}>
+                <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
+              </Field>
+              {bizCard ? (
+                <Field label={t.city}>
+                  <select
+                    value={draft.city}
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const gis = GIS_CITIES[city] ?? gisCity(city);
+                      setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+                    }}
+                    className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
+                  >
+                    {CITIES.filter((c) => c !== "all").map((c) => (
+                      <option key={c} value={c}>
+                        {t.cities[c]}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <div className="flex gap-2.5">
+                  <div className="flex-1">
+                    <Field label={t.city}>
+                      <select
+                        value={draft.city}
+                        onChange={(e) => {
+                          const city = e.target.value;
+                          const gis = GIS_CITIES[city] ?? gisCity(city);
+                          setDraft({ city, lat: gis.lat, lng: gis.lng, district: undefined });
+                        }}
+                        className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
+                      >
+                        {CITIES.filter((c) => c !== "all").map((c) => (
+                          <option key={c} value={c}>
+                            {t.cities[c]}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="flex-1">
+                    <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                      <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
+                    </Field>
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!navigator.geolocation) return;
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const area = nearestDistrict(lat, lng, draft.city);
+                    setDraft({ lat, lng, district: area?.name });
+                  });
+                }}
+                className="h-11 rounded-[14px] border border-line bg-white text-[13px] font-semibold"
+              >
+                {t.locationGeo}
+              </button>
+              {bizCard ? (
+                <Field label={t.mapPoint}>
+                  <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
+                  <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
+                    <GisMap
+                      center={{
+                        lat: draft.lat ?? gisCity(draft.city).lat,
+                        lng: draft.lng ?? gisCity(draft.city).lng,
                       }}
-                      className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px]"
-                    >
-                      {CITIES.filter((c) => c !== "all").map((c) => (
-                        <option key={c} value={c}>
-                          {t.cities[c]}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                </div>
-                <div className="flex-1">
-                  <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
-                    <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
-                  </Field>
-                </div>
-              </div>
-              {draft.section === "restaurants" || draft.section === "shops" ? (
-                <Field label={t.venueAddress}>
-                  <Input value={draft.address ?? ""} onChange={(v) => setDraft({ address: v })} placeholder={t.venueAddress} />
+                      zoom={draft.lat != null ? 15 : gisCity(draft.city).zoom}
+                      pick={
+                        draft.lat != null && draft.lng != null
+                          ? { lat: draft.lat, lng: draft.lng }
+                          : { lat: gisCity(draft.city).lat, lng: gisCity(draft.city).lng }
+                      }
+                      onPick={(lat, lng) => {
+                        const area = nearestDistrict(lat, lng, draft.city);
+                        setDraft({ lat, lng, district: area?.name });
+                      }}
+                    />
+                  </div>
                 </Field>
               ) : null}
-              {draft.section === "restaurants" ? (
+              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              {bizCard ? (
+                <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                  <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
+                </Field>
+              ) : null}
+              {bizCard ? null : draft.section === "restaurants" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.caloriesField}>
@@ -244,7 +297,7 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              {draft.kind === "rent" ? (
+              {bizCard ? null : draft.kind === "rent" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.roomsField}>
@@ -258,7 +311,7 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              {draft.section === "cars" || draft.section === "car-rental" ? (
+              {bizCard ? null : draft.section === "cars" || draft.section === "car-rental" ? (
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Field label={t.yearField}>
@@ -280,20 +333,24 @@ export default function PostPage() {
                   </div>
                 </div>
               ) : null}
-              <div className="flex gap-2.5">
-                <div className="flex-1">
-                  <Field label={t.yourName}>
-                    <Input value={draft.name} onChange={(v) => setDraft({ name: v })} />
-                  </Field>
-                </div>
-                <div className="flex-1">
-                  <Field label={t.phone}>
-                    <Input value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
-                  </Field>
-                </div>
-              </div>
-              <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
-              {hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
+              {bizCard ? null : (
+                <>
+                  <div className="flex gap-2.5">
+                    <div className="flex-1">
+                      <Field label={t.yourName}>
+                        <Input value={draft.name} onChange={(v) => setDraft({ name: v })} />
+                      </Field>
+                    </div>
+                    <div className="flex-1">
+                      <Field label={t.phone}>
+                        <Input value={draft.phone} onChange={(v) => setDraft({ phone: v })} />
+                      </Field>
+                    </div>
+                  </div>
+                  <p className="text-xs leading-[1.5] text-muted">{t.contactNote}</p>
+                </>
+              )}
+              {bizCard || hasRole(user, "realtor") || hasRole(user, "dealer") || !showsNeighborPledge(draft.section) ? null : (
                 <div className="flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
                   <div>
                     <div className="text-[15px] font-semibold text-ink">{t.neighborPledge}</div>
@@ -305,7 +362,7 @@ export default function PostPage() {
                   />
                 </div>
               )}
-              {draft.section === "secondhand" || draft.section === "animals" || draft.section === "construction" ? (
+              {bizCard || (draft.section !== "secondhand" && draft.section !== "animals" && draft.section !== "construction") ? null : (
                 <div>
                   <Eyebrow>{t.goMeetTitle}</Eyebrow>
                   <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.goMeetHint}</p>
@@ -325,15 +382,18 @@ export default function PostPage() {
                     ))}
                   </div>
                 </div>
-              ) : null}
-              <Field label={t.description}>
-                <textarea
-                  value={draft.description}
-                  onChange={(e) => setDraft({ description: e.target.value })}
-                  placeholder={t.descPh}
-                  className="min-h-[88px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
-                />
-              </Field>
+              )}
+              {bizCard ? null : (
+                <Field label={t.description}>
+                  <textarea
+                    value={draft.description}
+                    onChange={(e) => setDraft({ description: e.target.value })}
+                    placeholder={t.descPh}
+                    className="min-h-[88px] w-full rounded-[14px] border border-line bg-white px-[15px] py-[13px] text-[15px] leading-[1.45] outline-none placeholder:text-muted-2"
+                  />
+                </Field>
+              )}
+              {bizCard ? null : (
               <Field label={t.mapPoint}>
                 <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
                 <div className="relative h-52 overflow-hidden rounded-[14px] border border-line">
@@ -355,8 +415,10 @@ export default function PostPage() {
                   />
                 </div>
               </Field>
+              )}
             </div>
 
+            {bizCard ? null : (
             <div className="rounded-[18px] bg-ink p-4">
               <div className="flex items-center justify-between">
                 <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
@@ -364,6 +426,7 @@ export default function PostPage() {
               </div>
               <p className="mt-2 text-[13px] leading-[1.5] text-[rgba(247,243,236,.72)]">{t.promoteHint}</p>
             </div>
+            )}
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
           </div>
           <div className="flex shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
@@ -376,6 +439,10 @@ export default function PostPage() {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (spoken && draft.mediaKind === "video" && !draft.videoUrl) {
                   setError(t.mediaNeed);
+                  return;
+                }
+                if (draft.mediaKind === "text" && !draft.title.trim() && !draft.description.trim() && !paste.trim()) {
+                  setError(t.needFields);
                   return;
                 }
                 if (spoken && !draft.transcript?.trim() && !draft.description.trim() && !draft.voiceUrl && !draft.videoUrl) {

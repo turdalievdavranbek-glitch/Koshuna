@@ -136,7 +136,6 @@ export function RealtyChips({ labeled, list }: { labeled?: boolean; list?: boole
         <SectionList
           title={t.realtyGroup}
           rows={[
-            { id: "any", label: t.allCategories, active: !group, onClick: () => pickGroup("any") },
             ...REALTY_GROUPS.map((id) => ({
               id,
               label: t.realtyGroups[id],

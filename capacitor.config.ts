@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
   appName: "Koshuna",
   webDir: "public",
   server: {
-    url: "https://priced-reminder-begin-paths.trycloudflare.com",
+    url: "https://arg-cell-bedford-postcards.trycloudflare.com",
     cleartext: false,
     androidScheme: "https",
   },

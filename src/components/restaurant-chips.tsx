@@ -12,26 +12,20 @@ export function RestaurantChips({ labeled, list }: { labeled?: boolean; list?: b
     return (
       <SectionList
         title={t.cuisine}
-        rows={[
-          { id: "all", label: t.allCategories, active: !filters.category, onClick: () => setFilters({ category: null }) },
-          ...RESTAURANT_CATEGORIES.map((c) => ({
+        rows={RESTAURANT_CATEGORIES.map((c) => ({
             id: c,
             label: t.cats[c],
             active: filters.category === c,
-            onClick: () => setFilters({ category: c }),
-          })),
-        ]}
+            onClick: () => setFilters({ category: filters.category === c ? null : c }),
+          }))}
       />
     );
   }
 
   const row = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      <Chip active={!filters.category} onClick={() => setFilters({ category: null })}>
-        {t.allCategories}
-      </Chip>
       {RESTAURANT_CATEGORIES.map((c) => (
-        <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: c })}>
+        <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: filters.category === c ? null : c })}>
           {t.cats[c]}
         </Chip>
       ))}

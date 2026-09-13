@@ -27,7 +27,7 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${text}`);
+      await navigator.clipboard.writeText(url);
       ping(t.shareCopied);
     } catch {
       ping(url);

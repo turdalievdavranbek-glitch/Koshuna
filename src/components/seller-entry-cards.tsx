@@ -9,7 +9,7 @@ export function SellerEntryCards() {
   const cards = [
     { id: "shop", href: "/shops/quick?card=shop", title: t.sellCardShop, hint: t.sellCardShopHint },
     { id: "stall", href: "/shops/quick?card=stall", title: t.sellCardStall, hint: t.sellCardStallHint },
-    { id: "cafe", href: "/restaurants/quick", title: t.sellCardCafe, hint: t.sellCardCafeHint },
+    { id: "cafe", href: "/post?card=cafe", title: t.sellCardCafe, hint: t.sellCardCafeHint },
     { id: "developer", href: "/post?card=developer", title: t.sellCardDeveloper, hint: t.sellCardDeveloperHint },
     { id: "dealer", href: "/post?card=dealer", title: t.sellCardDealer, hint: t.sellCardDealerHint },
   ] as const;

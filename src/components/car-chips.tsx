@@ -30,9 +30,8 @@ export function CarMakeChips({ labeled, list }: { labeled?: boolean; list?: bool
         <SectionList
           title={t.category}
           rows={[
-            { id: "any", label: t.allCategories, active: filters.vehicleGroup === "any", onClick: () => pickGroup("any") },
-            { id: "passenger", label: t.vehicleGroups.passenger, active: filters.vehicleGroup === "passenger", onClick: () => pickGroup("passenger") },
-            { id: "special", label: t.vehicleGroups.special, active: filters.vehicleGroup === "special", onClick: () => pickGroup("special") },
+            { id: "passenger", label: t.vehicleGroups.passenger, active: filters.vehicleGroup === "passenger", onClick: () => pickGroup(filters.vehicleGroup === "passenger" ? "any" : "passenger") },
+            { id: "special", label: t.vehicleGroups.special, active: filters.vehicleGroup === "special", onClick: () => pickGroup(filters.vehicleGroup === "special" ? "any" : "special") },
           ]}
         />
         {types.length ? (
@@ -81,10 +80,7 @@ export function CarMakeChips({ labeled, list }: { labeled?: boolean; list?: bool
 
   const groupRow = (
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
-      <Chip active={filters.vehicleGroup === "any"} onClick={() => pickGroup("any")}>
-        {t.allCategories}
-      </Chip>
-      <Chip active={filters.vehicleGroup === "passenger"} onClick={() => pickGroup("passenger")}>
+      <Chip active={filters.vehicleGroup === "passenger"} onClick={() => pickGroup(filters.vehicleGroup === "passenger" ? "any" : "passenger")}>
         {t.vehicleGroups.passenger}
       </Chip>
       <Chip active={filters.vehicleGroup === "special"} onClick={() => pickGroup("special")}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { LISTINGS, ownerById } from "@/lib/data";
+import { ownerById } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { IconBack, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -10,9 +10,9 @@ import { ListingRow, RoundBtn } from "@/components/ui";
 export default function OwnerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t } = useApp();
+  const { t, allListings } = useApp();
   const owner = ownerById(id);
-  const listings = LISTINGS.filter((l) => l.ownerId === id && l.status !== "draft");
+  const listings = allListings.filter((l) => l.ownerId === id && l.status !== "draft");
 
   if (!owner) {
     return (

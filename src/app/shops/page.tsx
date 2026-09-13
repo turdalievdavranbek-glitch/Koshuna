@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
@@ -92,24 +91,6 @@ export default function ShopsPage() {
             </Chip>
           ))}
         </div>
-        {user ? (
-          <>
-            <Link href="/shops/quick" className="shadow-btn mt-4 flex h-12 items-center justify-center rounded-2xl bg-accent text-[15px] font-semibold text-accent-on no-underline">
-              {t.shopQuickCta}
-            </Link>
-            <Link href="/shops/new" className="mt-2.5 flex h-12 items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink no-underline">
-              {t.shopNew}
-            </Link>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="mt-4 h-12 w-full rounded-2xl border border-line bg-white text-[14px] font-semibold"
-          >
-            {t.shopNeedAuth}
-          </button>
-        )}
         {!ready ? <p className="mt-6 text-[14px] text-muted">{t.shopLoad}</p> : null}
         {ready && !list.length ? (
           <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : mine ? t.shopEmptyMine : t.shopEmpty}</p>

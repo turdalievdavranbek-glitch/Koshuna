@@ -3,6 +3,7 @@ package com.koshuna.app;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -16,7 +17,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestMediaPermissions();
+        requestRuntimePermissions();
         configureWebView();
     }
 
@@ -35,31 +36,40 @@ public class MainActivity extends BridgeActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setGeolocationEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        // Capacitor already installs BridgeWebChromeClient (file pickers + getUserMedia).
-        // Re-bind a grant-all chrome client only if the WebView lost it after a process restore.
-        if (!(webView.getWebChromeClient() instanceof BridgeWebChromeClient) && getBridge() != null) {
+        if (getBridge() != null) {
             webView.setWebChromeClient(
                 new BridgeWebChromeClient(getBridge()) {
                     @Override
                     public void onPermissionRequest(PermissionRequest request) {
                         request.grant(request.getResources());
                     }
+
+                    @Override
+                    public void onGeolocationPermissionsShowPrompt(
+                        String origin,
+                        GeolocationPermissions.Callback callback
+                    ) {
+                        callback.invoke(origin, true, false);
+                    }
                 }
             );
         }
     }
 
-    private void requestMediaPermissions() {
+    private void requestRuntimePermissions() {
         ActivityCompat.requestPermissions(
             this,
             new String[] {
                 Manifest.permission.CAMERA,
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.MODIFY_AUDIO_SETTINGS
+                Manifest.permission.MODIFY_AUDIO_SETTINGS,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             },
             MEDIA_PERMISSIONS_REQUEST
         );
