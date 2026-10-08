@@ -32,7 +32,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const body = await readJson<ShopBody>(req);
   if (!body?.shop) return json({ ok: false, error: "bad-json" }, 400);
-  const shop = { ...body.shop, id } as Shop;
+  const shop = { ...body.shop, id, ownerId: user.id } as Shop;
   if (body.product && shop.products) {
     const product = body.product as ShopProduct;
     if (product.id && !shop.products.some((row) => row.id === product.id)) {
@@ -40,7 +40,6 @@ export async function PUT(req: Request, ctx: Ctx) {
     }
   }
   const clientUser = sessionAsUser(user);
-  clientUser.phone = user.phone || shop.ownerPhone;
   clientUser.name = user.name || shop.ownerName;
   const invalid = validateShopAction({ ...body, shop }, clientUser);
   if (invalid) return json(invalid.body, invalid.status);

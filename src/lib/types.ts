@@ -517,6 +517,8 @@ export type Shop = {
   id: string;
   name: string;
   ownerPhone: string;
+  /** Server user id. Local drafts before the first save may omit it. */
+  ownerId?: string;
   ownerName: string;
   category: ShopCategory;
   extraCategories: ShopCategory[];

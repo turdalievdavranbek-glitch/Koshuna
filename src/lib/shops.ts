@@ -77,7 +77,8 @@ export function emptyShopDraft(user: User): ShopDraft {
   return {
     id: `shop-${crypto.randomUUID()}`,
     name: "",
-    ownerPhone: user.phone,
+    ownerPhone: user.phone || "",
+    ownerId: user.id,
     ownerName: user.name,
     category: "other",
     extraCategories: [],
@@ -89,7 +90,7 @@ export function emptyShopDraft(user: User): ShopDraft {
     lng: GIS_CITIES.bishkek?.lng,
     hours: undefined,
     hoursNote: "",
-    contacts: { phone: user.phone, whatsapp: true, telegram: false },
+    contacts: { phone: user.phone || "", whatsapp: true, telegram: false },
     pickup: true,
     delivery: false,
     deliveryNote: "",
@@ -103,7 +104,8 @@ export function emptyShopDraft(user: User): ShopDraft {
   };
 }
 
-export function isOwnShop(shop: Pick<Shop, "ownerPhone">, user: User | null): boolean {
+export function isOwnShop(shop: Pick<Shop, "ownerPhone"> & { ownerId?: string | null }, user: User | null): boolean {
+  if (shop.ownerId && user?.id) return shop.ownerId === user.id;
   if (!user?.phone) return false;
   return normalizePhone(shop.ownerPhone) === normalizePhone(user.phone);
 }
