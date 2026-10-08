@@ -946,12 +946,6 @@ test("filters fit a 360px phone with no horizontal overflow", async ({ page }) =
       for (const child of el.children) walk(child);
     };
     if (phone) walk(phone);
-    const place = (selector: string) => {
-      const el = document.querySelector(selector);
-      if (!(el instanceof HTMLElement)) return null;
-      const rect = el.getBoundingClientRect();
-      return { left: rect.left, right: rect.right, scroll: el.scrollWidth - el.clientWidth };
-    };
     return {
       wide,
       doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
