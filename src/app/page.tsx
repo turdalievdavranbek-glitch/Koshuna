@@ -10,6 +10,7 @@ import { patchForSection } from "@/lib/section";
 import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
@@ -22,7 +23,7 @@ import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, threads, savedSearches } = useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, threads, savedSearches, online, synced, resync } = useApp();
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const promoted = allListings.filter((item) => item.status === "promoted");
@@ -229,17 +230,13 @@ export default function FeedPage() {
         <HomeFreshFilters />
 
         {listings.length === 0 ? (
-          <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
-            <div className="text-[15px] font-semibold text-ink">{t.empty}</div>
-            <p className="mt-2 text-[13px] text-muted">{t.emptyHint}</p>
-            <button
-              type="button"
-              onClick={() => setFilters(clearFreshListPatch(filters))}
-              className="mt-4 text-[13px] font-semibold text-accent"
-            >
-              {t.resetFilters}
-            </button>
-          </div>
+          !synced ? null : !online && allListings.length === 0 ? (
+            <EmptyState variant="offline" onRetry={() => resync()} />
+          ) : allListings.length === 0 ? (
+            <EmptyState variant="first" />
+          ) : (
+            <EmptyState variant="nothing" onReset={() => setFilters(clearFreshListPatch(filters))} />
+          )
         ) : (
           <ListingGrid listings={listings} onFav={onFav} />
         )}

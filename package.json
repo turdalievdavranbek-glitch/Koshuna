@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed:dev": "tsx scripts/seed-dev.ts",
-    "smoke:step4": "node scripts/smoke-step4.mjs"
+    "smoke:step4": "node scripts/smoke-step4.mjs",
+    "smoke:step5": "node scripts/smoke-step5.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/crashlytics": "^8.5.2",

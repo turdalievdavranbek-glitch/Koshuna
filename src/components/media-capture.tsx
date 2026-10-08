@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { captureVideoPoster, dropBlob, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
-import { videoMaxSeconds } from "@/lib/media-limits";
+import { captureVideoPoster, dropBlob, keepBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
+import { FEATURES } from "@/lib/features";
+import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import {
   DEMO_POSTER_URL,
   DEMO_TRANSCRIPT,
@@ -19,6 +20,18 @@ import { NativePhotoInputs } from "./native-photo";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 import { PostTypePicker } from "./post-type-picker";
 import { PostTaxonomy, pickSection } from "./post-taxonomy";
+
+function voiceMaxSeconds(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_VOICE_MAX_SECONDS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 120;
+}
+
+function clock(total: number) {
+  const sec = Math.max(0, Math.floor(total));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 type Props = {
   draft: DraftListing;
@@ -41,6 +54,30 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const [recMode, setRecMode] = useState<"video" | "audio" | null>(null);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const limitTimer = useRef<number | null>(null);
+  const tickTimer = useRef<number | null>(null);
+  const halted = useRef(false);
+
+  const clearRecTimers = () => {
+    if (limitTimer.current != null) window.clearTimeout(limitTimer.current);
+    if (tickTimer.current != null) window.clearInterval(tickTimer.current);
+    limitTimer.current = null;
+    tickTimer.current = null;
+  };
+
+  useEffect(() => {
+    return () => {
+      halted.current = true;
+      clearRecTimers();
+      try {
+        recRef.current?.stop();
+      } catch {
+        /* already stopped */
+      }
+      stopSpeech.current?.();
+    };
+  }, []);
 
   const kind: MediaKind = draft.mediaKind ?? "photos";
 
@@ -105,9 +142,17 @@ export function MediaCapture({ draft, onPatch }: Props) {
     void startRec("video");
   };
 
-  const stopRec = () => {
-    recRef.current?.stop();
+  const stopRec = (auto = false) => {
+    if (halted.current) return;
+    halted.current = true;
+    clearRecTimers();
+    const rec = recRef.current;
     recRef.current = null;
+    try {
+      rec?.stop();
+    } catch {
+      /* already stopped */
+    }
     stopSpeech.current?.();
     stopSpeech.current = null;
     const stream = videoRef.current?.srcObject as MediaStream | null;
@@ -115,28 +160,32 @@ export function MediaCapture({ draft, onPatch }: Props) {
     if (videoRef.current) videoRef.current.srcObject = null;
     setRecording(false);
     setRecMode(null);
+    if (auto) setBusy(t.mediaRecStopped);
   };
 
   const startRec = async (mode: "video" | "audio") => {
     setBusy("");
+    const noDevice = mode === "audio" ? t.mediaNoMic : FEATURES.demoMedia ? t.mediaNoCamera : t.mediaNoCameraFile;
     if (!navigator.mediaDevices?.getUserMedia) {
-      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
+      setBusy(noDevice);
       return;
     }
     if (typeof MediaRecorder === "undefined") {
-      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
+      setBusy(noDevice);
       return;
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
-        mode === "video" ? { video: { facingMode: "environment" }, audio: true } : { audio: true },
+        mode === "video"
+          ? { video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }, audio: true }
+          : { audio: true },
       );
       if (videoRef.current && mode === "video") {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => undefined);
       }
       const mime = recorderMime(mode === "video" ? "video" : "audio");
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions(mode === "video" ? "video" : "audio") });
       chunks.current = [];
       rec.ondataavailable = (ev) => {
         if (ev.data.size) chunks.current.push(ev.data);
@@ -172,10 +221,19 @@ export function MediaCapture({ draft, onPatch }: Props) {
         }
       };
       recStartedAt.current = Date.now();
+      halted.current = false;
+      const limit = mode === "video" ? videoMaxSeconds() : voiceMaxSeconds();
+      setElapsed(0);
       rec.start();
       recRef.current = rec;
       setRecMode(mode);
       setRecording(true);
+      tickTimer.current = window.setInterval(() => {
+        const next = (Date.now() - recStartedAt.current) / 1000;
+        setElapsed(next);
+        if (next >= limit) stopRec(true);
+      }, 250);
+      limitTimer.current = window.setTimeout(() => stopRec(true), limit * 1000);
       setLive("");
       heardRef.current = draft.transcript ?? "";
       if (mode === "video") heardRef.current = "";
@@ -192,7 +250,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
         setBusy(t.mediaSttOff);
       }
     } catch {
-      setBusy(mode === "audio" ? t.mediaNoMic : t.mediaNoCamera);
+      setBusy(noDevice);
     }
   };
 
@@ -200,6 +258,10 @@ export function MediaCapture({ draft, onPatch }: Props) {
     setBusy("");
     const isVideo = file.type.startsWith("video");
     const isAudio = file.type.startsWith("audio");
+    if (isVideo && file.size > videoMaxBytes()) {
+      setBusy(t.shopVideoSize);
+      return;
+    }
     const url = keepBlob(isVideo ? "video" : isAudio ? "voice" : "photo", file);
     if (isVideo) {
       const duration = await videoDuration(url);
@@ -263,6 +325,9 @@ export function MediaCapture({ draft, onPatch }: Props) {
   return (
     <div>
       <Eyebrow>{t.mediaHow}</Eyebrow>
+      {kind !== "video" ? (
+        <p className="mt-2 rounded-[12px] bg-accent-tint px-3 py-2 text-[12px] leading-[1.4] text-accent-dark">{t.videoTrustBanner}</p>
+      ) : null}
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Chip active={kind === "video"} accent={kind === "video"} onClick={() => setKind("video")}>
           {t.mediaVideo}
@@ -284,7 +349,28 @@ export function MediaCapture({ draft, onPatch }: Props) {
           {draft.videoUrl && recMode !== "video" ? (
             <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="aspect-[9/16] max-h-[280px] w-full object-cover" />
           ) : (
-            <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
+            <div className="relative">
+              <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
+              {recording && recMode === "video" ? (
+                <div className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
+                  <div className="rounded-full bg-[rgba(23,20,15,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
+                    <span style={{ color: "#E8112D" }}>●</span>{" "}
+                    {videoMaxSeconds() - elapsed <= 10 ? (
+                      <span style={{ color: "#E8112D" }}>{clock(Math.max(0, Math.ceil(videoMaxSeconds() - elapsed)))}</span>
+                    ) : (
+                      clock(elapsed)
+                    )}{" "}
+                    / {clock(videoMaxSeconds())}
+                  </div>
+                  <div className="mt-2 h-[3px] w-[86%] overflow-hidden rounded-full bg-white/25">
+                    <div
+                      className="h-full bg-white"
+                      style={{ width: `${Math.max(0, 100 * (1 - elapsed / videoMaxSeconds()))}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
           )}
           <div className="flex flex-col gap-2 bg-white p-3">
             {draft.videoUrl && recMode !== "video" ? (
@@ -341,6 +427,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
                 </button>
               </div>
             )}
+            {!draft.videoUrl && !recording ? <p className="text-[12px] leading-[1.4] text-muted">{t.mediaVideoHint}</p> : null}
           </div>
         </div>
       ) : null}
@@ -431,7 +518,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
         }}
       />
 
-      {kind !== "photos" && kind !== "text" ? (
+      {FEATURES.demoMedia && kind !== "photos" && kind !== "text" ? (
         <button
           type="button"
           onClick={kind === "video" ? useDemoVideo : useDemoVoice}
@@ -457,7 +544,12 @@ export function MediaCapture({ draft, onPatch }: Props) {
       ) : null}
 
       {busy ? <p className="mt-2 text-[13px] text-accent">{busy}</p> : null}
-      {recording ? <p className="mt-2 text-[12px] text-muted">{t.mediaListening}</p> : null}
+      {recording ? (
+        <p className="mt-2 text-[12px] text-muted">
+          {t.mediaListening}
+          {recMode === "audio" ? ` · ${clock(elapsed)} / ${clock(voiceMaxSeconds())}` : ""}
+        </p>
+      ) : null}
     </div>
   );
 }

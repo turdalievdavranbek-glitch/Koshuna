@@ -18,6 +18,13 @@ export const FEATURES = {
   comments: false,        // комментарии (likes/dislikes stay — circles rank by likes)
   shareFacebookVk: false, // Facebook / VK cells in share block (№85, №52)
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
+  /** D1 / Р-019: hide «Пример для проверки» in production. NEXT_PUBLIC_DEMO_MEDIA=1 forces it on, =0 forces it off. */
+  demoMedia:
+    process.env.NEXT_PUBLIC_DEMO_MEDIA === "1"
+      ? true
+      : process.env.NEXT_PUBLIC_DEMO_MEDIA === "0"
+        ? false
+        : process.env.NODE_ENV !== "production",
 } as const;
 
 const HIDDEN_SECTIONS: Partial<Record<SectionId, boolean>> = {

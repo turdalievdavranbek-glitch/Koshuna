@@ -6,13 +6,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { api, onceRetry } from "./api/client";
-import { enqueue, startOutbox } from "./api/outbox";
-import { materializeListing, materializeShop } from "./api/upload";
+import { enqueue, pendingOps, startOutbox } from "./api/outbox";
+import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
+import { collectRefKeys, hydrateRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf, parseSellerChannel } from "./channels";
 import { isSectionVisible } from "./features";
@@ -76,15 +78,25 @@ import { BrandMark } from "@/components/brand";
 const STORAGE = "konshu-state-v1";
 
 let authReady: Promise<void> = Promise.resolve();
+let authSerial = 0;
 let sessionEpoch = 0;
 
 function trackAuth(task: Promise<unknown>) {
+  authSerial += 1;
   const done = task.then(
     () => undefined,
     () => undefined,
   );
   authReady = done;
   return done;
+}
+
+export function waitAuthReady(): Promise<void> {
+  return authReady;
+}
+
+export function authSerialNow(): number {
+  return authSerial;
 }
 
 function applyCounts(
@@ -407,6 +419,9 @@ type Store = State & {
   setDraft: (patch: Partial<DraftListing>) => void;
   publishDraft: () => Listing | null;
   saveDraft: () => Listing | null;
+  online: boolean;
+  syncError: boolean;
+  resync: () => void;
   markInboxRead: () => void;
   updateListing: (id: string, patch: Partial<Listing>) => void;
   ensureMeetDeal: (listingId: string, reservedById: string) => void;
@@ -603,6 +618,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>(initial);
   const [ready, setReady] = useState(false);
   const [synced, setSynced] = useState(false);
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [syncError, setSyncError] = useState(false);
+  const syncErrorRef = useRef(false);
+  const syncRef = useRef<(serverUser: User | null) => Promise<void>>(async () => undefined);
+  const userRef = useRef<User | null>(state.user);
+  userRef.current = state.user;
+  syncErrorRef.current = syncError;
 
   useEffect(() => {
     const next = load();
@@ -649,8 +671,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return serverUser;
     })();
     trackAuth(authTask);
-    void (async () => {
-      const serverUser = await authTask;
+    const dead = () => cancelled || epochAtBoot !== sessionEpoch;
+    const restorePending = async () => {
+      const ops = pendingOps();
+      const keys = new Set<string>();
+      for (const op of ops) collectRefKeys(op.body, keys);
+      await sweepOrphans(keys);
+      if (dead()) return;
+      const listings: Listing[] = [];
+      for (const op of ops) {
+        if (op.kind !== "putListing") continue;
+        const body = await hydrateRefs(op.body);
+        if (body && typeof body === "object" && "id" in (body as Listing)) listings.push(body as Listing);
+      }
+      const patches: { id: string; body: Partial<Listing> }[] = [];
+      for (const op of ops) {
+        if (op.kind !== "patchListing") continue;
+        patches.push({ id: op.listingId, body: await hydrateRefs(op.body as Partial<Listing>) });
+      }
+      const shopRows: Shop[] = [];
+      for (const op of ops) {
+        if (op.kind !== "putShop") continue;
+        const raw = op.body as { shop?: Shop };
+        if (!raw?.shop?.id) continue;
+        shopRows.push(await hydrateRefs(raw.shop));
+      }
+      if (dead()) return;
+      setState((s) => {
+        let extraListings = s.extraListings;
+        for (const listing of listings) extraListings = upsertExtraListing(extraListings, listing);
+        for (const patch of patches) {
+          if (!extraListings.some((item) => item.id === patch.id)) continue;
+          extraListings = extraListings.map((item) => (item.id === patch.id ? { ...item, ...patch.body } : item));
+        }
+        let shops = s.shops;
+        for (const shop of shopRows) {
+          shops = shops.some((item) => item.id === shop.id)
+            ? shops.map((item) => (item.id === shop.id ? { ...item, ...shop } : item))
+            : [shop, ...shops];
+        }
+        return { ...s, extraListings, shops };
+      });
+    };
+    syncRef.current = async (serverUser) => {
+      const epoch = sessionEpoch;
       const [feedRes, shopsRes] = await Promise.all([
         api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
         api<{ shops: Shop[] }>("/api/shops"),
@@ -660,13 +724,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let favs = [] as string[];
       let reactions: ReactionsByVoter = {};
       let counts = feedRes.data?.counts;
+      let useServerExtra = false;
+      const base = userRef.current;
       const reactionUser: User | null = serverUser
         ? {
-            ...(next.user ?? serverUser),
+            ...(base ?? serverUser),
             id: serverUser.id,
-            name: serverUser.name || next.user?.name || "",
-            phone: serverUser.phone || next.user?.phone || "",
-            email: serverUser.email ?? next.user?.email,
+            name: serverUser.name || base?.name || "",
+            phone: serverUser.phone || base?.phone || "",
+            email: serverUser.email ?? base?.email,
           }
         : null;
       if (serverUser) {
@@ -675,23 +741,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
           api<{ favouriteIds: string[] }>("/api/me/cart"),
           api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
         ]);
-        if (mine.data?.listings) extra = mine.data.listings;
-        if (cart.data?.favouriteIds) favs = cart.data.favouriteIds;
+        if (mine.ok) {
+          extra = mine.data?.listings ?? [];
+          useServerExtra = true;
+        }
+        if (cart.ok && cart.data?.favouriteIds) favs = cart.data.favouriteIds;
         const vid = voterId(reactionUser);
         if (vid && reacts.data?.reactions) reactions = { [vid]: reacts.data.reactions };
         counts = { ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) };
       }
-      if (!cancelled && epochAtBoot === sessionEpoch) {
-        applyCounts(counts, reactions, reactionUser);
-        setState((s) => ({
+      if (epoch !== sessionEpoch) return;
+      setSyncError(feedRes.status === 0 || feedRes.status >= 500);
+      applyCounts(counts, reactions, reactionUser);
+      const ops = pendingOps();
+      const pendingListingIds = new Set(ops.filter((op) => op.kind !== "putShop").map((op) => op.listingId));
+      const pendingShopIds = new Set(ops.filter((op) => op.kind === "putShop").map((op) => op.shopId));
+      setState((s) => {
+        let extraListings = useServerExtra ? extra : s.extraListings;
+        if (useServerExtra) {
+          const serverIds = new Set(extra.map((item) => item.id));
+          for (const local of s.extraListings) {
+            if (pendingListingIds.has(local.id) && !serverIds.has(local.id)) extraListings = upsertExtraListing(extraListings, local);
+          }
+        }
+        let shops = shopsRes.ok ? (shopsRes.data?.shops ?? []) : s.shops;
+        if (shopsRes.ok) {
+          const serverIds = new Set((shopsRes.data?.shops ?? []).map((item) => item.id));
+          for (const local of s.shops) {
+            if (pendingShopIds.has(local.id) && !serverIds.has(local.id)) shops = [local, ...shops];
+          }
+        }
+        return {
           ...s,
-          feed: feedRes.data?.listings ?? [],
-          shops: shopsRes.data?.shops ?? [],
-          extraListings: serverUser ? extra : s.extraListings,
+          feed: feedRes.ok ? (feedRes.data?.listings ?? []) : s.feed,
+          shops,
+          extraListings,
           favouriteIds: serverUser ? favs : s.favouriteIds,
           reactions: serverUser ? reactions : s.reactions,
-        }));
-      }
+        };
+      });
+      setSynced(true);
+    };
+    void (async () => {
+      await restorePending();
+      const serverUser = await authTask;
+      if (dead()) return;
+      await syncRef.current(serverUser);
       if (!cancelled) setSynced(true);
       window.clearTimeout(timeout);
     })();
@@ -726,8 +821,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const on = () => {
+      setOnline(true);
+      if (syncErrorRef.current) void syncRef.current(userRef.current);
+    };
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    setOnline(navigator.onLine);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  useEffect(() => {
     return startOutbox((op, data) => {
-      const payload = data as { listing?: Listing; shop?: Shop };
+      const payload = data as { listing?: Listing; shop?: Shop; discarded?: boolean };
+      if (payload?.discarded) {
+        if (op.kind === "putListing" || op.kind === "patchListing") {
+          setState((s) => ({ ...s, extraListings: s.extraListings.filter((item) => item.id !== op.listingId) }));
+        }
+        if (op.kind === "putShop") {
+          setState((s) => ({ ...s, shops: s.shops.filter((item) => item.id !== op.shopId) }));
+        }
+        return;
+      }
       if ((op.kind === "putListing" || op.kind === "patchListing") && payload.listing) {
         const listing = payload.listing;
         setState((s) => ({ ...s, extraListings: upsertExtraListing(s.extraListings, listing) }));
@@ -801,6 +920,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     t,
     ready,
     synced,
+    online,
+    syncError,
+    resync: () => {
+      void syncRef.current(userRef.current);
+    },
     allListings,
     login: ({ phone, email, method, name }) => {
       const clean = (phone ?? "").replace(/\D/g, "");
@@ -1047,14 +1171,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         side: "sell",
       }));
       const videoSec = d.videoSec;
+      const stashed = stashListing(listing, videoSec);
       void (async () => {
-        await authReady;
         try {
-          const uploaded = await materializeListing(listing, videoSec);
-          update((s) => ({ ...s, extraListings: upsertExtraListing(s.extraListings, uploaded) }));
-          enqueue({ kind: "putListing", listingId: uploaded.id, body: { ...uploaded, videoSec } });
+          const body = await stashed;
+          await authReady;
+          enqueue({ kind: "putListing", listingId: listing.id, body: { ...body, videoSec } });
         } catch (err) {
-          console.warn("listing upload failed", err);
+          const code = err instanceof UploadFatal ? err.code : "network";
+          enqueue({ kind: "putListing", listingId: listing.id, body: { ...listing, videoSec }, failed: true, error: code });
         }
       })();
       return listing;

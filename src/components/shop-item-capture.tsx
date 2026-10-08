@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { recorderMime, sampleVideoStills, startSpeech } from "@/lib/blob-media";
+import { recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
 import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
@@ -251,7 +251,7 @@ export function ShopItemCapture({
       const recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recStreamRef.current = recStream;
       const mime = recorderMime("audio");
-      const rec = mime ? new MediaRecorder(recStream, { mimeType: mime }) : new MediaRecorder(recStream);
+      const rec = new MediaRecorder(recStream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("audio") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };
@@ -296,7 +296,7 @@ export function ShopItemCapture({
       setLive(true);
       setRecording(true);
       const mime = recorderMime("video");
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("video") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };

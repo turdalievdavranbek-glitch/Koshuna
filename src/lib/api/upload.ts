@@ -1,7 +1,8 @@
 import type { Listing, Shop, ShopProduct } from "@/lib/types";
+import { stashMedia, type MediaKind } from "@/lib/media-queue";
 import { api } from "./client";
 
-type Kind = "photo" | "video" | "voice" | "poster";
+type Kind = MediaKind;
 
 const MIME: Record<Kind, string> = {
   photo: "image/jpeg",
@@ -14,6 +15,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Шаг 4 in-session upload. Shops stay on this path until Шаг 11. */
 export async function materializeMedia(url: string, kind: Kind, durationSec?: number): Promise<string> {
   if (!url || (!url.startsWith("blob:") && !url.startsWith("data:"))) return url;
   const blob = await fetch(url).then((res) => res.blob());
@@ -62,15 +64,16 @@ export async function materializeMedia(url: string, kind: Kind, durationSec?: nu
   return done.data.url;
 }
 
-export async function materializeListing(listing: Listing, videoSec?: number): Promise<Listing> {
-  const photos: string[] = [];
-  for (let i = 0; i < listing.photos.length; i += 1) {
-    const kind = listing.videoUrl && i === 0 ? "poster" : "photo";
-    photos.push(await materializeMedia(listing.photos[i], kind));
-  }
-  const videoUrl = listing.videoUrl ? await materializeMedia(listing.videoUrl, "video", videoSec) : listing.videoUrl;
-  const voiceUrl = listing.voiceUrl ? await materializeMedia(listing.voiceUrl, "voice", listing.voiceSec) : listing.voiceUrl;
-  return { ...listing, photos, videoUrl, voiceUrl };
+export function stashListing(listing: Listing, videoSec?: number): Promise<Listing> {
+  const photos = listing.photos.map((src, i) => stashMedia(src, listing.videoUrl && i === 0 ? "poster" : "photo"));
+  const videoUrl = listing.videoUrl ? stashMedia(listing.videoUrl, "video", videoSec) : Promise.resolve(listing.videoUrl);
+  const voiceUrl = listing.voiceUrl ? stashMedia(listing.voiceUrl, "voice", listing.voiceSec) : Promise.resolve(listing.voiceUrl);
+  return Promise.all([Promise.all(photos), videoUrl, voiceUrl]).then(([nextPhotos, nextVideo, nextVoice]) => ({
+    ...listing,
+    photos: nextPhotos,
+    videoUrl: nextVideo,
+    voiceUrl: nextVoice,
+  }));
 }
 
 async function mediaField(url: string | undefined, kind: Kind, durationSec?: number): Promise<string | undefined> {

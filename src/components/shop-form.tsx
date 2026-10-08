@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { CITIES, GIS_CITIES } from "@/lib/data";
-import { captureVideoPoster, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
+import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { applyShopAi, classifyShopSpeech } from "@/lib/shop-ai";
 import { shopErrorText } from "@/lib/shop-copy";
@@ -12,11 +13,12 @@ import { publishErrors } from "@/lib/shop-rules";
 import { parentOfShopKind, SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory, ShopHoursSlot } from "@/lib/types";
-import { GisMap } from "./gis-map";
 import { GisOnMapCard } from "./gis-on-map";
 import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
 import { applySellerShopCategory } from "./shop-chips";
+
+const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
 
 type AiState = "idle" | "recording" | "analyzing" | "ready" | "empty" | "error";
 
@@ -106,7 +108,7 @@ export function ShopForm() {
         await videoRef.current.play().catch(() => undefined);
       }
       const mime = recorderMime("video");
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("video") });
       chunks.current = [];
       rec.ondataavailable = (ev) => {
         if (ev.data.size) chunks.current.push(ev.data);

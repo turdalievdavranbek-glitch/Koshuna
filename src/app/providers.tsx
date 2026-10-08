@@ -8,6 +8,9 @@ import { useEffect, type ReactNode } from "react";
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     void wireNativeShell();
+    if ("serviceWorker" in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   }, []);
   return (
     <AppProvider>

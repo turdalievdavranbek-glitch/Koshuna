@@ -1,17 +1,34 @@
 const held = new Map<string, string>();
+const blobs = new Map<string, Blob>();
 
 export function keepBlob(key: "video" | "voice" | "photo", blob: Blob): string {
   const prev = held.get(key);
-  if (prev) URL.revokeObjectURL(prev);
+  if (prev) {
+    URL.revokeObjectURL(prev);
+    blobs.delete(prev);
+  }
   const url = URL.createObjectURL(blob);
   held.set(key, url);
+  blobs.set(url, blob);
   return url;
+}
+
+export function heldBlob(url: string): Blob | undefined {
+  return blobs.get(url);
 }
 
 export function dropBlob(key: "video" | "voice" | "photo") {
   const prev = held.get(key);
-  if (prev) URL.revokeObjectURL(prev);
+  if (prev) {
+    URL.revokeObjectURL(prev);
+    blobs.delete(prev);
+  }
   held.delete(key);
+}
+
+export function recorderOptions(kind: "video" | "audio"): MediaRecorderOptions {
+  if (kind === "video") return { videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 64_000 };
+  return { audioBitsPerSecond: 32_000 };
 }
 
 export function persistableUrl(url?: string): string | undefined {
