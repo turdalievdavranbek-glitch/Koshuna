@@ -200,40 +200,58 @@ export { CAR_MAKES, carModelsOf } from "./transport";
 export type { CarMake, VehicleGroup } from "./transport";
 
 export const SERVICE_GROUPS = {
-  "svc-transport": ["transport-local", "transport-intl"],
+  "svc-transport": ["car-wash", "auto-repair", "tire-service", "transport-local", "transport-intl"],
+  "svc-tech": ["appliance-repair", "phone-repair"],
+  "svc-home": ["home-master", "repairs-finish", "house-build", "cleaning"],
+  "svc-leisure": ["beauty", "sauna", "billiards"],
+  "svc-clothes": ["tailor", "dry-clean", "shoe-repair"],
+  "svc-events": ["event-host", "photo-video", "event-rent"],
   "svc-health": ["clinic", "dentist"],
-  "svc-leisure": ["sauna", "billiards"],
+  "svc-farm": ["farm-work", "vet"],
 } as const;
 
 export type ServiceGroupId = keyof typeof SERVICE_GROUPS;
 
 export const SERVICE_TOP = [
-  "repairs-finish",
-  "house-build",
-  "appliance-repair",
   "svc-transport",
-  "svc-health",
+  "svc-tech",
+  "svc-home",
   "svc-leisure",
-  "beauty",
+  "svc-clothes",
+  "svc-events",
+  "svc-health",
   "education",
-  "cleaning",
+  "svc-farm",
   "other",
 ] as const;
 
 export const SERVICE_CATEGORIES = [
-  "repairs-finish",
-  "house-build",
-  "appliance-repair",
-  "beauty",
-  "education",
-  "cleaning",
-  "other",
+  "car-wash",
+  "auto-repair",
+  "tire-service",
   "transport-local",
   "transport-intl",
-  "clinic",
-  "dentist",
+  "appliance-repair",
+  "phone-repair",
+  "home-master",
+  "repairs-finish",
+  "house-build",
+  "cleaning",
+  "beauty",
   "sauna",
   "billiards",
+  "tailor",
+  "dry-clean",
+  "shoe-repair",
+  "event-host",
+  "photo-video",
+  "event-rent",
+  "clinic",
+  "dentist",
+  "education",
+  "farm-work",
+  "vet",
+  "other",
 ] as const;
 
 export const PHARMACY_SHOP_HREF = "/shops/c/health/health-pharmacy";

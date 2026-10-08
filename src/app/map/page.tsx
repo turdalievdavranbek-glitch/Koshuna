@@ -56,7 +56,7 @@ export default function MapPage() {
   const markers = useMemo(
     () =>
       listings
-        .filter((l) => l.lat != null && l.lng != null)
+        .filter((l) => l.lat != null && l.lng != null && l.serviceMode !== "mobile")
         .map((l) => ({
           id: l.id,
           lat: l.lat!,

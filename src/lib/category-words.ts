@@ -148,9 +148,74 @@ export const CATEGORY_WORDS: CategoryWord[] = [
     category: "insulation",
   },
   {
-    keys: ["ремонт", "сантехник", "электрик", "оңдоо", "устат", "отделк"],
+    keys: ["ремонт", "оңдоо", "устат", "отделк"],
     section: "services",
     category: "repairs-finish",
+  },
+  {
+    keys: ["мойка", "автомойка", "жуучу", "унаа жуу"],
+    section: "services",
+    category: "car-wash",
+  },
+  {
+    keys: ["сто", "автосервис", "моторист", "ходовка", "автоэлектрик", "унаа оңдоо"],
+    section: "services",
+    category: "auto-repair",
+  },
+  {
+    keys: ["шиномонтаж", "вулканизация", "шина", "дөңгөлөк"],
+    section: "services",
+    category: "tire-service",
+  },
+  {
+    keys: ["ремонт телефон", "замена экрана", "компьютер", "телефон оңдоо"],
+    section: "services",
+    category: "phone-repair",
+  },
+  {
+    keys: ["сантехник", "электрик", "сварщик", "сварка", "ширетүү"],
+    section: "services",
+    category: "home-master",
+  },
+  {
+    keys: ["ателье", "швея", "пошив", "тигүү", "тигүүчү"],
+    section: "services",
+    category: "tailor",
+  },
+  {
+    keys: ["химчистка", "стирка ковров", "килем жуу"],
+    section: "services",
+    category: "dry-clean",
+  },
+  {
+    keys: ["ремонт обуви", "сапожник", "бут кийим оңдоо"],
+    section: "services",
+    category: "shoe-repair",
+  },
+  {
+    keys: ["тамада", "ведущий", "той", "музыка", "ырчы"],
+    section: "services",
+    category: "event-host",
+  },
+  {
+    keys: ["фотограф", "видеосъемка", "сүрөтчү", "видео тартуу"],
+    section: "services",
+    category: "photo-video",
+  },
+  {
+    keys: ["прокат посуды", "юрта", "боз үй", "декор"],
+    section: "services",
+    category: "event-rent",
+  },
+  {
+    keys: ["трактор", "вспашка", "сенокос", "комбайн", "айдоо", "чөп чабуу"],
+    section: "services",
+    category: "farm-work",
+  },
+  {
+    keys: ["ветеринар", "мал доктур"],
+    section: "services",
+    category: "vet",
   },
   {
     keys: ["репетитор", "репетиторлук", "английск", "англис тили", "математик", "мугалим"],
@@ -158,7 +223,7 @@ export const CATEGORY_WORDS: CategoryWord[] = [
     category: "education",
   },
   {
-    keys: ["маникюр", "парикмахер", "чачтарач", "брови", "ресниц"],
+    keys: ["маникюр", "парикмахер", "чачтарач", "брови", "ресниц", "салон", "барбер"],
     section: "services",
     category: "beauty",
   },
@@ -193,7 +258,12 @@ export const CATEGORY_WORDS: CategoryWord[] = [
     carMake: "toyota",
   },
   {
-    keys: ["экскаватор", "трактор", "камаз", "самосвал"],
+    keys: ["экскаватор", "камаз", "самосвал"],
+    section: "cars",
+    vehicleGroup: "special",
+  },
+  {
+    keys: ["трактор"],
     section: "cars",
     vehicleGroup: "special",
   },

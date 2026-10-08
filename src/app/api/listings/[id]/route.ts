@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { listingCategoryError } from "@/lib/listing-rules";
+import { sanitizeServiceListing } from "@/lib/service-listing";
 import type { Listing } from "@/lib/types";
 import { getDb } from "@/server/db";
 import { listings, shops } from "@/server/db/schema";
@@ -50,7 +51,7 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
 
   const base = existing[0] ? rowToListing(existing[0]) : null;
   if (mode === "patch" && !base) return json({ error: "not-found" }, 404);
-  const merged = { ...(base ?? {}), ...patch, id } as Listing;
+  const merged = sanitizeServiceListing({ ...(base ?? {}), ...patch, id } as Listing);
   if (!merged.section || !merged.title) return json({ error: "bad-listing" }, 400);
   let shopKinds: readonly string[] | null = null;
   if (merged.shopId) {

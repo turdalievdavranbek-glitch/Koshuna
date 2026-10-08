@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { suggestCategories } from "../src/lib/category-suggest";
+import { serviceCategoryMatches } from "../src/lib/data";
 import { normalizePhoneInput } from "../src/lib/phone";
+import { sanitizeServiceListing } from "../src/lib/service-listing";
 import { attachNativeBack, decideHardwareBack } from "../src/lib/native-back";
 import { formatShopHours, hoursFromLegacy, sanitizeShopHours, shopOpenNow, type ShopHoursLabels } from "../src/lib/shops";
 
@@ -203,6 +205,42 @@ test("suggestCategories and phone numbers", async () => {
   expect(normalizePhoneInput("+996 (555) 12-34-56")).toBe("+996555123456");
   expect(normalizePhoneInput("+79161234567")).toBe("+79161234567");
   expect(normalizePhoneInput("12345")).toBeNull();
+  expect(suggestCategories("автомойка", { section: "services" })[0]?.category).toBe("car-wash");
+  expect(suggestCategories("ателье", { section: "services" })[0]?.category).toBe("tailor");
+  expect(suggestCategories("трактор", { section: "services" })[0]?.category).toBe("farm-work");
+  expect(suggestCategories("сантехник", { section: "services" })[0]?.category).toBe("home-master");
+  expect(serviceCategoryMatches("beauty", "beauty")).toBe(true);
+  expect(serviceCategoryMatches("beauty", "svc-leisure")).toBe(true);
+  expect(serviceCategoryMatches("beauty", "clinic")).toBe(false);
+  const cleaned = sanitizeServiceListing({
+    section: "services",
+    serviceMode: "nope" as "place",
+    serviceArea: "planet" as "city",
+    priceFrom: "yes" as unknown as boolean,
+    hours: { days: ["mon"], slot: { open: "09:00", close: "18:00" }, note: "drop" } as never,
+    lat: 1,
+    lng: 2,
+    address: "Чуй",
+  } as never);
+  expect(cleaned.serviceMode).toBeUndefined();
+  expect(cleaned.serviceArea).toBeUndefined();
+  expect(cleaned.priceFrom).toBe(false);
+  expect(cleaned.hours).toEqual({ days: ["mon"], slot: { open: "09:00", close: "18:00" } });
+  const mobile = sanitizeServiceListing({
+    section: "services",
+    serviceMode: "mobile",
+    serviceArea: "city",
+    priceFrom: true,
+    lat: 42,
+    lng: 74,
+    address: "скрытый",
+  } as never);
+  expect(mobile.serviceMode).toBe("mobile");
+  expect(mobile.serviceArea).toBe("city");
+  expect(mobile.priceFrom).toBe(true);
+  expect(mobile.lat).toBeUndefined();
+  expect(mobile.lng).toBeUndefined();
+  expect(mobile.address).toBeUndefined();
 });
 
 test("native back is a no-op without the plugin", async () => {
@@ -612,6 +650,76 @@ test("home area chips stay on one row at 360px", async ({ page }) => {
   expect(Math.max(...metrics.tops) - Math.min(...metrics.tops)).toBeLessThan(4);
   expect(metrics.height).toBeLessThan(48);
   expect(metrics.truncated).toBe(true);
+});
+
+test.describe("services card", () => {
+  test.use({ viewport: { width: 360, height: 800 } });
+
+  test("the services card sits between the stall and the cafe", async ({ page }) => {
+    await signedIn(page, "+996555112233");
+    await page.goto("/post?type=business");
+    const cards = page.getByTestId("seller-entry-cards").locator("button");
+    await expect(cards.nth(1)).toContainText("Прилавок");
+    await expect(cards.nth(2)).toContainText("Услуги / мастер");
+    await expect(cards.nth(2)).toContainText("Мойка, СТО, сауна");
+    await expect(cards.nth(3)).toContainText("Кафе / еда");
+  });
+
+  test("service mode, suggestions and a mobile publish without price or address", async ({ page }) => {
+    await signedIn(page, "+996555112233");
+    await page.goto("/post?card=service");
+    await expect(page.getByTestId("service-mode-place")).toHaveText("Есть своё место");
+    await expect(page.getByTestId("service-mode-mobile")).toHaveText("Выезжаю к клиенту");
+    await page.getByTestId("service-work").fill("автомойка");
+    await expect(page.locator('[data-testid="cat-chip"][data-selected="true"]')).toHaveAttribute("data-category", "car-wash", {
+      timeout: 5000,
+    });
+    await page.getByTestId("service-work").fill("ателье");
+    await expect(page.locator('[data-testid="cat-chip"][data-selected="true"]')).toHaveAttribute("data-category", "tailor");
+    await page.getByTestId("service-mode-place").click();
+    await expect(page.getByText("Сфотографируйте фасад вашего здания")).toBeVisible();
+    await page.getByTestId("service-mode-mobile").click();
+    await expect(page.getByText("Сфотографируйте свою работу или инструменты")).toBeVisible();
+    await expect(page.getByText("Когда принимаете заказы")).toBeVisible();
+    await expect(page.getByText("Адрес заведения")).toHaveCount(0);
+    await expect(page.getByText("Точка на карте")).toHaveCount(0);
+    await expect(page.getByTestId("service-area")).toBeVisible();
+    await page.getByTestId("post-next").click();
+    await page.getByTestId("hours-soft-skip").click();
+    await expect(page).toHaveURL(/step=2/);
+    await expect(page.getByText("Договорная")).toBeVisible();
+    await page.getByTestId("post-publish").click();
+    await expect(page.getByText("Объявление опубликовано")).toBeVisible();
+    await page.getByRole("button", { name: "Смотреть объявление" }).click();
+    await expect(page.getByTestId("service-visit")).toHaveText("Выезд");
+    await expect(page.getByText("Договорная").first()).toBeVisible();
+    await expect(page.locator("[data-testid=promo-badge]")).toHaveCount(0);
+  });
+
+  test("an old beauty listing still renders and filters inside services", async ({ page }) => {
+    await signedIn(page, "+996555112233");
+    await page.unroute("**/api/**");
+    await installApi(page, {
+      phone: "+996555112233",
+      listings: [
+        demoListing({
+          id: "old-beauty",
+          section: "services",
+          category: "beauty",
+          title: "Салон на углу",
+          price: 0,
+        }),
+      ],
+    });
+    await page.goto("/listing/old-beauty");
+    await expect(page.getByRole("heading", { name: "Салон на углу" })).toBeVisible();
+    await page.goto("/section/services/c/beauty");
+    await expect(page.getByText("Салон на углу").first()).toBeVisible();
+    await page.goto("/section/services/c/svc-leisure/all");
+    await expect(page.getByText("Салон на углу").first()).toBeVisible();
+    await page.goto("/shops");
+    await expect(page.getByText("Салон на углу")).toHaveCount(0);
+  });
 });
 
 test.describe("back controls", () => {

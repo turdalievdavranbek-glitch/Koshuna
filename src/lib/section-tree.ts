@@ -665,11 +665,12 @@ function services(path: string[]): BranchState | null {
     };
   }
 
-  if (path.length === 1 && inList(head, SERVICE_TOP) && !isServiceGroup(head) && inList(head, SERVICE_CATEGORIES)) {
+  if (path.length === 1 && inList(head, SERVICE_CATEGORIES) && !isServiceGroup(head)) {
+    const group = serviceGroupOf(head);
     return {
       ok: true,
       title: (t) => t.cats[head] ?? head,
-      parentPath: [],
+      parentPath: group ? [group] : [],
       options: [],
       patch: { ...base, category: head },
       isPicker: false,

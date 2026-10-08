@@ -277,6 +277,13 @@ export type Listing = {
   contact: "whatsapp" | "telegram";
   views: number;
   favCount: number;
+  /** Service card: own place or a visit to the client. */
+  serviceMode?: "place" | "mobile";
+  /** Mobile visits: the whole district or the whole city. */
+  serviceArea?: "district" | "city";
+  /** Show the price as «от …». */
+  priceFrom?: boolean;
+  hours?: ShopHours;
 };
 
 export type Filters = {
@@ -422,7 +429,11 @@ export type DraftListing = {
   ingredients?: string;
   priceNegotiable?: boolean;
   oldPrice?: string;
-  saleUnit?: "kg" | "piece" | "hour";
+  saleUnit?: "kg" | "piece" | "hour" | "service";
+  serviceMode?: "place" | "mobile";
+  serviceArea?: "district" | "city";
+  priceFrom?: boolean;
+  hours?: ShopHours;
   savedAt?: string;
   flow?: "personal" | `card:${string}`;
   categoryLocked?: boolean;
