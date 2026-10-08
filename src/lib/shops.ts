@@ -1,4 +1,4 @@
-import { GIS_CITIES } from "./data";
+import { DISTRICTS, GIS_CITIES } from "./data";
 import { displayPhotoForProduct } from "./shop-photos";
 import {
   SHOP_CATEGORIES,
@@ -15,6 +15,7 @@ import {
   type ShopProduct,
   type ShopStatus,
   type User,
+  type Lang,
 } from "./types";
 
 export { SHOP_CATEGORIES, SHOP_KINDS };
@@ -524,4 +525,137 @@ export function publicProductsInKind(
     }
   }
   return out;
+}
+
+/** Groups a new point may use. Service-like groups stay on the «Услуги» card. */
+export const NEW_POINT_GROUPS: ShopCategory[] = [
+  "food",
+  "farm",
+  "construction",
+  "furniture",
+  "electronics",
+  "apparel",
+  "home",
+  "books",
+  "pets",
+  "health",
+  "other",
+];
+
+export const POINT_HIDDEN_GROUPS: ShopCategory[] = ["beauty", "repair", "travel"];
+
+export const POINT_HIDDEN_KINDS: ShopKind[] = ["health-clinic", "health-dentist"];
+
+export function pointGroupsFor(shop: Pick<Shop, "category" | "extraCategories">, creating: boolean): ShopCategory[] {
+  if (creating) return [...NEW_POINT_GROUPS];
+  const extra = [shop.category, ...(shop.extraCategories ?? [])].filter(
+    (id): id is ShopCategory => isShopCategory(id) && !NEW_POINT_GROUPS.includes(id),
+  );
+  return [...NEW_POINT_GROUPS, ...extra];
+}
+
+export function pointKindsFor(category: ShopCategory, current: readonly ShopKind[] | undefined, creating: boolean): ShopKind[] {
+  return shopKindsOf(category).filter((id) => {
+    if (!(POINT_HIDDEN_KINDS as readonly string[]).includes(id)) return true;
+    if (creating) return false;
+    return (current ?? []).includes(id);
+  });
+}
+
+export function landmarksFromText(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.slice(0, 60))
+    .slice(0, 3);
+}
+
+export function shopDistrictName(id: string | undefined | null, lang: Lang): string {
+  const raw = id?.trim() ?? "";
+  if (!raw) return "";
+  const row = DISTRICTS.find((item) => item.id === raw);
+  if (!row) return raw;
+  return lang === "ky" ? row.nameKy : row.name;
+}
+
+export function shopLandmarkLine(shop: { landmarks?: string[] | null; address?: string | null }): string {
+  const marks = (shop.landmarks ?? []).map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+  if (marks.length) return marks.join(" · ");
+  return (shop.address ?? "").trim();
+}
+
+export function shopHasPointPlace(shop: { district?: string | null; landmarks?: string[] | null }): boolean {
+  return Boolean(shop.district?.trim() || (shop.landmarks ?? []).some((item) => item.trim()));
+}
+
+/** «район · ориентир» when the new fields are set. Otherwise the old «город, адрес» line. */
+export function shopPlaceHeadline(
+  shop: Pick<Shop, "district" | "landmarks" | "address">,
+  cityLabel: string,
+  lang: Lang,
+): string {
+  if (shopHasPointPlace(shop)) {
+    return [shopDistrictName(shop.district, lang), shopLandmarkLine(shop)].filter(Boolean).join(" · ");
+  }
+  return [cityLabel, (shop.address ?? "").trim()].filter(Boolean).join(", ");
+}
+
+export function shopPointSubtitle(
+  shop: Pick<Shop, "venueKind" | "district" | "landmarks" | "address" | "city">,
+  venueShop: string,
+  venueStall: string,
+  cityLabel: string,
+  lang: Lang,
+): string {
+  const venue = shop.venueKind === "stall" ? venueStall : shop.venueKind === "shop" ? venueShop : "";
+  const place = shopHasPointPlace(shop)
+    ? [shopDistrictName(shop.district, lang), shopLandmarkLine(shop)].filter(Boolean).join(" · ")
+    : [cityLabel, (shop.address ?? "").trim()].filter(Boolean).join(" · ");
+  return [venue, place].filter(Boolean).join(" · ");
+}
+
+export function shopDeliveryLine(
+  shop: { delivery?: boolean; deliveryFree?: boolean | null },
+  free: string,
+  paid: string,
+): string | null {
+  if (!shop.delivery) return null;
+  if (shop.deliveryFree === true) return free;
+  if (shop.deliveryFree === false) return paid;
+  return null;
+}
+
+function capText(value: unknown, max: number): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, max);
+}
+
+/** Trim the point fields. No new database columns: they already exist on shops. */
+export function sanitizeShopPointFields(shop: Shop): Shop {
+  const landmarks = (Array.isArray(shop.landmarks) ? shop.landmarks : [])
+    .map((item) => capText(item, 60))
+    .filter(Boolean)
+    .slice(0, 3);
+  const district = capText(shop.district, 60);
+  const kindOther = capText(shop.kindOther, 40);
+  const delivery = Boolean(shop.delivery);
+  const deliveryFree = delivery && typeof shop.deliveryFree === "boolean" ? shop.deliveryFree : undefined;
+  const deliveryDistricts = delivery
+    ? (Array.isArray(shop.deliveryDistricts) ? shop.deliveryDistricts : [])
+        .map((item) => capText(item, 60))
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
+  return {
+    ...shop,
+    landmarks: landmarks.length ? landmarks : undefined,
+    district: district || undefined,
+    kindOther: kindOther || undefined,
+    deliveryFree,
+    deliveryDistricts,
+    address: landmarks.length ? landmarks.join(" · ") : typeof shop.address === "string" ? shop.address : "",
+  };
 }

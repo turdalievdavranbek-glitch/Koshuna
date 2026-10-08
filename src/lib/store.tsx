@@ -482,6 +482,7 @@ type Store = State & {
   setShopDraft: (patch: Partial<ShopDraft>) => void;
   lockShopField: (key: keyof Shop) => void;
   saveShopDraft: () => Shop | null;
+  discardShopDraft: () => void;
   publishShop: (shop?: Shop) => Promise<{ shop: Shop | null; error?: string }>;
   withdrawShop: (id: string) => Promise<{ error?: string }>;
   upsertShopProduct: (
@@ -1612,6 +1613,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       })();
       return saved;
+    },
+    discardShopDraft: () => {
+      const draft = state.shopDraft;
+      if (!draft) return;
+      update((s) => ({
+        ...s,
+        shopDraft: null,
+        shops: draft.status === "active" ? s.shops : s.shops.filter((item) => item.id !== draft.id),
+      }));
     },
     publishShop: async (source) => {
       const user = state.user;

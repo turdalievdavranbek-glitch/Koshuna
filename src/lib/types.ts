@@ -562,6 +562,16 @@ export type Shop = {
   pickup: boolean;
   delivery: boolean;
   deliveryNote?: string;
+  /** Free delivery when true, paid when false. Only meaningful while delivery is on. */
+  deliveryFree?: boolean;
+  /** District ids the point delivers to. */
+  deliveryDistricts?: string[];
+  /** District id from DISTRICTS, or a short label. */
+  district?: string;
+  /** Short landmarks, no street. */
+  landmarks?: string[];
+  /** Free text when the group is «Другое». */
+  kindOther?: string;
   videoUrl?: string;
   coverUrl?: string;
   transcript?: string;

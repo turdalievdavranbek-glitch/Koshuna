@@ -17,6 +17,7 @@ import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { SellerHub } from "@/components/seller-hub";
+import { PointList } from "@/components/point-rows";
 import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { MyListings } from "@/components/my-listings";
 import { KonshuBridges } from "@/components/konshu-bridges";
@@ -164,12 +165,15 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-6 flex items-baseline justify-between">
-          <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
+          <span className="font-display text-[19px] font-bold text-ink">{t.myPoints}</span>
           <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
             {t.allN(shopsOf(shops, user).length)}
           </button>
         </div>
         <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+        <div className="mt-3">
+          <PointList shops={shopsOf(shops, user)} actions />
+        </div>
         <div className="mt-3">
           <SellerEntryCards />
         </div>

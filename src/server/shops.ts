@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
-import { listingSectionForShop, sanitizeShopHours } from "@/lib/shops";
+import { listingSectionForShop, sanitizeShopHours, sanitizeShopPointFields } from "@/lib/shops";
 import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
 import { getDb } from "./db";
@@ -96,7 +96,7 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   const db = getDb();
   const existing = await db.select().from(shops).where(eq(shops.id, shop.id)).limit(1);
   if (existing[0] && existing[0].ownerId !== user.id) return { error: "forbidden", status: 403 };
-  const clean: Shop = { ...shop, hours: sanitizeShopHours(shop.hours) };
+  const clean: Shop = sanitizeShopPointFields({ ...shop, hours: sanitizeShopHours(shop.hours) });
   const columns = shopToColumns({ ...clean, id: clean.id }, user.id);
   if (!existing[0]) {
     await db.insert(shops).values(columns);

@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
-import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
+import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
 import { useApp } from "@/lib/store";
@@ -23,7 +23,7 @@ import { goBack } from "@/lib/go-back";
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, shops, user, allListings, withdrawShop, reportShop, reports, synced } = useApp();
+  const { t, lang, shops, user, allListings, withdrawShop, reportShop, reports, synced } = useApp();
   const shop = shops.find((item) => item.id === id);
   const [toast, setToast] = useState("");
   const [playing, setPlaying] = useState(false);
@@ -60,7 +60,10 @@ export default function ShopDetailPage() {
     allDay: t.hours24,
   });
   const url = shopPublicUrl(shop.id);
-  const shareText = t.shopShareBody(shop.name, t.cities[shop.city] || shop.city, shop.address, url);
+  const cityLabel = t.cities[shop.city] || shop.city;
+  const sharePlace = shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : shop.address;
+  const shareText = t.shopShareBody(shop.name, cityLabel, sharePlace, url);
+  const deliveryLine = shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine);
   const ping = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(""), 1800);
@@ -141,8 +144,9 @@ export default function ShopDetailPage() {
 
         <div className="mt-4 rounded-[16px] border border-line bg-white p-4">
           <div className="text-[13px] font-semibold text-ink">
-            {t.cities[shop.city]}, {shop.address}
+            {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : `${cityLabel}, ${shop.address}`}
           </div>
+          {deliveryLine ? <div className="mt-1 text-[12px] text-muted">{deliveryLine}</div> : null}
           {open === true ? <div className="mt-1 text-[12px] font-bold text-success">{t.shopOpenNow}</div> : null}
           {open === false ? <div className="mt-1 text-[12px] font-bold text-muted">{t.shopClosedNow}</div> : null}
           {shop.hoursNote ? <div className="mt-1 text-[12px] text-muted">{shop.hoursNote}</div> : null}

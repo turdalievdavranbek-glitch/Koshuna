@@ -34,6 +34,7 @@ import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
+import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { GisOnMapCard } from "@/components/gis-on-map";
 
 export default function ListingPage() {
@@ -264,7 +265,12 @@ export default function ListingPage() {
                     <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shopFromListing}</div>
                     <button type="button" onClick={() => router.push(`/shops/${shop.id}`)} className="mt-1.5 text-left">
                       <div className="font-display text-[17px] font-bold text-ink">{shop.name}</div>
-                      <div className="text-[13px] text-muted">{t.shopToShop} · {t.cities[shop.city]}</div>
+                      <div className="text-[13px] text-muted">
+                        {t.shopToShop} · {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, t.cities[shop.city] || shop.city, lang) : t.cities[shop.city]}
+                      </div>
+                      {shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine) ? (
+                        <div className="text-[12px] text-muted">{shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine)}</div>
+                      ) : null}
                     </button>
                     {others.length ? (
                       <div className="mt-2">
