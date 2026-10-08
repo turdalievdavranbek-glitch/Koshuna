@@ -406,16 +406,17 @@ export function CityPicker({
   );
 }
 
-export function LangSwitch() {
+export function LangSwitch({ size = "md" }: { size?: "md" | "sm" }) {
   const { lang, setLang } = useApp();
+  const sm = size === "sm";
   return (
-    <div className="flex gap-1 self-end rounded-full bg-chip p-1">
+    <div className={sm ? "flex h-8 w-16 shrink-0 items-center rounded-full bg-chip p-0.5" : "flex gap-1 self-end rounded-full bg-chip p-1"}>
       {LANGS.map((code) => (
         <button
           key={code}
           type="button"
           onClick={() => setLang(code)}
-          className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold"
+          className={sm ? "h-7 min-w-0 flex-1 rounded-full text-[11px] font-bold leading-none" : "rounded-full px-2.5 py-1.5 text-[11px] font-semibold"}
           style={{
             background: lang === code ? "#17140F" : "transparent",
             color: lang === code ? "#F7F3EC" : "#6E6558",

@@ -175,6 +175,7 @@ export function rowToShop(row: ShopRow): Shop {
   return {
     ...doc,
     id: row.id,
+    ownerId: row.ownerId,
     status: (row.status as Shop["status"]) || doc.status,
     name: doc.name ?? row.name,
     city: doc.city || row.city,

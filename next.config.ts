@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/otp", destination: "/login", permanent: false },
+      { source: "/password", destination: "/login", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/privacy", destination: "/privacy.html" },

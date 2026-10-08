@@ -170,9 +170,7 @@ export default function PostPage() {
               </svg>
               <div className="text-[13px] leading-[1.4] text-success-ink">
                 {t.loggedInAs}{" "}
-                <strong>
-                  {user.name} · {user.phone}
-                </strong>
+                <strong>{[user.name, user.phone || user.email].filter(Boolean).join(" · ")}</strong>
                 . {t.phoneNote}
               </div>
             </div>

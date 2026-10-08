@@ -104,18 +104,24 @@ location = /download/koshuna.apk {
 3. Play Console → Настройка → Подпись приложения → скопируйте SHA-1 и SHA-256 **сертификата ключа подписи приложения** и добавьте их в Firebase (пункт 2) и SHA-256 в `assetlinks.json`.
 4. Закрытый тест и финальный AAB — не этот шаг.
 
-## 6. Вход Google (кнопки будут в Шаге 8, кабинеты — сейчас)
+## 6. Вход Google (Шаг 8)
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → тот же проект, что Firebase (Firebase создаёт его сам) → APIs & Services → Credentials.
-2. Создайте **OAuth client ID** типа **Web**. Скопируйте клиентский ID (оканчивается на `.apps.googleusercontent.com`).
-3. Создайте **OAuth client ID** типа **Android**: пакет `com.koshuna.app`, SHA-1 из пункта 2 (сначала ключ загрузки, после Play — ещё ключ подписи приложения).
-4. На сервере сайта, в файле окружения рядом с запуском Next, допишите и пересоберите сайт (APK заново не нужен):
+Вход только через Google: на сайте — кнопка Google Identity Services, в приложении Android — Credential Manager (`@capawesome/capacitor-google-sign-in`). Client ID читается на сервере в момент запроса, пересобирать сайт при смене ID не нужно.
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → проект Firebase konshu-cbb9e → Google Auth Platform: тип External, название «Коңшу», домен koshuna.ru, политика https://koshuna.ru/privacy. Audience → Publish app.
+2. Clients → **Web client** → Authorized JavaScript origins: `https://koshuna.ru`. Скопируйте Client ID (оканчивается на `.apps.googleusercontent.com`). Это не секрет, но в репозиторий его не кладут.
+3. Clients → **Android**: пакет `com.koshuna.app`, SHA-1 ключа загрузки `BD:1F:5E:60:8E:47:9E:50:6E:FE:4B:BA:90:18:68:61:80:35:DB:66`.
+4. После первой загрузки AAB в Play Console → App integrity скопируйте **SHA-1 ключа подписи приложения** и добавьте второй Android OAuth client с тем же пакетом и этим SHA-1 (и отпечаток в Firebase). Без него вход Google не работает в сборке из Play.
+5. На сервере, в `/etc/koshuna/backend.env` (режим 600), допишите и перезапустите процесс. Отдельная пересборка из‑за ID не нужна:
 
 ```bash
-NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID=сюда-web-client-id.apps.googleusercontent.com
+GOOGLE_WEB_CLIENT_ID=сюда-web-client-id.apps.googleusercontent.com
+AUTH_DEMO_ENABLED=false
 ```
 
-Экран входа в приложении пока не меняется. Кнопку подключим в Шаге 8.
+`NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID` больше не используется для входа. Если задан только он, кнопка может появиться, но `POST /api/auth/google` ответит 503, пока нет `GOOGLE_WEB_CLIENT_ID`.
+
+Ключ подписи (`*.jks`, `keystore.properties`) и `google-services.json` в репозиторий не попадают. Их берёт только сборка APK из секретного хранилища владельца или секретов CI. `android/.gitignore` уже игнорирует эти файлы.
 
 ## 7. Вход Apple (кнопки — Шаг 8)
 

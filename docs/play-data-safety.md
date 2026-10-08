@@ -10,7 +10,7 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 | Does your app collect or share any of the required user data types? | Yes |
 | Is all of the user data collected by your app encrypted in transit? | Yes (HTTPS only, cleartext disabled) |
 | Do you provide a way for users to request that their data be deleted? | Yes — https://koshuna.ru/delete-account (in-app button «Удалить аккаунт» comes in Шаг 16) |
-| Account creation | Demo login only, no SMS. Telegram, Google, Apple and TikTok login are not shipped yet (Шаг 8). Account and session data are stored on our server. Delete-account URL as above removes that server data; backups rotate out (7 daily DB dumps, 4 weekly media archives). |
+| Account creation | Google sign-in only (web and Android). No SMS. The old «учебный вход» is removed: demo sessions are not honoured in production. Account and session data are stored on our server. Delete-account URL as above removes that server data; backups rotate out (7 daily DB dumps, 4 weekly media archives). |
 | Data shared with third parties? | No. Firebase, Timeweb, 2GIS, and the login providers are service providers, or the transfer is user-initiated. Neither counts as "sharing" under Play's definition. |
 
 ## Data types
@@ -20,9 +20,9 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 |---|---|---|---|---|---|
 | Location → Approximate location (Примерное местоположение) | Yes | No | No | Optional (permission) | App functionality |
 | Location → Precise location (Точное местоположение) | Yes | No | No | Optional (permission) | App functionality |
-| Personal info → Name (Имя) | Yes | No | No | Optional (needed to post) | App functionality, Account management |
-| Personal info → Email address (Эл. почта) — from Google/Apple login | Yes | No | No | Optional | Account management |
-| Personal info → User IDs (ID аккаунта Telegram/Google/Apple/TikTok) | Yes | No | No | Optional | Account management, App functionality |
+| Personal info → Name (Имя) — from Google, shown on listings | Yes | No | No | Optional (Google account; also needed to post) | Account management, App functionality |
+| Personal info → Email address (Эл. почта) — from Google sign-in | Yes | No | No | Optional | Account management |
+| Personal info → User IDs (ID аккаунта Google, `sub`) | Yes | No | No | Optional | Account management |
 | Personal info → Phone number (Телефон) | Yes | No | No | Optional (needed to post, shown for «Позвонить») | App functionality |
 | Photos and videos → Photos (Фото) | Yes | No | No | Optional | App functionality |
 | Photos and videos → Videos (Видео) | Yes | No | No | Optional | App functionality |
@@ -34,11 +34,22 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 | App info and performance → Diagnostics (Crashlytics device/OS info) | Yes | No | No | Required (automatic) | App functionality, Analytics |
 | Device or other IDs → Device or other IDs (FCM push token, Firebase installation ID) | Yes (Шаг 4 stores the token when the app sends it; sending needs google-services.json) | No | No | Required (automatic) | App functionality (push), Analytics (crash grouping) |
 
+## Google sign-in (Шаг 8) — linked to the user, not shared, deletable on request
+
+The old «учебный вход» lines are removed. Play Console is filled by the owner in Шаг 15.
+
+| Category → Data type | Collected | Shared | Linked to the user | Purpose | Deletable |
+|---|---|---|---|---|---|
+| Personal info → Name | Yes | No | Yes | Account management (name on listings) | Yes — /delete-account |
+| Personal info → Email address | Yes | No | Yes | Account management | Yes — /delete-account |
+| App info → User IDs (Google account ID) | Yes | No | Yes | Account management | Yes — /delete-account |
+
+The Google profile photo is not stored.
+
 ## Not collected
 Financial info, Health and fitness, Contacts, Calendar (the «В календарь» link only opens the user's calendar app), Web browsing, Files and docs, Emails/SMS, Installed apps, Race/religion/political/sexual orientation, Precise purchase history, In-app search history (saved searches stay on the device).
 
 ## To re-check in Шаг 26
 - In-app account deletion button exists (Шаг 16) → mention it.
-- TikTok login actually shipped (Шаг 8).
-- Шаг 4 stores listings, shops, photos, videos, voice, likes, cart, subscriptions, reports, push tokens, and account/session data on the Timeweb VPS in Russia, with daily backups (7 daily DB dumps, 4 weekly media archives). Deletion via /delete-account removes the server copy; backups rotate out inside that window. Chat messages stay on the device until Шаг 19. Saved searches stay on the device. Demo login has no SMS. Telegram/Google/Apple/TikTok login is still future (Шаг 8).
+- Шаг 4 stores listings, shops, photos, videos, voice, likes, cart, subscriptions, reports, push tokens, and account/session data on the Timeweb VPS in Russia, with daily backups (7 daily DB dumps, 4 weekly media archives). Deletion via /delete-account removes the server copy; backups rotate out inside that window. Chat messages stay on the device until Шаг 19. Saved searches stay on the device. Sign-in is Google only (name, email, Google account ID). The old «учебный вход» is removed. No SMS.
 - No ads SDK and no analytics SDK beyond Crashlytics added since.

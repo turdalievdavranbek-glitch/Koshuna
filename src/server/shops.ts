@@ -1,20 +1,24 @@
 import { and, eq } from "drizzle-orm";
+import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
-import { normalizePhone } from "@/lib/shops";
-import type { Shop, ShopProduct, User } from "@/lib/types";
+import { listingSectionForShop, normalizePhone } from "@/lib/shops";
+import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
 import { getDb } from "./db";
 import { listings, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { listingMediaUrls, listingToRow, rowToListing, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
-function productIsMedicine(product: { kind?: string | null; category?: string | null }): boolean {
-  return product.kind === "health-pharmacy" || (product.category === "health" && !product.kind);
-}
-
-function shopSellsPharmacy(shop: Shop | undefined): boolean {
-  return Boolean(shop?.kinds?.includes("health-pharmacy"));
+function productCreatesPharmacyListing(
+  product: { kind?: string | null; category?: string | null },
+  shop: Shop,
+): boolean {
+  const mapped = listingSectionForShop(
+    (product.category || shop.category) as ShopCategory,
+    product.kind as ShopKind | undefined,
+  );
+  return listingCategoryError({ section: mapped.section, category: mapped.category }, shop.kinds ?? []) === "pharmacy-only";
 }
 
 export type ShopBody = {
@@ -32,7 +36,7 @@ export function validateShopAction(
   user: User,
 ): { status: number; body: { ok: false; error: string; errors?: string[] } } | null {
   if (!body.shop) return { status: 400, body: { ok: false, error: "bad-json" } };
-  if (normalizePhone(body.shop.ownerPhone || "") !== normalizePhone(user.phone || "")) {
+  if (user.phone && normalizePhone(body.shop.ownerPhone || "") !== normalizePhone(user.phone)) {
     return { status: 403, body: { ok: false, error: "forbidden" } };
   }
   const media = mediaError(body.videoBytes, body.videoSeconds);
@@ -41,7 +45,7 @@ export function validateShopAction(
     ...(body.shop.products ?? []),
     ...(body.product ? [body.product] : []),
   ];
-  if (products.some((product) => productIsMedicine(product) && !shopSellsPharmacy(body.shop))) {
+  if (products.some((product) => productCreatesPharmacyListing(product, body.shop as Shop))) {
     return { status: 400, body: { ok: false, error: "pharmacy-only" } };
   }
   const action = body.action as ShopAction;
@@ -69,10 +73,11 @@ async function syncProductListings(user: SessionUser, shop: Shop) {
   clientUser.phone = user.phone || shop.ownerPhone;
   for (const product of shop.products ?? []) {
     const id = product.listingId || listingIdForProduct(product.id);
-    keep.add(id);
     const prevRow = existing.find((row) => row.id === id || row.shopProductId === product.id);
     const prev = prevRow ? rowToListing(prevRow) : undefined;
     const listing = listingFromShopProduct(shop, { ...product, listingId: id }, clientUser, prev);
+    if (listingCategoryError(listing, shop.kinds ?? []) != null) continue;
+    keep.add(id);
     listing.ownerId = user.id;
     listing.id = prevRow?.id || id;
     keep.add(listing.id);

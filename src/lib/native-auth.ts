@@ -1,30 +1,20 @@
 /**
- * Native Google and Apple sign-in hooks.
- * Шаг 8 draws the buttons and calls these. Do not import this from the login screen yet.
+ * Native Google sign-in. The Web client id and nonce come from the server
+ * at click time (`/api/auth/config` and `/api/auth/google/nonce`), not from
+ * a build-time NEXT_PUBLIC value.
  *
- * Google: NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID is the Web OAuth client id
- * (the Android client is package com.koshuna.app + SHA-1, created in Google Cloud).
- * Apple: NEXT_PUBLIC_APPLE_SERVICE_ID is the Services ID. Redirect URL must be
- * registered for that Services ID.
+ * Apple stays a stub until iOS (after Android). The login screen does not call it.
  */
 
 export const nativeAuthConfig = {
-  googleWebClientId: process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
   appleServiceId: process.env.NEXT_PUBLIC_APPLE_SERVICE_ID ?? "",
   appleRedirectUrl:
     process.env.NEXT_PUBLIC_APPLE_REDIRECT_URL ?? "https://koshuna.ru/auth/apple/callback",
 };
 
-export function nativeAuthConfigured(): { google: boolean; apple: boolean } {
-  return {
-    google: nativeAuthConfig.googleWebClientId.length > 0,
-    apple: nativeAuthConfig.appleServiceId.length > 0,
-  };
-}
-
-export async function nativeGoogleSignIn() {
-  if (!nativeAuthConfig.googleWebClientId) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID is empty. See android/OWNER-SETUP.md.");
+export async function nativeGoogleSignIn(input: { clientId: string; nonce: string }) {
+  if (!input.clientId) {
+    throw new Error("Google client id is empty.");
   }
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) {
@@ -32,9 +22,16 @@ export async function nativeGoogleSignIn() {
   }
   const { GoogleSignIn } = await import("@capawesome/capacitor-google-sign-in");
   await GoogleSignIn.initialize({
-    clientId: nativeAuthConfig.googleWebClientId,
+    clientId: input.clientId,
   });
-  return GoogleSignIn.signIn();
+  return GoogleSignIn.signIn({ nonce: input.nonce });
+}
+
+export async function nativeGoogleSignOut(): Promise<void> {
+  const { Capacitor } = await import("@capacitor/core");
+  if (!Capacitor.isNativePlatform()) return;
+  const { GoogleSignIn } = await import("@capawesome/capacitor-google-sign-in");
+  await GoogleSignIn.signOut();
 }
 
 export async function nativeAppleSignIn() {

@@ -1,5 +1,5 @@
 /**
- * Шаг 8 plug-in contract: real Telegram/Google/Apple/TikTok/SMS login adds one route per provider that verifies the provider token and calls `signInWithIdentity({ provider: '<name>', providerUserId: '<provider id>', profile })`. Linking a second provider to a signed-in user inserts another `user_auth` row for the same `user_id`. No change to `users`, `sessions`, the cookie, or `getSessionUser` is needed. Turning off the demo path = `AUTH_DEMO_ENABLED=false`.
+ * Identity plug-in: a provider route verifies its token and calls `signInWithIdentity`. Шаг 8 ships Google only. `AUTH_DEMO_ENABLED` must be `"true"` for the demo route and for demo sessions to count; otherwise that route is 404 and `getSessionUser` ignores a session whose latest method is `demo`. Rows stay in the database.
  */
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
@@ -104,10 +104,10 @@ export async function signInWithIdentity(input: {
   providerUserId: string;
   profile: { name?: string; phone?: string; email?: string };
   userAgent?: string | null;
-}): Promise<{ user: SessionUser; cookie: string }> {
+}): Promise<{ user: SessionUser; cookie: string; isNew: boolean }> {
   assertSessionSecret();
   const db = getDb();
-  const row = await db.transaction(async (tx) => {
+  const signed = await db.transaction(async (tx) => {
     const found = await tx
       .select()
       .from(userAuth)
@@ -127,7 +127,7 @@ export async function signInWithIdentity(input: {
         provider: input.provider,
         providerUserId: input.providerUserId,
       });
-      return created;
+      return { row: created, isNew: true };
     }
     const [current] = await tx.select().from(users).where(eq(users.id, found[0].userId)).limit(1);
     if (!current || current.deletedAt || current.bannedAt) {
@@ -140,10 +140,11 @@ export async function signInWithIdentity(input: {
     if (Object.keys(patch).length) {
       patch.updatedAt = new Date();
       const [updated] = await tx.update(users).set(patch).where(eq(users.id, current.id)).returning();
-      return updated;
+      return { row: updated, isNew: false };
     }
-    return current;
+    return { row: current, isNew: false };
   });
+  const row = signed.row;
   const { cookie } = await createSession(row.id, input.userAgent ?? null);
   return {
     user: {
@@ -158,6 +159,7 @@ export async function signInWithIdentity(input: {
       method: input.provider,
     },
     cookie,
+    isNew: signed.isNew,
   };
 }
 
@@ -183,6 +185,8 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
   if (Date.now() - seen > HOUR_MS) {
     await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, hit.session.id));
   }
+  const method = await latestMethod(hit.user.id);
+  if (process.env.AUTH_DEMO_ENABLED !== "true" && method === "demo") return null;
   return {
     id: hit.user.id,
     name: hit.user.name,
@@ -192,7 +196,7 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
     lang: hit.user.lang,
     city: hit.user.city,
     district: hit.user.district,
-    method: await latestMethod(hit.user.id),
+    method,
   };
 }
 

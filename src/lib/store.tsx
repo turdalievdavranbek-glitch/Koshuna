@@ -15,10 +15,12 @@ import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
 import { isAnimalGroup, isKnownAnimalKind } from "./data";
-import { scopeForSaved } from "./filter";
+import { hasPlaceFilter, scopeForSaved } from "./filter";
+import { disableGoogleAutoSelect, GoogleLoginError, startGoogleSignIn } from "./google-login";
+import { nativeGoogleSignOut } from "./native-auth";
 import { collectRefKeys, hydrateRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
-import { channelsOf, parseSellerChannel } from "./channels";
+import { channelsOf } from "./channels";
 import { isSectionVisible } from "./features";
 import { DICT } from "./i18n";
 import { setServerCounts, voterId, type ReactionsByVoter } from "./reactions";
@@ -47,7 +49,6 @@ import {
   type TelegramOutboxItem,
 } from "./partners";
 import {
-  type AuthMethod,
   type ChatMessage,
   type DraftListing,
   type Filters,
@@ -398,7 +399,12 @@ type Store = State & {
   ready: boolean;
   synced: boolean;
   allListings: Listing[];
-  login: (input: { phone?: string; email?: string; method: AuthMethod; name?: string }) => void;
+  signInWithGoogle: (opts: {
+    locale: "ky" | "ru";
+    container?: HTMLElement | null;
+    navigate: (href: string) => void;
+    dest: string;
+  }) => Promise<"ok" | "cancelled" | "not-configured" | "open-in-browser" | "error">;
   logout: () => void;
   linkCard: () => void;
   linkChannel: (channel: SellerChannel) => void;
@@ -655,38 +661,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, 8000);
     const epochAtBoot = sessionEpoch;
     const authTask = (async () => {
-      const me = await api<{ user: User }>("/api/me");
-      let serverUser = me.ok ? me.data?.user ?? null : null;
-      if (!serverUser && next.user) {
-        const signed = await api<{ user: User }>("/api/auth/demo", {
-          method: "POST",
-          json: { method: next.user.method, phone: next.user.phone, email: next.user.email, name: next.user.name },
-        });
-        if (signed.ok) {
-          const again = await api<{ user: User }>("/api/me");
-          serverUser = again.data?.user ?? signed.data?.user ?? null;
-        }
-      }
+      const me = await api<{ user: User | null }>("/api/me");
       if (cancelled || epochAtBoot !== sessionEpoch) return null;
-      if (serverUser) {
-        setState((s) => ({
-          ...s,
-          user: s.user
-            ? {
-                ...s.user,
-                id: serverUser.id ?? s.user.id,
-                name: serverUser.name || s.user.name,
-                phone: serverUser.phone || s.user.phone,
-                email: serverUser.email ?? s.user.email,
-                joinedYear: serverUser.joinedYear || s.user.joinedYear,
-              }
-            : {
-                ...serverUser,
-                phone: serverUser.phone || "",
-                roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
-              },
-        }));
+      if (!me.ok && me.status === 0) return next.user ?? null;
+      const serverUser = me.ok ? me.data?.user ?? null : null;
+      if (!serverUser) {
+        setState((s) => ({ ...s, user: null }));
+        return null;
       }
+      setState((s) => ({
+        ...s,
+        user: s.user
+          ? {
+              ...s.user,
+              id: serverUser.id ?? s.user.id,
+              name: serverUser.name || s.user.name,
+              phone: serverUser.phone ?? "",
+              email: serverUser.email,
+              method: serverUser.method ?? s.user.method,
+              joinedYear: serverUser.joinedYear || s.user.joinedYear,
+            }
+          : {
+              ...serverUser,
+              phone: serverUser.phone || "",
+              roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+            },
+      }));
       return serverUser;
     })();
     trackAuth(authTask);
@@ -945,53 +945,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
       void syncRef.current(userRef.current);
     },
     allListings,
-    login: ({ phone, email, method, name }) => {
-      const clean = (phone ?? "").replace(/\D/g, "");
-      const isAida = method === "sms" && (clean === "555123456" || clean === "");
-      const displayName = name || (isAida ? "Аида" : "Давран");
-      const displayPhone = phone
-        ? phone.startsWith("+")
-          ? phone
-          : `+996 ${phone}`
-        : "+996 555 12 34 56";
+    signInWithGoogle: async ({ locale, container, navigate, dest }) => {
+      let credential: string | null;
+      try {
+        credential = await startGoogleSignIn({ locale, container });
+      } catch (err) {
+        if (err instanceof GoogleLoginError) {
+          if (err.code === "cancelled") return "cancelled";
+          if (err.code === "not-configured") return "not-configured";
+          if (err.code === "open-in-browser") return "open-in-browser";
+        }
+        return "error";
+      }
+      if (!credential) return "cancelled";
+      const signed = await api<{ ok?: boolean; user?: User; isNew?: boolean }>("/api/auth/google", {
+        method: "POST",
+        json: { credential },
+      });
+      const serverUser = signed.data?.user;
+      if (!signed.ok || !serverUser?.id) return "error";
       const epoch = ++sessionEpoch;
+      const isNew = signed.data?.isNew === true;
+      const pickPlace = isNew && !hasPlaceFilter(state.filters);
       update((s) => {
-        const nextUser = {
-          name: displayName,
-          phone: displayPhone,
-          email,
-          method,
-          linkedChannels: (() => {
-            const ch = parseSellerChannel(method);
-            return ch ? [ch] : [];
-          })(),
+        const nextUser: User = {
+          id: serverUser.id,
+          name: serverUser.name || "",
+          phone: serverUser.phone || "",
+          email: serverUser.email,
+          method: "google",
+          linkedChannels: [],
           cardLinked: false,
-          joinedYear: 2024,
-          verified: method === "sms",
-          rating: 4.9,
-          views: 1284,
-          roles: rolesForPhone(displayPhone, isAida, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+          joinedYear: serverUser.joinedYear || new Date().getFullYear(),
+          verified: false,
+          rating: 0,
+          views: 0,
+          roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
         };
         return {
           ...s,
           user: nextUser,
-          extraListings: syncShopListings(s.extraListings, s.shops, nextUser),
-          draft: {
-            ...s.draft,
-            name: displayName,
-            phone: displayPhone,
-          },
+          pendingPath: null,
+          draft: { ...s.draft, name: nextUser.name, phone: nextUser.phone },
         };
       });
+      if (pickPlace) {
+        const { openLocationPicker } = await import("@/components/location-line");
+        openLocationPicker({ push: navigate }, dest || "/");
+      } else {
+        navigate(dest || "/");
+      }
       trackAuth(
         (async () => {
-          const signed = await api<{ user: User }>("/api/auth/demo", {
-            method: "POST",
-            json: { method, phone: displayPhone, email, name: displayName },
-          });
-          if (epoch !== sessionEpoch || !signed.data?.user?.id) return;
-          const id = signed.data.user.id;
-          update((s) => (s.user ? { ...s, user: { ...s.user, id } } : s));
           const [mine, cart, reacts, feedRes] = await Promise.all([
             api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
             api<{ favouriteIds: string[] }>("/api/me/cart"),
@@ -999,7 +1004,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
             api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
           ]);
           if (epoch !== sessionEpoch) return;
-          const reactionUser: User = { name: displayName, phone: displayPhone, email, method, joinedYear: 2024, verified: method === "sms", rating: 0, views: 0, id };
+          const reactionUser: User = {
+            id: serverUser.id,
+            name: serverUser.name || "",
+            phone: serverUser.phone || "",
+            email: serverUser.email,
+            method: "google",
+            joinedYear: serverUser.joinedYear || new Date().getFullYear(),
+            verified: false,
+            rating: 0,
+            views: 0,
+          };
           const vid = voterId(reactionUser);
           const reactions = vid && reacts.data?.reactions ? { [vid]: reacts.data.reactions } : {};
           applyCounts({ ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) }, reactions, reactionUser);
@@ -1011,10 +1026,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
         })(),
       );
+      return "ok";
     },
     logout: () => {
       sessionEpoch += 1;
       void api("/api/auth/logout", { method: "POST", json: {} });
+      void nativeGoogleSignOut().catch(() => undefined);
+      disableGoogleAutoSelect();
       update({ user: null, extraListings: [], favouriteIds: [], reactions: {} });
       void (async () => {
         const feed = await api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000");
