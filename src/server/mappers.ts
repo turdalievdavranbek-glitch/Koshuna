@@ -85,6 +85,7 @@ export function rowToListing(row: ListingRow): Listing {
     status: (LISTING_STATUSES.has(row.status) ? row.status : "active") as Listing["status"],
     views: row.views ?? 0,
     postedAt: created ?? rest.postedAt,
+    confirmedAt: row.lastConfirmedAt instanceof Date ? row.lastConfirmedAt.toISOString() : rest.confirmedAt,
   };
 }
 

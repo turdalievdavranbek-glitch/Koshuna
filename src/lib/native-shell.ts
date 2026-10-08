@@ -1,6 +1,7 @@
 /**
  * Native shell hooks for the Android APK (Шаг 1).
- * No UI. Login buttons are Шаг 8. Push copy and the bell are Шаг 18.
+ * No UI. Login buttons are Шаг 8. The home bell lists in-app notices (Шаг 18).
+ * A phone push is not sent: the device-token table exists, but there is no server send path.
  * Crashlytics and FCM stay quiet until google-services.json is in the APK.
  */
 

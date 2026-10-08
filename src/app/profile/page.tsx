@@ -21,6 +21,7 @@ import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { PointList } from "@/components/point-rows";
 import { MyListings } from "@/components/my-listings";
+import { HoldInbox } from "@/components/hold-inbox";
 import { SubscriptionList } from "@/components/subscription-list";
 
 const PHONE_LATER = "konshu.phoneLater";
@@ -174,6 +175,10 @@ export default function ProfilePage() {
         >
           {t.shopNew}
         </button>
+
+        <div className="mt-6">
+          <HoldInbox />
+        </div>
 
         <div className="mt-6 flex items-baseline justify-between">
           <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>

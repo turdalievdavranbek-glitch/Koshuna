@@ -23,6 +23,8 @@ import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listing";
+import { HoldRequest } from "@/components/hold-request";
+import { StillActual } from "@/components/still-actual";
 import { MeetDealBlock } from "@/components/meet-deal";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
@@ -291,8 +293,7 @@ export default function ListingPage() {
                 callLabel={t.callNow}
                 writeLabel={t.write}
               />
-              {/* Step 18 (№87): «Отложи мне» */}
-              <div data-slot="reserve" className="h-0 overflow-hidden" />
+              <HoldRequest listing={listing} />
             </div>
           )}
           <div className="mt-3 flex gap-2">
@@ -356,6 +357,7 @@ export default function ListingPage() {
                 );
               })()
             : null}
+          {mine || listing.ownerId === user?.id ? <StillActual listing={listing} /> : null}
           {mine ? <OwnerListingTools listing={listing} /> : null}
           {mine ? (
             <button

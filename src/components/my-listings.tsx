@@ -7,6 +7,7 @@ import { listingTitle } from "@/lib/i18n";
 import { mineListings } from "@/lib/listing-owner";
 import { useApp } from "@/lib/store";
 import { CardMenu, DeleteCardDialog } from "@/components/card-delete";
+import { StillActual } from "@/components/still-actual";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { Photo } from "@/components/ui";
 
@@ -100,6 +101,7 @@ export function MyListings({ limit }: { limit?: number }) {
               </div>
             </div>
           </button>
+          <StillActual listing={item} compact />
           <div className="flex items-center gap-2 border-t border-line px-3.5 py-2">
             <button
               type="button"

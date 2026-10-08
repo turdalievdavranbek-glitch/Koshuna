@@ -476,6 +476,7 @@ type Store = State & {
   resync: () => void;
   markInboxRead: () => void;
   updateListing: (id: string, patch: Partial<Listing>) => void;
+  noteListingFresh: (id: string) => void;
   ensureMeetDeal: (listingId: string, reservedById: string) => void;
   clearMeetDeal: (listingId: string) => void;
   patchMeetDeal: (listingId: string, patch: Partial<MeetDeal> | ((cur: MeetDeal) => MeetDeal)) => void;
@@ -1553,6 +1554,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.warn("shop sync failed", err);
         }
       })();
+    },
+    noteListingFresh: (id) => {
+      const iso = new Date().toISOString();
+      update((s) => ({
+        ...s,
+        extraListings: s.extraListings.map((item) => (item.id === id ? { ...item, confirmedAt: iso } : item)),
+        feed: s.feed.map((item) => (item.id === id ? { ...item, confirmedAt: iso } : item)),
+      }));
     },
     ensureMeetDeal: (listingId, reservedById) => {
       update((s) => {
