@@ -196,7 +196,7 @@ async function phoneLessShops() {
   assert(stolen.status === 403, "other user cannot edit the shop", stolen.data);
 
   const me = await api(a, "GET", "/api/me");
-  assert(me.status === 200 && me.data?.user?.method === "demo", "demo method while flag is on", me.data?.user?.method);
+  assert(me.status === 200 && me.data?.user?.id === loginA.data.user.id, "demo session is a user while the flag is on", me.data);
 }
 
 async function redirectsAndHtml() {
@@ -224,7 +224,14 @@ async function redirectsAndHtml() {
   for (const word of banned) {
     assert(!html.toLowerCase().includes(word.toLowerCase()), `login HTML has no «${word}»`);
   }
-  assert(html.includes("google-login") || html.includes("Продолжить без авторизации"), "login HTML has the Google block or skip link");
+  const chunks = [...html.matchAll(/\/_next\/static\/chunks\/[^"]+\.js/g)].map((m) => m[0]);
+  assert(chunks.some((path) => path.includes("/app/login/page-")), "login page chunk is linked");
+  let js = "";
+  for (const path of chunks) js += await (await fetch(`${BASE}${path}`)).text();
+  assert(js.includes("google-login") && js.includes("Продолжить без авторизации"), "login scripts have the Google block and skip link");
+  for (const word of ["davran@gmail.com", "Сначала сосед", "Не агентство", "Учебный вход", "Получить код"]) {
+    assert(!js.includes(word), `login scripts have no «${word}»`);
+  }
 }
 
 async function main() {

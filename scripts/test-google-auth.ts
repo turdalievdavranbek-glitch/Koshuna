@@ -39,7 +39,9 @@ function user(partial: Partial<User> & { id?: string }): User {
   };
 }
 
-function product(partial: Partial<ShopProduct> & { category?: string; kind?: string }): ShopProduct {
+function product(
+  partial: Omit<Partial<ShopProduct>, "category" | "kind"> & { category?: string; kind?: string },
+): ShopProduct {
   return {
     id: "p1",
     shopId: "s1",
