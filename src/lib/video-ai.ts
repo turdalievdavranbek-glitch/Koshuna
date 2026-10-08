@@ -66,7 +66,7 @@ type Rule = {
   title?: string;
 };
 
-const RULES: Rule[] = [
+export const RULES: Rule[] = [
   {
     keys: ["iphone", "айфон", "iphone 13", "айфон 13"],
     section: "secondhand",

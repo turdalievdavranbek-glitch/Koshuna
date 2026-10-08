@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
-import { listingSectionForShop, normalizePhone } from "@/lib/shops";
+import { listingSectionForShop } from "@/lib/shops";
 import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
 import { getDb } from "./db";
@@ -36,9 +36,6 @@ export function validateShopAction(
   user: User,
 ): { status: number; body: { ok: false; error: string; errors?: string[] } } | null {
   if (!body.shop) return { status: 400, body: { ok: false, error: "bad-json" } };
-  if (user.phone && normalizePhone(body.shop.ownerPhone || "") !== normalizePhone(user.phone)) {
-    return { status: 403, body: { ok: false, error: "forbidden" } };
-  }
   const media = mediaError(body.videoBytes, body.videoSeconds);
   if (media) return { status: 400, body: { ok: false, error: media } };
   const products: Array<{ kind?: string | null; category?: string | null }> = [

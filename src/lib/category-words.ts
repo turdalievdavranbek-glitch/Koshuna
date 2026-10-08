@@ -1,0 +1,200 @@
+import type { AnimalGroup, SectionId } from "./types";
+
+/** Stems and synonyms the catalog labels do not cover. RU + KG. Step 21 can reuse this list. */
+export type CategoryWord = {
+  keys: string[];
+  section: SectionId;
+  category?: string;
+  goodsKind?: string;
+  animalGroup?: AnimalGroup;
+  animalKind?: string;
+  vehicleGroup?: "passenger" | "special";
+  carMake?: string;
+  techBrand?: string;
+};
+
+export const CATEGORY_WORDS: CategoryWord[] = [
+  {
+    keys: ["диван", "шкаф", "кровать", "стол", "стул", "кресло", "комод", "тумба", "полка", "матрас", "шире", "керебет", "эмерек", "мебель"],
+    section: "secondhand",
+    category: "furniture",
+    goodsKind: "sofa",
+  },
+  {
+    keys: ["куртка", "шуба", "платье", "кроссовки", "ботинки", "пальто", "джинсы", "футболка", "обувь", "кепка", "туфли", "сапоги", "куртка", "көйнөк", "бут кийим", "кийим", "шым", "балтыркөй", "кеды", "костюм", "рубашка", "юбка", "свитер"],
+    section: "secondhand",
+    category: "clothes",
+  },
+  {
+    keys: ["коляска", "бала арабасы", "игрушк", "оюнчук", "автокресло", "детск"],
+    section: "secondhand",
+    category: "kids",
+    goodsKind: "stroller",
+  },
+  {
+    keys: ["телевизор", "сыналгы", "холодильник", "стирал", "пылесос", "микроволн", "утюг", "кондиционер"],
+    section: "secondhand",
+    category: "appliances",
+  },
+  {
+    keys: ["посуда", "идиш", "шторы", "ковер", "килем", "чайник"],
+    section: "secondhand",
+    category: "home",
+  },
+  {
+    keys: ["велосипед", "велик", "лыжи", "гантел", "тренажер"],
+    section: "secondhand",
+    category: "sport",
+  },
+  {
+    keys: ["айфон", "iphone", "смартфон", "телефон", "самсунг", "сяоми", "редми"],
+    section: "secondhand",
+    category: "phones",
+    goodsKind: "smartphone",
+  },
+  {
+    keys: ["ноутбук", "макбук", "компьютер", "монитор", "системник"],
+    section: "secondhand",
+    category: "laptops",
+  },
+  {
+    keys: ["корова", "бычок", "бык", "тёлка", "телка", "саан уй", "уй", "уйлар", "торпок", "муйуз"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "cow",
+  },
+  {
+    keys: ["овца", "баран", "кой", "кочкор", "козу"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "sheep",
+  },
+  {
+    keys: ["лошадь", "конь", "жеребенок", "жылкы", "ат "],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "horses",
+  },
+  {
+    keys: ["коза", "эчки", "козел"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "goats",
+  },
+  {
+    keys: ["курица", "куры", "петух", "цыпленок", "яйца", "яйцо", "жумуртка", "тоок", "жөжө"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "chickens",
+  },
+  {
+    keys: ["кролик", "коён"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "rabbits",
+  },
+  {
+    keys: ["свинья", "поросенок", "чочко"],
+    section: "animals",
+    animalGroup: "farm",
+    animalKind: "pigs",
+  },
+  {
+    keys: ["щенок", "собак", "ит"],
+    section: "animals",
+    animalGroup: "pets",
+    animalKind: "dogs",
+  },
+  {
+    keys: ["кот ", "кошк", "котенок", "мышык"],
+    section: "animals",
+    animalGroup: "pets",
+    animalKind: "cats",
+  },
+  {
+    keys: ["картошка", "картофель", "морковь", "сабиз", "лук", "пияз", "капуста", "сено", "чөп", "помидор", "огурец"],
+    section: "animals",
+    animalGroup: "plants",
+    animalKind: "potato",
+  },
+  {
+    keys: ["цемент", "бетон"],
+    section: "construction",
+    category: "cement",
+  },
+  {
+    keys: ["кирпич", "кыш", "блок", "газоблок"],
+    section: "construction",
+    category: "brick",
+  },
+  {
+    keys: ["профнастил", "кровл", "шифер", "черепиц"],
+    section: "construction",
+    category: "roofing",
+  },
+  {
+    keys: ["арматур", "доска", "брус", "пиломатериал", "тактай"],
+    section: "construction",
+    category: "timber",
+  },
+  {
+    keys: ["краска", "шпаклев", "гипсокартон", "обой"],
+    section: "construction",
+    category: "paint",
+  },
+  {
+    keys: ["утеплитель", "пенопласт", "минвата"],
+    section: "construction",
+    category: "insulation",
+  },
+  {
+    keys: ["ремонт", "сантехник", "электрик", "оңдоо", "устат", "отделк"],
+    section: "services",
+    category: "repairs-finish",
+  },
+  {
+    keys: ["репетитор", "репетиторлук", "английск", "англис тили", "математик", "мугалим"],
+    section: "services",
+    category: "education",
+  },
+  {
+    keys: ["маникюр", "парикмахер", "чачтарач", "брови", "ресниц"],
+    section: "services",
+    category: "beauty",
+  },
+  {
+    keys: ["уборка", "тазалоо", "клининг"],
+    section: "services",
+    category: "cleaning",
+  },
+  {
+    keys: ["перевоз", "грузчик", "такси", "эвакуатор", "жук ташуу"],
+    section: "services",
+    category: "transport-local",
+  },
+  {
+    keys: ["стоматолог", "тиш", "дантист"],
+    section: "services",
+    category: "dentist",
+  },
+  {
+    keys: ["сауна", "баня", "мончо"],
+    section: "services",
+    category: "sauna",
+  },
+  {
+    keys: ["квартира", "квартиру", "батир", "ижара", "комната", "бөлмө", "участок", "жер тилкеси", "дом ", "үй", "коттедж"],
+    section: "rent",
+  },
+  {
+    keys: ["хонда", "honda", "тойота", "toyota", "камри", "camry", "мерс", "мерседес", "mercedes", "жигули", "лада", "ваз", "бмв", "bmw", "хундай", "hyundai", "киа", "kia", "ниссан"],
+    section: "cars",
+    vehicleGroup: "passenger",
+    carMake: "toyota",
+  },
+  {
+    keys: ["экскаватор", "трактор", "камаз", "самосвал"],
+    section: "cars",
+    vehicleGroup: "special",
+  },
+];

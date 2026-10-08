@@ -202,7 +202,7 @@ export type Listing = {
   promoPercent?: number;
   meetupSpot?: MeetupSpot;
   payAfter?: PayAfter[];
-  unit?: "month" | "day" | "night" | "bag" | "service";
+  unit?: "month" | "day" | "night" | "bag" | "service" | "kg" | "piece" | "hour";
   city: string;
   district?: string;
   settlement?: string;
@@ -420,6 +420,15 @@ export type DraftListing = {
   foodType?: string;
   calories?: string;
   ingredients?: string;
+  priceNegotiable?: boolean;
+  oldPrice?: string;
+  saleUnit?: "kg" | "piece" | "hour";
+  savedAt?: string;
+  flow?: "personal" | `card:${string}`;
+  categoryLocked?: boolean;
+  draftMedia?: { video?: string; voice?: string; photos?: string[] };
+  photos?: string[];
+  voiceSec?: number;
 };
 
 export const SHOP_CATEGORIES = [

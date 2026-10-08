@@ -7,7 +7,9 @@ import { offerWhen } from "@/lib/meet";
 import { parseDraftPrice } from "@/lib/market";
 import { useApp } from "@/lib/store";
 import type { DealStage, Listing, ReserveAccount } from "@/lib/types";
+import { CategoryChips } from "./category-chips";
 import { Chip, Eyebrow, Field, Input } from "./ui";
+import type { DraftListing } from "@/lib/types";
 
 export function ListingStageBanner({ listing }: { listing: Listing }) {
   const { t, lang, meetDeals } = useApp();
@@ -46,6 +48,29 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
       </div>
     </div>
   );
+}
+
+function listingAsDraft(listing: Listing): DraftListing {
+  return {
+    section: listing.section,
+    kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
+    title: listing.title,
+    city: listing.city,
+    price: listing.price ? String(listing.price) : "",
+    rooms: "",
+    area: "",
+    name: "",
+    phone: "",
+    description: listing.description || "",
+    promote: listing.status === "promoted",
+    category: listing.category,
+    goodsKind: listing.goodsKind,
+    animalGroup: listing.animalGroup,
+    animalKind: listing.animalKind,
+    carMake: listing.carMake,
+    techBrand: listing.techBrand,
+    categoryLocked: true,
+  };
 }
 
 export function OwnerListingTools({ listing }: { listing: Listing }) {
@@ -111,6 +136,24 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
     <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.ownerTools}</div>
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.stageHint}</p>
+      <div className="mt-3">
+        <CategoryChips
+          draft={listingAsDraft(listing)}
+          personal={!listing.shopId}
+          autoApply={false}
+          onPatch={(patch) =>
+            updateListing(listing.id, {
+              section: patch.section ?? listing.section,
+              category: patch.category,
+              goodsKind: patch.goodsKind,
+              animalGroup: patch.animalGroup,
+              animalKind: patch.animalKind,
+              carMake: patch.carMake,
+              techBrand: patch.techBrand,
+            })
+          }
+        />
+      </div>
       <div className="mt-3">
         <Field label={t.priceEdit}>
           <div className="flex gap-2">

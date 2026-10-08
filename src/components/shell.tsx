@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
+import { PostChoices } from "./post-choice";
 import { IconBag, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
 import { UploadStatus } from "./upload-status";
 
@@ -11,26 +13,42 @@ type TabIcon = (p: { size?: number; color?: string }) => ReactNode;
 const TAB_H = 78;
 
 export function TabBar({ hidden }: { hidden?: boolean }) {
-  const { t, user, setPendingPath } = useApp();
+  const { t, user, setPendingPath, askLeave } = useApp();
   const path = usePathname();
   const router = useRouter();
+  const [sheet, setSheet] = useState(false);
+
+  useEffect(() => {
+    if (!sheet) return;
+    pushOverlay("post-sheet", () => setSheet(false));
+    return () => removeOverlay("post-sheet");
+  }, [sheet]);
 
   const go = (href: string) => {
-    if ((href === "/profile" || href === "/favorites") && !user) {
-      setPendingPath(href);
-      router.push("/login");
-      return;
-    }
-    router.push(href);
+    const run = () => {
+      setSheet(false);
+      if ((href === "/profile" || href === "/favorites") && !user) {
+        setPendingPath(href);
+        router.push("/login");
+        return;
+      }
+      router.push(href);
+    };
+    if (askLeave(run)) return;
+    run();
   };
 
   const goPost = () => {
-    if (!user) {
-      setPendingPath("/post");
-      router.push("/login");
-      return;
-    }
-    router.push("/post");
+    const run = () => {
+      if (!user) {
+        setPendingPath("/post");
+        router.push("/login");
+        return;
+      }
+      setSheet(true);
+    };
+    if (askLeave(run)) return;
+    run();
   };
 
   const item = (href: string, testId: string, label: string, Icon: TabIcon, active: boolean) => (
@@ -78,6 +96,28 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
       </div>
       {item("/favorites", "tab-favorites", t.fav, IconBag, favOn)}
       {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn)}
+      {sheet ? (
+        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)]" data-testid="post-sheet" onClick={() => setSheet(false)}>
+          <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5" onClick={(e) => e.stopPropagation()}>
+            <div className="font-display text-[20px] font-bold text-ink">{t.postChoiceTitle}</div>
+            <div className="mt-3">
+              <PostChoices
+                onPersonal={() => {
+                  setSheet(false);
+                  router.push("/post?type=personal");
+                }}
+                onBusiness={() => {
+                  setSheet(false);
+                  router.push("/post?type=business");
+                }}
+              />
+            </div>
+            <button type="button" className="mt-3 h-11 w-full text-[15px] font-semibold text-muted" onClick={() => setSheet(false)}>
+              {t.postCancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }

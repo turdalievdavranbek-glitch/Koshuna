@@ -64,6 +64,7 @@ export const CATEGORIES = [
   "appliances",
   "kids",
   "home",
+  "clothes",
 ] as const;
 export type GoodsCategory = (typeof CATEGORIES)[number];
 
@@ -83,6 +84,7 @@ export const GOODS_KINDS: Record<GoodsCategory, readonly string[]> = {
   appliances: ["fridge", "washer", "stove", "vacuum", "ac", "microwave"],
   kids: ["stroller", "kids-clothes", "toys", "car-seat", "kids-furniture"],
   home: ["dishes", "textile", "decor", "storage", "home-cleaning"],
+  clothes: [],
 };
 
 export function goodsKindsOf(category: string | null | undefined): readonly string[] {

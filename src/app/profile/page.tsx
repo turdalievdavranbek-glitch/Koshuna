@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
 import { hasRole } from "@/lib/partners";
 import { FEATURES } from "@/lib/features";
 import { LANG_LABEL } from "@/lib/i18n";
 import { starsForUser } from "@/lib/trust";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { useApp } from "@/lib/store";
 import { LANGS } from "@/lib/types";
 import { Flag, IconVerified } from "@/components/icons";
@@ -19,10 +21,16 @@ import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { MyListings } from "@/components/my-listings";
 import { KonshuBridges } from "@/components/konshu-bridges";
 
+const PHONE_LATER = "konshu.phoneLater";
+
 export default function ProfilePage() {
   const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, threads } =
     useApp();
   const router = useRouter();
+  const [phoneLater, setPhoneLater] = useState(false);
+  useEffect(() => {
+    setPhoneLater(localStorage.getItem(PHONE_LATER) === "1");
+  }, [user?.phone]);
   const stars = starsForUser(user);
   const mine = mineListings(allListings, extraListings, user, shops);
   const inboxCount = user ? threads.length : 0;
@@ -82,14 +90,35 @@ export default function ProfilePage() {
               </div>
             ) : null}
             <div className="mt-0.5 text-[13px] text-muted">
-              {user.email || user.phone}
+              {[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}
               {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
             </div>
           </div>
-          <button type="button" className="text-[13px] font-semibold text-accent">
+          <button type="button" onClick={() => router.push("/profile/edit")} className="text-[13px] font-semibold text-accent">
             {t.edit}
           </button>
         </div>
+
+        {!user.phone && !phoneLater ? (
+          <div className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+            <p className="text-[14px] leading-[1.4] text-ink">{t.addPhoneCard}</p>
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => router.push("/profile/edit")} className="h-10 rounded-xl bg-accent px-4 text-[14px] font-semibold text-accent-on">
+                {t.addPhone}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(PHONE_LATER, "1");
+                  setPhoneLater(true);
+                }}
+                className="h-10 rounded-xl border border-line px-4 text-[14px] font-semibold"
+              >
+                {t.later}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-[18px] rounded-[14px] border border-line bg-white p-3">
           <div className="font-display text-xl font-bold text-ink">{mine.length}</div>

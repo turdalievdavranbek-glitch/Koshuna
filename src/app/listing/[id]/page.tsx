@@ -2,6 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api/client";
+import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
 import { FEATURES } from "@/lib/features";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
@@ -9,7 +11,7 @@ import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
 import { shareListingLink } from "@/lib/share";
 import { useApp } from "@/lib/store";
-import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
+import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconWa } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
 import { NeighborCard, NeighborMark } from "@/components/neighbor-seal";
@@ -39,6 +41,28 @@ export default function ListingPage() {
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
   const [toast, setToast] = useState("");
+  const [sellerPhone, setSellerPhone] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || !listing) {
+      setSellerPhone(null);
+      return;
+    }
+    if (!isDbUserId(listing.ownerId) || listing.ownerId === user.id) {
+      setSellerPhone(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ phone?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`).then((res) => {
+      if (cancel) return;
+      setSellerPhone(res.ok ? res.data?.phone || null : null);
+    });
+    return () => {
+      cancel = true;
+    };
+    // Refetch only when the listing or the signed-in user changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, listing?.id, listing?.ownerId]);
 
   useEffect(() => {
     if (listing) markViewed(listing.id);
@@ -57,6 +81,10 @@ export default function ListingPage() {
   }
 
   const owner = ownerById(listing.ownerId);
+  const dbSeller = isDbUserId(listing.ownerId) && listing.ownerId !== user?.id;
+  const showCall = user ? Boolean(sellerPhone) : dbSeller;
+  const showWa = Boolean(user && sellerPhone);
+  const callHref = sellerPhone ? `tel:${sellerPhone}` : "#";
   const dealer = FEATURES.dealers && listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
   const title = listingTitle(listing, lang);
   const gate = (path: string) => {
@@ -528,8 +556,10 @@ export default function ListingPage() {
           </>
         ) : elderMode && !isStay ? (
           <>
+            {showCall ? (
             <a
-              href={`tel:+996555123456`}
+              href={callHref}
+              data-testid="listing-phone"
               onClick={(e) => {
                 if (!user) {
                   e.preventDefault();
@@ -541,6 +571,7 @@ export default function ListingPage() {
               <IconPhone size={19} color="#F7F3EC" />
               {t.call}
             </a>
+            ) : null}
             <button
               type="button"
               onClick={onChat}
@@ -593,8 +624,10 @@ export default function ListingPage() {
             <IconChat size={18} color="#FFF7F0" />
           </button>
         ) : null}
+        {showCall ? (
         <a
-          href={`tel:+996555123456`}
+          href={callHref}
+          data-testid="listing-phone"
           onClick={(e) => {
             if (!user) {
               e.preventDefault();
@@ -605,25 +638,18 @@ export default function ListingPage() {
         >
           <IconPhone size={19} color="#F7F3EC" />
         </a>
-        {listing.contact === "telegram" ? (
+        ) : null}
+        {showWa ? (
           <a
-            href="https://t.me/share"
-            target="_blank"
-            rel="noreferrer"
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-telegram"
-          >
-            <IconTg size={19} color="#F7F3EC" />
-          </a>
-        ) : (
-          <a
-            href="https://wa.me/996555123456"
+            href={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
+            data-testid="listing-wa"
             target="_blank"
             rel="noreferrer"
             className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-success"
           >
             <IconWa size={19} color="#F7F3EC" />
           </a>
-        )}
+        ) : null}
           </>
         )}
       </div>

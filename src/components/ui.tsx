@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { dropAmount, dropPercent, hasPriceDrop, listingHasPrice } from "@/lib/deal";
+import { hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
 import { LANG_LABEL, listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { isVideoListing } from "@/lib/video-ai";
@@ -69,28 +69,37 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
   );
 }
 
+function priceLabel(listing: Listing, ask: string, negotiable: string) {
+  if (listingHasPrice(listing)) return null;
+  if (!listing.shopId && !listing.shopProductId) return negotiable;
+  return ask;
+}
+
 export function Price({ listing, large, compact }: { listing: Listing; large?: boolean; compact?: boolean }) {
   const { t } = useApp();
-  const unit = listing.unit ? t.units[listing.unit] : "";
+  const unit = listing.unit && listingHasPrice(listing) ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
-  const amount = listingHasPrice(listing) ? `${formatSom(listing.price)}` : t.shopAskPrice;
+  const empty = priceLabel(listing, t.shopAskPrice, t.priceNegotiable);
+  const promo = dropped && listing.previousPrice ? (
+    <div className={`flex items-center gap-1.5 ${large ? "mt-1" : compact ? "mt-0.5" : "mt-1"}`}>
+      <span className={`text-muted-2 line-through ${large ? "text-sm" : compact ? "text-[10px]" : "text-xs"}`}>
+        {formatSom(listing.previousPrice)}{large ? " KGS" : ""}
+      </span>
+      <span className={`rounded-md bg-success-tint font-bold text-success ${large ? "px-1.5 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]"}`}>
+        {t.priceDropped}
+      </span>
+    </div>
+  ) : null;
   if (large) {
     return (
       <div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-            {listingHasPrice(listing) ? `${amount} KGS` : amount}
+            {empty ?? `${formatSom(listing.price)} KGS`}
           </span>
-          {listingHasPrice(listing) && unit ? <span className="text-sm text-muted">{unit}</span> : null}
+          {unit ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
-        {dropped && listing.previousPrice ? (
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-sm text-muted-2 line-through">{formatSom(listing.previousPrice)} KGS</span>
-            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[11px] font-bold text-success">
-              −{formatSom(dropAmount(listing))}
-            </span>
-          </div>
-        ) : null}
+        {promo}
       </div>
     );
   }
@@ -98,41 +107,16 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
     <div>
       <div className="flex items-baseline gap-1.5">
         <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
-          {listingHasPrice(listing) ? (
+          {empty ?? (
             <>
               {formatSom(listing.price)} {compact ? "" : "KGS"}
-              {compact && listing.unit === "month" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
-              ) : compact && listing.unit === "night" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
-              ) : compact && listing.unit === "day" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
-              ) : compact ? (
-                <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
-              ) : null}
+              {unit ? <span className="ml-1 text-xs font-medium text-muted">{unit}</span> : null}
+              {compact && !unit ? <span className="ml-1 text-[11px] font-medium text-muted">KGS</span> : null}
             </>
-          ) : (
-            amount
           )}
         </span>
-        {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
-        {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
-        {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
       </div>
-      {dropped && listing.previousPrice ? (
-        <div className={`flex items-center gap-1.5 ${compact ? "mt-0.5" : "mt-1"}`}>
-          <span className={`text-muted-2 line-through ${compact ? "text-[10px]" : "text-xs"}`}>
-            {formatSom(listing.previousPrice)}
-          </span>
-          {compact ? (
-            <span className="text-[10px] font-bold text-success">−{dropPercent(listing)}%</span>
-          ) : (
-            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[10px] font-bold text-success">
-              {t.priceDropped}
-            </span>
-          )}
-        </div>
-      ) : null}
+      {promo}
     </div>
   );
 }
@@ -256,7 +240,7 @@ export function ListingRow({
             <Photo src={listing.photos[0]} alt={title} />
             {hasPriceDrop(listing) ? (
               <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[10px] font-bold text-screen">
-                −{formatSom(dropAmount(listing))}
+                {t.priceDropped}
               </span>
             ) : null}
             {overlay ? (
