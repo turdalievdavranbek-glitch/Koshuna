@@ -577,6 +577,43 @@ test.describe("point registration", () => {
   });
 });
 
+test("home area chips stay on one row at 360px", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "konshu-state-v1",
+      JSON.stringify({
+        lang: "ru",
+        langChosen: true,
+        city: "talas",
+        filters: { city: "talas", scope: "area" },
+      }),
+    );
+  });
+  await page.goto("/");
+  const row = page.getByTestId("scope-chips");
+  await expect(row).toBeVisible();
+  await expect(row.getByRole("button", { name: "Рядом", exact: true })).toBeVisible();
+  await expect(row.getByRole("button", { name: "Весь Кыргызстан", exact: true })).toBeVisible();
+  const area = page.getByTestId("scope-area");
+  await expect(area).toContainText("Талас, район, айыл");
+  const metrics = await row.evaluate((el) => {
+    const buttons = [...el.querySelectorAll("button")];
+    const tops = buttons.map((button) => Math.round(button.getBoundingClientRect().top));
+    const span = buttons[1]?.querySelector("span");
+    return {
+      wrap: getComputedStyle(el).flexWrap,
+      height: el.getBoundingClientRect().height,
+      tops,
+      truncated: Boolean(span && span.scrollWidth > span.clientWidth + 1),
+    };
+  });
+  expect(metrics.wrap).toBe("nowrap");
+  expect(Math.max(...metrics.tops) - Math.min(...metrics.tops)).toBeLessThan(4);
+  expect(metrics.height).toBeLessThan(48);
+  expect(metrics.truncated).toBe(true);
+});
+
 test.describe("back controls", () => {
   test.use({ viewport: { width: 360, height: 800 } });
 

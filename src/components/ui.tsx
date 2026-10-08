@@ -26,33 +26,42 @@ export function Chip({
   size = "md",
   testId,
   pressed,
+  truncate,
 }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   accent?: boolean;
   className?: string;
-  size?: "md" | "sm" | "xs";
+  size?: "md" | "sm" | "xs" | "compact";
   testId?: string;
   pressed?: boolean;
+  truncate?: boolean;
 }) {
   const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
   const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
-  const pad = size === "xs" ? "px-2 py-[3px] text-[10px]" : size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
+  const pad =
+    size === "xs"
+      ? "px-2 py-[3px] text-[10px]"
+      : size === "sm"
+        ? "px-[11px] py-[5px] text-[11px]"
+        : size === "compact"
+          ? "px-2.5 py-1.5 text-[12px]"
+          : "px-[15px] py-2 text-[13px]";
   return (
     <button
       type="button"
       onClick={onClick}
       data-testid={testId}
       aria-pressed={pressed}
-      className={`shrink-0 whitespace-nowrap rounded-full font-semibold ${pad} ${className ?? ""}`}
+      className={`${truncate ? "min-w-[4.5rem] max-w-full shrink overflow-hidden text-left" : "shrink-0 whitespace-nowrap"} rounded-full font-semibold ${pad} ${className ?? ""}`}
       style={{
         background: bg,
         color,
         border: active ? "none" : "1px solid #E4DCCE",
       }}
     >
-      {children}
+      {truncate ? <span className="block truncate">{children}</span> : children}
     </button>
   );
 }

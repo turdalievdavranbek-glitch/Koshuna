@@ -1627,10 +1627,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...shop.products.filter((row) => !(prev?.products ?? []).some((p) => p.id === row.id)),
           ],
         };
+        const kept = s.shopDraft?.id === merged.id ? s.shopDraft : null;
         return {
           ...s,
           shops: prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops],
-          shopDraft: { ...draft, ...merged },
+          shopDraft: {
+            ...draft,
+            ...merged,
+            locked: kept?.locked ?? {},
+            pendingProducts: kept?.pendingProducts,
+          },
           extraListings: syncShopListings(s.extraListings, prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops], user),
         };
       });

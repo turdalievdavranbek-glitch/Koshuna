@@ -4,7 +4,7 @@
     var raw = localStorage.getItem("konshu-state-v1");
     var parsed = raw ? JSON.parse(raw) : null;
     if (parsed && parsed.lang === "ky") lang = "ky";
-  } catch (e) {}
+  } catch { /* lang stays ru */ }
   var links = document.querySelectorAll("[data-legal-back]");
   for (var i = 0; i < links.length; i++) {
     links[i].textContent = lang === "ky" ? "‹ Артка" : "‹ Назад";
