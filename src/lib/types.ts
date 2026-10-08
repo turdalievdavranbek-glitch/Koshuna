@@ -110,6 +110,7 @@ export function isAppSide(value: unknown): value is AppSide {
 }
 
 export type User = {
+  id?: string;
   name: string;
   phone: string;
   email?: string;
@@ -408,6 +409,7 @@ export type DraftListing = {
   jobType?: "full" | "part" | "gig" | "remote" | "shift" | "intern";
   mediaKind?: MediaKind;
   videoUrl?: string;
+  videoSec?: number;
   voiceUrl?: string;
   transcript?: string;
   aiConfirmed?: boolean;

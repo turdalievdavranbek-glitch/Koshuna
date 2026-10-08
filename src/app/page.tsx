@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { HOME_HERO_COUNT, PROMOTED_IDS, formatSom, homeTiles } from "@/lib/data";
+import { HOME_HERO_COUNT, formatSom, homeTiles } from "@/lib/data";
 import { isSectionVisible } from "@/lib/features";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
@@ -25,7 +25,7 @@ export default function FeedPage() {
   const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, threads, savedSearches } = useApp();
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
-  const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
+  const promoted = allListings.filter((item) => item.status === "promoted");
   const tiles = homeTiles();
   const hero = tiles.slice(0, HOME_HERO_COUNT);
   const rest = tiles.slice(HOME_HERO_COUNT);
@@ -167,7 +167,7 @@ export default function FeedPage() {
           ))}
         </div>
 
-        <div className="mt-[22px]">
+        {promoted.length > 0 ? <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
             <span className="font-display text-[17px] font-bold text-ink">{t.promoted}</span>
             <span className="rounded-md bg-accent-tint px-[7px] py-0.5 text-[10px] font-bold tracking-wide text-accent-dark">
@@ -215,7 +215,7 @@ export default function FeedPage() {
               {t.promoteYours}
             </button>
           </div>
-        </div>
+        </div> : null}
 
         <RecentlyViewed />
 

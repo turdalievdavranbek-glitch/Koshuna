@@ -9,13 +9,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { api, onceRetry } from "./api/client";
+import { enqueue, startOutbox } from "./api/outbox";
+import { materializeListing, materializeShop } from "./api/upload";
 import { persistableUrl } from "./blob-media";
 import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf, parseSellerChannel } from "./channels";
-import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
 import { isSectionVisible } from "./features";
 import { DICT } from "./i18n";
-import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
+import { setServerCounts, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
 import { isRealtyGroup } from "./realty";
 import {
@@ -69,10 +71,39 @@ import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind,
 import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { showsNeighborPledge } from "./neighbor";
-import { SEED_SHOPS } from "./seed-shops";
 import { BrandMark } from "@/components/brand";
 
 const STORAGE = "konshu-state-v1";
+
+let authReady: Promise<void> = Promise.resolve();
+let sessionEpoch = 0;
+
+function trackAuth(task: Promise<unknown>) {
+  const done = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  authReady = done;
+  return done;
+}
+
+function applyCounts(
+  counts: Record<string, { likes: number; dislikes: number }> | undefined,
+  reactions: ReactionsByVoter,
+  user: User | null,
+) {
+  const mine = voterId(user);
+  const own = mine ? reactions[mine] ?? {} : {};
+  const next: Record<string, { likes: number; dislikes: number }> = {};
+  for (const [id, row] of Object.entries(counts ?? {})) {
+    let likes = row?.likes ?? 0;
+    let dislikes = row?.dislikes ?? 0;
+    if (own[id] === "like") likes = Math.max(0, likes - 1);
+    if (own[id] === "dislike") dislikes = Math.max(0, dislikes - 1);
+    next[id] = { likes, dislikes };
+  }
+  setServerCounts(next);
+}
 
 const defaultFilters = (): Filters => ({
   query: "",
@@ -161,7 +192,7 @@ function userListingFromDraft(
   const sellerType = dealer ? "dealer" : asRealtor ? "realtor" : "owner";
   const title = d.title.trim() || ctx.untitled;
   return {
-    id: d.id && d.id.startsWith("user-") ? d.id : `user-${Date.now()}`,
+    id: d.id && d.id.startsWith("user-") ? d.id : `user-${crypto.randomUUID()}`,
     section: d.section,
     category:
       d.section === "vacancies"
@@ -212,8 +243,8 @@ function userListingFromDraft(
     postedAgo: "2h",
     rooms: d.rooms ? Number(d.rooms) : undefined,
     area: d.area ? Number(d.area) : undefined,
-    photos: [d.photo || "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=70"],
-    photoCredit: "Demo",
+    photos: [d.photo || `/sections/${d.section === "car-rental" ? "cars" : d.section}.jpg`],
+    photoCredit: "",
     mediaKind: d.mediaKind ?? "photos",
     videoUrl: d.videoUrl,
     voiceUrl: d.voiceUrl,
@@ -227,8 +258,8 @@ function userListingFromDraft(
     description: d.description || d.transcript || title,
     descriptionKy: d.description || title,
     descriptionEn: d.description || title,
-    ownerId: "aida",
-    sellerName: dealer?.companyName ?? ctx.user?.name,
+    ownerId: ctx.user?.id ?? "",
+    sellerName: ctx.user?.name,
     hasPhoto: true,
     verified: sellerType !== "owner" ? true : showsNeighborPledge(d.section) && d.neighborPledge !== false,
     noAgent: sellerType !== "owner" ? false : showsNeighborPledge(d.section) && d.neighborPledge !== false,
@@ -283,6 +314,7 @@ type State = {
   savedSearches: SavedSearch[];
   draft: DraftListing;
   extraListings: Listing[];
+  feed: Listing[];
   listingEdits: Record<string, Partial<Listing>>;
   threads: Thread[];
   pendingPath: string | null;
@@ -314,12 +346,13 @@ const initial: State = {
   langChosen: false,
   city: "all",
   filters: defaultFilters(),
-  favouriteIds: ["apt-sunny", "sofa-leather", "bike-blue", "camera-canon", "apt-osh", "house-karakol"],
-  savedSearches: DEFAULT_SAVED,
+  favouriteIds: [],
+  savedSearches: [],
   draft: defaultDraft(),
   extraListings: [],
+  feed: [],
   listingEdits: {},
-  threads: DEFAULT_THREADS,
+  threads: [],
   pendingPath: null,
   notificationsOn: true,
   listingLayout: "medium",
@@ -328,9 +361,9 @@ const initial: State = {
   reports: {},
   meetDeals: {},
   reactions: {},
-  comments: DEFAULT_COMMENTS,
+  comments: {},
   honesty: {},
-  shops: SEED_SHOPS,
+  shops: [],
   shopDraft: null,
   side: "buy",
   applications: [],
@@ -346,6 +379,7 @@ const initial: State = {
 type Store = State & {
   t: (typeof DICT)["ru"];
   ready: boolean;
+  synced: boolean;
   allListings: Listing[];
   login: (input: { phone?: string; email?: string; method: AuthMethod; name?: string }) => void;
   logout: () => void;
@@ -526,12 +560,8 @@ function load(): State {
     const raw = localStorage.getItem(STORAGE);
     if (!raw) return initial;
     const saved = JSON.parse(raw) as Partial<State>;
-    const shops = mergeById(
-      Array.isArray(saved.shops) ? saved.shops.map((item) => hydrateShop(item as Shop)) : [],
-      SEED_SHOPS,
-    );
-    const extraListings = Array.isArray(saved.extraListings) ? (saved.extraListings as Listing[]) : [];
-    const { viewerPlace: _viewerPlace, ...rest } = saved as Partial<State> & { viewerPlace?: unknown };
+    const { viewerPlace: _viewerPlace, extraListings: _extra, shops: _shops, favouriteIds: _favs, reactions: _reactions, feed: _feed, listingEdits: _edits, ...rest } =
+      saved as Partial<State> & { viewerPlace?: unknown };
     return {
       ...initial,
       ...rest,
@@ -539,16 +569,17 @@ function load(): State {
         saved.listingLayout === "large" || saved.listingLayout === "small" ? saved.listingLayout : "medium",
       viewedIds: Array.isArray(saved.viewedIds) ? saved.viewedIds.slice(0, 12) : [],
       reports: saved.reports && typeof saved.reports === "object" ? saved.reports : {},
-      listingEdits: saved.listingEdits && typeof saved.listingEdits === "object" ? saved.listingEdits : {},
+      listingEdits: {},
       meetDeals: saved.meetDeals && typeof saved.meetDeals === "object" ? saved.meetDeals : {},
-      reactions: hydrateReactions(saved.reactions, (saved.user as User | null | undefined) ?? null),
-      comments:
-        saved.comments && typeof saved.comments === "object"
-          ? { ...DEFAULT_COMMENTS, ...saved.comments }
-          : DEFAULT_COMMENTS,
+      reactions: {},
+      comments: saved.comments && typeof saved.comments === "object" && !Array.isArray(saved.comments) ? saved.comments : {},
       honesty: saved.honesty && typeof saved.honesty === "object" ? saved.honesty : {},
-      shops,
-      extraListings: syncShopListings(extraListings, shops, (saved.user as User | null | undefined) ?? null),
+      shops: [],
+      extraListings: [],
+      feed: [],
+      favouriteIds: [],
+      threads: Array.isArray(saved.threads) ? saved.threads : [],
+      savedSearches: Array.isArray(saved.savedSearches) ? saved.savedSearches : [],
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
       side: isAppSide(saved.side) ? saved.side : "buy",
@@ -571,12 +602,99 @@ function load(): State {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>(initial);
   const [ready, setReady] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   useEffect(() => {
     const next = load();
     setState(next);
     setReady(true);
     let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setSynced(true);
+    }, 8000);
+    const epochAtBoot = sessionEpoch;
+    const authTask = (async () => {
+      const me = await api<{ user: User }>("/api/me");
+      let serverUser = me.ok ? me.data?.user ?? null : null;
+      if (!serverUser && next.user) {
+        const signed = await api<{ user: User }>("/api/auth/demo", {
+          method: "POST",
+          json: { method: next.user.method, phone: next.user.phone, email: next.user.email, name: next.user.name },
+        });
+        if (signed.ok) {
+          const again = await api<{ user: User }>("/api/me");
+          serverUser = again.data?.user ?? signed.data?.user ?? null;
+        }
+      }
+      if (cancelled || epochAtBoot !== sessionEpoch) return null;
+      if (serverUser) {
+        setState((s) => ({
+          ...s,
+          user: s.user
+            ? {
+                ...s.user,
+                id: serverUser.id ?? s.user.id,
+                name: serverUser.name || s.user.name,
+                phone: serverUser.phone || s.user.phone,
+                email: serverUser.email ?? s.user.email,
+                joinedYear: serverUser.joinedYear || s.user.joinedYear,
+              }
+            : {
+                ...serverUser,
+                phone: serverUser.phone || "",
+                roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+              },
+        }));
+      }
+      return serverUser;
+    })();
+    trackAuth(authTask);
+    void (async () => {
+      const serverUser = await authTask;
+      const [feedRes, shopsRes] = await Promise.all([
+        api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+        api<{ shops: Shop[] }>("/api/shops"),
+        api("/api/config"),
+      ]);
+      let extra = [] as Listing[];
+      let favs = [] as string[];
+      let reactions: ReactionsByVoter = {};
+      let counts = feedRes.data?.counts;
+      let reactionUser: User | null = serverUser
+        ? {
+            ...(next.user ?? serverUser),
+            id: serverUser.id,
+            name: serverUser.name || next.user?.name || "",
+            phone: serverUser.phone || next.user?.phone || "",
+            email: serverUser.email ?? next.user?.email,
+          }
+        : null;
+      if (serverUser) {
+        const [mine, cart, reacts] = await Promise.all([
+          api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
+          api<{ favouriteIds: string[] }>("/api/me/cart"),
+          api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
+        ]);
+        if (mine.data?.listings) extra = mine.data.listings;
+        if (cart.data?.favouriteIds) favs = cart.data.favouriteIds;
+        const vid = voterId(reactionUser);
+        if (vid && reacts.data?.reactions) reactions = { [vid]: reacts.data.reactions };
+        counts = { ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) };
+      }
+      if (!cancelled && epochAtBoot === sessionEpoch) {
+        applyCounts(counts, reactions, reactionUser);
+        setState((s) => ({
+          ...s,
+          feed: feedRes.data?.listings ?? [],
+          shops: shopsRes.data?.shops ?? [],
+          extraListings: serverUser ? extra : s.extraListings,
+          favouriteIds: serverUser ? favs : s.favouriteIds,
+          reactions: serverUser ? reactions : s.reactions,
+        }));
+      }
+      if (!cancelled) setSynced(true);
+      window.clearTimeout(timeout);
+    })();
     void (async () => {
       let changed = false;
       const shops: Shop[] = [];
@@ -603,29 +721,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
     };
   }, []);
 
   useEffect(() => {
+    return startOutbox((op, data) => {
+      const payload = data as { listing?: Listing; shop?: Shop };
+      if ((op.kind === "putListing" || op.kind === "patchListing") && payload.listing) {
+        const listing = payload.listing;
+        setState((s) => ({ ...s, extraListings: upsertExtraListing(s.extraListings, listing) }));
+      }
+      if (op.kind === "putShop" && payload.shop) {
+        const shop = payload.shop;
+        setState((s) => ({
+          ...s,
+          shops: s.shops.some((item) => item.id === shop.id) ? s.shops.map((item) => (item.id === shop.id ? shop : item)) : [shop, ...s.shops],
+        }));
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     if (!ready) return;
+    const {
+      extraListings: _extra,
+      shops: _shops,
+      favouriteIds: _favs,
+      reactions: _reactions,
+      feed: _feed,
+      ...rest
+    } = state;
     localStorage.setItem(
       STORAGE,
       JSON.stringify({
-        ...state,
+        ...rest,
         draft: {
           ...state.draft,
           videoUrl: persistableUrl(state.draft.videoUrl),
           voiceUrl: persistableUrl(state.draft.voiceUrl),
           photo: persistableUrl(state.draft.photo),
         },
-        extraListings: state.extraListings.map((item) => ({
-          ...item,
-          videoUrl: persistableUrl(item.videoUrl),
-          voiceUrl: persistableUrl(item.voiceUrl),
-          photos: item.photos.map((src) => persistableUrl(src) || src).filter(Boolean),
-        })),
-        shops: state.shops.map(persistShop),
-        shopDraft: state.shopDraft ? persistShop(state.shopDraft) as ShopDraft : null,
+        shopDraft: state.shopDraft ? (persistShop(state.shopDraft) as ShopDraft) : null,
       }),
     );
   }, [state, ready]);
@@ -644,25 +781,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const restExtra = state.extraListings.filter((item) => !item.shopProductId);
     const extra = [...fromShops, ...restExtra];
     const extraIds = new Set(extra.map((item) => item.id));
-    const seedCars = SEED_DEALER_CARS.filter((item) => !extraIds.has(item.id));
-    const seedIds = new Set(seedCars.map((item) => item.id));
-    const merged = [
-      ...extra,
-      ...seedCars,
-      ...LISTINGS.filter((item) => !extraIds.has(item.id) && !seedIds.has(item.id)),
-    ];
+    const merged = [...extra, ...state.feed.filter((item) => !extraIds.has(item.id))];
+    const uid = state.user?.id;
     return merged
       .map((item) => {
         const edit = state.listingEdits[item.id];
         return edit ? { ...item, ...edit } : item;
       })
-      .filter((item) => isSectionVisible(item.section));
-  }, [state.extraListings, state.listingEdits, state.shops, state.user]);
+      .filter((item) => {
+        if (!isSectionVisible(item.section)) return false;
+        const status = item.status as string;
+        if ((status === "expired" || status === "hidden") && item.ownerId !== uid) return false;
+        return true;
+      });
+  }, [state.extraListings, state.feed, state.listingEdits, state.shops, state.user]);
 
   const value: Store = {
     ...state,
     t,
     ready,
+    synced,
     allListings,
     login: ({ phone, email, method, name }) => {
       const clean = (phone ?? "").replace(/\D/g, "");
@@ -673,6 +811,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? phone
           : `+996 ${phone}`
         : "+996 555 12 34 56";
+      const epoch = ++sessionEpoch;
       update((s) => {
         const nextUser = {
           name: displayName,
@@ -701,8 +840,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           },
         };
       });
+      trackAuth(
+        (async () => {
+          const signed = await api<{ user: User }>("/api/auth/demo", {
+            method: "POST",
+            json: { method, phone: displayPhone, email, name: displayName },
+          });
+          if (epoch !== sessionEpoch || !signed.data?.user?.id) return;
+          const id = signed.data.user.id;
+          update((s) => (s.user ? { ...s, user: { ...s.user, id } } : s));
+          const [mine, cart, reacts, feedRes] = await Promise.all([
+            api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
+            api<{ favouriteIds: string[] }>("/api/me/cart"),
+            api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
+            api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+          ]);
+          if (epoch !== sessionEpoch) return;
+          const reactionUser: User = { name: displayName, phone: displayPhone, email, method, joinedYear: 2024, verified: method === "sms", rating: 0, views: 0, id };
+          const vid = voterId(reactionUser);
+          const reactions = vid && reacts.data?.reactions ? { [vid]: reacts.data.reactions } : {};
+          applyCounts({ ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) }, reactions, reactionUser);
+          update((s) => ({
+            ...s,
+            extraListings: mine.data?.listings ?? s.extraListings,
+            favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
+            reactions,
+          }));
+        })(),
+      );
     },
-    logout: () => update({ user: null }),
+    logout: () => {
+      sessionEpoch += 1;
+      void api("/api/auth/logout", { method: "POST", json: {} });
+      update({ user: null, extraListings: [], favouriteIds: [], reactions: {} });
+      void (async () => {
+        const feed = await api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000");
+        applyCounts(feed.data?.counts, {}, null);
+      })();
+    },
     linkCard: () =>
       update((s) => {
         if (!s.user || s.user.method !== "sms") return s;
@@ -724,11 +899,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...s,
         viewedIds: [id, ...s.viewedIds.filter((x) => x !== id)].slice(0, 12),
       })),
-    reportListing: (id, reason) =>
+    reportListing: (id, reason) => {
       update((s) => ({
         ...s,
         reports: { ...s.reports, [id]: reason },
-      })),
+      }));
+      void (async () => {
+        await authReady;
+        onceRetry(() => api("/api/reports", { method: "POST", json: { listingId: id, reason } }));
+      })();
+    },
     setCity: (city) => update((s) => ({ ...s, city, filters: { ...s.filters, city } })),
     setFilters: (patch) => update((s) => ({ ...s, filters: { ...s.filters, ...patch } })),
     resetFilters: () =>
@@ -742,6 +922,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       update({
         favouriteIds: has ? state.favouriteIds.filter((x) => x !== id) : [id, ...state.favouriteIds],
       });
+      void (async () => {
+        await authReady;
+        onceRetry(() => api(`/api/me/cart/${encodeURIComponent(id)}`, { method: has ? "DELETE" : "PUT", json: {} }));
+      })();
       return true;
     },
     isFav: (id) => state.favouriteIds.includes(id),
@@ -754,6 +938,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!state.user) return false;
       const vid = voterId(state.user);
       if (!vid) return false;
+      const prev = state.reactions[vid]?.[id] ?? null;
+      const next = prev === reaction ? null : reaction;
       update((s) => {
         const current = voterId(s.user);
         if (!current) return s;
@@ -770,6 +956,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           },
         };
       });
+      void (async () => {
+        await authReady;
+        onceRetry(() => api(`/api/listings/${encodeURIComponent(id)}/reaction`, { method: "PUT", json: { value: next } }));
+      })();
       return true;
     },
     commentsOf: (id) => state.comments[id] ?? [],
@@ -856,13 +1046,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
         draft: { ...s.draft, id: listing.id },
         side: "sell",
       }));
+      const videoSec = d.videoSec;
+      void (async () => {
+        await authReady;
+        try {
+          const uploaded = await materializeListing(listing, videoSec);
+          update((s) => ({ ...s, extraListings: upsertExtraListing(s.extraListings, uploaded) }));
+          enqueue({ kind: "putListing", listingId: uploaded.id, body: { ...uploaded, videoSec } });
+        } catch (err) {
+          console.warn("listing upload failed", err);
+        }
+      })();
       return listing;
     },
     updateListing: (id, patch) => {
+      const current = state.extraListings.find((item) => item.id === id) ?? state.feed.find((item) => item.id === id);
+      const own = Boolean(current && (state.extraListings.some((item) => item.id === id) || current.ownerId === state.user?.id));
+      let shopToPush: Shop | null = null;
       update((s) => {
         let extraListings = s.extraListings;
         let shops = s.shops;
-        if (extraListings.some((item) => item.id === id)) {
+        let feed = s.feed;
+        const inExtra = extraListings.some((item) => item.id === id);
+        const inFeed = feed.some((item) => item.id === id);
+        if (!inExtra && !inFeed) return s;
+        if (inExtra) {
           extraListings = extraListings.map((item) => (item.id === id ? { ...item, ...patch } : item));
           const listing = extraListings.find((item) => item.id === id);
           if (listing?.shopId && listing.shopProductId && "price" in patch) {
@@ -878,14 +1086,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   }
                 : shop,
             );
+            shopToPush = shops.find((shop) => shop.id === listing.shopId) ?? null;
           }
-          return { ...s, extraListings, shops };
         }
-        return {
-          ...s,
-          listingEdits: { ...s.listingEdits, [id]: { ...s.listingEdits[id], ...patch } },
-        };
+        if (inFeed) feed = feed.map((item) => (item.id === id ? { ...item, ...patch } : item));
+        return { ...s, extraListings, shops, feed };
       });
+      if (!own) return;
+      void (async () => {
+        await authReady;
+        enqueue({ kind: "patchListing", listingId: id, body: patch });
+        if (!shopToPush) return;
+        try {
+          const ready = await materializeShop(shopToPush);
+          enqueue({ kind: "putShop", shopId: ready.id, body: { action: "save-draft", shop: ready } });
+        } catch (err) {
+          console.warn("shop sync failed", err);
+        }
+      })();
     },
     ensureMeetDeal: (listingId, reservedById) => {
       update((s) => {
@@ -1085,21 +1303,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       if (!draft || !user || !isOwnShop(draft, user)) return null;
       const saved: Shop = { ...draft, status: draft.status === "active" ? "active" : "draft", updatedAt: new Date().toISOString() };
-      update((s) => {
-        const prev = s.shops.find((item) => item.id === saved.id);
-        const merged: Shop = {
-          ...saved,
-          products: [
-            ...(prev?.products ?? []),
-            ...saved.products.filter((row) => !(prev?.products ?? []).some((p) => p.id === row.id)),
-          ],
-        };
-        return {
-          ...s,
-          shops: prev ? s.shops.map((item) => (item.id === saved.id ? merged : item)) : [merged, ...s.shops],
-          shopDraft: { ...draft, ...merged },
-        };
-      });
+      const prevShop = state.shops.find((item) => item.id === saved.id);
+      const mergedShop: Shop = {
+        ...saved,
+        products: [
+          ...(prevShop?.products ?? []),
+          ...saved.products.filter((row) => !(prevShop?.products ?? []).some((p) => p.id === row.id)),
+        ],
+      };
+      update((s) => ({
+        ...s,
+        shops: prevShop ? s.shops.map((item) => (item.id === saved.id ? mergedShop : item)) : [mergedShop, ...s.shops],
+        shopDraft: { ...draft, ...mergedShop },
+      }));
+      void (async () => {
+        await authReady;
+        try {
+          const ready = await materializeShop(mergedShop);
+          enqueue({ kind: "putShop", shopId: ready.id, body: { action: "save-draft", shop: ready } });
+        } catch (err) {
+          console.warn("shop draft upload failed", err);
+        }
+      })();
       return saved;
     },
     publishShop: async () => {
@@ -1109,13 +1334,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!draft || !isOwnShop(draft, user)) return { shop: null, error: "forbidden" };
       const shop: Shop = { ...draft, status: "active", updatedAt: new Date().toISOString(), aiConfirmed: true };
       try {
-        const res = await fetch("/api/shops/validate", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "publish", shop, ownerPhone: user.phone, ownerName: user.name }),
+        await authReady;
+        const ready = await materializeShop(shop);
+        const res = await api<{ ok?: boolean; error?: string; shop?: Shop }>(`/api/shops/${encodeURIComponent(ready.id)}`, {
+          method: "PUT",
+          json: { action: "publish", shop: ready },
         });
-        const data = (await res.json()) as { ok?: boolean; error?: string };
-        if (!data.ok) return { shop: null, error: data.error || "forbidden" };
+        if (!res.ok || !res.data?.ok) return { shop: null, error: res.data?.error || res.error || "forbidden" };
       } catch {
         return { shop: null, error: "network" };
       }
@@ -1144,13 +1369,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
       const next = { ...shop, status: "withdrawn" as const, updatedAt: new Date().toISOString() };
       try {
-        const res = await fetch("/api/shops/validate", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "withdraw", shop: next, ownerPhone: user.phone, ownerName: user.name }),
+        await authReady;
+        const ready = await materializeShop(next);
+        const res = await api<{ ok?: boolean; error?: string }>(`/api/shops/${encodeURIComponent(ready.id)}`, {
+          method: "PUT",
+          json: { action: "withdraw", shop: ready },
         });
-        const data = (await res.json()) as { ok?: boolean; error?: string };
-        if (!data.ok) return { error: data.error || "forbidden" };
+        if (!res.ok || !res.data?.ok) return { error: res.data?.error || res.error || "forbidden" };
       } catch {
         return { error: "network" };
       }
@@ -1170,7 +1395,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const price = product.price != null ? validPrice(product.price) : undefined;
       if (product.price != null && product.price !== 0 && price == null) return { error: "price" };
       const now = new Date().toISOString();
-      const id = product.id || `sp-${Date.now()}`;
+      const id = product.id || `sp-${crypto.randomUUID()}`;
       const sourceId = product.sourceId || id;
       const isNew = !shop.products.some((row) => row.id === id);
       if (isNew && sourceId !== id && !canReuseAssortment(shop, sourceId)) return { error: "reuse" };
@@ -1208,19 +1433,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       };
       try {
-        const res = await fetch("/api/shops/validate", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            action: "upsert-product",
-            shop,
-            product: nextProduct,
-            ownerPhone: user.phone,
-            ownerName: user.name,
-          }),
+        await authReady;
+        const shopForSave: Shop = {
+          ...shop,
+          extraCategories,
+          kinds,
+          updatedAt: now,
+          products: shop.products.some((row) => row.id === nextProduct.id)
+            ? shop.products.map((row) => (row.id === nextProduct.id ? nextProduct : row))
+            : [...shop.products, nextProduct],
+        };
+        const ready = await materializeShop(shopForSave);
+        const res = await api<{ ok?: boolean; error?: string }>(`/api/shops/${encodeURIComponent(ready.id)}`, {
+          method: "PUT",
+          json: { action: "upsert-product", shop: ready, product: nextProduct },
         });
-        const data = (await res.json()) as { ok?: boolean; error?: string };
-        if (!data.ok) return { error: data.error || "forbidden" };
+        if (!res.ok || !res.data?.ok) return { error: res.data?.error || res.error || "forbidden" };
       } catch {
         return { error: "network" };
       }
@@ -1269,42 +1497,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
         quantity: "quantity" in patch ? validQuantity(patch.quantity) : current.quantity,
         updatedAt: new Date().toISOString(),
       };
-      update((s) => {
-        const shops = s.shops.map((item) =>
-          item.id === shopId
-            ? { ...item, updatedAt: next.updatedAt, products: item.products.map((row) => (row.id === productId ? next : row)) }
-            : item,
-        );
-        const shopNext = shops.find((item) => item.id === shopId) ?? shop;
-        return {
-          ...s,
-          shops,
-          extraListings: syncProductListing(s.extraListings, shopNext, next, user),
-        };
-      });
+      const shopNext: Shop = {
+        ...shop,
+        updatedAt: next.updatedAt,
+        products: shop.products.map((row) => (row.id === productId ? next : row)),
+      };
+      update((s) => ({
+        ...s,
+        shops: s.shops.map((item) => (item.id === shopId ? shopNext : item)),
+        extraListings: syncProductListing(s.extraListings, shopNext, next, user),
+      }));
+      void (async () => {
+        await authReady;
+        try {
+          const ready = await materializeShop(shopNext);
+          enqueue({ kind: "putShop", shopId: ready.id, body: { action: "upsert-product", shop: ready, product: next } });
+        } catch (err) {
+          console.warn("shop product upload failed", err);
+        }
+      })();
       return {};
     },
     hideShopProduct: (shopId, productId) => {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === shopId);
       const product = shop?.products.find((row) => row.id === productId);
-      if (!user || !shop || !isOwnShop(shop, user)) return;
+      if (!user || !shop || !isOwnShop(shop, user) || !product) return;
+      const hiddenShop: Shop = {
+        ...shop,
+        products: shop.products.map((row) => (row.id === productId ? { ...row, published: false, updatedAt: new Date().toISOString() } : row)),
+      };
       update((s) => ({
         ...s,
-        shops: s.shops.map((item) =>
-          item.id === shopId
-            ? {
-                ...item,
-                products: item.products.map((row) => (row.id === productId ? { ...row, published: false, updatedAt: new Date().toISOString() } : row)),
-              }
-            : item,
-        ),
+        shops: s.shops.map((item) => (item.id === shopId ? hiddenShop : item)),
         extraListings: s.extraListings.map((item) =>
-          item.id === (product?.listingId || listingIdForProduct(productId)) || item.shopProductId === productId
+          item.id === (product.listingId || listingIdForProduct(productId)) || item.shopProductId === productId
             ? { ...item, status: "withdrawn" }
             : item,
         ),
       }));
+      void (async () => {
+        await authReady;
+        try {
+          const ready = await materializeShop(hiddenShop);
+          enqueue({ kind: "putShop", shopId: ready.id, body: { action: "hide-product", shop: ready, product } });
+        } catch (err) {
+          console.warn("shop hide upload failed", err);
+        }
+      })();
     },
     publishProductListing: (shopId, productId) => {
       const user = state.user;
@@ -1331,13 +1571,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ),
         };
       });
+      const shopNext: Shop = {
+        ...shop,
+        products: shop.products.map((row) =>
+          row.id === productId ? { ...row, listingId: listingIdForProduct(product.id), published: true } : row,
+        ),
+      };
+      void (async () => {
+        await authReady;
+        try {
+          const ready = await materializeShop(shopNext);
+          enqueue({ kind: "putShop", shopId: ready.id, body: { action: "upsert-product", shop: ready, product: shopNext.products.find((row) => row.id === productId) } });
+        } catch (err) {
+          console.warn("shop publish upload failed", err);
+        }
+      })();
       return listing ?? null;
     },
-    reportShop: (id, reason) =>
+    reportShop: (id, reason) => {
       update((s) => ({
         ...s,
         reports: { ...s.reports, [id]: reason },
-      })),
+      }));
+      void (async () => {
+        await authReady;
+        onceRetry(() => api("/api/reports", { method: "POST", json: { shopId: id, reason } }));
+      })();
+    },
     submitPartnerApplication: (input) => {
       const user = state.user;
       if (!user) return null;
