@@ -74,21 +74,6 @@ export function TabBar() {
   );
 }
 
-export function StatusBar() {
-  return (
-    <div className="flex h-11 shrink-0 items-center justify-between px-[26px] text-xs font-semibold text-ink">
-      <span>9:41</span>
-      <div className="flex items-center gap-[5px]">
-        <span className="block h-[9px] w-4 rounded-[2px] border border-ink" />
-        <span className="block h-[9px] w-[13px] rounded-[2px] bg-ink" />
-        <span className="relative block h-[10px] w-[22px] rounded-[3px] border border-ink">
-          <span className="absolute inset-[2px_8px_2px_2px] block rounded-[1px] bg-ink" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?: boolean }) {
   const { t, online } = useApp();
   return (
@@ -97,7 +82,6 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
         id="konshu-phone"
         className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)]"
       >
-        <StatusBar />
         {!online ? (
           <div className="flex h-7 shrink-0 items-center justify-center bg-ink text-[12px] text-screen">{t.offlineTitle}</div>
         ) : null}

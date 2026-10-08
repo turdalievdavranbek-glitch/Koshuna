@@ -42,6 +42,23 @@ for (const viewport of [
     expect(overlaps(langBox, locationBox)).toBe(false);
     expect(overlaps(langBox, bellBox)).toBe(false);
     expect(overlaps(locationBox, bellBox)).toBe(false);
+    expect(bellBox.x).toBeGreaterThan(langBox.x + langBox.width - 1);
+    expect(bellBox.x - (langBox.x + langBox.width)).toBeLessThan(16);
+    expect(Math.abs(bellBox.y - langBox.y)).toBeLessThan(12);
+    const brand = page.locator("#konshu-phone").getByText("Koshuna", { exact: true });
+    await expect(brand).toBeVisible();
+    const brandBox = await brand.boundingBox();
+    expect(brandBox).toBeTruthy();
+    expect(overlaps(brandBox!, langBox)).toBe(false);
+    expect(langBox.x).toBeGreaterThan(brandBox!.x + brandBox!.width - 1);
+    const label = page.getByTestId("home-location-label");
+    await expect(label).toHaveText("Кыргызстан, область, район");
+    const clipped = await label.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return style.textOverflow === "ellipsis" || el.scrollWidth > el.clientWidth + 1;
+    });
+    expect(clipped).toBe(false);
+    await expect(page.getByText("9:41")).toHaveCount(0);
     const scroll = await page.evaluate(() => {
       const phone = document.getElementById("konshu-phone");
       const root = document.documentElement;
@@ -54,6 +71,9 @@ for (const viewport of [
     expect(scroll.phone).toBe(true);
 
     await lang.getByRole("button", { name: "KG" }).click();
+    await expect(label).toHaveText("Кыргызстан, облус, район");
+    const clippedKy = await label.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    expect(clippedKy).toBe(false);
     await expect(page.getByText("Райондогу жаңылыктар").first()).toBeVisible();
     await page.reload();
     await expect(page.getByText("Райондогу жаңылыктар").first()).toBeVisible();
