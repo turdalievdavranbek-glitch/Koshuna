@@ -1,8 +1,10 @@
+import { pickSection } from "../src/components/post-taxonomy";
 import { listingTextHit } from "../src/lib/catalog-words";
 import {
   ANIMAL_GROUPS,
   ANIMAL_KINDS,
   PHARMACY_SHOP_HREF,
+  PRIVATE_POST_SHOP_CATEGORIES,
   SERVICE_CATEGORIES,
   SERVICE_GROUPS,
   SERVICE_TOP,
@@ -12,6 +14,7 @@ import {
   serviceGroupOf,
   serviceLeafReady,
 } from "../src/lib/data";
+import { listingCategoryError } from "../src/lib/listing-rules";
 import { applyFilters } from "../src/lib/filter";
 import { DICT } from "../src/lib/i18n";
 import { BRANCH_ALL, pathFromFilters, resolveBranch } from "../src/lib/section-tree";
@@ -27,7 +30,7 @@ import {
   vehicleModelsOf,
   vehicleTypesOf,
 } from "../src/lib/transport";
-import type { Filters, Listing } from "../src/lib/types";
+import type { DraftListing, Filters, Listing } from "../src/lib/types";
 
 let failed = 0;
 let passed = 0;
@@ -291,6 +294,43 @@ check("group id is never ready", !serviceLeafReady("svc-health", null));
 const top = resolveBranch("services", []);
 check("service root lists groups", !!top && top.options.some((row) => row.id === "svc-health" && row.hasChildren));
 check("BRANCH_ALL is all", BRANCH_ALL === "all");
+
+check("services dentist is a leaf", listingCategoryError({ section: "services", category: "dentist" }, null) === null);
+check("services group is not a listing category", listingCategoryError({ section: "services", category: "svc-health" }, null) === "bad-category");
+check("services pharmacy is not a leaf", listingCategoryError({ section: "services", category: "pharmacy" }, null) === "bad-category");
+check(
+  "medicine without a shop is pharmacy-only",
+  listingCategoryError({ section: "shops", category: "health-pharmacy" }, null) === "pharmacy-only",
+);
+check(
+  "bakery shop cannot list medicines",
+  listingCategoryError({ section: "shops", category: "health-pharmacy" }, ["food-bakery"]) === "pharmacy-only",
+);
+check(
+  "pharmacy shop can list medicines",
+  listingCategoryError({ section: "shops", category: "health-pharmacy" }, ["health-pharmacy"]) === null,
+);
+check(
+  "plants potato is a known kind",
+  listingCategoryError({ section: "animals", animalGroup: "plants", animalKind: "potato" }, null) === null,
+);
+check(
+  "unknown farm kind is bad-category",
+  listingCategoryError({ section: "animals", animalGroup: "farm", animalKind: "xyz" }, null) === "bad-category",
+);
+check(
+  "legacy cattle stays valid",
+  listingCategoryError({ section: "animals", animalGroup: "farm", animalKind: "cattle" }, null) === null,
+);
+check("private post shops hide health", !(PRIVATE_POST_SHOP_CATEGORIES as readonly string[]).includes("health"));
+check(
+  "shops health resets to food",
+  pickSection({ category: "health" } as DraftListing, "shops").category === "food",
+);
+check("pharmacy-only ru", DICT.ru.pharmacyOnly.startsWith("Лекарства"));
+check("pharmacy-only ky", DICT.ky.pharmacyOnly.includes("Дарыкана"));
+check("bad-category ru", DICT.ru.badCategory === "Выберите раздел ещё раз.");
+check("bad-category ky", DICT.ky.badCategory === "Бөлүмдү кайра тандаңыз.");
 
 if (failed) {
   console.error(`test:catalog ${passed} passed, ${failed} failed`);

@@ -9,6 +9,14 @@ import { listings, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { listingMediaUrls, listingToRow, rowToListing, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
+function productIsMedicine(product: { kind?: string | null; category?: string | null }): boolean {
+  return product.kind === "health-pharmacy" || (product.category === "health" && !product.kind);
+}
+
+function shopSellsPharmacy(shop: Shop | undefined): boolean {
+  return Boolean(shop?.kinds?.includes("health-pharmacy"));
+}
+
 export type ShopBody = {
   action?: ShopAction;
   shop?: Shop;
@@ -29,6 +37,13 @@ export function validateShopAction(
   }
   const media = mediaError(body.videoBytes, body.videoSeconds);
   if (media) return { status: 400, body: { ok: false, error: media } };
+  const products: Array<{ kind?: string | null; category?: string | null }> = [
+    ...(body.shop.products ?? []),
+    ...(body.product ? [body.product] : []),
+  ];
+  if (products.some((product) => productIsMedicine(product) && !shopSellsPharmacy(body.shop))) {
+    return { status: 400, body: { ok: false, error: "pharmacy-only" } };
+  }
   const action = body.action as ShopAction;
   if (action === "upsert-product" && body.product) {
     const errs = productErrors(body.product);

@@ -10,6 +10,7 @@ import {
   draftAfterServiceTap,
   goodsKindsOf,
   isServiceGroup,
+  PRIVATE_POST_SHOP_CATEGORIES,
   isTechCategory,
   RESTAURANT_CATEGORIES,
   SERVICE_CATEGORIES,
@@ -19,7 +20,6 @@ import {
   techBrandsOf,
   techModelsOf,
 } from "@/lib/data";
-import { SHOP_CATEGORIES } from "@/lib/types";
 import { MENU_CATEGORIES } from "@/lib/types";
 import { makeListView, VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
@@ -56,7 +56,11 @@ export function pickSection(draft: DraftListing, id: SectionId): Partial<DraftLi
   if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
   if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
   if (id === "vacancies") next.jobType = draft.jobType ?? "full";
-  if (id === "shops") next.category = draft.category ?? "food";
+  if (id === "shops") {
+    const category = draft.category;
+    const medicines = category === "health" || (category?.startsWith("health-") ?? false);
+    next.category = !medicines && category ? category : "food";
+  }
   return next;
 }
 
@@ -377,7 +381,7 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
       {draft.section === "shops" ? (
         <SectionList
           title={t.category}
-          rows={SHOP_CATEGORIES.map((c) => ({
+          rows={PRIVATE_POST_SHOP_CATEGORIES.map((c) => ({
             id: c,
             label: t.shopCats[c],
             active: draft.category === c,

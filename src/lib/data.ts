@@ -1,5 +1,8 @@
 import { isSectionVisible } from "./features";
-import type { Lang, Listing, ListingComment, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
+import { SHOP_CATEGORIES, type Lang, type Listing, type ListingComment, type Owner, type ReserveAccount, type SavedSearch, type SectionId, type Thread } from "./types";
+
+/** Private posts cannot offer medicines. «Здоровье» stays in shop browse and filters. */
+export const PRIVATE_POST_SHOP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c !== "health");
 
 export const CITIES = [
   "all",
@@ -1464,7 +1467,7 @@ export const LISTINGS: Listing[] = [
     id: "cattle-talas",
     section: "animals",
     animalGroup: "farm",
-    animalKind: "bull",
+    animalKind: "cow",
     title: "Корова, дойная, Талас",
     titleKy: "Саан уй, Талас",
     titleEn: "Dairy cow, Talas",
