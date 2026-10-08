@@ -3,6 +3,11 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { MAP_TILE_2GIS, MAP_TILE_OSM, mapTileConfig } from "@/lib/geo";
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] ?? ch);
+}
 
 export type GisMarker = {
   id: string;
@@ -52,11 +57,13 @@ export function GisMap({
       touchZoom: interactive,
       attributionControl: true,
     });
-    L.tileLayer("https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}", {
-      subdomains: "0123",
-      attribution: '&copy; <a href="https://2gis.kg" target="_blank" rel="noreferrer">2ГИС</a>',
-      maxZoom: 18,
+    const tiles = mapTileConfig();
+    L.tileLayer(tiles.url, {
+      ...(tiles.subdomains ? { subdomains: tiles.subdomains } : {}),
+      attribution: escapeHtml(tiles.attribution),
+      maxZoom: tiles.maxZoom,
     }).addTo(map);
+    map.attributionControl?.setPrefix(false);
     if (interactive) {
       map.zoomControl.setPosition("bottomright");
     }
@@ -115,5 +122,12 @@ export function GisMap({
     pickRef.current = L.marker([pick.lat, pick.lng], { icon, interactive: false }).addTo(map);
   }, [pick]);
 
-  return <div ref={ref} className={`h-full w-full${interactive ? "" : " pointer-events-none"}`} />;
+  return (
+    <div
+      ref={ref}
+      data-tile-2gis={MAP_TILE_2GIS}
+      data-tile-osm={MAP_TILE_OSM}
+      className={`relative isolate h-full w-full [&_.leaflet-control-attribution]:pointer-events-none${interactive ? "" : " pointer-events-none"}`}
+    />
+  );
 }

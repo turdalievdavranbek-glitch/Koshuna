@@ -6,7 +6,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DISTRICTS, formatSom } from "@/lib/data";
 import { districtLabel, gisCity, hasCoords, nearestCityId, nearestDistrict, twoGisUrl } from "@/lib/geo";
 import { listingTitle } from "@/lib/i18n";
+import { locate, type LocateError } from "@/lib/locate";
 import { useApp } from "@/lib/store";
+import { GeoError } from "@/components/geo-error";
 import { IconLocate, IconSearch, IconSliders } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingRow, Photo, useFiltered } from "@/components/ui";
@@ -31,6 +33,8 @@ export default function MapPage() {
     return filtered;
   }, [filtered, pin]);
   const [mode, setMode] = useState<"map" | "list">("map");
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [selected, setSelected] = useState(pin?.id ?? listings[0]?.id);
   const current = listings.find((l) => l.id === selected) ?? pin ?? listings[0];
   const focused = useRef<string | null>(null);
@@ -73,6 +77,19 @@ export default function MapPage() {
       locLng: lng,
       locLabel: label ?? (area ? districtLabel(area, lang) : t.cities[nextCity]),
     });
+  };
+
+  const locateHere = async () => {
+    if (geoBusy) return;
+    setGeoBusy(true);
+    setGeoError(null);
+    const res = await locate();
+    setGeoBusy(false);
+    if (!res.ok) {
+      setGeoError(res.error);
+      return;
+    }
+    applyPoint(res.lat, res.lng);
   };
 
   useEffect(() => {
@@ -123,7 +140,7 @@ export default function MapPage() {
           >
             <IconSearch size={17} color="#A79C8C" />
             <span className="truncate text-[15px] text-ink">
-              {filters.locLabel ?? `${t.cities[cityId]} · 2ГИС`}
+              {filters.locLabel ?? `${t.cities[cityId]} · ${t.mapEyebrow}`}
             </span>
           </button>
           <button
@@ -183,16 +200,12 @@ export default function MapPage() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (!navigator.geolocation) return;
-                navigator.geolocation.getCurrentPosition((pos) => {
-                  applyPoint(pos.coords.latitude, pos.coords.longitude);
-                });
-              }}
-              className="shadow-float absolute right-4 top-[58px] z-10 flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"
-              aria-label={t.pickOnMap}
+              onClick={() => void locateHere()}
+              disabled={geoBusy}
+              className="shadow-float absolute right-4 top-[58px] z-10 flex h-11 items-center justify-center rounded-[14px] bg-white px-3"
+              aria-label={geoBusy ? t.locationGeoBusy : t.pickOnMap}
             >
-              <IconLocate size={18} color="#17140F" />
+              {geoBusy ? <span className="text-[12px] font-semibold text-ink">{t.locationGeoBusy}</span> : <IconLocate size={18} color="#17140F" />}
             </button>
             <div className="absolute bottom-[168px] left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full bg-white p-1 shadow-float">
               <button
@@ -214,6 +227,14 @@ export default function MapPage() {
           </>
         )}
 
+        {mode === "map" && geoError ? (
+          <div className="absolute inset-x-4 bottom-[42%] z-20">
+            <div className="rounded-[16px] border border-line bg-white p-3 shadow-float">
+              <GeoError compact error={geoError} onRetry={() => void locateHere()} />
+            </div>
+          </div>
+        ) : null}
+
         {mode === "map" ? (
           <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] bg-screen px-5 pb-3 pt-2.5 shadow-[0_-10px_30px_rgba(23,20,15,.14)]">
             <span className="mx-auto mb-3 block h-1 w-11 rounded-full bg-toggle-off" />
@@ -230,7 +251,7 @@ export default function MapPage() {
                 <a
                   href={twoGisUrl(cityId, pick.lng, pick.lat)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="flex h-11 items-center justify-center rounded-2xl border border-line bg-white px-3 text-sm font-semibold text-ink"
                 >
                   {t.open2gis}

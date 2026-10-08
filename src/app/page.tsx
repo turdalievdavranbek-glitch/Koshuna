@@ -7,10 +7,11 @@ import { isSectionVisible } from "@/lib/features";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
-import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
+import { shownLocationLabel } from "@/components/location-line";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
@@ -75,7 +76,7 @@ export default function FeedPage() {
             >
               <IconPin size={13} color="#B8452F" />
               <span className="max-w-[140px] truncate">
-                {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
+                {shownLocationLabel(lang, city, filters, t)}
               </span>
               <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
                 <IconChevronDown size={14} color="#17140F" />
@@ -94,6 +95,9 @@ export default function FeedPage() {
               ) : null}
             </Link>
           </div>
+        </div>
+        <div className="mt-2">
+          <ScopeChips />
         </div>
         <div className="mt-2">
           <NeighborCircles listings={listings} />
@@ -230,7 +234,9 @@ export default function FeedPage() {
         <HomeFreshFilters />
 
         {listings.length === 0 ? (
-          !synced ? null : !online && allListings.length === 0 ? (
+          !synced ? null : filters.scope === "near" ? (
+            <NearEmptyState />
+          ) : !online && allListings.length === 0 ? (
             <EmptyState variant="offline" onRetry={() => resync()} />
           ) : allListings.length === 0 ? (
             <EmptyState variant="first" />

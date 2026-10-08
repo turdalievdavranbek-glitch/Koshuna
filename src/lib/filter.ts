@@ -1,7 +1,7 @@
 import type { Filters, Listing } from "./types";
 import { isAiylListing } from "./data";
 import { hasPriceDrop } from "./deal";
-import { haversineKm } from "./geo";
+import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { oblastOfListing } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
@@ -16,9 +16,9 @@ export function homeFeedFilters(filters: Filters): Filters {
     photosOnly: false,
     verifiedOnly: false,
     noAgents: false,
-    locLng: null,
-    locLat: null,
-    locLabel: null,
+    locLng: filters.scope === "near" ? filters.locLng : null,
+    locLat: filters.scope === "near" ? filters.locLat : null,
+    locLabel: filters.scope === "near" ? filters.locLabel : null,
     priceMin: null,
     priceMax: null,
     rooms: section === "rent" ? filters.rooms : [],
@@ -96,7 +96,44 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
     settlement: filters.settlement,
     aiylOnly: filters.aiylOnly,
     query: filters.query,
+    scope:
+      (filters.settlement && filters.settlement !== "any") ||
+      (filters.oblast && filters.oblast !== "any") ||
+      (filters.city && filters.city !== "all")
+        ? "area"
+        : "all",
   };
+}
+
+export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel" | "scope">): boolean {
+  if (filters.settlement && filters.settlement !== "any") return true;
+  if (filters.oblast && filters.oblast !== "any") return true;
+  if (filters.city && filters.city !== "all") return true;
+  if (filters.scope !== "near" && filters.locLabel) return true;
+  return false;
+}
+
+/** Old saved filters have no scope. locLat → near; a place → area; otherwise all. An explicit scope is kept. */
+export function scopeForSaved(filters: {
+  scope?: string | null;
+  locLat?: number | null;
+  locLng?: number | null;
+  locLabel?: string | null;
+  settlement?: string | null;
+  city?: string | null;
+  oblast?: string | null;
+}): "near" | "area" | "all" {
+  if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
+  if (filters.locLat != null) return "near";
+  if (
+    (filters.settlement && filters.settlement !== "any") ||
+    filters.locLabel ||
+    (filters.city && filters.city !== "all") ||
+    (filters.oblast && filters.oblast !== "any")
+  ) {
+    return "area";
+  }
+  return "all";
 }
 
 function placeMatches(item: Listing, filters: Filters, city: string): boolean {
@@ -111,7 +148,12 @@ function placeMatches(item: Listing, filters: Filters, city: string): boolean {
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   let out = list.filter((item) => {
     if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
-    if (!placeMatches(item, filters, city)) return false;
+    if (filters.scope === "near") {
+      if (filters.locLat == null || filters.locLng == null || !hasCoords(item)) return false;
+      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > nearRadiusKm()) return false;
+    } else if (filters.scope !== "all") {
+      if (!placeMatches(item, filters, city)) return false;
+    }
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";
       if (item.section !== want) return false;
@@ -171,17 +213,6 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (filters.section === "rent" && filters.stockType && filters.stockType !== "any") {
       if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
-    }
-    if (
-      !filters.aiylOnly &&
-      (!filters.settlement || filters.settlement === "any") &&
-      (filters.section === "rent" || filters.section === "restaurants") &&
-      filters.locLng != null &&
-      filters.locLat != null &&
-      item.lng != null &&
-      item.lat != null
-    ) {
-      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
     }
     const rentFilters = filters.section === "rent";
     if (rentFilters && !listingMatchesRealty(item, filters)) return false;

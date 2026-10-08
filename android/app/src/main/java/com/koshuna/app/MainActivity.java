@@ -5,7 +5,6 @@ import android.annotation.SuppressLint;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.Bundle;
-import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -60,8 +59,6 @@ public class MainActivity extends BridgeActivity {
         permissions.add(Manifest.permission.CAMERA);
         permissions.add(Manifest.permission.RECORD_AUDIO);
         permissions.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
-        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS);
         }
@@ -75,7 +72,8 @@ public class MainActivity extends BridgeActivity {
     /**
      * Extends Capacitor's chrome client so file-chooser / activity-result
      * launchers register during onCreate, then auto-grants WebView camera,
-     * mic, and geolocation after those Android permissions are requested.
+     * mic after those Android permissions are requested. Location is asked
+     * later, by Capacitor, on the first geolocation prompt.
      */
     private static final class KoshunaWebChromeClient extends BridgeWebChromeClient {
         KoshunaWebChromeClient(Bridge bridge) {
@@ -85,14 +83,6 @@ public class MainActivity extends BridgeActivity {
         @Override
         public void onPermissionRequest(PermissionRequest request) {
             request.grant(request.getResources());
-        }
-
-        @Override
-        public void onGeolocationPermissionsShowPrompt(
-            String origin,
-            GeolocationPermissions.Callback callback
-        ) {
-            callback.invoke(origin, true, false);
         }
     }
 }

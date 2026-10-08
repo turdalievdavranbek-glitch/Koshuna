@@ -19,6 +19,7 @@ import { SellerKindChips } from "@/components/seller-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { EmptyState } from "@/components/empty-state";
+import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
 import { PhoneShell } from "@/components/shell";
 import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
@@ -53,7 +54,7 @@ function FeedExtras({ id }: { id: SectionId }) {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -148,7 +149,7 @@ function FeedExtras({ id }: { id: SectionId }) {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -296,7 +297,10 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             </h1>
             <span className="w-9" />
           </div>
-          <LocationLine className="px-5 pb-2" />
+          <LocationLine className="px-5" />
+          <div className="px-5 pb-2 pt-2">
+            <ScopeChips />
+          </div>
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
             {FEATURES.complexes && id === "rent" && path[0] === "apartments" ? (
               <button
@@ -356,6 +360,9 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
         <div className="mt-1">
           <LocationLine />
         </div>
+        <div className="mt-2">
+          <ScopeChips />
+        </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
           <input
@@ -395,7 +402,9 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
         />
 
         {listings.length === 0 ? (
-          !synced ? null : !online && allListings.every((item) => item.section !== id) ? (
+          !synced ? null : filters.scope === "near" ? (
+            <NearEmptyState />
+          ) : !online && allListings.every((item) => item.section !== id) ? (
             <EmptyState variant="offline" onRetry={() => resync()} />
           ) : allListings.every((item) => item.section !== id) ? (
             <EmptyState variant="first" />

@@ -326,6 +326,7 @@ export type Filters = {
   settlement: string;
   aiylOnly: boolean;
   priceDroppedOnly: boolean;
+  scope: "near" | "area" | "all";
 };
 
 export type SavedSearch = {

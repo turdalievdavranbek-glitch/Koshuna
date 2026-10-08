@@ -14,6 +14,7 @@ import { api, onceRetry } from "./api/client";
 import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
+import { scopeForSaved } from "./filter";
 import { collectRefKeys, hydrateRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf, parseSellerChannel } from "./channels";
@@ -164,6 +165,7 @@ const defaultFilters = (): Filters => ({
   settlement: "any",
   aiylOnly: false,
   priceDroppedOnly: false,
+  scope: "all",
 });
 
 const defaultDraft = (): DraftListing => ({
@@ -495,7 +497,7 @@ function migrateElectronicsCategory(filters: Filters): Filters {
   return { ...filters, category: "phones", goodsKind: "any" };
 }
 
-function normalizeFilters(filters: Filters): Filters {
+function normalizeFilters(filters: Filters, savedScope?: unknown): Filters {
   if (filters.section === "car-rental") {
     return { ...filters, section: "cars", autoType: "rent" };
   }
@@ -534,6 +536,14 @@ function normalizeFilters(filters: Filters): Filters {
         : "any",
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
     oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
+    scope: scopeForSaved({
+      scope: typeof savedScope === "string" ? savedScope : undefined,
+      locLat: next.locLat,
+      locLabel: next.locLabel,
+      settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
+      city: next.city,
+      oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
+    }),
   };
 }
 
@@ -596,7 +606,10 @@ function load(): State {
       threads: Array.isArray(saved.threads) ? saved.threads : [],
       savedSearches: Array.isArray(saved.savedSearches) ? saved.savedSearches : [],
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
-      filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
+      filters: normalizeFilters(
+        { ...defaultFilters(), ...saved.filters },
+        saved.filters && "scope" in saved.filters ? saved.filters.scope : undefined,
+      ),
       side: isAppSide(saved.side) ? saved.side : "buy",
       lang: isLang(saved.lang) ? saved.lang : "ru",
       langChosen: saved.langChosen === true,

@@ -33,7 +33,7 @@ export function SectionExtras() {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -169,7 +169,7 @@ export function SectionExtras() {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>

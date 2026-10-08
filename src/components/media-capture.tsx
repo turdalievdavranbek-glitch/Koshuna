@@ -26,6 +26,10 @@ function voiceMaxSeconds(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 120;
 }
 
+export function clampWall(wallSec: number, limit: number, auto: boolean) {
+  return auto ? Math.min(wallSec, limit) : wallSec;
+}
+
 function clock(total: number) {
   const sec = Math.max(0, Math.floor(total));
   const m = Math.floor(sec / 60);
@@ -58,6 +62,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const limitTimer = useRef<number | null>(null);
   const tickTimer = useRef<number | null>(null);
   const halted = useRef(false);
+  const autoStopped = useRef(false);
 
   const clearRecTimers = () => {
     if (limitTimer.current != null) window.clearTimeout(limitTimer.current);
@@ -160,7 +165,10 @@ export function MediaCapture({ draft, onPatch }: Props) {
     if (videoRef.current) videoRef.current.srcObject = null;
     setRecording(false);
     setRecMode(null);
-    if (auto) setBusy(t.mediaRecStopped);
+    if (auto) {
+      autoStopped.current = true;
+      setBusy(t.mediaRecStopped);
+    }
   };
 
   const startRec = async (mode: "video" | "audio") => {
@@ -192,12 +200,14 @@ export function MediaCapture({ draft, onPatch }: Props) {
       };
       rec.onstop = async () => {
         const wallSec = recStartedAt.current ? (Date.now() - recStartedAt.current) / 1000 : 0;
+        const limit = mode === "video" ? videoMaxSeconds() : voiceMaxSeconds();
+        const wall = clampWall(wallSec, limit, autoStopped.current);
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: rec.mimeType || (mode === "video" ? "video/webm" : "audio/webm") });
         const url = keepBlob(mode === "video" ? "video" : "voice", blob);
         if (mode === "video") {
           const meta = await videoDuration(url);
-          const duration = meta > 0 && Number.isFinite(meta) ? meta : wallSec;
+          const duration = meta > 0 && Number.isFinite(meta) ? meta : wall;
           if (duration > videoMaxSeconds()) {
             dropBlob("video");
             setBusy(t.shopVideoTime);
@@ -222,6 +232,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
       };
       recStartedAt.current = Date.now();
       halted.current = false;
+      autoStopped.current = false;
       const limit = mode === "video" ? videoMaxSeconds() : voiceMaxSeconds();
       setElapsed(0);
       rec.start();

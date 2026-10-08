@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { CITIES, GIS_CITIES } from "@/lib/data";
 import { meetupSpotsFor } from "@/lib/deal";
 import { gisCity, meetupCoords, nearestDistrict } from "@/lib/geo";
+import { locate, type LocateError } from "@/lib/locate";
 import { listingChipLabel } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
 import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
@@ -19,6 +20,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, Photo, Toggle } from "@/components/ui";
 import { PostTypePicker } from "@/components/post-type-picker";
 import { PostTaxonomy, pickSection } from "@/components/post-taxonomy";
+import { GeoError } from "@/components/geo-error";
 import { IconBack } from "@/components/icons";
 import { showsNeighborPledge } from "@/lib/neighbor";
 
@@ -34,6 +36,23 @@ export default function PostPage() {
   const [uploadPct, setUploadPct] = useState(0);
   const [paste, setPaste] = useState("");
   const [entryCard, setEntryCard] = useState<string | null>(null);
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoError, setGeoError] = useState<LocateError | null>(null);
+
+  const locateDraft = () => {
+    if (geoBusy) return;
+    setGeoBusy(true);
+    setGeoError(null);
+    void locate().then((res) => {
+      setGeoBusy(false);
+      if (!res.ok) {
+        setGeoError(res.error);
+        return;
+      }
+      const area = nearestDistrict(res.lat, res.lng, draft.city);
+      setDraft({ lat: res.lat, lng: res.lng, district: area?.name });
+    });
+  };
 
   useEffect(() => {
     const card = new URLSearchParams(window.location.search).get("card");
@@ -261,19 +280,13 @@ export default function PostPage() {
               )}
               <button
                 type="button"
-                onClick={() => {
-                  if (!navigator.geolocation) return;
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    const area = nearestDistrict(lat, lng, draft.city);
-                    setDraft({ lat, lng, district: area?.name });
-                  });
-                }}
-                className="h-11 rounded-[14px] border border-line bg-white text-[13px] font-semibold"
+                disabled={geoBusy}
+                onClick={locateDraft}
+                className="h-11 rounded-[14px] border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
               >
-                {t.locationGeo}
+                {geoBusy ? t.locationGeoBusy : t.locationGeo}
               </button>
+              {geoError ? <GeoError compact error={geoError} onRetry={locateDraft} /> : null}
               {bizCard ? (
                 <Field label={t.mapPoint}>
                   <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>
