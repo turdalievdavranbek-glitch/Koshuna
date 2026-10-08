@@ -430,6 +430,7 @@ type Store = State & {
     navigate: (href: string) => void;
     dest: string;
   }) => Promise<"ok" | "cancelled" | "not-configured" | "open-in-browser" | "error">;
+  acceptSignedInUser: (user: User, isNew: boolean, navigate: (href: string) => void, dest: string) => void;
   logout: () => void;
   linkCard: () => void;
   linkChannel: (channel: SellerChannel) => void;
@@ -1083,6 +1084,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })(),
       );
       return "ok";
+    },
+    acceptSignedInUser: (serverUser, isNew, navigate, dest) => {
+      const epoch = ++sessionEpoch;
+      const pickPlace = isNew && !hasPlaceFilter(state.filters);
+      const method = serverUser.method ?? "telegram";
+      update((s) => {
+        const nextUser: User = {
+          id: serverUser.id,
+          name: serverUser.name || "",
+          phone: serverUser.phone || "",
+          email: serverUser.email,
+          method,
+          linkedChannels: [],
+          cardLinked: false,
+          joinedYear: serverUser.joinedYear || new Date().getFullYear(),
+          verified: false,
+          rating: 0,
+          views: 0,
+          roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+        };
+        return {
+          ...s,
+          user: nextUser,
+          pendingPath: null,
+          draft: { ...s.draft, name: nextUser.name, phone: nextUser.phone },
+        };
+      });
+      if (pickPlace) {
+        void import("@/components/location-line").then(({ openLocationPicker }) => {
+          openLocationPicker({ push: navigate }, dest || "/");
+        });
+      } else {
+        navigate(dest || "/");
+      }
+      trackAuth(
+        (async () => {
+          const [mine, cart, reacts, feedRes] = await Promise.all([
+            api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
+            api<{ favouriteIds: string[] }>("/api/me/cart"),
+            api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
+            api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+          ]);
+          if (epoch !== sessionEpoch) return;
+          const reactionUser: User = {
+            id: serverUser.id,
+            name: serverUser.name || "",
+            phone: serverUser.phone || "",
+            email: serverUser.email,
+            method,
+            joinedYear: serverUser.joinedYear || new Date().getFullYear(),
+            verified: false,
+            rating: 0,
+            views: 0,
+          };
+          const vid = voterId(reactionUser);
+          const reactions = vid && reacts.data?.reactions ? { [vid]: reacts.data.reactions } : {};
+          applyCounts({ ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) }, reactions, reactionUser);
+          update((s) => ({
+            ...s,
+            extraListings: mine.data?.listings ?? s.extraListings,
+            favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
+            reactions,
+          }));
+        })(),
+      );
     },
     logout: () => {
       sessionEpoch += 1;
