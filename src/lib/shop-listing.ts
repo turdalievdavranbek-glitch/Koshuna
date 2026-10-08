@@ -28,6 +28,7 @@ export function postedAgoFrom(iso?: string, now = Date.now()): string {
 }
 
 function listingStatusForProduct(shop: Shop, product: ShopProduct, prev?: Listing): ListingStatus {
+  if (shop.status === "hidden" || prev?.status === "hidden") return "hidden";
   if (product.published === false) return "withdrawn";
   if (shop.status === "withdrawn") return "withdrawn";
   if (prev?.status === "reserved" || prev?.status === "promoted" || prev?.status === "closed") return prev.status;

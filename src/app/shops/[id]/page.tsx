@@ -37,7 +37,7 @@ export default function ShopDetailPage() {
   );
   const groups = useMemo(() => (shop ? groupShopProducts(shop, products) : []), [shop, products]);
   const linked = useMemo(
-    () => (shop ? allListings.filter((item) => item.shopId === shop.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed") : []),
+    () => (shop ? allListings.filter((item) => item.shopId === shop.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden") : []),
     [allListings, shop],
   );
 

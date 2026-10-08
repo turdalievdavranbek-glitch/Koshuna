@@ -163,6 +163,11 @@ export async function signInWithIdentity(input: {
   };
 }
 
+export async function sessionIsAdmin(userId: string): Promise<boolean> {
+  const rows = await getDb().select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0]?.isAdmin === true;
+}
+
 export async function getSessionUser(req: Request): Promise<SessionUser | null> {
   const token = readCookie(req, "ksid");
   if (!token) return null;

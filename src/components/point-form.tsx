@@ -32,6 +32,7 @@ import { GeoError } from "./geo-error";
 import { sectionIcon } from "./icons";
 import { HoursPicker } from "./hours-picker";
 import { LeaveDialog } from "./leave-dialog";
+import { DeleteCardDialog } from "./card-delete";
 import { NativePhotoInputs } from "./native-photo";
 import { POINT_GROUP_ICON, PointAvatar } from "./point-rows";
 import { Chip, Field, Input, Toggle } from "./ui";
@@ -72,6 +73,7 @@ export function PointForm({
     saveShopDraft,
     publishShop,
     discardShopDraft,
+    deleteShop,
     setLeaveGuard,
   } = useApp();
   const router = useRouter();
@@ -92,6 +94,7 @@ export function PointForm({
   const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [doneId, setDoneId] = useState(createdId ?? "");
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const historyGuard = useDraftHistoryGuard(touched && !doneId, () => setLeave({ proceed: () => leaveBack.current() }));
   leaveBack.current = () => historyGuard.leave();
 
@@ -675,6 +678,37 @@ export function PointForm({
         {creating ? t.pointCreate : t.pointSave}
       </button>
       {creating ? <p className="text-center text-[12px] text-muted">{t.pointThenProduct}</p> : null}
+      {!creating && d?.id ? (
+        <button
+          type="button"
+          data-testid="point-delete"
+          onClick={() => setConfirmDelete(true)}
+          className="h-12 w-full text-[15px] font-semibold text-accent"
+        >
+          {t.cardDelete}
+        </button>
+      ) : null}
+
+      <DeleteCardDialog
+        open={confirmDelete}
+        busy={busy}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          if (!d?.id) return;
+          setBusy(true);
+          void deleteShop(d.id).then((result) => {
+            setBusy(false);
+            if (result.error) {
+              setError(t.cardDeleteError);
+              setConfirmDelete(false);
+              return;
+            }
+            setTouched(false);
+            setLeaveGuard(null);
+            router.push("/profile");
+          });
+        }}
+      />
 
       <LeaveDialog
         open={Boolean(leave)}

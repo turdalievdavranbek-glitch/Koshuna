@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { shopDeliveryLine, shopPointSubtitle } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { Shop } from "@/lib/types";
+import { CardMenu, DeleteCardDialog } from "./card-delete";
 import { sectionIcon } from "./icons";
 
 export const POINT_GROUP_ICON: Record<string, string> = {
@@ -49,8 +51,10 @@ export function PointList({
   actions?: boolean;
   testId?: string;
 }) {
-  const { t, lang } = useApp();
+  const { t, lang, deleteShop } = useApp();
   const router = useRouter();
+  const [pendingId, setPendingId] = useState("");
+  const [busy, setBusy] = useState(false);
   if (!shops.length) return null;
   return (
     <div data-testid={testId} className="flex min-w-0 flex-col gap-2">
@@ -59,10 +63,11 @@ export function PointList({
         const delivery = shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine);
         return (
           <div key={shop.id} data-testid="point-row" className="min-w-0 rounded-[16px] border border-line bg-white px-3 py-3">
+            <div className="flex min-w-0 items-start gap-1">
             <button
               type="button"
               onClick={() => router.push(`/shops/quick?shop=${shop.id}`)}
-              className="flex w-full min-w-0 items-center gap-3 text-left"
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
             >
               <PointAvatar shop={shop} />
               <span className="min-w-0 flex-1">
@@ -71,6 +76,8 @@ export function PointList({
                 {delivery ? <span className="mt-0.5 block truncate text-[12px] text-muted">{delivery}</span> : null}
               </span>
             </button>
+            {actions ? <CardMenu onDelete={() => setPendingId(shop.id)} testId="point-menu" /> : null}
+            </div>
             {actions ? (
               <div className="mt-2 flex gap-2 pl-14">
                 <button
@@ -94,6 +101,19 @@ export function PointList({
           </div>
         );
       })}
+      <DeleteCardDialog
+        open={Boolean(pendingId)}
+        busy={busy}
+        onCancel={() => setPendingId("")}
+        onConfirm={() => {
+          const id = pendingId;
+          setBusy(true);
+          void deleteShop(id).then((result) => {
+            setBusy(false);
+            if (!result.error) setPendingId("");
+          });
+        }}
+      />
     </div>
   );
 }

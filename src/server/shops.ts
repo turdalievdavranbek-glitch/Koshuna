@@ -1,14 +1,14 @@
 import { and, eq } from "drizzle-orm";
+import { sessionIsAdmin, type SessionUser } from "./auth";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
 import { listingSectionForShop, sanitizeShopHours, sanitizeShopPointFields } from "@/lib/shops";
 import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
-import type { SessionUser } from "./auth";
 import { getDb } from "./db";
 import { listings, shops } from "./db/schema";
 import { attachMedia } from "./media";
-import { listingMediaUrls, listingToRow, rowToListing, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
+import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
 function productCreatesPharmacyListing(
   product: { kind?: string | null; category?: string | null },
@@ -106,4 +106,19 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   await syncProductListings(user, clean);
   await attachMedia(user.id, shopMediaUrls(clean), { shopId: clean.id });
   return { shop: clean };
+}
+
+/** Soft-delete: status `hidden` already exists on shops and listings. No migration. */
+export async function hideShopForUser(user: SessionUser, shopId: string): Promise<{ shop: Shop } | { error: string; status: number }> {
+  const db = getDb();
+  const existing = await db.select().from(shops).where(eq(shops.id, shopId)).limit(1);
+  const row = existing[0];
+  if (!row) return { error: "not-found", status: 404 };
+  const admin = await sessionIsAdmin(user.id);
+  if (row.ownerId !== user.id && !admin) return { error: "forbidden", status: 403 };
+  const now = new Date();
+  const shop = { ...rowToShop(row), status: "hidden" as const, updatedAt: now.toISOString() };
+  await db.update(shops).set({ status: "hidden", updatedAt: now, doc: shop }).where(eq(shops.id, shopId));
+  await db.update(listings).set({ status: "hidden", updatedAt: now }).where(eq(listings.shopId, shopId));
+  return { shop };
 }

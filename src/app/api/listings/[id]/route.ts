@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { sessionIsAdmin } from "@/server/auth";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { sanitizeServiceListing } from "@/lib/service-listing";
 import type { Listing } from "@/lib/types";
@@ -32,6 +33,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const rows = await getDb().select().from(listings).where(eq(listings.id, id)).limit(1);
   const row = rows[0];
   if (!row) return json({ error: "not-found" }, 404);
+  if (row.status === "hidden") return json({ error: "not-found" }, 404);
   if (!PUBLIC_STATUS.has(row.status)) {
     const user = await requireUser(req);
     if (user instanceof NextResponse || user.id !== row.ownerId) return json({ error: "not-found" }, 404);
@@ -96,4 +98,32 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const body = await readJson<Body>(req);
   return save(req, id, body, "patch");
+}
+
+export async function DELETE(req: Request, ctx: Ctx) {
+  const blocked = guardCsrf(req);
+  if (blocked) return blocked;
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  const { id } = await ctx.params;
+  const db = getDb();
+  const existing = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
+  const row = existing[0];
+  if (!row) return json({ error: "not-found" }, 404);
+  const admin = await sessionIsAdmin(user.id);
+  if (row.ownerId !== user.id && !admin) return json({ error: "forbidden" }, 403);
+  const now = new Date();
+  await db.update(listings).set({ status: "hidden", updatedAt: now }).where(eq(listings.id, id));
+  if (row.shopId && row.shopProductId) {
+    const shopRows = await db.select().from(shops).where(eq(shops.id, row.shopId)).limit(1);
+    const shopRow = shopRows[0];
+    if (shopRow && (shopRow.ownerId === user.id || admin)) {
+      const shop = rowToShop(shopRow);
+      const products = (shop.products ?? []).map((product) =>
+        product.id === row.shopProductId ? { ...product, published: false, updatedAt: now.toISOString() } : product,
+      );
+      await db.update(shops).set({ doc: { ...shop, products }, updatedAt: now }).where(eq(shops.id, shopRow.id));
+    }
+  }
+  return json({ ok: true });
 }

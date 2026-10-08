@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { mineListings } from "@/lib/listing-owner";
 import { useApp } from "@/lib/store";
+import { CardMenu, DeleteCardDialog } from "@/components/card-delete";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { Photo } from "@/components/ui";
 
@@ -18,8 +20,10 @@ function statusLabel(
 }
 
 export function MyListings({ limit }: { limit?: number }) {
-  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft } = useApp();
+  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft, deleteListing } = useApp();
   const router = useRouter();
+  const [pendingId, setPendingId] = useState("");
+  const [busy, setBusy] = useState(false);
   const mine = mineListings(allListings, extraListings, user, shops);
   const rows = limit ? mine.slice(0, limit) : mine;
 
@@ -96,7 +100,7 @@ export function MyListings({ limit }: { limit?: number }) {
               </div>
             </div>
           </button>
-          <div className="flex gap-2 border-t border-line px-3.5 py-2">
+          <div className="flex items-center gap-2 border-t border-line px-3.5 py-2">
             <button
               type="button"
               onClick={() => {
@@ -107,9 +111,25 @@ export function MyListings({ limit }: { limit?: number }) {
             >
               {t.duplicateListing}
             </button>
+            <span className="ml-auto">
+              <CardMenu onDelete={() => setPendingId(item.id)} testId="listing-menu" />
+            </span>
           </div>
         </div>
       ))}
+      <DeleteCardDialog
+        open={Boolean(pendingId)}
+        busy={busy}
+        onCancel={() => setPendingId("")}
+        onConfirm={() => {
+          const id = pendingId;
+          setBusy(true);
+          void deleteListing(id).then((result) => {
+            setBusy(false);
+            if (!result.error) setPendingId("");
+          });
+        }}
+      />
     </div>
   );
 }

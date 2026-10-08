@@ -485,6 +485,8 @@ type Store = State & {
   discardShopDraft: () => void;
   publishShop: (shop?: Shop) => Promise<{ shop: Shop | null; error?: string }>;
   withdrawShop: (id: string) => Promise<{ error?: string }>;
+  deleteShop: (id: string) => Promise<{ error?: string }>;
+  deleteListing: (id: string) => Promise<{ error?: string }>;
   upsertShopProduct: (
     shopId: string,
     product: Partial<ShopProduct> & { title: string },
@@ -1537,7 +1539,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           {
             id: "sys",
             from: "system",
-            text: listing?.safetyKind === "goods" ? t.meetGoods : t.meetHome,
+            text: listing?.section === "services" ? t.meetServiceText : listing?.safetyKind === "goods" ? t.meetGoods : t.meetHome,
             time: "",
           },
         ],
@@ -1686,6 +1688,66 @@ export function AppProvider({ children }: { children: ReactNode }) {
         shops: s.shops.map((item) => (item.id === id ? next : item)),
         shopDraft: s.shopDraft?.id === id ? { ...s.shopDraft, ...next } : s.shopDraft,
         extraListings: s.extraListings.map((item) => (item.shopId === id ? { ...item, status: "withdrawn" } : item)),
+      }));
+      return {};
+    },
+    deleteShop: async (id) => {
+      const user = state.user;
+      const shop = state.shops.find((item) => item.id === id);
+      if (!user) return { error: "auth" };
+      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      try {
+        await authReady;
+        const res = await api<{ ok?: boolean; error?: string }>(`/api/shops/${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!res.ok || !res.data?.ok) return { error: res.data?.error || res.error || "forbidden" };
+      } catch {
+        return { error: "network" };
+      }
+      const stamp = new Date().toISOString();
+      update((s) => ({
+        ...s,
+        shops: s.shops.map((item) => (item.id === id ? { ...item, status: "hidden", updatedAt: stamp } : item)),
+        shopDraft: s.shopDraft?.id === id ? null : s.shopDraft,
+        extraListings: s.extraListings.map((item) => (item.shopId === id ? { ...item, status: "hidden" } : item)),
+        feed: s.feed.map((item) => (item.shopId === id ? { ...item, status: "hidden" } : item)),
+      }));
+      return {};
+    },
+    deleteListing: async (id) => {
+      const user = state.user;
+      if (!user) return { error: "auth" };
+      const current = state.extraListings.find((item) => item.id === id) ?? state.feed.find((item) => item.id === id);
+      const own = Boolean(
+        current &&
+          (current.ownerId === user.id ||
+            state.extraListings.some((item) => item.id === id) ||
+            (current.shopId && isOwnShop(state.shops.find((shop) => shop.id === current.shopId) ?? { ownerPhone: "" }, user))),
+      );
+      if (!own) return { error: "forbidden" };
+      try {
+        await authReady;
+        const res = await api<{ ok?: boolean; error?: string }>(`/api/listings/${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!res.ok || !res.data?.ok) return { error: res.data?.error || res.error || "forbidden" };
+      } catch {
+        return { error: "network" };
+      }
+      update((s) => ({
+        ...s,
+        extraListings: s.extraListings.map((item) => (item.id === id ? { ...item, status: "hidden" } : item)),
+        feed: s.feed.map((item) => (item.id === id ? { ...item, status: "hidden" } : item)),
+        shops:
+          current?.shopId && current.shopProductId
+            ? s.shops.map((shop) =>
+                shop.id === current.shopId
+                  ? {
+                      ...shop,
+                      products: shop.products.map((row) =>
+                        row.id === current.shopProductId ? { ...row, published: false, updatedAt: new Date().toISOString() } : row,
+                      ),
+                    }
+                  : shop,
+              )
+            : s.shops,
       }));
       return {};
     },

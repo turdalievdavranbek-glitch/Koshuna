@@ -127,6 +127,7 @@ export function publicShop(shop: Shop): boolean {
 }
 
 export function canSeeShop(shop: Shop, user: User | null): boolean {
+  if (shop.status === "hidden") return false;
   if (publicShop(shop)) return true;
   return isOwnShop(shop, user);
 }
@@ -454,7 +455,7 @@ export function groupShopProducts(shop: Shop, products: ShopProduct[]): Array<{ 
 
 export function shopsOf(list: Shop[], user: User | null): Shop[] {
   if (!user) return [];
-  return list.filter((s) => isOwnShop(s, user));
+  return list.filter((s) => isOwnShop(s, user) && s.status !== "hidden");
 }
 
 export function userHasShopBadge(list: Shop[], user: User | null): boolean {
