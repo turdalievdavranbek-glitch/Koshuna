@@ -1,0 +1,58 @@
+/**
+ * Native shell hooks for the Android APK (Шаг 1).
+ * No UI. Login buttons are Шаг 8. Push copy and the bell are Шаг 18.
+ * Crashlytics and FCM stay quiet until google-services.json is in the APK.
+ */
+
+let wired = false;
+
+export async function wireNativeShell(): Promise<void> {
+  if (wired || typeof window === "undefined") return;
+  const { Capacitor } = await import("@capacitor/core");
+  if (!Capacitor.isNativePlatform()) return;
+  wired = true;
+  wireJsErrors();
+  await wirePushPermission();
+}
+
+function wireJsErrors(): void {
+  const report = (message: string) => {
+    const text = message.replace(/\s+/g, " ").trim().slice(0, 4000);
+    if (!text) return;
+    void import("@capacitor-firebase/crashlytics")
+      .then(({ FirebaseCrashlytics }) =>
+        FirebaseCrashlytics.recordException({ message: text }),
+      )
+      .catch(() => {
+        /* Firebase is inactive until google-services.json is added. */
+      });
+  };
+
+  window.addEventListener("error", (event) => {
+    const stack = event.error instanceof Error ? event.error.stack : "";
+    report(stack ? `${event.message}\n${stack}` : event.message || "window.error");
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    if (reason instanceof Error) {
+      report(reason.stack ? `${reason.message}\n${reason.stack}` : reason.message);
+      return;
+    }
+    report(typeof reason === "string" ? reason : "unhandledrejection");
+  });
+}
+
+async function wirePushPermission(): Promise<void> {
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    let status = await PushNotifications.checkPermissions();
+    if (status.receive === "prompt" || status.receive === "prompt-with-rationale") {
+      status = await PushNotifications.requestPermissions();
+    }
+    if (status.receive !== "granted") return;
+    await PushNotifications.register();
+  } catch {
+    /* FCM token needs a real google-services.json. The permission request still ran. */
+  }
+}
