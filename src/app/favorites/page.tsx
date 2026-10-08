@@ -1,99 +1,180 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api/client";
+import { groupCart } from "@/lib/cart";
+import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
+import type { Listing } from "@/lib/types";
+import { IconPhone } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
-import { Toggle } from "@/components/ui";
-import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
+import { Photo, Price } from "@/components/ui";
 
 export default function FavoritesPage() {
-  const { t, user, favouriteIds, savedSearches, toggleSearchNotify, setPendingPath, allListings } = useApp();
-  const router = useRouter();
-  const [tab, setTab] = useState<"items" | "searches">("items");
-  const items = favouriteIds.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
-
-  if (!user) {
-    return (
-      <PhoneShell tab>
-        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-          <h1 className="font-display text-[28px] font-extrabold text-ink">{t.fav}</h1>
-          <p className="mt-3 text-[15px] leading-[1.5] text-muted">{t.emptyFavHint}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setPendingPath("/favorites");
-              router.push("/login");
-            }}
-            className="shadow-btn mt-6 h-[54px] rounded-2xl bg-accent px-6 text-base font-semibold text-accent-on"
-          >
-            {t.loginCta}
-          </button>
-        </div>
-      </PhoneShell>
-    );
-  }
+  const { t, lang, user, ready, synced, favouriteIds, allListings, shops, toggleFav, setPendingPath, isBlocked } = useApp();
+  const { listings, pending } = useCartListings(favouriteIds, allListings, synced, isBlocked);
+  const groups = groupCart(listings, shops, { personal: t.cartPersonal, point: t.cartPoint });
+  const showEmpty = ready && !pending && listings.length === 0 && (!user || synced);
 
   return (
     <PhoneShell tab>
       <div className="px-5 pt-2">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
-          {tab === "items" && items.length ? <LayoutSwitch /> : null}
-        </div>
-        <div className="mt-3.5 flex gap-1 rounded-[14px] bg-chip p-1">
-          <button
-            type="button"
-            onClick={() => setTab("items")}
-            className="flex-1 rounded-[11px] py-2 text-center text-sm font-semibold"
-            style={{
-              background: tab === "items" ? "#FFFFFF" : "transparent",
-              color: tab === "items" ? "#17140F" : "#6E6558",
-              boxShadow: tab === "items" ? "0 1px 3px rgba(23,20,15,.08)" : "none",
-            }}
-          >
-            {t.listingsTab(items.length)}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("searches")}
-            className="flex-1 rounded-[11px] py-2 text-center text-sm font-semibold"
-            style={{
-              background: tab === "searches" ? "#FFFFFF" : "transparent",
-              color: tab === "searches" ? "#17140F" : "#6E6558",
-              boxShadow: tab === "searches" ? "0 1px 3px rgba(23,20,15,.08)" : "none",
-            }}
-          >
-            {t.searchesTab(savedSearches.length)}
-          </button>
-        </div>
+        <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
       </div>
-
-      <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        {tab === "items" ? (
-          items.length === 0 ? (
-            <div className="mt-10 text-center text-[15px] text-muted">{t.emptyFav}</div>
-          ) : (
-            <ListingGrid listings={items.filter((item): item is NonNullable<typeof item> => Boolean(item))} />
-          )
+      <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+        {showEmpty ? (
+          <div data-testid="cart-empty" className="mt-10 text-center">
+            <p className="text-[15px] text-muted">{t.cartEmpty}</p>
+            <Link href="/" data-testid="cart-feed" className="mt-3 inline-block text-[15px] font-semibold text-accent">
+              {t.cartToFeed}
+            </Link>
+          </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.12em] text-accent-dark">{t.savedSearches}</div>
-            {savedSearches.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-[18px] border border-line bg-white px-4 py-[15px]">
-                <div className="flex-1">
-                  <div className="text-[15px] font-semibold text-ink">{s.title}</div>
-                  <div className="mt-1 text-[13px] text-muted">
-                    {t.newSince}{" "}
-                    {s.newCount ? <span className="font-bold text-accent">{s.newCount}</span> : 0}
-                  </div>
+          <div className="flex flex-col gap-5">
+            {groups.map((group) => (
+              <section key={group.id} data-testid="cart-group" data-point={group.id}>
+                <h2 className="px-1 text-[13px] font-bold text-ink">{group.title}</h2>
+                <div className="mt-2 flex flex-col gap-2">
+                  {group.listings.map((listing) => (
+                    <CartRow
+                      key={listing.id}
+                      listing={listing}
+                      title={listingTitle(listing, lang)}
+                      callLabel={t.callNow}
+                      removeLabel={t.cartRemove}
+                      noPhoneLabel={t.cartNoPhone}
+                      onRemove={() => toggleFav(listing.id)}
+                      onNeedSignIn={() => setPendingPath("/favorites")}
+                    />
+                  ))}
                 </div>
-                <Toggle on={s.notify} onChange={() => toggleSearchNotify(s.id)} />
-              </div>
+              </section>
             ))}
           </div>
         )}
       </div>
     </PhoneShell>
+  );
+}
+
+function useCartListings(
+  ids: string[],
+  catalog: Listing[],
+  synced: boolean,
+  isBlocked: (ownerId?: string | null) => boolean,
+) {
+  const [extra, setExtra] = useState<Listing[]>([]);
+  const [loadedKey, setLoadedKey] = useState("");
+  const missingKey = ids.filter((id) => !catalog.some((item) => item.id === id)).join("\n");
+
+  useEffect(() => {
+    if (!missingKey) {
+      setExtra([]);
+      setLoadedKey("");
+      return;
+    }
+    if (!synced) return;
+    let cancel = false;
+    const wanted = missingKey.split("\n");
+    void Promise.all(wanted.map((id) => api<{ listing?: Listing }>(`/api/listings/${encodeURIComponent(id)}`))).then((results) => {
+      if (cancel) return;
+      setExtra(results.flatMap((res) => (res.ok && res.data?.listing?.id ? [res.data.listing] : [])));
+      setLoadedKey(missingKey);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [synced, missingKey]);
+
+  const byId = new Map<string, Listing>();
+  for (const item of catalog) byId.set(item.id, item);
+  for (const item of extra) {
+    if (!byId.has(item.id) && !isBlocked(item.ownerId)) byId.set(item.id, item);
+  }
+  const listings = ids.map((id) => byId.get(id)).filter((item): item is Listing => Boolean(item));
+  const pending = missingKey !== "" && loadedKey !== missingKey;
+  return { listings, pending };
+}
+
+function CartRow({
+  listing,
+  title,
+  callLabel,
+  removeLabel,
+  noPhoneLabel,
+  onRemove,
+  onNeedSignIn,
+}: {
+  listing: Listing;
+  title: string;
+  callLabel: string;
+  removeLabel: string;
+  noPhoneLabel: string;
+  onRemove: () => void;
+  onNeedSignIn: () => void;
+}) {
+  const { user } = useApp();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState(false);
+
+  const call = async () => {
+    if (!user) {
+      onNeedSignIn();
+      router.push("/login");
+      return;
+    }
+    setBusy(true);
+    setMissing(false);
+    try {
+      const res = await api<{ phone?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`);
+      if (res.status === 401) {
+        onNeedSignIn();
+        router.push("/login");
+        return;
+      }
+      const phone = res.ok ? res.data?.phone : null;
+      if (!phone) {
+        setMissing(true);
+        return;
+      }
+      window.location.href = `tel:${phone}`;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div data-testid="cart-row" className="flex gap-3 rounded-[16px] border border-line bg-white p-2.5">
+      <Link href={`/listing/${listing.id}`} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[12px] bg-chip">
+        {listing.photos[0] ? <Photo src={listing.photos[0]} alt="" /> : null}
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link href={`/listing/${listing.id}`} className="block truncate text-[15px] font-semibold text-ink">
+          {title}
+        </Link>
+        <div className="mt-0.5">
+          <Price listing={listing} compact />
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            data-testid="cart-call"
+            disabled={busy}
+            onClick={() => void call()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-ink px-3 text-[13px] font-semibold text-screen disabled:opacity-60"
+          >
+            <IconPhone size={15} color="#F7F3EC" />
+            {callLabel}
+          </button>
+          <button type="button" data-testid="cart-remove" onClick={onRemove} className="inline-flex h-9 items-center px-2 text-[13px] font-semibold text-muted">
+            {removeLabel}
+          </button>
+        </div>
+        {missing ? <p className="mt-1 text-[12px] text-muted">{noPhoneLabel}</p> : null}
+      </div>
+    </div>
   );
 }

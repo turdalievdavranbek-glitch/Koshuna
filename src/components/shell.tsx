@@ -27,7 +27,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
   const go = (href: string) => {
     const run = () => {
       setSheet(false);
-      if ((href === "/profile" || href === "/favorites") && !user) {
+      if (href === "/profile" && !user) {
         setPendingPath(href);
         router.push("/login");
         return;

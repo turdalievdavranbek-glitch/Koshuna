@@ -141,7 +141,6 @@ export default function ListingPage() {
   };
 
   const onFav = () => {
-    if (!gate(`/listing/${listing.id}`)) return;
     toggleFav(listing.id);
   };
 

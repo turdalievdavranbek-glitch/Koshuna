@@ -51,10 +51,10 @@ function ListingCard({
   layout: ListingLayout;
   onFav?: (id: string) => void;
 }) {
-  const { t, lang, isFav, user, meetDeals } = useApp();
+  const { t, lang, isFav, meetDeals } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
-  const saved = Boolean(user && isFav(listing.id));
+  const saved = isFav(listing.id);
   const video = isVideoListing(listing);
   const radius = layout === "small" ? "rounded-[12px]" : "rounded-[16px]";
   const pad = layout === "large" ? "px-[15px] pb-[15px] pt-[13px]" : layout === "medium" ? "px-2.5 pb-2.5 pt-2" : "px-1.5 pb-1.5 pt-1";
