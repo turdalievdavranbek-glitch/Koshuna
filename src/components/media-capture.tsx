@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { captureVideoPoster, dropBlob, keepBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
+import { captureVideoPoster, dropBlob, keepBlob, rememberBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
 import { FEATURES } from "@/lib/features";
 import { videoMaxBytes, videoMaxSeconds, voiceMaxSeconds } from "@/lib/media-limits";
 import {
@@ -16,7 +16,7 @@ import { priceFromPhoto } from "@/lib/photo-price";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
-import { NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 import { PostTypePicker } from "./post-type-picker";
 import { PostTaxonomy, pickSection } from "./post-taxonomy";
@@ -455,6 +455,20 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     }
   };
 
+  const onGallery = async (files: File[]) => {
+    const video = files.find((file) => isGalleryVideo(file));
+    if (video) {
+      await onFile(video);
+      return;
+    }
+    if (variant === "personal" && files.length > 1) {
+      const urls = files.map((file, index) => (index === 0 ? keepBlob("photo", file) : rememberBlob(file)));
+      onPatch({ photo: urls[0], photos: urls, mediaKind: "photos", videoUrl: undefined, aiConfirmed: false });
+      return;
+    }
+    if (files[0]) await onFile(files[0]);
+  };
+
   const useDemoVideo = () => {
     const guess = classifyListingSpeech(DEMO_TRANSCRIPT);
     onPatch({
@@ -520,35 +534,59 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
             </button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                data-testid="post-shoot"
+                onClick={() => void startRec("video")}
+                className="h-12 flex-1 rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
+              >
+                {t.postShootVideo}
+              </button>
+              <button
+                type="button"
+                data-testid="post-photo"
+                onClick={() => cameraRef.current?.click()}
+                className="h-12 flex-1 rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+              >
+                {t.postPhoto}
+              </button>
+            </div>
             <button
               type="button"
-              data-testid="post-shoot"
-              onClick={() => void startRec("video")}
-              className="h-12 flex-1 rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
-            >
-              {t.postShootVideo}
-            </button>
-            <button
-              type="button"
-              data-testid="post-photo"
+              data-testid="post-gallery"
               onClick={() => fileRef.current?.click()}
-              className="h-12 flex-1 rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+              className="h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
             >
-              {t.postPhoto}
+              {t.postGallery}
             </button>
           </div>
         )}
         <input
-          ref={fileRef}
-          data-testid="post-photo-file"
+          ref={cameraRef}
+          data-testid="post-camera-file"
           type="file"
-          accept="image/*,video/*"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) void onFile(file);
             e.target.value = "";
+          }}
+        />
+        <input
+          ref={fileRef}
+          data-testid="post-photo-file"
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            e.target.value = "";
+            if (files.length) void onGallery(files);
           }}
         />
         <input
@@ -760,10 +798,17 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
             >
               <IconImage size={22} color="#6E6558" />
-              <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
+              <span className="text-[11px] font-semibold text-muted">{t.postGallery}</span>
             </button>
           </div>
-          <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onFile(file)} />
+          <NativePhotoInputs
+            cameraRef={cameraRef}
+            galleryRef={galleryRef}
+            onFile={(file) => void onFile(file)}
+            onGalleryFiles={(files) => void onGallery(files)}
+            galleryAccept="image/*,video/*"
+            galleryMultiple
+          />
         </div>
       ) : null}
 

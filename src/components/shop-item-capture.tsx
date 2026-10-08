@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
+import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVideoStills, startSpeech, videoFileDuration } from "@/lib/blob-media";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
-import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
+import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
@@ -33,6 +33,7 @@ import { locate } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
+import { isGalleryVideo } from "./native-photo";
 import { GisOnMapCard } from "./gis-on-map";
 import { HoursPicker } from "./hours-picker";
 import { Chip, Field, Input, Toggle } from "./ui";
@@ -215,6 +216,32 @@ export function ShopItemCapture({
     const reader = new FileReader();
     reader.onload = () => void applyPhoto(String(reader.result));
     reader.readAsDataURL(file);
+  };
+
+  const onGallery = async (files: File[]) => {
+    const video = files.find((file) => isGalleryVideo(file));
+    if (video) {
+      if (video.size > videoMaxBytes()) {
+        setError(t.shopVideoSize);
+        return;
+      }
+      const duration = await videoFileDuration(video);
+      const limit = pointMode ? videoMaxSeconds() : shopVideoMaxSeconds();
+      if (duration > limit) {
+        setError(t.shopVideoTime);
+        return;
+      }
+      const url = keepBlob("video", video);
+      const poster = (await captureVideoPoster(url)) ?? "";
+      if (pointMode) setPointVideo(url);
+      if (poster) {
+        if (pointMode) setPhoto(poster);
+        else await applyPhoto(poster);
+      }
+      return;
+    }
+    const image = files.find((file) => !isGalleryVideo(file));
+    if (image) await onFile(image);
   };
 
   const demoTag = async () => {
@@ -807,10 +834,11 @@ export function ShopItemCapture({
                 )}
                 <button
                   type="button"
+                  data-testid="product-gallery"
                   onClick={() => fileRef.current?.click()}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
-                  {t.gallery}
+                  {t.postGallery}
                 </button>
               </div>
               {pointMode ? null : (
@@ -835,10 +863,11 @@ export function ShopItemCapture({
                 )}
                 <button
                   type="button"
+                  data-testid="product-gallery"
                   onClick={() => fileRef.current?.click()}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
-                  {t.gallery}
+                  {t.postGallery}
                 </button>
               </div>
               <button
@@ -896,13 +925,13 @@ export function ShopItemCapture({
             ref={fileRef}
             data-testid="point-photo"
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,video/*"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFile(file);
+              const files = Array.from(e.target.files ?? []);
               e.target.value = "";
+              if (files.length) void onGallery(files);
             }}
           />
 

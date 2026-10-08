@@ -1,3 +1,4 @@
+import { ADMIN_AREAS, adminAreaById, adminAreaLabel, type AdminArea } from "./admin-areas";
 import {
   CITIES,
   DISTRICTS,
@@ -87,6 +88,8 @@ export type PlacePatch = {
   locLat: number | null;
   locLng: number | null;
   locLabel: string | null;
+  /** "any" keeps the whole oblast or city. A rayon id narrows the feed. */
+  rayon?: string;
 };
 
 export function isOblastId(id: string | null | undefined): id is OblastId {
@@ -172,6 +175,29 @@ export function placeSettlement(s: (typeof SETTLEMENTS)[number], lang: Lang): Pl
     locLat: s.lat,
     locLng: s.lng,
     locLabel: settlementLabel(s, lang),
+    rayon: "any",
+  };
+}
+
+/** A rayon or a city of oblast significance. Whole-oblast picks stay on placeOblast. */
+export function placeAdminArea(area: AdminArea, lang: Lang): PlacePatch {
+  const label = adminAreaLabel(area, lang);
+  if (area.kind === "city" && area.cityId) {
+    return { ...placeCity(area.cityId), rayon: area.id, locLabel: label };
+  }
+  if (area.kind === "city" && area.settlementId) {
+    const settlement = settlementById(area.settlementId);
+    if (settlement) return { ...placeSettlement(settlement, lang), rayon: area.id, locLabel: label };
+  }
+  return {
+    city: "all",
+    oblast: area.oblast,
+    settlement: "any",
+    aiylOnly: false,
+    locLat: area.lat,
+    locLng: area.lng,
+    locLabel: label,
+    rayon: area.id,
   };
 }
 
@@ -217,6 +243,7 @@ export function applyPlace(setCity: (city: string) => void, setFilters: (patch: 
     locLat: place.locLat,
     locLng: place.locLng,
     locLabel: place.locLabel,
+    rayon: place.rayon ?? "any",
   });
 }
 
@@ -251,9 +278,23 @@ export function searchPlaces(
     }
   }
   for (const d of DISTRICTS) {
+    if (adminAreaById(d.id)) continue;
     const label = districtLabel(d, lang);
     if (label.toLowerCase().includes(q)) {
       hits.push({ id: `district-${d.id}`, kind: "district", label, place: placeDistrict(d, lang) });
+    }
+  }
+  for (const area of ADMIN_AREAS) {
+    if (area.cityId && hits.some((hit) => hit.id === `city-${area.cityId}`)) continue;
+    const label = adminAreaLabel(area, lang);
+    const aliases = (area.aliases ?? []).join(" ");
+    if (`${label} ${aliases}`.toLowerCase().includes(q)) {
+      hits.push({
+        id: `area-${area.id}`,
+        kind: area.kind === "city" ? "city" : "district",
+        label,
+        place: placeAdminArea(area, lang),
+      });
     }
   }
   for (const s of SETTLEMENTS) {
@@ -268,12 +309,16 @@ export function searchPlaces(
 export function locationLineLabel(
   lang: Lang,
   city: string,
-  filters: Pick<Filters, "oblast" | "settlement" | "locLabel" | "city">,
+  filters: Pick<Filters, "oblast" | "settlement" | "locLabel" | "city" | "rayon">,
   cities: Record<string, string>,
   oblasts: Record<string, string>,
   refine: string,
   countryHint: string,
 ): string {
+  if (filters.rayon && filters.rayon !== "any") {
+    const area = adminAreaById(filters.rayon);
+    if (area) return adminAreaLabel(area, lang);
+  }
   if (filters.settlement && filters.settlement !== "any") {
     const s = settlementById(filters.settlement);
     if (s) return settlementLabel(s, lang);

@@ -66,7 +66,19 @@ export function CardPost({ card }: { card: string }) {
 
   useEffect(() => {
     setEntryCard(card);
-    setDraft({ flow: `card:${card}` });
+    let carry: Partial<typeof draft> = {};
+    if (card === "service") {
+      try {
+        const raw = sessionStorage.getItem("konshu-service-carry");
+        if (raw) {
+          carry = JSON.parse(raw) as Partial<typeof draft>;
+          sessionStorage.removeItem("konshu-service-carry");
+        }
+      } catch {
+        carry = {};
+      }
+    }
+    setDraft({ flow: `card:${card}`, ...carry });
     if (card === "developer") {
       setDraft({
         ...pickSection(draft, "rent"),
@@ -90,7 +102,8 @@ export function CardPost({ card }: { card: string }) {
     }
     if (card === "service") {
       setDraft({
-        ...pickSection(draft, "services"),
+        ...pickSection({ ...draft, ...carry }, "services"),
+        ...carry,
         neighborPledge: false,
         saleUnit: "service",
       });

@@ -2,16 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { areasOfOblast, adminAreaLabel } from "@/lib/admin-areas";
 import { settlementLabel } from "@/lib/data";
-import { districtLabel } from "@/lib/geo";
 import {
   OBLASTS,
   applyPlace,
-  citiesOfOblast,
-  districtsOfOblast,
   isOblastId,
-  placeCity,
-  placeDistrict,
+  placeAdminArea,
   placeFromGeo,
   placeOblast,
   placeSettlement,
@@ -45,6 +42,7 @@ function Rows({
           <button
             key={row.id}
             type="button"
+            data-testid={`location-row-${row.id}`}
             onClick={row.onClick}
             className={`flex min-h-[54px] w-full items-center justify-between px-4 py-2.5 text-left ${
               i < rows.length - 1 ? "border-b border-line" : ""
@@ -107,9 +105,9 @@ export default function LocationPage() {
   };
 
   const drill = oblast && isOblastId(oblast) ? oblast : null;
-  const cities = drill ? citiesOfOblast(drill) : [];
-  const districts = drill ? districtsOfOblast(drill) : [];
-  const settlements = drill ? settlementsOfOblast(drill) : [];
+  const areas = drill ? areasOfOblast(drill) : { districts: [], cities: [] };
+  const citySettlementIds = new Set(areas.cities.map((area) => area.settlementId).filter(Boolean));
+  const settlements = drill ? settlementsOfOblast(drill).filter((item) => !citySettlementIds.has(item.id)) : [];
 
   return (
     <PhoneShell>
@@ -193,19 +191,19 @@ export default function LocationPage() {
               ]}
             />
             <Rows
-              title={t.city}
-              rows={cities.map((id) => ({
-                id,
-                label: t.cities[id],
-                onClick: () => pick(placeCity(id)),
+              title={t.locationDistricts}
+              rows={areas.districts.map((area) => ({
+                id: area.id,
+                label: adminAreaLabel(area, lang),
+                onClick: () => pick(placeAdminArea(area, lang)),
               }))}
             />
             <Rows
-              title={t.locationDistricts}
-              rows={districts.map((d) => ({
-                id: d.id,
-                label: districtLabel(d, lang),
-                onClick: () => pick(placeDistrict(d, lang)),
+              title={t.city}
+              rows={areas.cities.map((area) => ({
+                id: area.id,
+                label: adminAreaLabel(area, lang),
+                onClick: () => pick(placeAdminArea(area, lang)),
               }))}
             />
             <Rows

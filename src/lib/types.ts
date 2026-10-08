@@ -332,6 +332,8 @@ export type Filters = {
   nearLng: number | null;
   nearLat: number | null;
   oblast: string;
+  /** Rayon or city of oblast significance. "any" means the whole oblast or city. */
+  rayon?: string;
   settlement: string;
   aiylOnly: boolean;
   priceDroppedOnly: boolean;

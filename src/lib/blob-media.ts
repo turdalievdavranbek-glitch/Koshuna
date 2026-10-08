@@ -17,6 +17,36 @@ export function heldBlob(url: string): Blob | undefined {
   return blobs.get(url);
 }
 
+/** Extra gallery photos. Unlike keepBlob, this does not drop the previous file. */
+export function rememberBlob(blob: Blob): string {
+  const url = URL.createObjectURL(blob);
+  blobs.set(url, blob);
+  return url;
+}
+
+export function videoFileDuration(file: File): Promise<number> {
+  if (typeof document === "undefined") return Promise.resolve(0);
+  const url = URL.createObjectURL(file);
+  return new Promise((resolve) => {
+    const el = document.createElement("video");
+    el.preload = "metadata";
+    let settled = false;
+    const finish = (value: number) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      el.removeAttribute("src");
+      el.load();
+      resolve(value);
+    };
+    const timer = window.setTimeout(() => finish(0), 4000);
+    el.onloadedmetadata = () => finish(Number.isFinite(el.duration) ? el.duration : 0);
+    el.onerror = () => finish(0);
+    el.src = url;
+  });
+}
+
 export function dropBlob(key: "video" | "voice" | "photo") {
   const prev = held.get(key);
   if (prev) {
