@@ -335,12 +335,12 @@ test("login page hides Telegram when the config is off and shows it when on", as
   const block = page.getByTestId("telegram-login");
   await expect(block).toBeVisible();
   await expect(block.getByRole("button", { name: "Войти через Telegram" })).toBeVisible();
-  await expect(block.getByText("или")).toBeVisible();
+  await expect(block.getByText("или", { exact: true })).toBeVisible();
   await expect(block.getByText("Если вы уже входили через Google — входите через Google, иначе будет второй аккаунт.")).toBeVisible();
   await expect(page.getByTestId("google-login")).toBeVisible();
   await page.getByRole("button", { name: "KG" }).click();
   await expect(block.getByRole("button", { name: "Telegram аркылуу кирүү" })).toBeVisible();
-  await expect(block.getByText("же")).toBeVisible();
+  await expect(block.getByText("же", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "RU" }).click();
   const telegramButton = block.getByRole("button", { name: "Войти через Telegram" });
   await expect(telegramButton).toBeEnabled();
