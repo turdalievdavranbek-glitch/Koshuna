@@ -23,10 +23,7 @@ loadEnvFile(".env.local");
 function refuseReason(): string | null {
   if (process.env.ALLOW_DEMO_SEED !== "1") return "ALLOW_DEMO_SEED is not 1";
   if (process.env.NODE_ENV === "production") return "NODE_ENV is production";
-  const url = process.env.DATABASE_URL ?? "";
-  if (url.includes("@127.0.0.1:5432/koshuna") && existsSync("/etc/koshuna/backend.env")) {
-    return "DATABASE_URL points at the local koshuna database and /etc/koshuna/backend.env exists";
-  }
+  if (existsSync("/etc/koshuna/backend.env")) return "/etc/koshuna/backend.env exists";
   return null;
 }
 

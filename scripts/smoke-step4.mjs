@@ -120,6 +120,33 @@ async function upload(session, kind, mime, bytes, durationSec, { resume = false 
   return { start, done, id };
 }
 
+function ffmpegWebm(seconds, dest) {
+  const run = spawnSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      `testsrc=size=160x120:rate=10`,
+      "-t",
+      String(seconds),
+      "-c:v",
+      "libvpx",
+      "-f",
+      "webm",
+      "-live",
+      "1",
+      dest,
+    ],
+    { stdio: "pipe" },
+  );
+  if (run.status !== 0 || !existsSync(dest)) {
+    console.error(run.stderr?.toString());
+    throw new Error(`ffmpeg webm failed for ${dest}`);
+  }
+}
+
 function ffmpegFile(seconds, dest) {
   const exact = spawnSync(
     "ffmpeg",
@@ -214,6 +241,13 @@ async function main() {
   assert(longVideo.done?.status === 400 && longVideo.done.data?.error === "video-duration", "125s file rejected", longVideo.done);
   const shortVideo = await upload(A, "video", "video/mp4", shortBytes, 30);
   assert(shortVideo.done?.status === 200 && shortVideo.done.data?.url, "30s file passes", shortVideo.done);
+
+  ffmpegWebm(125, "/tmp/long-live.webm");
+  ffmpegWebm(30, "/tmp/short-live.webm");
+  const longWebm = await upload(A, "video", "video/webm", readFileSync("/tmp/long-live.webm"), 60);
+  assert(longWebm.done?.status === 400 && longWebm.done.data?.error === "video-duration", "125s headerless webm rejected", longWebm.done);
+  const shortWebm = await upload(A, "video", "video/webm", readFileSync("/tmp/short-live.webm"), 30);
+  assert(shortWebm.done?.status === 200 && shortWebm.done.data?.url, "30s headerless webm passes", shortWebm.done);
 
   const resumeBytes = Buffer.concat([TINY_JPEG, Buffer.alloc(4000, 7)]);
   const resumed = await upload(A, "photo", "image/jpeg", resumeBytes, null, { resume: true });

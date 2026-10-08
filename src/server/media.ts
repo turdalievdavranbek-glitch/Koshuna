@@ -93,31 +93,59 @@ export function partPath(uploadId: string): string {
   return path.join(mediaRoot(), "tmp", `${uploadId}.part`);
 }
 
-export async function probeDuration(file: string): Promise<number | "missing"> {
+function lastNumeric(text: string): number | null {
+  let last: number | null = null;
+  for (const part of text.split(/[\s,]+/)) {
+    if (!part || part === "N/A") continue;
+    const n = Number(part);
+    if (Number.isFinite(n)) last = n;
+  }
+  return last;
+}
+
+function warnFfprobeMissing() {
+  if (!ffprobeWarned) {
+    ffprobeWarned = true;
+    console.warn("ffprobe is missing; trusting the declared media duration");
+  }
+}
+
+/** "missing" means ffprobe is not installed (ENOENT). Any other failure is "unknown". */
+export async function probeDuration(file: string, kind = "video"): Promise<number | "missing" | "unknown"> {
   const bin = process.env.FFPROBE_PATH || "ffprobe";
+  const probeOpts = { timeout: 15_000, maxBuffer: 8 * 1024 * 1024 };
   try {
     const { stdout } = await execFileAsync(
       bin,
       ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file],
-      { timeout: 5000 },
+      probeOpts,
     );
-    const n = Number(String(stdout).trim());
-    if (!Number.isFinite(n)) return "missing";
-    return n;
+    const raw = String(stdout).trim();
+    const n = Number(raw);
+    if (raw !== "" && raw !== "N/A" && Number.isFinite(n)) return n;
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
-      if (!ffprobeWarned) {
-        ffprobeWarned = true;
-        console.warn("ffprobe is missing; trusting the declared media duration");
-      }
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      warnFfprobeMissing();
       return "missing";
     }
-    if (!ffprobeWarned) {
-      ffprobeWarned = true;
-      console.warn("ffprobe failed; trusting the declared media duration");
+  }
+
+  const stream = kind === "voice" ? "a:0" : "v:0";
+  try {
+    const { stdout } = await execFileAsync(
+      bin,
+      ["-v", "error", "-select_streams", stream, "-show_entries", "packet=pts_time", "-of", "csv=p=0", file],
+      probeOpts,
+    );
+    const last = lastNumeric(String(stdout));
+    if (last == null) return "unknown";
+    return last;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      warnFfprobeMissing();
+      return "missing";
     }
-    return "missing";
+    return "unknown";
   }
 }
 

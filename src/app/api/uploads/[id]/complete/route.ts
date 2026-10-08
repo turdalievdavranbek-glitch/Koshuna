@@ -26,8 +26,9 @@ export async function POST(req: Request, ctx: Ctx) {
 
   let duration = row.durationSec;
   if (row.kind === "video" || row.kind === "voice") {
-    const probed = await probeDuration(partPath(id));
-    if (probed !== "missing" && probed > durationLimit(row.kind) + 0.5) {
+    const probed = await probeDuration(partPath(id), row.kind);
+    const over = typeof probed === "number" && probed > durationLimit(row.kind) + 0.5;
+    if (probed === "unknown" || over) {
       await removeFile(partPath(id));
       await db.update(media).set({ uploadStatus: "failed" }).where(eq(media.id, id));
       return json({ error: "video-duration" }, 400);

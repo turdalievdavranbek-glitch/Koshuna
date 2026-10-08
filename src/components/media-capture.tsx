@@ -33,6 +33,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
+  const recStartedAt = useRef(0);
   const stopSpeech = useRef<(() => void) | null>(null);
   const heardRef = useRef("");
   const autoMicFor = useRef<string | null>(null);
@@ -141,11 +142,13 @@ export function MediaCapture({ draft, onPatch }: Props) {
         if (ev.data.size) chunks.current.push(ev.data);
       };
       rec.onstop = async () => {
+        const wallSec = recStartedAt.current ? (Date.now() - recStartedAt.current) / 1000 : 0;
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: rec.mimeType || (mode === "video" ? "video/webm" : "audio/webm") });
         const url = keepBlob(mode === "video" ? "video" : "voice", blob);
         if (mode === "video") {
-          const duration = await videoDuration(url);
+          const meta = await videoDuration(url);
+          const duration = meta > 0 && Number.isFinite(meta) ? meta : wallSec;
           if (duration > videoMaxSeconds()) {
             dropBlob("video");
             setBusy(t.shopVideoTime);
@@ -168,6 +171,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
           });
         }
       };
+      recStartedAt.current = Date.now();
       rec.start();
       recRef.current = rec;
       setRecMode(mode);
