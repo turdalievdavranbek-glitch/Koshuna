@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { captureVideoPoster, dropBlob, keepBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
 import { FEATURES } from "@/lib/features";
 import { videoMaxBytes, videoMaxSeconds, voiceMaxSeconds } from "@/lib/media-limits";
@@ -32,6 +32,52 @@ function clock(total: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function LiveVideoBox({
+  videoRef,
+  elapsed,
+  recording,
+  placeholder,
+}: {
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  elapsed: number;
+  recording: boolean;
+  placeholder?: string;
+}) {
+  const limit = videoMaxSeconds();
+  return (
+    <div className="relative">
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        data-testid="post-live-video"
+        className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover"
+      />
+      {placeholder ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-[14px] font-semibold text-screen">
+          {placeholder}
+        </div>
+      ) : null}
+      {recording ? (
+        <div data-testid="post-live-timer" className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
+          <div className="rounded-full bg-[rgba(23,20,15,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
+            <span style={{ color: "#E8112D" }}>●</span>{" "}
+            {limit - elapsed <= 10 ? (
+              <span style={{ color: "#E8112D" }}>{clock(Math.max(0, Math.ceil(limit - elapsed)))}</span>
+            ) : (
+              clock(elapsed)
+            )}{" "}
+            / {clock(limit)}
+          </div>
+          <div className="mt-2 h-[3px] w-[86%] overflow-hidden rounded-full bg-white/25">
+            <div className="h-full bg-white" style={{ width: `${Math.max(0, 100 * (1 - elapsed / limit))}%` }} />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type Props = {
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
@@ -44,8 +90,12 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const stopRecRef = useRef<(auto?: boolean) => void>(() => undefined);
+  const releaseTracksRef = useRef<() => void>(() => undefined);
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
   const recStartedAt = useRef(0);
@@ -60,6 +110,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   const limitTimer = useRef<number | null>(null);
   const tickTimer = useRef<number | null>(null);
   const halted = useRef(false);
+  const alive = useRef(true);
   const autoStopped = useRef(false);
 
   const clearRecTimers = () => {
@@ -69,36 +120,99 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     tickTimer.current = null;
   };
 
+  const releaseTracks = () => {
+    const streams: MediaStream[] = [];
+    if (streamRef.current) streams.push(streamRef.current);
+    const preview = videoRef.current?.srcObject;
+    if (preview instanceof MediaStream && preview !== streamRef.current) streams.push(preview);
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    for (const stream of streams) {
+      stream.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {
+          /* already stopped */
+        }
+      });
+    }
+  };
+  releaseTracksRef.current = releaseTracks;
+
   useEffect(() => {
+    const stopIfLive = () => {
+      if (!streamRef.current && !recRef.current) return;
+      stopRecRef.current();
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") stopIfLive();
+    };
+    const onDialog = () => {
+      if (document.querySelector("[data-testid='leave-dialog']")) stopIfLive();
+    };
+    const obs = new MutationObserver(onDialog);
+    obs.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", stopIfLive);
     return () => {
+      obs.disconnect();
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", stopIfLive);
+      alive.current = false;
       halted.current = true;
       clearRecTimers();
+      stopSpeech.current?.();
+      stopSpeech.current = null;
       try {
         recRef.current?.stop();
       } catch {
         /* already stopped */
       }
-      stopSpeech.current?.();
+      recRef.current = null;
+      releaseTracksRef.current();
     };
   }, []);
 
-  const kind: MediaKind = draft.mediaKind ?? "photos";
+  const storedKind: MediaKind = draft.mediaKind ?? "photos";
+  const kind: MediaKind = !FEATURES.ownerVoice && storedKind === "voice" ? "photos" : storedKind;
+
+  useEffect(() => {
+    if (FEATURES.ownerVoice || draft.mediaKind !== "voice") return;
+    onPatch({ mediaKind: "photos" });
+  }, [draft.mediaKind, onPatch]);
+
+  useLayoutEffect(() => {
+    if (!(recording && recMode === "video")) return;
+    const stream = streamRef.current;
+    const el = videoRef.current;
+    if (!stream || !el || el.srcObject === stream) return;
+    el.srcObject = stream;
+    void el.play().catch(() => undefined);
+  }, [recording, recMode]);
 
   const videoDuration = (url: string) =>
     new Promise<number>((resolve) => {
       const el = document.createElement("video");
       el.preload = "metadata";
+      let settled = false;
       const finish = (value: number) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        el.onloadedmetadata = null;
+        el.onerror = null;
         el.removeAttribute("src");
         el.load();
         resolve(value);
       };
+      const timer = window.setTimeout(() => finish(0), 4000);
       el.onloadedmetadata = () => finish(Number.isFinite(el.duration) ? el.duration : 0);
       el.onerror = () => finish(0);
       el.src = url;
     });
 
   useEffect(() => {
+    if (!FEATURES.ownerVoice) return;
     if (variant === "personal") return;
     if (kind !== "video" || recording) return;
     const url = draft.videoUrl;
@@ -159,9 +273,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     }
     stopSpeech.current?.();
     stopSpeech.current = null;
-    const stream = videoRef.current?.srcObject as MediaStream | null;
-    stream?.getTracks().forEach((track) => track.stop());
-    if (videoRef.current) videoRef.current.srcObject = null;
+    releaseTracks();
     setRecording(false);
     setRecMode(null);
     if (auto) {
@@ -169,30 +281,56 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       setBusy(t.mediaRecStopped);
     }
   };
+  stopRecRef.current = stopRec;
 
   const startRec = async (mode: "video" | "audio") => {
     setBusy("");
-    const noDevice = mode === "audio" ? t.mediaNoMic : FEATURES.demoMedia ? t.mediaNoCamera : t.mediaNoCameraFile;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setBusy(noDevice);
+    const personalVideo = variant === "personal" && mode === "video";
+    const openCameraApp = () => {
+      videoFileRef.current?.click();
+    };
+    if (personalVideo && (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined")) {
+      openCameraApp();
       return;
     }
-    if (typeof MediaRecorder === "undefined") {
+    const noDevice = mode === "audio" ? t.mediaNoMic : FEATURES.demoMedia ? t.mediaNoCamera : t.mediaNoCameraFile;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setBusy(noDevice);
       return;
     }
     try {
+      halted.current = false;
       const stream = await navigator.mediaDevices.getUserMedia(
         mode === "video"
           ? { video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }, audio: true }
           : { audio: true },
       );
+      if (halted.current || !alive.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       if (videoRef.current && mode === "video") {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => undefined);
       }
+      if (halted.current || !alive.current) {
+        releaseTracks();
+        return;
+      }
       const mime = recorderMime(mode === "video" ? "video" : "audio");
-      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions(mode === "video" ? "video" : "audio") });
+      let rec: MediaRecorder;
+      try {
+        rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions(mode === "video" ? "video" : "audio") });
+      } catch {
+        releaseTracks();
+        if (personalVideo) {
+          openCameraApp();
+          return;
+        }
+        setBusy(noDevice);
+        return;
+      }
       chunks.current = [];
       rec.ondataavailable = (ev) => {
         if (ev.data.size) chunks.current.push(ev.data);
@@ -245,21 +383,28 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       }, 250);
       limitTimer.current = window.setTimeout(() => stopRec(true), limit * 1000);
       setLive("");
-      heardRef.current = draft.transcript ?? "";
-      if (mode === "video") heardRef.current = "";
+      heardRef.current = mode === "video" ? "" : (draft.transcript ?? "");
       stopSpeech.current?.();
-      const Speech = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
-        .SpeechRecognition ||
-        (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
-      if (Speech) {
-        stopSpeech.current = startSpeech((text) => {
-          setLive(text);
-          applySpeech(text);
-        });
-      } else {
-        setBusy(t.mediaSttOff);
+      stopSpeech.current = null;
+      if (mode === "audio" && FEATURES.ownerVoice) {
+        const Speech = (window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
+          .SpeechRecognition ||
+          (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+        if (Speech) {
+          stopSpeech.current = startSpeech((text) => {
+            setLive(text);
+            applySpeech(text);
+          });
+        } else {
+          setBusy(t.mediaSttOff);
+        }
       }
     } catch {
+      releaseTracks();
+      if (personalVideo) {
+        openCameraApp();
+        return;
+      }
       setBusy(noDevice);
     }
   };
@@ -338,9 +483,25 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
 
   if (variant === "personal") {
     const hasMedia = Boolean(draft.videoUrl || draft.photo);
+    const liveVideo = recording && recMode === "video";
     return (
       <div>
-        {hasMedia ? (
+        {liveVideo ? (
+          <div className="overflow-hidden rounded-[16px] border border-line bg-ink">
+            <LiveVideoBox videoRef={videoRef} elapsed={elapsed} recording />
+            <div className="bg-white p-3">
+              <button
+                type="button"
+                data-testid="post-stop"
+                onClick={() => stopRec()}
+                className="h-12 w-full rounded-[12px] text-[15px] font-semibold"
+                style={{ background: "#B8452F", color: "#F7F3EC" }}
+              >
+                {t.mediaStop}
+              </button>
+            </div>
+          </div>
+        ) : hasMedia ? (
           <div className="overflow-hidden rounded-[16px] border border-line bg-white">
             {draft.videoUrl ? (
               <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="h-40 w-full bg-ink object-cover" />
@@ -390,29 +551,44 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
             e.target.value = "";
           }}
         />
-        <div className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
-          <div className="text-[15px] font-semibold text-ink">{t.ownerVoice}</div>
-          <p className="mt-1 text-[12px] leading-[1.4] text-muted">
-            {t.ownerVoiceHint} ({t.voiceUpTo(voiceMaxSeconds())})
-          </p>
-          {draft.voiceUrl ? (
-            <div className="mt-2">
-              <audio src={draft.voiceUrl} controls className="w-full" />
-              <button type="button" onClick={() => onPatch({ voiceUrl: undefined })} className="mt-2 text-[13px] font-semibold text-accent">
-                {t.leaveDelete}
+        <input
+          ref={videoFileRef}
+          data-testid="post-video-file"
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void onFile(file);
+            e.target.value = "";
+          }}
+        />
+        {FEATURES.ownerVoice ? (
+          <div className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+            <div className="text-[15px] font-semibold text-ink">{t.ownerVoice}</div>
+            <p className="mt-1 text-[12px] leading-[1.4] text-muted">
+              {t.ownerVoiceHint} ({t.voiceUpTo(voiceMaxSeconds())})
+            </p>
+            {draft.voiceUrl ? (
+              <div className="mt-2">
+                <audio src={draft.voiceUrl} controls className="w-full" />
+                <button type="button" onClick={() => onPatch({ voiceUrl: undefined })} className="mt-2 text-[13px] font-semibold text-accent">
+                  {t.leaveDelete}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                data-testid="post-voice"
+                onClick={() => (recording ? stopRec() : void startRec("audio"))}
+                className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
+              >
+                {recording ? t.mediaListening : t.ownerVoice}
               </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              data-testid="post-voice"
-              onClick={() => (recording ? stopRec() : void startRec("audio"))}
-              className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
-            >
-              {recording ? t.mediaListening : t.ownerVoice}
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
         {busy ? <p className="mt-2 text-[13px] text-accent">{busy}</p> : null}
       </div>
     );
@@ -428,9 +604,11 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
         <Chip active={kind === "video"} accent={kind === "video"} onClick={() => setKind("video")}>
           {t.mediaVideo}
         </Chip>
-        <Chip active={kind === "voice"} accent={kind === "voice"} onClick={() => setKind("voice")}>
-          {t.mediaVoice}
-        </Chip>
+        {FEATURES.ownerVoice ? (
+          <Chip active={kind === "voice"} accent={kind === "voice"} onClick={() => setKind("voice")}>
+            {t.mediaVoice}
+          </Chip>
+        ) : null}
         <Chip active={kind === "photos"} onClick={() => setKind("photos")}>
           {t.mediaPhotos}
         </Chip>
@@ -445,33 +623,12 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           {draft.videoUrl && recMode !== "video" ? (
             <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="aspect-[9/16] max-h-[280px] w-full object-cover" />
           ) : (
-            <div className="relative">
-              <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
-              {emptyText && !draft.videoUrl && !(recording && recMode === "video") ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-[14px] font-semibold text-screen">
-                  {emptyText}
-                </div>
-              ) : null}
-              {recording && recMode === "video" ? (
-                <div className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
-                  <div className="rounded-full bg-[rgba(23,20,15,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
-                    <span style={{ color: "#E8112D" }}>●</span>{" "}
-                    {videoMaxSeconds() - elapsed <= 10 ? (
-                      <span style={{ color: "#E8112D" }}>{clock(Math.max(0, Math.ceil(videoMaxSeconds() - elapsed)))}</span>
-                    ) : (
-                      clock(elapsed)
-                    )}{" "}
-                    / {clock(videoMaxSeconds())}
-                  </div>
-                  <div className="mt-2 h-[3px] w-[86%] overflow-hidden rounded-full bg-white/25">
-                    <div
-                      className="h-full bg-white"
-                      style={{ width: `${Math.max(0, 100 * (1 - elapsed / videoMaxSeconds()))}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            <LiveVideoBox
+              videoRef={videoRef}
+              elapsed={elapsed}
+              recording={recording && recMode === "video"}
+              placeholder={emptyText && !draft.videoUrl && !(recording && recMode === "video") ? emptyText : undefined}
+            />
           )}
           <div className="flex flex-col gap-2 bg-white p-3">
             {draft.videoUrl && recMode !== "video" ? (
@@ -491,13 +648,15 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                 >
                   {t.mediaDiscard}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void startRec("audio")}
-                  className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
-                >
-                  {t.mediaAddVoice}
-                </button>
+                {FEATURES.ownerVoice ? (
+                  <button
+                    type="button"
+                    onClick={() => void startRec("audio")}
+                    className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
+                  >
+                    {t.mediaAddVoice}
+                  </button>
+                ) : null}
               </div>
               {draft.voiceUrl ? <audio src={draft.voiceUrl} controls className="w-full" /> : null}
               {!draft.transcript && !draft.voiceUrl ? (
@@ -533,7 +692,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
         </div>
       ) : null}
 
-      {kind === "voice" ? (
+      {FEATURES.ownerVoice && kind === "voice" ? (
         <div className="mt-3 rounded-[16px] border border-line bg-white p-3">
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -645,10 +804,10 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       ) : null}
 
       {busy ? <p className="mt-2 text-[13px] text-accent">{busy}</p> : null}
-      {recording ? (
+      {FEATURES.ownerVoice && recording && recMode === "audio" ? (
         <p className="mt-2 text-[12px] text-muted">
           {t.mediaListening}
-          {recMode === "audio" ? ` · ${clock(elapsed)} / ${clock(voiceMaxSeconds())}` : ""}
+          {` · ${clock(elapsed)} / ${clock(voiceMaxSeconds())}`}
         </p>
       ) : null}
     </div>

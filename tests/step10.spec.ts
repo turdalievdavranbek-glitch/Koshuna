@@ -546,7 +546,7 @@ test.describe("point registration", () => {
     await page.goto("/shops/quick?shop=shop-existing");
     await expect(page.getByText("Наименование")).toBeVisible();
     await expect(page.getByText("Стоимость, KGS")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Фото и голос" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Фото и голос" })).toHaveCount(0);
   });
 
   test("cafe card can publish without a price line", async ({ page }) => {
@@ -749,5 +749,172 @@ test.describe("back controls", () => {
     await expect(page.getByLabel("Назад")).toBeVisible();
     await page.goto("/map");
     await expect(page.getByTestId("screen-back")).toBeVisible();
+  });
+});
+
+async function installFakeCamera(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as Window & {
+      __gumCalls: MediaStreamConstraints[];
+      __sttStarts: number;
+      __recStarts: { video: number; audio: number }[];
+    };
+    w.__gumCalls = [];
+    w.__sttStarts = 0;
+    w.__recStarts = [];
+    class FakeSpeech {
+      start() {
+        w.__sttStarts += 1;
+      }
+      stop() {}
+      abort() {}
+    }
+    Object.assign(window, { SpeechRecognition: FakeSpeech, webkitSpeechRecognition: FakeSpeech });
+    class FakeRecorder {
+      mimeType: string;
+      state = "inactive";
+      ondataavailable: ((ev: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      stream: MediaStream;
+      constructor(stream: MediaStream, options?: { mimeType?: string }) {
+        this.stream = stream;
+        this.mimeType = options?.mimeType || "video/webm";
+      }
+      start() {
+        this.state = "recording";
+        w.__recStarts.push({
+          video: this.stream.getVideoTracks().length,
+          audio: this.stream.getAudioTracks().length,
+        });
+        this.ondataavailable?.({ data: new Blob([new Uint8Array([1, 2, 3, 4])], { type: "video/webm" }) });
+      }
+      stop() {
+        if (this.state === "inactive") return;
+        this.state = "inactive";
+        this.onstop?.();
+      }
+      static isTypeSupported() {
+        return true;
+      }
+    }
+    Object.assign(window, { MediaRecorder: FakeRecorder });
+    const devices = navigator.mediaDevices ?? ({} as MediaDevices);
+    if (!navigator.mediaDevices) {
+      Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: devices });
+    }
+    devices.getUserMedia = async (constraints?: MediaStreamConstraints) => {
+      w.__gumCalls.push(constraints ?? {});
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 96;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#B8452F";
+        ctx.fillRect(0, 0, 64, 96);
+      }
+      return canvas.captureStream(8);
+    };
+  });
+}
+
+test.describe("owner voice hidden", () => {
+  test.use({ viewport: { width: 360, height: 800 } });
+
+  test("personal video shows a preview, timer and stop, then retake", async ({ page }) => {
+    await signedIn(page, "+996555123456");
+    await installFakeCamera(page);
+    await page.goto("/post?type=personal");
+    await expect(page.getByText("Голос хозяина")).toHaveCount(0);
+    await expect(page.getByText("Слушаю голос…")).toHaveCount(0);
+    await page.getByTestId("post-shoot").click();
+    await expect(page.getByTestId("post-live-video")).toBeVisible();
+    await expect(page.getByTestId("post-live-timer")).toContainText("/ 02:00");
+    await expect(page.getByTestId("post-stop")).toHaveText("Стоп");
+    await expect(page.getByText("Слушаю голос…")).toHaveCount(0);
+    await page.getByTestId("post-stop").click();
+    await expect(page.getByTestId("post-reshoot")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Слушаю голос…")).toHaveCount(0);
+    const probe = await page.evaluate(() => {
+      const w = window as Window & { __sttStarts: number };
+      return w.__sttStarts;
+    });
+    expect(probe).toBe(0);
+  });
+
+  test("personal shoot without a camera opens the capture video input", async ({ page }) => {
+    await signedIn(page, "+996555123456");
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: undefined });
+    });
+    await page.goto("/post?type=personal");
+    const input = page.getByTestId("post-video-file");
+    await expect(input).toHaveAttribute("accept", "video/*");
+    await expect(input).toHaveAttribute("capture", "environment");
+    await page.evaluate(() => {
+      const el = document.querySelector("[data-testid='post-video-file']") as HTMLInputElement;
+      el.click = () => {
+        (window as unknown as { __captureClicked?: boolean }).__captureClicked = true;
+      };
+    });
+    await page.getByTestId("post-shoot").click();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __captureClicked?: boolean }).__captureClicked === true)).toBe(true);
+    await expect(page.getByText("Голос хозяина")).toHaveCount(0);
+    await expect(page.getByText("Камеры на этом устройстве нет")).toHaveCount(0);
+  });
+
+  test("cafe and service cards record video without a voice chip or a second audio take", async ({ page }) => {
+    await signedIn(page, "+996555112233");
+    await installFakeCamera(page);
+    await page.addInitScript(() => {
+      const key = "konshu-state-v1";
+      const data = JSON.parse(localStorage.getItem(key) || "{}") as { draft?: Record<string, unknown> };
+      data.draft = {
+        section: "restaurants",
+        kind: "goods",
+        title: "",
+        city: "bishkek",
+        price: "",
+        rooms: "",
+        area: "",
+        name: "",
+        phone: "",
+        description: "",
+        promote: true,
+        mediaKind: "voice",
+        aiConfirmed: false,
+      };
+      localStorage.setItem(key, JSON.stringify(data));
+    });
+    await page.goto("/post?card=cafe");
+    await expect(page.getByRole("button", { name: "Фото и голос" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Голос", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Камера" })).toBeVisible();
+    await page.getByRole("button", { name: "Видео", exact: true }).click();
+    await page.getByRole("button", { name: "Записать видео" }).click();
+    await expect(page.getByTestId("post-live-timer")).toBeVisible();
+    await expect(page.getByText("Слушаю голос…")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Добавить голос" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Стоп" }).click();
+    await expect(page.getByRole("button", { name: "Переснять" })).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(800);
+    await expect(page.getByRole("button", { name: "Добавить голос" })).toHaveCount(0);
+    await expect(page.getByText("Слушаю голос…")).toHaveCount(0);
+    const probe = await page.evaluate(() => {
+      const w = window as Window & {
+        __gumCalls: MediaStreamConstraints[];
+        __sttStarts: number;
+        __recStarts: { video: number; audio: number }[];
+      };
+      return { calls: w.__gumCalls, stt: w.__sttStarts, recs: w.__recStarts };
+    });
+    expect(probe.stt).toBe(0);
+    expect(probe.calls).toHaveLength(1);
+    expect(probe.calls.some((call) => Boolean(call.audio) && !call.video)).toBe(false);
+    expect(probe.recs).toHaveLength(1);
+    expect(probe.recs[0]?.video).toBeGreaterThan(0);
+    expect(probe.recs[0]?.audio).toBe(0);
+
+    await page.goto("/post?card=service");
+    await expect(page.getByRole("button", { name: "Фото и голос" })).toHaveCount(0);
   });
 });

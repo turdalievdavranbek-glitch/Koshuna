@@ -28,6 +28,7 @@ import {
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
+import { FEATURES } from "@/lib/features";
 import { locate } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
@@ -109,6 +110,10 @@ export function ShopItemCapture({
       if (recTimer.current) window.clearTimeout(recTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!FEATURES.ownerVoice && mode === "voice") setMode("photos");
+  }, [mode]);
 
   useEffect(() => {
     if (pointMode || !photo) return;
@@ -426,7 +431,7 @@ export function ShopItemCapture({
   const changeMode = (next: MediaKind) => {
     if (recording) return;
     stopCam();
-    setMode(next);
+    setMode(!FEATURES.ownerVoice && next === "voice" ? "photos" : next);
     setDrafts([]);
     rememberSpeech("");
     setError("");
@@ -688,7 +693,7 @@ export function ShopItemCapture({
         <Chip active={mode === "photos"} onClick={() => changeMode("photos")}>
           {t.mediaPhotos}
         </Chip>
-        {pointMode ? null : (
+        {pointMode || !FEATURES.ownerVoice ? null : (
           <Chip active={mode === "voice"} accent={mode === "voice"} onClick={() => changeMode("voice")}>
             {t.mediaVoice}
           </Chip>
@@ -816,7 +821,7 @@ export function ShopItemCapture({
             </>
           ) : null}
 
-          {mode === "voice" ? (
+          {FEATURES.ownerVoice && mode === "voice" ? (
             <>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {live ? (
