@@ -31,6 +31,12 @@ export const EXPIRED_TEXT = [
   "Шилтеме эскирди. «Telegram аркылуу кирүү» баскычын кайра басыңыз.",
 ].join("\n");
 
+export const START_TEXT = [
+  "Откройте Коңшу и нажмите «Войти через Telegram»",
+  "",
+  "Коңшуну ачыңыз жана «Telegram аркылуу кирүү» баскычын басыңыз",
+].join("\n");
+
 // TODO (versionCode 3, Р-148): the final APK adds an Android App Link for
 // https://koshuna.ru/auth/telegram/back and a «Вернуться в Коңшу» button on
 // this confirmation. Do not add that link or a native intent filter in this step.
@@ -288,7 +294,10 @@ export async function handleTelegramUpdate(update: unknown): Promise<void> {
     const payload = message.text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?\s*$/);
     if (!payload) return;
     const raw = payload[1];
-    if (!raw) return;
+    if (!raw) {
+      await bot("sendMessage", { chat_id: message.chat.id, text: START_TEXT });
+      return;
+    }
     const started = ID_RE.test(raw) ? raw : null;
     const row = started ? logins.get(started) : undefined;
     if (!started || !row || row.status !== "pending") {
