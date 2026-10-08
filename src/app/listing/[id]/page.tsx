@@ -83,7 +83,7 @@ export default function ListingPage() {
   const reserved = listing.status === "reserved";
   const isStay = listing.section === "stays" || listing.dealKind === "short";
   const personal = showsPersonalNeighborBlocks(listing);
-  const look = personal ? goLookKind(listing) : "none";
+  const look = FEATURES.goLookMeet && personal ? goLookKind(listing) : "none";
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
   const stayTotal = nights ? listing.price * nights : 0;
 
