@@ -39,5 +39,19 @@ module.exports = {
         ...readEnv("/etc/koshuna/backend.env"),
       },
     },
+    {
+      // Telegram's servers time out before they can open the public webhook.
+      // One long-poller posts each update to the local webhook instead.
+      name: "koshuna-telegram-relay",
+      cwd: "/var/www/koshuna",
+      script: "scripts/telegram-relay.mjs",
+      instances: 1,
+      exec_mode: "fork",
+      max_memory_restart: "200M",
+      env: {
+        NODE_ENV: "production",
+        ...readEnv("/etc/koshuna/backend.env"),
+      },
+    },
   ],
 };
