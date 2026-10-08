@@ -61,7 +61,11 @@ async function main() {
   const sw = await call("/sw.js");
   const cache = sw.headers.get("cache-control") || "";
   assert(sw.status === 200 && cache.includes("no-cache"), "sw.js cache-control no-cache", `${sw.status} ${cache}`);
-  assert(typeof sw.data === "string" && sw.data.includes('const CACHE = "konshu-k5-1"'), "sw.js CACHE name unchanged", sw.data?.slice?.(0, 80));
+  assert(
+    typeof sw.data === "string" && sw.data.includes('const VERSION = "k5-1"') && sw.data.includes('const CACHE = "konshu-" + VERSION'),
+    "sw.js CACHE name unchanged",
+    sw.data?.slice?.(0, 80),
+  );
 
   const files = walk(".next/static/chunks");
   assert(files.length > 0, "built chunks exist", files.length);
