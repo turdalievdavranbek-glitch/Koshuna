@@ -70,30 +70,30 @@ export default function FiltersPage() {
 
   return (
     <PhoneShell>
-      <div className="flex items-center justify-between px-5 pb-3.5 pt-1">
+      <div className="flex w-full min-w-0 items-center justify-between gap-2 px-5 pb-3.5 pt-1">
         <button
           type="button"
           onClick={() => goBack(router, "/search")}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
         >
           <IconBack size={16} color="#17140F" />
         </button>
-        <span className="font-display text-lg font-bold text-ink">{t.filters}</span>
-        <button type="button" onClick={resetFilters} className="text-sm font-semibold text-accent">
+        <span className="min-w-0 truncate font-display text-lg font-bold text-ink">{t.filters}</span>
+        <button type="button" onClick={resetFilters} className="shrink-0 text-sm font-semibold text-accent">
           {t.resetFilters}
         </button>
       </div>
 
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-6">
+      <div data-testid="filters-scroll" className="sc flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-5 pb-5">
         <div
-          className="flex h-12 items-center gap-2.5 rounded-2xl bg-white px-4"
+          className="flex h-12 min-w-0 items-center gap-2.5 rounded-2xl bg-white px-4"
           style={{ border: `1px solid ${filters.query ? "#17140F" : "#E4DCCE"}` }}
         >
           <input
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
             placeholder={searchPh}
-            className="h-full flex-1 bg-transparent text-[15px] outline-none"
+            className="box-border h-full w-full min-w-0 flex-1 bg-transparent text-[15px] outline-none"
           />
           {filters.query ? (
             <button type="button" onClick={() => setFilters({ query: "" })} className="text-base text-muted-2">
@@ -108,13 +108,13 @@ export default function FiltersPage() {
             <button
               type="button"
               onClick={() => setFilters(patchForSection("shops", filters))}
-              className="flex w-full items-center gap-3 px-3 py-[10px] text-left"
+              className="flex w-full min-w-0 items-center gap-3 px-3 py-[10px] text-left"
               style={{ background: isShops ? "#17140F" : "#FFFFFF" }}
             >
               <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
                 <img src={SHOP_ART} alt="" className="h-full w-full object-cover" />
               </span>
-              <span className="flex-1 text-[15px] font-semibold" style={{ color: isShops ? "#F7F3EC" : "#17140F" }}>
+              <span className="min-w-0 flex-1 text-[15px] font-semibold" style={{ color: isShops ? "#F7F3EC" : "#17140F" }}>
                 {t.sectionNames.shops}
               </span>
               <span style={{ color: isShops ? "rgba(247,243,236,.45)" : "#A79C8C" }}>›</span>
@@ -126,7 +126,7 @@ export default function FiltersPage() {
                   key={s.id}
                   type="button"
                   onClick={() => openSection(s.id)}
-                  className="flex w-full items-center gap-3 border-t border-line px-3 py-[10px] text-left"
+                  className="flex w-full min-w-0 items-center gap-3 border-t border-line px-3 py-[10px] text-left"
                   style={{
                     background: on ? "#17140F" : "#FFFFFF",
                   }}
@@ -135,7 +135,7 @@ export default function FiltersPage() {
                     <img src={s.art} alt="" className="h-full w-full object-cover" />
                   </span>
                   <span
-                    className="flex-1 text-[15px] font-semibold"
+                    className="min-w-0 flex-1 text-[15px] font-semibold"
                     style={{ color: on ? "#F7F3EC" : "#17140F" }}
                   >
                     {t.sectionNames[s.id]}
@@ -159,9 +159,9 @@ export default function FiltersPage() {
           <button
             type="button"
             onClick={() => openLocationPicker(router, "/filters")}
-            className="mt-2.5 flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+            className="mt-2.5 flex w-full min-w-0 items-center justify-between gap-2 rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
           >
-            <span className="text-[15px] font-semibold text-ink">
+            <span className="min-w-0 flex-1 text-[15px] font-semibold text-ink">
               {shownLocationLabel(lang, city, filters, t)}
             </span>
             <span className="text-[18px] text-muted-2">›</span>
@@ -174,9 +174,9 @@ export default function FiltersPage() {
             <button
               type="button"
               onClick={() => router.push("/map")}
-              className="mt-2.5 flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+              className="mt-2.5 flex w-full min-w-0 items-center justify-between gap-2 rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
             >
-              <span className="text-[15px] font-semibold text-ink">{filters.locLabel ?? t.pickOnMap}</span>
+              <span className="min-w-0 flex-1 text-[15px] font-semibold text-ink">{filters.locLabel ?? t.pickOnMap}</span>
               <span className="text-[13px] font-semibold text-accent">{t.mapMode}</span>
             </button>
             {filters.locLabel ? (
@@ -294,7 +294,7 @@ export default function FiltersPage() {
 
         <div>
           <Eyebrow>{t.sort}</Eyebrow>
-          <div className="mt-2.5 flex gap-2">
+          <div data-testid="filters-sort" className="mt-2.5 flex min-w-0 flex-wrap gap-2">
             {(
               [
                 ["new", t.newest],
@@ -306,7 +306,7 @@ export default function FiltersPage() {
                 key={id}
                 type="button"
                 onClick={() => setFilters({ sort: id })}
-                className="flex-1 rounded-xl py-[11px] text-center text-sm font-semibold"
+                className="box-border max-w-full min-w-0 rounded-xl px-3.5 py-[11px] text-center text-sm font-semibold"
                 style={{
                   background: filters.sort === id ? "#17140F" : "#FFFFFF",
                   color: filters.sort === id ? "#F7F3EC" : "#17140F",
@@ -320,26 +320,26 @@ export default function FiltersPage() {
         </div>
 
         <div>
-          <div className="flex items-baseline justify-between">
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
             <Eyebrow>{priceLabel}</Eyebrow>
-            <span className="text-[13px] font-semibold text-ink">
+            <span className="shrink-0 text-[13px] font-semibold text-ink">
               {filters.priceMin ?? 0} — {filters.priceMax ?? "∞"}
             </span>
           </div>
-          <div className="mt-4 flex gap-2.5">
+          <div className="mt-4 flex min-w-0 gap-2.5">
             <input
               inputMode="numeric"
               value={filters.priceMin ?? ""}
               placeholder="20 000"
               onChange={(e) => setFilters({ priceMin: e.target.value ? Number(e.target.value.replace(/\s/g, "")) : null })}
-              className="h-[46px] flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none"
+              className="box-border h-[46px] w-full min-w-0 flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none"
             />
             <input
               inputMode="numeric"
               value={filters.priceMax ?? ""}
               placeholder="45 000"
               onChange={(e) => setFilters({ priceMax: e.target.value ? Number(e.target.value.replace(/\s/g, "")) : null })}
-              className="h-[46px] flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none"
+              className="box-border h-[46px] w-full min-w-0 flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none"
             />
           </div>
         </div>
@@ -356,15 +356,15 @@ export default function FiltersPage() {
               ...(FEATURES.aiyl ? ([["aiylOnly", t.bridgeAiyl]] as const) : []),
             ] as const
           ).map(([key, label]) => (
-            <div key={key} className="flex items-center justify-between border-t border-line py-3.5">
-              <span className="text-[15px] text-ink">{label}</span>
+            <div key={key} className="flex min-w-0 items-center justify-between gap-3 border-t border-line py-3.5">
+              <span className="min-w-0 flex-1 text-[15px] leading-snug text-ink">{label}</span>
               <Toggle on={Boolean(filters[key])} onChange={() => setFilters({ [key]: !filters[key] })} />
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
+      <div className="flex w-full min-w-0 shrink-0 gap-2.5 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
         <button
           type="button"
           onClick={() => {
@@ -384,7 +384,7 @@ export default function FiltersPage() {
         <button
           type="button"
           onClick={() => router.push(feedHrefFromFilters(filters))}
-          className="shadow-btn flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
+          className="shadow-btn box-border flex h-[54px] min-w-0 flex-1 items-center justify-center rounded-2xl bg-accent px-3 text-center text-base font-semibold text-accent-on"
         >
           {t.showN(count)}
         </button>
