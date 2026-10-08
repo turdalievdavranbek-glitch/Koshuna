@@ -78,14 +78,16 @@ cd android
 
 Стабильный адрес: `https://koshuna.ru/download/koshuna.apk`
 
-Перед выкладкой сайта скопируйте подписанный APK:
+Перед выкладкой сайта скопируйте подписанный APK и перезапустите сайт. Next видит новый файл в `public/` после старта процесса. Тип файла уже `application/vnd.android.package-archive`.
 
 ```bash
 mkdir -p /var/www/koshuna/public/download
 cp android/app/build/outputs/apk/release/app-release.apk /var/www/koshuna/public/download/koshuna.apk
+pm2 list
+pm2 restart <имя процесса, который запускает next start>
 ```
 
-Next отдаёт файлы из `public/` сам. Отдельный location в nginx не нужен, если весь сайт проксируется на Next (порт 43123). Если nginx отдаёт только часть путей, добавьте:
+Отдельный location в nginx не нужен, если весь сайт проксируется на Next (порт 43123). Если nginx отдаёт только часть путей, добавьте:
 
 ```nginx
 location = /download/koshuna.apk {

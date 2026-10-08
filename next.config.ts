@@ -12,23 +12,6 @@ const nextConfig: NextConfig = {
       { source: "/delete-account", destination: "/delete-account.html" },
     ];
   },
-  async headers() {
-    return [
-      {
-        source: "/download/koshuna.apk",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/vnd.android.package-archive",
-          },
-          {
-            key: "Content-Disposition",
-            value: 'attachment; filename="koshuna.apk"',
-          },
-        ],
-      },
-    ];
-  },
 };
 
 export default nextConfig;
