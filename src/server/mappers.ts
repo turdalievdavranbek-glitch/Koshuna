@@ -1,4 +1,5 @@
 import { postedAgoFrom } from "@/lib/shop-listing";
+import { telegramUsername } from "@/lib/telegram-username";
 import type { AuthMethod, Listing, Shop, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
 import type { listings, shops } from "./db/schema";
@@ -162,7 +163,7 @@ export function shopToColumns(shop: Shop, ownerId: string): typeof shops.$inferI
     deliveryDistricts: shop.delivery ? (shop.deliveryDistricts ?? []) : [],
     phone: shop.contacts?.phone ?? null,
     whatsapp: shop.contacts?.whatsapp ? shop.contacts.phone || "1" : null,
-    telegram: shop.contacts?.telegram ? "1" : null,
+    telegram: telegramUsername(shop.telegramUsername) ?? (shop.contacts?.telegram ? "1" : null),
     status: shop.status || "draft",
     lastPostedAt: shop.products?.some((item) => item.published !== false) ? new Date() : null,
     updatedAt: new Date(),
@@ -172,10 +173,12 @@ export function shopToColumns(shop: Shop, ownerId: string): typeof shops.$inferI
 
 export function rowToShop(row: ShopRow): Shop {
   const doc = row.doc as Shop;
+  const handle = telegramUsername(row.telegram);
   return {
     ...doc,
     id: row.id,
     ownerId: row.ownerId,
+    telegramUsername: handle ?? undefined,
     status: (row.status as Shop["status"]) || doc.status,
     name: doc.name ?? row.name,
     city: doc.city || row.city,

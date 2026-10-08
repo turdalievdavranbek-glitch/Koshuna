@@ -6,13 +6,13 @@ import { api } from "@/lib/api/client";
 import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
 import { FEATURES } from "@/lib/features";
-import { formatStayRange, nightsBetween } from "@/lib/dates";
+import { nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
-import { shareListingLink } from "@/lib/share";
+import { telegramLink } from "@/lib/telegram-username";
 import { useApp } from "@/lib/store";
 import { ScreenBack } from "@/components/back-button";
-import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconWa } from "@/components/icons";
+import { IconBack, IconChat, IconHeart, IconPin } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
@@ -26,8 +26,11 @@ import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listin
 import { MeetDealBlock } from "@/components/meet-deal";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
-import { ShareToSocial } from "@/components/share-to-social";
 import { ListingSocial } from "@/components/listing-social";
+import { ShareButton } from "@/components/share-button";
+import { ListingContactRow } from "@/components/listing-contact-row";
+import { BlockAuthorButton, BlockedAuthorNotice } from "@/components/block-author";
+import { PlayBanner } from "@/components/play-banner";
 import { ServiceFacts } from "@/components/service-facts";
 import { HonestyCard } from "@/components/honesty-card";
 import { Eyebrow, Photo, Price } from "@/components/ui";
@@ -40,12 +43,13 @@ import { GisOnMapCard } from "@/components/gis-on-map";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
   const [toast, setToast] = useState("");
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
+  const [remoteBlocked, setRemoteBlocked] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !listing) {
@@ -69,10 +73,43 @@ export default function ListingPage() {
   }, [user?.id, listing?.id, listing?.ownerId]);
 
   useEffect(() => {
+    if (!user || !synced) return;
+    const raw = recallListing(id);
+    if (raw) {
+      setRemoteBlocked(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ listing?: { ownerId?: string } }>(`/api/listings/${encodeURIComponent(id)}`).then((res) => {
+      if (cancel) return;
+      const ownerId = res.data?.listing?.ownerId;
+      setRemoteBlocked(ownerId && isBlocked(ownerId) ? ownerId : null);
+    });
+    return () => {
+      cancel = true;
+    };
+    // Reload when the block list changes. recallListing identity changes every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, synced, id, blockedUserIds]);
+
+  useEffect(() => {
     if (listing) markViewed(listing.id);
     // Record the visit once per listing id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing?.id]);
+
+  const recalled = recallListing(id);
+  const blockedOwner = user && recalled && isBlocked(recalled.ownerId) ? recalled.ownerId : remoteBlocked;
+  if (blockedOwner && (!recalled || isBlocked(recalled.ownerId))) {
+    return (
+      <PhoneShell>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <BlockedAuthorNotice userId={blockedOwner} />
+        </div>
+      </PhoneShell>
+    );
+  }
 
   if (!listing && !synced) return null;
 
@@ -108,10 +145,15 @@ export default function ListingPage() {
     toggleFav(listing.id);
   };
 
-  const onChat = () => {
-    if (!gate(`/chat/${listing.id}`)) return;
-    const tid = ensureThread(listing.id);
-    router.push(`/chat/${tid}`);
+  const soonPath = `/chat/soon?listing=${encodeURIComponent(listing.id)}`;
+  const onWrite = () => {
+    if (FEATURES.localChat) {
+      if (!gate(`/chat/${listing.id}`)) return;
+      router.push(`/chat/${listing.id}`);
+      return;
+    }
+    if (!gate(soonPath)) return;
+    router.push(soonPath);
   };
 
   const similar = similarListings(listing, allListings);
@@ -130,13 +172,7 @@ export default function ListingPage() {
       setTimeout(() => setToast(""), 1800);
       return;
     }
-    if (!gate(`/chat/${listing.id}`)) return;
-    const tid = ensureThread(listing.id);
-    addMessage(
-      tid,
-      t.bookRequest(formatStayRange(filters.checkIn, filters.checkOut, lang), t.nights(nights), formatSom(stayTotal)),
-    );
-    router.push(`/chat/${tid}`);
+    onWrite();
   };
 
   return (
@@ -153,21 +189,7 @@ export default function ListingPage() {
               <IconBack size={17} color="#17140F" />
             </button>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void shareListingLink(listing.id, title).then((how) => {
-                    if (how === "copied") {
-                      setToast(t.shareCopied);
-                      setTimeout(() => setToast(""), 1800);
-                    }
-                  });
-                }}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
-                aria-label={t.shareCopyLink}
-              >
-                <IconShare size={17} color="#17140F" />
-              </button>
+              <ShareButton listing={listing} variant="icon" />
               {mine ? null : (
                 <button
                   type="button"
@@ -227,7 +249,7 @@ export default function ListingPage() {
               <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
                 {t.conditions[listing.condition]}
               </span>
-            ) : listing.shopId ? null : (
+            ) : listing.shopId || isDbUserId(listing.ownerId) || !FEATURES.demoMedia ? null : (
               <span className="text-xs text-muted-2">
                 {t.cities[listing.city]} · {t.sample}
               </span>
@@ -243,10 +265,50 @@ export default function ListingPage() {
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
+          {/* Step 24 (Р-112): magnets */}
+          <div data-slot="magnets" className="h-0 overflow-hidden" />
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
           </div>
+          {mine ? null : (
+            <div className="mt-4">
+              <ListingContactRow
+                callHref={callHref}
+                showCall={showCall}
+                showWa={showWa}
+                waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
+                telegramHref={user && listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null}
+                onCallGate={(event) => {
+                  if (!user) {
+                    event.preventDefault();
+                    gate(`/listing/${listing.id}`);
+                  }
+                }}
+                onWrite={() => {
+                  if (isStay) onBook();
+                  else onWrite();
+                }}
+                callLabel={t.callNow}
+                writeLabel={t.write}
+              />
+              {/* Step 18 (№87): «Отложи мне» */}
+              <div data-slot="reserve" className="h-0 overflow-hidden" />
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            {mine ? null : (
+              <button
+                type="button"
+                onClick={onFav}
+                className="flex h-[54px] flex-1 items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+              >
+                {isFav(listing.id) ? t.cartIn : t.cartAdd}
+              </button>
+            )}
+            <ShareButton listing={listing} />
+          </div>
+          <PlayBanner />
           <ServiceFacts listing={listing} />
           {listing.lng != null && listing.lat != null && listing.serviceMode !== "mobile" ? (
             <div className="mt-3">
@@ -322,17 +384,6 @@ export default function ListingPage() {
           {FEATURES.goLookMeet && personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
           {personal ? <VoiceNote listing={listing} /> : null}
           {FEATURES.aiyl ? <AiylRoad listing={listing} /> : null}
-
-          <button
-            type="button"
-            onClick={() => router.push(`/story/${listing.id}`)}
-            className="mt-3 h-[48px] w-full rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
-          >
-            {t.storyToIg}
-          </button>
-          <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
-            <ShareToSocial listing={listing} />
-          </div>
 
           {listing.rooms != null || listing.area != null ? (
             <div className="mt-5 grid grid-cols-3 gap-2">
@@ -442,12 +493,13 @@ export default function ListingPage() {
           {FEATURES.honesty ? <HonestyCard listing={listing} /> : null}
           <ListingSocial listing={listing} />
 
-          {listing.shopId || listing.sellerName || dealer ? (
+          {listing.shopId || listing.sellerName || dealer || isDbUserId(listing.ownerId) ? (
             <button
               type="button"
               onClick={() => {
                 if (listing.shopId) router.push(`/shops/${listing.shopId}`);
                 else if (dealer) router.push(`/dealers/${dealer.slug}`);
+                else if (isDbUserId(listing.ownerId)) router.push(`/owner/${listing.ownerId}`);
               }}
               className="mt-6 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-4 text-left"
             >
@@ -456,7 +508,7 @@ export default function ListingPage() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name}</span>
+                  <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name || t.ownerProfile}</span>
                   {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
@@ -469,6 +521,9 @@ export default function ListingPage() {
               </div>
               {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
               {dealer ? <span className="text-[13px] font-semibold text-accent">{t.dealersTitle}</span> : null}
+              {!listing.shopId && !dealer && isDbUserId(listing.ownerId) ? (
+                <span className="text-[13px] font-semibold text-accent">{t.ownerProfile}</span>
+              ) : null}
             </button>
           ) : owner ? (
             <button
@@ -546,6 +601,9 @@ export default function ListingPage() {
           ) : null}
 
           <ReportListing listing={listing} />
+          {!mine && isDbUserId(listing.ownerId) ? (
+            <BlockAuthorButton userId={listing.ownerId} returnPath={`/listing/${listing.id}`} />
+          ) : null}
           <div className="h-[132px]" />
         </div>
       </div>
@@ -573,103 +631,35 @@ export default function ListingPage() {
               {t.sideDesk}
             </button>
           </>
-        ) : elderMode && !isStay ? (
-          <>
-            {showCall ? (
-            <a
-              href={callHref}
-              data-testid="listing-phone"
-              onClick={(e) => {
-                if (!user) {
-                  e.preventDefault();
-                  gate(`/listing/${listing.id}`);
-                }
-              }}
-              className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
-            >
-              <IconPhone size={19} color="#F7F3EC" />
-              {t.call}
-            </a>
-            ) : null}
-            <button
-              type="button"
-              onClick={onChat}
-              className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
-            >
-              <IconChat size={18} color="#FFF7F0" />
-            </button>
-          </>
         ) : (
-          <>
-        <button
-          type="button"
-          onClick={() => {
-            if (off) return;
-            if (reserved) {
-              document.getElementById("meet-deal")?.scrollIntoView({ behavior: "smooth", block: "center" });
-              return;
-            }
-            if (isStay) {
-              onBook();
-              return;
-            }
-            if (look !== "none") {
-              document.getElementById("go-look")?.scrollIntoView({ behavior: "smooth", block: "center" });
-              return;
-            }
-            onChat();
-          }}
-          className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
-        >
-          {off || reserved ? (
-            listing.status === "reserved" ? t.status.reserved : listing.status === "closed" ? t.status.closed : t.status.withdrawn
-          ) : isStay ? (
-            t.bookStay
-          ) : look !== "none" ? (
-            look === "meet" ? t.goMeet : t.goLook
-          ) : (
-            <>
-              <IconChat size={18} color="#FFF7F0" />
-              {listing.section === "secondhand" ? t.writeSeller : t.write}
-            </>
-          )}
-        </button>
-        {!isStay && look !== "none" ? (
-          <button
-            type="button"
-            onClick={onChat}
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
-          >
-            <IconChat size={18} color="#FFF7F0" />
-          </button>
-        ) : null}
-        {showCall ? (
-        <a
-          href={callHref}
-          data-testid="listing-phone"
-          onClick={(e) => {
-            if (!user) {
-              e.preventDefault();
-              gate(`/listing/${listing.id}`);
-            }
-          }}
-          className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-ink"
-        >
-          <IconPhone size={19} color="#F7F3EC" />
-        </a>
-        ) : null}
-        {showWa ? (
-          <a
-            href={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
-            data-testid="listing-wa"
-            target="_blank"
-            rel="noreferrer"
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-success"
-          >
-            <IconWa size={19} color="#F7F3EC" />
-          </a>
-        ) : null}
-          </>
+          <ListingContactRow
+            withTestIds
+            callHref={callHref}
+            showCall={showCall}
+            showWa={showWa}
+            waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
+            telegramHref={user && listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null}
+            onCallGate={(event) => {
+              if (!user) {
+                event.preventDefault();
+                gate(`/listing/${listing.id}`);
+              }
+            }}
+            onWrite={() => {
+              if (reserved && FEATURES.goLookMeet) {
+                document.getElementById("meet-deal")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+              }
+              if (look !== "none") {
+                document.getElementById("go-look")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+              }
+              if (isStay) onBook();
+              else onWrite();
+            }}
+            callLabel={t.callNow}
+            writeLabel={t.write}
+          />
         )}
       </div>
       {toast ? (

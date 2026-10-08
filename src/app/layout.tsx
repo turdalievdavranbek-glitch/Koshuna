@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Familjen_Grotesk, Manrope } from "next/font/google";
+import { OG_FALLBACK, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/open-graph";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -22,9 +23,16 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Koshuna — маркетплейс Кыргызстана",
-  description:
-    "Жильё, секонд-хенд, авто, услуги и вакансии по всему Кыргызстану. Местные находки. Новые начала.",
+  metadataBase: new URL("https://koshuna.ru"),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [OG_FALLBACK],
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", images: [OG_FALLBACK] },
   appleWebApp: { capable: true, title: "Koshuna", statusBarStyle: "default" },
 };
 

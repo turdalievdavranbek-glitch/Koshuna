@@ -1,5 +1,5 @@
 import { isSectionVisible } from "./features";
-import { SHOP_CATEGORIES, type Lang, type Listing, type ListingComment, type Owner, type ReserveAccount, type SavedSearch, type SectionId, type Thread } from "./types";
+import { SHOP_CATEGORIES, type Lang, type Listing, type ListingComment, type Owner, type SavedSearch, type SectionId, type Thread } from "./types";
 
 /** Private posts cannot offer medicines. «Здоровье» stays in shop browse and filters. */
 export const PRIVATE_POST_SHOP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c !== "health");
@@ -2809,12 +2809,6 @@ export const DEFAULT_SAVED: SavedSearch[] = [
   { id: "s1", title: "2 комнаты, Бишкек, до 40 000", newCount: 3, notify: true },
   { id: "s2", title: "Велосипеды, Каракол", newCount: 0, notify: false },
   { id: "s3", title: "Мебель, Ош, до 20 000", newCount: 1, notify: true },
-];
-
-export const RESERVE_ACCOUNTS: ReserveAccount[] = [
-  { id: "nurlan", name: "Нурлан", phone: "+996 700 12 34 56" },
-  { id: "davran", name: "Давран", phone: "+996 555 00 11 22" },
-  { id: "aigul", name: "Айгуль", phone: "+996 555 98 76 54" },
 ];
 
 export const DEFAULT_THREADS: Thread[] = [

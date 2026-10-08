@@ -42,6 +42,11 @@ export function ownerShareText(
   return t.ownerShareBody(title, place, price, url);
 }
 
+/** title · price (or «договорная») · place · URL. No hashtags and no phone number. */
+export function cardShareText(input: { title: string; price?: string; place?: string; url: string }): string {
+  return [input.title, input.price, input.place, input.url].filter((part) => Boolean(part && part.trim())).join(" · ");
+}
+
 export function listingPublicUrl(id: string): string {
   if (typeof window === "undefined") return `/listing/${id}`;
   return `${window.location.origin}/listing/${id}`;

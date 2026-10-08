@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { ownerBlockedRequester } from "@/lib/blocks";
 import { normalizePhoneInput } from "@/lib/phone";
 import { getDb } from "@/server/db";
-import { listings, shops, users } from "@/server/db/schema";
+import { blocks, listings, shops, users } from "@/server/db/schema";
 import { json, requireUser } from "@/server/http";
 
 export const runtime = "nodejs";
@@ -25,6 +26,14 @@ export async function GET(req: Request, ctx: Ctx) {
   const rows = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
   const row = rows[0];
   if (!row || (!VISIBLE.has(row.status) && row.ownerId !== user.id)) return json({ error: "not-found" }, 404);
+  if (row.ownerId) {
+    const blockedRows = await db
+      .select({ blockerId: blocks.blockerId, blockedUserId: blocks.blockedUserId })
+      .from(blocks)
+      .where(and(eq(blocks.blockerId, row.ownerId), eq(blocks.blockedUserId, user.id)))
+      .limit(1);
+    if (ownerBlockedRequester(blockedRows, row.ownerId, user.id)) return json({ error: "blocked" }, 403);
+  }
   let raw: string | null = null;
   if (row.shopId) {
     const shopRows = await db.select({ phone: shops.phone }).from(shops).where(eq(shops.id, row.shopId)).limit(1);

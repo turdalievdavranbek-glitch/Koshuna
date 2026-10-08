@@ -1857,6 +1857,37 @@ const ru = {
   postNeedTitle: "Напишите, что продаёте",
   myPoints: "Мои точки",
   voiceUpTo: (n: number) => `до ${n} сек`,
+  callNow: "Позвонить",
+  cartAdd: "В корзину",
+  cartIn: "В корзине ✓",
+  chatSoonTitle: "Переписка скоро появится",
+  chatSoonBody: "Переписка внутри Коңшу скоро появится. Пока позвоните или напишите в WhatsApp.",
+  blockAuthor: "Заблокировать автора",
+  blockAuthorTitle: "Заблокировать автора?",
+  blockAuthorText: "Вы больше не увидите его объявления и точки. Разблокировать можно в его профиле.",
+  blockDo: "Заблокировать",
+  unblock: "Разблокировать",
+  blockedNotice: "Вы заблокировали этого автора",
+  reportAuthor: "Пожаловаться на автора",
+  subscribe: "Подписаться",
+  subscribed: "Вы подписаны ✓",
+  unsubscribeAsk: "Отписаться?",
+  unsubscribeDo: "Отписаться",
+  followersNone: "Пока нет подписчиков",
+  followersCount: (n: number) => {
+    const n10 = Math.abs(n) % 10;
+    const n100 = Math.abs(n) % 100;
+    const word =
+      n10 === 1 && n100 !== 11 ? "подписчик" : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? "подписчика" : "подписчиков";
+    return `${n} ${word}`;
+  },
+  onKonshu: "На Коңшу с",
+  ownerEdit: "Редактировать",
+  ownerWithdraw: "Снять",
+  ownerRestore: "Вернуть",
+  editTitle: "Название",
+  shareStories: "Карточка для Stories",
+  playBanner: "Есть приложение Коңшу — Google Play",
 };
 
 const ky: typeof ru = {
@@ -3558,6 +3589,31 @@ const ky: typeof ru = {
   postNeedTitle: "Эмне сатып жатканыңызды жазыңыз",
   myPoints: "Менин түйүндөрүм",
   voiceUpTo: (n: number) => `${n} секундга чейин`,
+  callNow: "Чалуу",
+  cartAdd: "Себетке",
+  cartIn: "Себетте ✓",
+  chatSoonTitle: "Жазышуу жакында болот",
+  chatSoonBody: "Коңшунун ичиндеги жазышуу жакында болот. Азырынча чалыңыз же WhatsApp'ка жазыңыз.",
+  blockAuthor: "Авторду бөгөттөө",
+  blockAuthorTitle: "Авторду бөгөттөйсүзбү?",
+  blockAuthorText: "Анын жарнамаларын жана түйүндөрүн мындан ары көрбөйсүз. Бөгөттөн чыгаруу анын профилинде.",
+  blockDo: "Бөгөттөө",
+  unblock: "Бөгөттөн чыгаруу",
+  blockedNotice: "Сиз бул авторду бөгөттөдүңүз",
+  reportAuthor: "Авторго арыздануу",
+  subscribe: "Жазылуу",
+  subscribed: "Сиз жазылдыңыз ✓",
+  unsubscribeAsk: "Жазылууну токтотосузбу?",
+  unsubscribeDo: "Жазылууну токтотуу",
+  followersNone: "Азырынча жазылуучу жок",
+  followersCount: (n: number) => `${n} жазылуучу`,
+  onKonshu: "Коңшуда",
+  ownerEdit: "Түзөтүү",
+  ownerWithdraw: "Алуу",
+  ownerRestore: "Кайтаруу",
+  editTitle: "Аталышы",
+  shareStories: "Stories үчүн карточка",
+  playBanner: "Коңшу тиркемеси бар — Google Play",
 };
 
 

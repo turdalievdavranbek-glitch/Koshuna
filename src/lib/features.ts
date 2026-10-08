@@ -19,6 +19,8 @@ export const FEATURES = {
   shareFacebookVk: false, // Facebook / VK cells in share block (№85, №52)
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
   ownerVoice: false,     // Голос хозяина: hidden until speech-to-text works (owner 08.10). Code stays.
+  localChat: false,      // localStorage chat stays in the code; «Написать» is a stub until Step 19
+  playBanner: false,     // Google Play banner stays off until the app is in Play (Step 26)
   /** D1 / Р-019: hide «Пример для проверки» in production. NEXT_PUBLIC_DEMO_MEDIA=1 forces it on, =0 forces it off. */
   demoMedia:
     process.env.NEXT_PUBLIC_DEMO_MEDIA === "1"
