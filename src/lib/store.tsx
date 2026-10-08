@@ -660,7 +660,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let favs = [] as string[];
       let reactions: ReactionsByVoter = {};
       let counts = feedRes.data?.counts;
-      let reactionUser: User | null = serverUser
+      const reactionUser: User | null = serverUser
         ? {
             ...(next.user ?? serverUser),
             id: serverUser.id,
