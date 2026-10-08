@@ -1,40 +1,49 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
 import { hasRole } from "@/lib/partners";
 import { FEATURES } from "@/lib/features";
+import { helpWhatsAppUrl } from "@/lib/help";
 import { LANG_LABEL } from "@/lib/i18n";
 import { starsForUser } from "@/lib/trust";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { api } from "@/lib/api/client";
+import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
-import { LANGS } from "@/lib/types";
+import { LANGS, type AuthMethod } from "@/lib/types";
+import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
 import { Flag, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
-import { SellerHub } from "@/components/seller-hub";
 import { PointList } from "@/components/point-rows";
-import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { MyListings } from "@/components/my-listings";
-import { KonshuBridges } from "@/components/konshu-bridges";
+import { SubscriptionList } from "@/components/subscription-list";
 
 const PHONE_LATER = "konshu.phoneLater";
 
+function MethodIcon({ method }: { method: AuthMethod }) {
+  if (method === "google") return <BrandGoogle size={14} />;
+  if (method === "telegram") return <BrandTelegram size={14} />;
+  return null;
+}
+
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, threads } =
-    useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops } = useApp();
   const router = useRouter();
   const [phoneLater, setPhoneLater] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   useEffect(() => {
     setPhoneLater(localStorage.getItem(PHONE_LATER) === "1");
   }, [user?.phone]);
   const stars = starsForUser(user);
   const mine = mineListings(allListings, extraListings, user, shops);
-  const inboxCount = user ? threads.length : 0;
+  const points = shopsOf(shops, user);
 
   if (!user) {
     return (
@@ -49,9 +58,6 @@ export default function ProfilePage() {
           >
             {t.loginCta}
           </button>
-          <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-            <KonshuBridges />
-          </div>
           <div className="mt-8 rounded-[18px] border border-line bg-white p-4">
             <div className="mb-3 text-[13px] font-semibold text-ink">{t.language}</div>
             <LangSwitch />
@@ -68,9 +74,9 @@ export default function ProfilePage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">
             {user.name.slice(0, 1)}
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
+              <span className="truncate font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
               {userHasShopBadge(shops, user) ? (
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
@@ -90,9 +96,14 @@ export default function ProfilePage() {
                 <TrustStars n={stars} size={15} />
               </div>
             ) : null}
-            <div className="mt-0.5 text-[13px] text-muted">
-              {[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}
-              {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[13px] text-muted">
+              <span>{[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}</span>
+              {user.method ? (
+                <span className="inline-flex items-center gap-1">
+                  <MethodIcon method={user.method} />
+                  {t.signedInVia} {t.authMethods[user.method]}
+                </span>
+              ) : null}
             </div>
           </div>
           <button type="button" onClick={() => router.push("/profile/edit")} className="text-[13px] font-semibold text-accent">
@@ -121,11 +132,6 @@ export default function ProfilePage() {
           </div>
         ) : null}
 
-        <div className="mt-[18px] rounded-[14px] border border-line bg-white p-3">
-          <div className="font-display text-xl font-bold text-ink">{mine.length}</div>
-          <div className="mt-0.5 text-[11px] text-muted">{t.listingsCount}</div>
-        </div>
-
         {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustYours}</div>
@@ -149,34 +155,18 @@ export default function ProfilePage() {
         </div>
         ) : null}
 
-        <Link
-          href="/messages"
-          className="mt-3 flex items-center justify-between rounded-[18px] border border-line bg-white px-4 py-[15px] text-[15px] text-ink no-underline"
-        >
-          <span>
-            {t.inbox}
-            <span className="mt-0.5 block text-[12px] text-muted">{t.inboxPurchasesSales}</span>
-          </span>
-          <span className="text-[13px] font-semibold text-accent">{inboxCount}</span>
-        </Link>
-
-        <div className="mt-3">
-          <SellerHub />
-        </div>
-
         <div className="mt-6 flex items-baseline justify-between">
           <span className="font-display text-[19px] font-bold text-ink">{t.myPoints}</span>
-          <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
-            {t.allN(shopsOf(shops, user).length)}
-          </button>
+          <span className="text-[13px] font-semibold text-muted">{points.length}</span>
         </div>
         <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
-        <div className="mt-3">
-          <PointList shops={shopsOf(shops, user)} actions />
-        </div>
-        <div className="mt-3">
-          <SellerEntryCards />
-        </div>
+        {points.length ? (
+          <div className="mt-3">
+            <PointList shops={points} actions open="point" />
+          </div>
+        ) : (
+          <p className="mt-3 text-[14px] leading-[1.45] text-muted">{t.shopEmptyMine}</p>
+        )}
         <button
           type="button"
           onClick={() => router.push("/shops/new")}
@@ -187,16 +177,17 @@ export default function ProfilePage() {
 
         <div className="mt-6 flex items-baseline justify-between">
           <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
-          <button type="button" onClick={() => router.push("/selling")} className="text-[13px] font-semibold text-accent">
-            {t.allN(mine.length)}
-          </button>
+          <span className="text-[13px] font-semibold text-muted">{mine.length}</span>
         </div>
-        <div className="mt-3">
-          <MyListings limit={3} />
+        <div className="mt-3" data-testid="cabinet-listings">
+          <MyListings />
         </div>
 
-        <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-          <KonshuBridges />
+        <div className="mt-6">
+          <span className="font-display text-[19px] font-bold text-ink">{t.mySubscriptions}</span>
+        </div>
+        <div className="mt-3">
+          <SubscriptionList />
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[18px] border border-line bg-white">
@@ -235,19 +226,27 @@ export default function ProfilePage() {
               </button>
             }
           />
-          <Row label={t.verification} value={<span className="text-[13px] font-bold text-success">{t.done}</span>} />
-          <Row
-            label={t.agency}
-            value={
-              <span className="rounded-md bg-accent-tint px-2 py-0.5 text-[11px] font-bold text-accent-dark">
-                {t.try.toUpperCase()}
-              </span>
-            }
-          />
-          <Link href="/help" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
-            {t.help}
+          <a
+            href={helpWhatsAppUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="help-whatsapp"
+            className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline"
+          >
+            {t.helpRow}
             <span className="text-xs text-muted-2">›</span>
-          </Link>
+          </a>
+          <button
+            type="button"
+            data-testid="delete-account"
+            onClick={() => {
+              setDeleteError("");
+              setDeleteOpen(true);
+            }}
+            className="w-full border-t border-line-2 px-4 py-[15px] text-left text-[15px] font-semibold text-accent"
+          >
+            {t.deleteAccount}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -260,7 +259,73 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+      <AccountDeleteDialog
+        open={deleteOpen}
+        busy={deleteBusy}
+        error={deleteError}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteOpen(false);
+        }}
+        onConfirm={() => {
+          setDeleteBusy(true);
+          setDeleteError("");
+          void api("/api/me/delete", { method: "POST", json: { source: "app" } }).then((res) => {
+            setDeleteBusy(false);
+            if (!res.ok) {
+              setDeleteError(t.deleteAccountError);
+              return;
+            }
+            setDeleteOpen(false);
+            logout();
+            router.push("/");
+          });
+        }}
+      />
     </PhoneShell>
+  );
+}
+
+function AccountDeleteDialog({
+  open,
+  busy,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  busy: boolean;
+  error: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useApp();
+  useEffect(() => {
+    if (!open) return;
+    pushOverlay("account-delete", onCancel);
+    return () => removeOverlay("account-delete");
+  }, [open, onCancel]);
+  if (!open) return null;
+  return (
+    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)]" onClick={onCancel} data-testid="delete-account-dialog">
+      <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5" onClick={(event) => event.stopPropagation()}>
+        <div className="font-display text-[20px] font-bold text-ink">{t.deleteAccountAsk}</div>
+        <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.deleteAccountText}</p>
+        {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+        <button
+          type="button"
+          data-testid="delete-account-confirm"
+          disabled={busy}
+          onClick={onConfirm}
+          className="shadow-btn mt-4 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-semibold text-accent-on disabled:opacity-60"
+        >
+          {t.deleteAccountDo}
+        </button>
+        <button type="button" data-testid="delete-account-cancel" onClick={onCancel} className="mt-2 h-[48px] w-full text-[15px] font-semibold text-muted">
+          {t.deleteAccountCancel}
+        </button>
+      </div>
+    </div>
   );
 }
 
