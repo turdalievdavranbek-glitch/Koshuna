@@ -176,8 +176,12 @@ export function mentionsMedicine(text: string): boolean {
   return MEDICINE.some((key) => n.includes(key));
 }
 
-export function suggestCategories(text: string, opts?: { personal?: boolean; last?: CategoryPick | null }): CategoryPick[] {
+export function suggestCategories(
+  text: string,
+  opts?: { personal?: boolean; last?: CategoryPick | null; section?: SectionId },
+): CategoryPick[] {
   const personal = opts?.personal !== false;
+  const only = opts?.section;
   const norm = normCategoryText(text);
   if (norm.length < 3) return [];
   const tokens = tokensOf(norm);
@@ -185,6 +189,7 @@ export function suggestCategories(text: string, opts?: { personal?: boolean; las
   type Scored = { pick: CategoryPick; specificity: number; depth: number };
   const scored: Scored[] = [];
   for (const entry of index) {
+    if (only && entry.section !== only) continue;
     let score = 0;
     let matched = 0;
     for (const key of entry.keys) {
@@ -232,7 +237,8 @@ export function suggestCategories(text: string, opts?: { personal?: boolean; las
   }
   if (out.length) return out;
   const last = opts?.last;
-  if (last && allowed({ ...last, score: 0 }, personal)) return [{ ...last, score: 0 }];
+  if (last && (!only || last.section === only) && allowed({ ...last, score: 0 }, personal)) return [{ ...last, score: 0 }];
+  if (only) return [{ section: only, score: 0 }];
   return [{ section: "secondhand", score: 0 }];
 }
 

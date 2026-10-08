@@ -20,6 +20,10 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, Photo, Toggle } from "@/components/ui";
 import { PostTypePicker } from "@/components/post-type-picker";
 import { PostTaxonomy, pickSection } from "@/components/post-taxonomy";
+import { ServiceCardFields } from "@/components/service-card-fields";
+import { writeLastCategory } from "@/lib/category-suggest";
+import { normalizePhoneInput } from "@/lib/phone";
+import { hasShopHours } from "@/lib/shops";
 import { GeoError } from "@/components/geo-error";
 import { IconBack } from "@/components/icons";
 import { showsNeighborPledge } from "@/lib/neighbor";
@@ -30,7 +34,7 @@ import { useDraftHistoryGuard } from "@/components/draft-guard";
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
 export function CardPost({ card }: { card: string }) {
-  const { t, user, draft, setDraft, publishDraft, saveDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide, setLeaveGuard, discardDraft } = useApp();
+  const { t, user, draft, setDraft, publishDraft, saveDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide, setLeaveGuard, discardDraft, updateProfile } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
@@ -43,6 +47,7 @@ export function CardPost({ card }: { card: string }) {
   const [entryCard, setEntryCard] = useState<string | null>(card);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState<LocateError | null>(null);
+  const [hoursAsk, setHoursAsk] = useState(false);
 
   const locateDraft = () => {
     if (geoBusy) return;
@@ -81,6 +86,13 @@ export function CardPost({ card }: { card: string }) {
       setDraft({
         ...pickSection(draft, "restaurants"),
         neighborPledge: false,
+      });
+    }
+    if (card === "service") {
+      setDraft({
+        ...pickSection(draft, "services"),
+        neighborPledge: false,
+        saleUnit: "service",
       });
     }
     // Apply once when opening a seller-card shortcut.
@@ -150,6 +162,8 @@ export function CardPost({ card }: { card: string }) {
   if (!user) return null;
 
   const bizCard = entryCard === "developer" || entryCard === "dealer" || entryCard === "cafe";
+  const serviceCard = entryCard === "service";
+  const needIdentity = Boolean(user && (!user.name?.trim() || !user.phone?.trim()));
   const published = publishedId ? allListings.find((item) => item.id === publishedId) : undefined;
 
   const bars = [step >= 1, step >= 2, step >= 3];
@@ -213,11 +227,62 @@ export function CardPost({ card }: { card: string }) {
               </div>
             </div>
 
+            {serviceCard ? (
+              <div data-testid="service-modes" className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  data-testid="service-mode-place"
+                  aria-pressed={draft.serviceMode === "place"}
+                  onClick={() => setDraft({ serviceMode: "place", serviceArea: undefined })}
+                  className="rounded-2xl border px-4 py-3.5 text-left"
+                  style={{
+                    borderColor: draft.serviceMode === "place" ? "#B8452F" : "#E4DCCE",
+                    background: draft.serviceMode === "place" ? "#FFF7F0" : "#FFFFFF",
+                  }}
+                >
+                  <div className="text-[15px] font-semibold text-ink">{t.serviceModePlace}</div>
+                </button>
+                <button
+                  type="button"
+                  data-testid="service-mode-mobile"
+                  aria-pressed={draft.serviceMode === "mobile"}
+                  onClick={() => setDraft({ serviceMode: "mobile", address: "", lat: undefined, lng: undefined })}
+                  className="rounded-2xl border px-4 py-3.5 text-left"
+                  style={{
+                    borderColor: draft.serviceMode === "mobile" ? "#B8452F" : "#E4DCCE",
+                    background: draft.serviceMode === "mobile" ? "#FFF7F0" : "#FFFFFF",
+                  }}
+                >
+                  <div className="text-[15px] font-semibold text-ink">{t.serviceModeMobile}</div>
+                </button>
+              </div>
+            ) : null}
+
             <MediaCapture
               draft={draft}
               onPatch={setDraft}
-              hint={entryCard === "cafe" ? t.pointPhotoHint : undefined}
-              emptyText={entryCard === "cafe" ? t.pointLive : undefined}
+              hint={
+                serviceCard
+                  ? draft.serviceMode === "mobile"
+                    ? t.servicePhotoHint
+                    : draft.serviceMode === "place"
+                      ? t.pointPhotoHint
+                      : undefined
+                  : entryCard === "cafe"
+                    ? t.pointPhotoHint
+                    : undefined
+              }
+              emptyText={
+                serviceCard
+                  ? draft.serviceMode === "mobile"
+                    ? t.servicePhotoEmpty
+                    : draft.serviceMode === "place"
+                      ? t.pointLive
+                      : undefined
+                  : entryCard === "cafe"
+                    ? t.pointLive
+                    : undefined
+              }
             />
 
             {draft.mediaKind === "text" ? (
@@ -265,9 +330,16 @@ export function CardPost({ card }: { card: string }) {
               {entryCard === "cafe" ? (
                 <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardCafeHint}</p>
               ) : null}
+              {serviceCard ? (
+                <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.sellCardServiceHint}</p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-3.5">
+              {serviceCard ? (
+                <ServiceCardFields draft={draft} onPatch={setDraft} />
+              ) : (
+              <>
               <Field label={t.title}>
                 <Input value={draft.title} onChange={(v) => setDraft({ title: v })} placeholder={t.title} />
               </Field>
@@ -491,9 +563,11 @@ export function CardPost({ card }: { card: string }) {
                 </div>
               </Field>
               )}
+              </>
+              )}
             </div>
 
-            {bizCard ? null : (
+            {bizCard || serviceCard ? null : (
             <div className="rounded-[18px] bg-ink p-4">
               <div className="flex items-center justify-between">
                 <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
@@ -505,6 +579,39 @@ export function CardPost({ card }: { card: string }) {
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
           </div>
           <div className="relative z-20 flex shrink-0 flex-col gap-2 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
+            {hoursAsk && serviceCard ? (
+              <div data-testid="hours-soft" className="rounded-[14px] border border-line bg-white p-3">
+                <p className="text-[13px] leading-[1.45] text-ink">{t.hoursSoftAsk}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    data-testid="hours-soft-fill"
+                    onClick={() => {
+                      setHoursAsk(false);
+                      document.getElementById("hours-block")?.scrollIntoView({ block: "center" });
+                    }}
+                    className="h-10 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen"
+                  >
+                    {t.hoursSoftFill}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="hours-soft-skip"
+                    onClick={() => {
+                      setHoursAsk(false);
+                      setError("");
+                      const params = new URLSearchParams(window.location.search);
+                      params.set("step", "2");
+                      router.push(`/post?${params.toString()}`);
+                      setStep(2);
+                    }}
+                    className="h-10 flex-1 rounded-xl border border-line text-[13px] font-semibold"
+                  >
+                    {t.hoursSoftSkip}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
             <div className="flex gap-2.5">
             <button
@@ -553,10 +660,20 @@ export function CardPost({ card }: { card: string }) {
                   setError(t.needFields);
                   return;
                 }
-                if (!spoken && !draft.price.trim() && draft.section !== "vacancies" && entryCard !== "cafe") {
+                if (serviceCard && !draft.serviceMode) {
+                  setError(t.serviceModeNeed);
+                  return;
+                }
+                if (!spoken && !draft.price.trim() && draft.section !== "vacancies" && entryCard !== "cafe" && !serviceCard) {
                   setError(t.needFields);
                   return;
                 }
+                if (serviceCard && !hasShopHours(draft.hours)) {
+                  setError("");
+                  setHoursAsk(true);
+                  return;
+                }
+                setHoursAsk(false);
                 setError("");
                 const params = new URLSearchParams(window.location.search);
                 params.set("step", "2");
@@ -586,7 +703,15 @@ export function CardPost({ card }: { card: string }) {
                 <div className="flex h-44 items-center justify-center bg-chip text-sm text-muted">{t.photos}</div>
               )}
               <div className="p-4">
-                {entryCard === "cafe" && !draft.price.trim() ? null : (
+                {serviceCard ? (
+                  <div className="font-display text-[21px] font-bold text-ink">
+                    {draft.price.trim()
+                      ? draft.priceFrom
+                        ? t.priceFromSom(draft.price.trim())
+                        : `${draft.price.trim()} сом`
+                      : t.priceNegotiable}
+                  </div>
+                ) : entryCard === "cafe" && !draft.price.trim() ? null : (
                 <div className="font-display text-[21px] font-bold text-ink">
                   {draft.price} KGS {draft.kind === "rent" ? t.perMonth : ""}
                 </div>
@@ -619,9 +744,26 @@ export function CardPost({ card }: { card: string }) {
               type="button"
               data-testid="post-publish"
               onClick={() => {
+                void (async () => {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (spoken && !draft.aiConfirmed) {
                   setError(t.needConfirm);
+                  return;
+                }
+                if (serviceCard && needIdentity) {
+                  const name = (draft.name || user.name || "").trim();
+                  const normalized = normalizePhoneInput(draft.phone || "");
+                  if (name.length < 1 || name.length > 40 || !normalized) {
+                    setError(draft.phone.trim() && !normalized ? t.phoneBad : t.phoneRequired);
+                    return;
+                  }
+                  const saved = await updateProfile({ name, phone: normalized });
+                  if (!saved.ok) {
+                    setError(saved.error === "phone" ? t.phoneBad : t.noNetSave);
+                    return;
+                  }
+                } else if (serviceCard && !user.phone) {
+                  setError(t.phoneRequired);
                   return;
                 }
                 const item = publishDraft();
@@ -629,9 +771,13 @@ export function CardPost({ card }: { card: string }) {
                   setError(t.needFields);
                   return;
                 }
+                if (serviceCard) {
+                  writeLastCategory({ section: item.section, category: item.category });
+                }
                 clearPostedDraft();
                 setPublishedId(item.id);
                 setStep(3);
+                })();
               }}
               className="shadow-btn h-[54px] flex-1 rounded-2xl text-base font-semibold"
               style={{

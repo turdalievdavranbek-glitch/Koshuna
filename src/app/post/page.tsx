@@ -36,7 +36,7 @@ export default function PostPage() {
 
   if (!ready || !user) return null;
   if (published) return <Published id={published} />;
-  if (card === "cafe" || card === "developer" || card === "dealer") return <CardPost card={card} />;
+  if (card === "cafe" || card === "developer" || card === "dealer" || card === "service") return <CardPost card={card} />;
   if (type === "personal") return <PersonalPost />;
   if (type === "business") return <BusinessPost />;
   return (

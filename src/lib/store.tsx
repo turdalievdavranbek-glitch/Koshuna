@@ -21,6 +21,7 @@ import { disableGoogleAutoSelect, GoogleLoginError, startGoogleSignIn } from "./
 import { nativeGoogleSignOut } from "./native-auth";
 import { collectRefKeys, displayUrl, hydrateRefs, releaseRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
+import { sanitizeServiceListing } from "./service-listing";
 import { channelsOf } from "./channels";
 import { isSectionVisible } from "./features";
 import { DICT } from "./i18n";
@@ -206,7 +207,7 @@ function unitFromDraft(d: DraftListing): Listing["unit"] | undefined {
   if (d.priceNegotiable) return undefined;
   if (d.section === "car-rental") return "day";
   if (d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy")) return "month";
-  if (d.saleUnit === "kg" || d.saleUnit === "piece" || d.saleUnit === "hour") return d.saleUnit;
+  if (d.saleUnit === "kg" || d.saleUnit === "piece" || d.saleUnit === "hour" || d.saleUnit === "service") return d.saleUnit;
   return undefined;
 }
 
@@ -240,7 +241,7 @@ function userListingFromDraft(
   const asRealtor = !dealer && hasRole(ctx.user, "realtor") && d.section === "rent";
   const sellerType = dealer ? "dealer" : asRealtor ? "realtor" : "owner";
   const title = d.title.trim() || ctx.untitled;
-  return {
+  const listing: Listing = {
     id: d.id && d.id.startsWith("user-") ? d.id : `user-${crypto.randomUUID()}`,
     section: d.section,
     category: categoryFromDraft(d),
@@ -305,7 +306,12 @@ function userListingFromDraft(
     contact: dealer ? "telegram" : "whatsapp",
     views: 0,
     favCount: 0,
+    serviceMode: d.section === "services" ? d.serviceMode : undefined,
+    serviceArea: d.section === "services" ? d.serviceArea : undefined,
+    priceFrom: d.section === "services" ? d.priceFrom === true : undefined,
+    hours: d.section === "services" ? d.hours : undefined,
     ...(() => {
+      if (d.serviceMode === "mobile") return { lat: undefined, lng: undefined, district: d.district };
       const coords = publishCoords({
         lat: d.lat,
         lng: d.lng,
@@ -321,7 +327,7 @@ function userListingFromDraft(
         district: d.district ?? area?.name,
       };
     })(),
-    meetupSpot: d.meetupSpot,
+    meetupSpot: d.section === "services" ? undefined : d.meetupSpot,
     specs: isCar
       ? [
           d.year ? { label: "year", value: String(d.year) } : null,
@@ -330,6 +336,7 @@ function userListingFromDraft(
         ].filter((row): row is { label: string; value: string } => Boolean(row))
       : undefined,
   };
+  return sanitizeServiceListing(listing);
 }
 
 function upsertExtraListing(extra: Listing[], listing: Listing): Listing[] {
@@ -1305,7 +1312,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     publishDraft: () => {
       const d = state.draft;
       const liveUser = userRef.current ?? state.user;
-      const priced = Boolean(d.priceNegotiable) || d.section === "vacancies" || d.section === "restaurants" || Boolean(d.price.trim());
+      const priced =
+        Boolean(d.priceNegotiable) ||
+        d.section === "vacancies" ||
+        d.section === "restaurants" ||
+        d.section === "services" ||
+        Boolean(d.price.trim());
       if (!d.title.trim() || !priced) return null;
       const listing = userListingFromDraft(d, {
         user: liveUser,

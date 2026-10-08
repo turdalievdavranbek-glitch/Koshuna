@@ -96,7 +96,9 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
   const unit = listing.unit && listingHasPrice(listing) ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
   const empty = priceLabel(listing, t.shopAskPrice, t.priceNegotiable);
-  const promo = dropped && listing.previousPrice ? (
+  const from = listing.section === "services" && listing.priceFrom === true && listingHasPrice(listing);
+  const amount = from ? t.priceFromSom(formatSom(listing.price)) : null;
+  const promo = listing.section === "services" ? null : dropped && listing.previousPrice ? (
     <div className={`flex items-center gap-1.5 ${large ? "mt-1" : compact ? "mt-0.5" : "mt-1"}`}>
       <span className={`text-muted-2 line-through ${large ? "text-sm" : compact ? "text-[10px]" : "text-xs"}`}>
         {formatSom(listing.previousPrice)}{large ? " KGS" : ""}
@@ -111,9 +113,9 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
       <div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-            {empty ?? `${formatSom(listing.price)} KGS`}
+            {amount ?? empty ?? `${formatSom(listing.price)} KGS`}
           </span>
-          {unit ? <span className="text-sm text-muted">{unit}</span> : null}
+          {unit && !amount ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
         {promo}
       </div>
@@ -123,7 +125,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
     <div>
       <div className="flex items-baseline gap-1.5">
         <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
-          {empty ?? (
+          {amount ?? empty ?? (
             <>
               {formatSom(listing.price)} {compact ? "" : "KGS"}
               {unit ? <span className="ml-1 text-xs font-medium text-muted">{unit}</span> : null}

@@ -11,6 +11,7 @@ import { NeighborMark } from "./neighbor-seal";
 import { ListingThumb, isVideoListing } from "./listing-media";
 import { ListingSocialMeta } from "./listing-social";
 import { Price } from "./ui";
+import { ServiceFacts } from "./service-facts";
 
 export function LayoutSwitch() {
   const { t, listingLayout, setListingLayout } = useApp();
@@ -71,7 +72,7 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {dropPercent(listing) != null ? (
+        {listing.section !== "services" && dropPercent(listing) != null ? (
           <span
             data-testid="promo-badge"
             className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen"
@@ -134,6 +135,7 @@ function ListingCard({
             {listing.area != null ? `${listing.area} м²` : null}
           </div>
         ) : null}
+        {layout !== "small" && listing.section === "services" ? <ServiceFacts listing={listing} compact /> : null}
         {layout !== "small" ? (
           <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
             {(listing.sellerName || (layout === "large" ? ownerById(listing.ownerId)?.name : undefined)) ? (

@@ -256,7 +256,9 @@ for (const path of servicePaths) {
 }
 check("path group", pathFromFilters(filters({ section: "services", category: "svc-health" })).join("/") === "svc-health/all");
 check("path leaf in group", pathFromFilters(filters({ section: "services", category: "dentist" })).join("/") === "svc-health/dentist");
-check("path top leaf", pathFromFilters(filters({ section: "services", category: "cleaning" })).join("/") === "cleaning");
+check("path top leaf", pathFromFilters(filters({ section: "services", category: "cleaning" })).join("/") === "svc-home/cleaning");
+check("old cleaning url still resolves", !!resolveBranch("services", ["cleaning"]));
+check("old beauty url still resolves", !!resolveBranch("services", ["beauty"]));
 check("path empty", pathFromFilters(filters({ section: "services", category: null })).length === 0);
 
 const plants = resolveBranch("animals", ["plants", "potato"]);
@@ -296,7 +298,7 @@ check("service root lists groups", !!top && top.options.some((row) => row.id ===
 check("BRANCH_ALL is all", BRANCH_ALL === "all");
 
 check("services dentist is a leaf", listingCategoryError({ section: "services", category: "dentist" }, null) === null);
-check("services group is not a listing category", listingCategoryError({ section: "services", category: "svc-health" }, null) === "bad-category");
+check("services group is a listing category", listingCategoryError({ section: "services", category: "svc-health" }, null) === null);
 check("services pharmacy is not a leaf", listingCategoryError({ section: "services", category: "pharmacy" }, null) === "bad-category");
 check(
   "medicine without a shop is pharmacy-only",

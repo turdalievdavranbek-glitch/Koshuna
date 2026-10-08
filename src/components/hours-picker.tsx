@@ -14,7 +14,15 @@ for (let hour = 0; hour < 24; hour += 1) {
 
 const WEEK: ShopDay[] = ["mon", "tue", "wed", "thu", "fri"];
 
-export function HoursPicker({ hours, onChange }: { hours?: ShopHours; onChange: (next: ShopHours | undefined) => void }) {
+export function HoursPicker({
+  hours,
+  onChange,
+  title,
+}: {
+  hours?: ShopHours;
+  onChange: (next: ShopHours | undefined) => void;
+  title?: string;
+}) {
   const { t } = useApp();
   const [state, setState] = useState<HoursPickerState>(() => hoursFromLegacy(hours));
   const seen = useRef(JSON.stringify(hours ?? null));
@@ -47,7 +55,7 @@ export function HoursPicker({ hours, onChange }: { hours?: ShopHours; onChange: 
 
   return (
     <div id="hours-block" data-testid="hours-block" className="flex flex-col gap-3">
-      <div className="text-[13px] font-semibold text-ink">{t.hoursTitle}</div>
+      <div className="text-[13px] font-semibold text-ink">{title || t.hoursTitle}</div>
       <div className="flex flex-wrap gap-2">
         <Chip
           testId="hours-918"

@@ -35,11 +35,14 @@ export function CategoryChips({
   onPatch,
   personal = true,
   autoApply = true,
+  section,
 }: {
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
   personal?: boolean;
   autoApply?: boolean;
+  /** When set, chips stay inside this section (the service card). */
+  section?: SectionId;
 }) {
   const { t } = useApp();
   const [picks, setPicks] = useState<CategoryPick[]>([]);
@@ -53,10 +56,10 @@ export function CategoryChips({
       const last = readLastCategory(personal);
       const short = text.length < 3;
       const next = short
-        ? last
+        ? last && (!section || last.section === section)
           ? [{ ...last, score: 0 }]
-          : [{ section: "secondhand" as const, score: 0 }]
-        : suggestCategories(text, { personal, last });
+          : [{ section: section ?? ("secondhand" as const), score: 0 }]
+        : suggestCategories(text, { personal, last, section });
       setAsLast(Boolean(short && last) || (!short && next[0]?.score === 0 && Boolean(last) && next[0]?.section === last?.section));
       setPicks(next);
       if (autoApply && !draft.categoryLocked && next[0]) onPatch(draftFromPick(draft, next[0], false));
@@ -64,7 +67,7 @@ export function CategoryChips({
     return () => window.clearTimeout(timer);
     // Recompute when the title changes. onPatch/draft identity would loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.title, draft.categoryLocked, personal, autoApply]);
+  }, [draft.title, draft.categoryLocked, personal, autoApply, section]);
 
   const medicine = personal && mentionsMedicine(draft.title);
   return (
@@ -86,6 +89,8 @@ export function CategoryChips({
               key={`${pick.section}-${pick.category ?? ""}-${pick.animalKind ?? ""}-${index}`}
               type="button"
               data-testid="cat-chip"
+              data-category={pick.category ?? ""}
+              data-selected={selected ? "true" : "false"}
               onClick={() => onPatch(draftFromPick(draft, pick, true))}
               className="rounded-full px-3 py-1.5 text-[13px] font-semibold"
               style={{ background: selected ? "#B8452F" : "#EFE8DB", color: selected ? "#FFF7F0" : "#17140F" }}
@@ -95,9 +100,11 @@ export function CategoryChips({
             </button>
           );
         })}
-        <button type="button" data-testid="cat-other" onClick={() => setOpen((v) => !v)} className="rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-accent">
-          {t.catOther}
-        </button>
+        {section ? null : (
+          <button type="button" data-testid="cat-other" onClick={() => setOpen((v) => !v)} className="rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-accent">
+            {t.catOther}
+          </button>
+        )}
       </div>
       {medicine ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.catPharmacyNote}</p> : null}
       {open ? (

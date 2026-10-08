@@ -28,6 +28,7 @@ import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ShareToSocial } from "@/components/share-to-social";
 import { ListingSocial } from "@/components/listing-social";
+import { ServiceFacts } from "@/components/service-facts";
 import { HonestyCard } from "@/components/honesty-card";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
@@ -245,7 +246,8 @@ export default function ListingPage() {
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
           </div>
-          {listing.lng != null && listing.lat != null ? (
+          <ServiceFacts listing={listing} />
+          {listing.lng != null && listing.lat != null && listing.serviceMode !== "mobile" ? (
             <div className="mt-3">
               <GisOnMapCard city={listing.city} lat={listing.lat} lng={listing.lng} listingId={listing.id} compact />
             </div>
