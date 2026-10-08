@@ -4,6 +4,11 @@ export function videoMaxBytes(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 80 * 1024 * 1024;
 }
 
+export function voiceMaxSeconds(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_VOICE_MAX_SECONDS || process.env.VOICE_MAX_SECONDS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 120;
+}
+
 export function videoMaxSeconds(): number {
   const raw = Number(process.env.VIDEO_MAX_SECONDS || process.env.NEXT_PUBLIC_VIDEO_MAX_SECONDS);
   return Number.isFinite(raw) && raw > 0 ? raw : 120;

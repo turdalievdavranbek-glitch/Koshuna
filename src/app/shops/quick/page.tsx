@@ -13,6 +13,7 @@ export default function ShopQuickPage() {
   const params = useSearchParams();
   const raw = params.get("card");
   const card = raw === "stall" || raw === "shop" ? raw : undefined;
+  const shopId = params.get("shop") || undefined;
 
   useEffect(() => {
     if (!user) {
@@ -41,7 +42,7 @@ export default function ShopQuickPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <ShopItemCapture card={card} />
+        <ShopItemCapture card={card} shopId={shopId} />
       </div>
     </PhoneShell>
   );

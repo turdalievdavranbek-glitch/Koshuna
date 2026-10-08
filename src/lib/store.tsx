@@ -14,11 +14,12 @@ import { api, onceRetry } from "./api/client";
 import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
+import { absorbMediaPatch, durableDraft, presentDraft } from "./draft-media";
 import { isAnimalGroup, isKnownAnimalKind } from "./data";
 import { hasPlaceFilter, scopeForSaved } from "./filter";
 import { disableGoogleAutoSelect, GoogleLoginError, startGoogleSignIn } from "./google-login";
 import { nativeGoogleSignOut } from "./native-auth";
-import { collectRefKeys, hydrateRefs, sweepOrphans, UploadFatal } from "./media-queue";
+import { collectRefKeys, displayUrl, hydrateRefs, releaseRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf } from "./channels";
 import { isSectionVisible } from "./features";
@@ -192,6 +193,36 @@ const defaultDraft = (): DraftListing => ({
   dealKind: "long",
 });
 
+function categoryFromDraft(d: DraftListing): string | undefined {
+  if (d.section === "vacancies") return undefined;
+  if (d.section === "services" || d.section === "secondhand" || d.section === "construction") return d.category || undefined;
+  if (d.section === "restaurants") return d.category ?? "national";
+  if (d.section === "shops") return d.category ?? "food";
+  if (d.section === "rent" || d.kind === "rent") return d.category || "rent";
+  return d.category || undefined;
+}
+
+function unitFromDraft(d: DraftListing): Listing["unit"] | undefined {
+  if (d.priceNegotiable) return undefined;
+  if (d.section === "car-rental") return "day";
+  if (d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy")) return "month";
+  if (d.saleUnit === "kg" || d.saleUnit === "piece" || d.saleUnit === "hour") return d.saleUnit;
+  return undefined;
+}
+
+function previousFromDraft(d: DraftListing): number | undefined {
+  const price = Number(d.price.replace(/\s/g, "")) || 0;
+  const old = Number((d.oldPrice || "").replace(/\s/g, "")) || 0;
+  if (d.priceNegotiable || price <= 0 || old <= price) return undefined;
+  return old;
+}
+
+function draftPhotos(d: DraftListing): string[] {
+  if (d.photos && d.photos.length) return d.photos;
+  if (d.photo) return [d.photo];
+  return [`/sections/${d.section === "car-rental" ? "cars" : d.section}.jpg`];
+}
+
 function userListingFromDraft(
   d: DraftListing,
   ctx: {
@@ -212,22 +243,7 @@ function userListingFromDraft(
   return {
     id: d.id && d.id.startsWith("user-") ? d.id : `user-${crypto.randomUUID()}`,
     section: d.section,
-    category:
-      d.section === "vacancies"
-        ? undefined
-        : d.section === "services"
-          ? d.category ?? "repairs-finish"
-          : d.section === "secondhand"
-            ? d.category ?? "furniture"
-            : d.section === "construction"
-              ? d.category ?? "cement"
-              : d.section === "restaurants"
-                ? d.category ?? "national"
-                : d.section === "shops"
-                  ? d.category ?? "food"
-                  : d.kind === "rent"
-                    ? "rent"
-                    : "furniture",
+    category: categoryFromDraft(d),
     goodsKind: d.section === "secondhand" ? d.goodsKind : undefined,
     housingKind: d.section === "rent" ? d.housingKind ?? "apartment" : undefined,
     dealKind: d.section === "rent" ? d.dealKind ?? "long" : undefined,
@@ -237,7 +253,7 @@ function userListingFromDraft(
     sellerType,
     sellerPhone: dealer?.phone ?? ctx.user?.phone,
     dealerId: dealer?.id,
-    animalGroup: d.section === "animals" ? d.animalGroup ?? "farm" : undefined,
+    animalGroup: d.section === "animals" ? d.animalGroup : undefined,
     animalKind: d.section === "animals" ? d.animalKind : undefined,
     carMake: isCar ? d.carMake : undefined,
     carModel: isCar ? d.carModel : undefined,
@@ -256,12 +272,13 @@ function userListingFromDraft(
     titleKy: title,
     titleEn: title,
     price: Number(d.price.replace(/\s/g, "")) || 0,
-    unit: d.section === "car-rental" ? "day" : d.section === "vacancies" || (d.kind === "rent" && d.dealKind !== "buy") ? "month" : undefined,
+    previousPrice: previousFromDraft(d),
+    unit: unitFromDraft(d),
     city: d.city,
     postedAgo: "2h",
     rooms: d.rooms ? Number(d.rooms) : undefined,
     area: d.area ? Number(d.area) : undefined,
-    photos: [d.photo || `/sections/${d.section === "car-rental" ? "cars" : d.section}.jpg`],
+    photos: draftPhotos(d),
     photoCredit: "",
     mediaKind: d.mediaKind ?? "photos",
     videoUrl: d.videoUrl,
@@ -272,7 +289,7 @@ function userListingFromDraft(
     calories: d.calories,
     ingredients: d.ingredients,
     voiceText: d.transcript,
-    voiceSec: d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined,
+    voiceSec: d.voiceSec ?? (d.transcript ? Math.max(8, Math.round(d.transcript.split(/\s+/).length / 2.4)) : undefined),
     description: d.description || d.transcript || title,
     descriptionKy: d.description || title,
     descriptionEn: d.description || title,
@@ -428,6 +445,10 @@ type Store = State & {
   requireAuth: (path: string) => boolean;
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
+  updateProfile: (patch: { name?: string; phone?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  discardDraft: () => void;
+  setLeaveGuard: (fn: ((intent: { proceed: () => void }) => void) | null) => void;
+  askLeave: (proceed: () => void) => boolean;
   publishDraft: () => Listing | null;
   saveDraft: () => Listing | null;
   online: boolean;
@@ -648,6 +669,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncErrorRef = useRef(false);
   const syncRef = useRef<(serverUser: User | null) => Promise<void>>(async () => undefined);
   const userRef = useRef<User | null>(state.user);
+  const leaveGuardRef = useRef<((intent: { proceed: () => void }) => void) | null>(null);
   userRef.current = state.user;
   syncErrorRef.current = syncError;
 
@@ -680,6 +702,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               email: serverUser.email,
               method: serverUser.method ?? s.user.method,
               joinedYear: serverUser.joinedYear || s.user.joinedYear,
+              roles: rolesForPhone(serverUser.phone || s.user.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
             }
           : {
               ...serverUser,
@@ -695,7 +718,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const ops = pendingOps();
       const keys = new Set<string>();
       for (const op of ops) collectRefKeys(op.body, keys);
+      collectRefKeys(next.draft, keys);
       await sweepOrphans(keys);
+      const shown = await presentDraft(next.draft);
+      if (!dead()) {
+        setState((s) => {
+          const swap = (cur?: string, display?: string) => (cur && cur.startsWith("kmedia:") ? display : cur);
+          return {
+            ...s,
+            draft: {
+              ...s.draft,
+              videoUrl: swap(s.draft.videoUrl, shown.videoUrl),
+              voiceUrl: swap(s.draft.voiceUrl, shown.voiceUrl),
+              photo: swap(s.draft.photo, shown.photo),
+              photos: s.draft.photos?.map((url, i) => swap(url, shown.photos?.[i]) || url),
+              draftMedia: s.draft.draftMedia ?? shown.draftMedia,
+            },
+          };
+        });
+      }
       if (dead()) return;
       const listings: Listing[] = [];
       for (const op of ops) {
@@ -890,19 +931,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       feed: _feed,
       ...rest
     } = state;
-    localStorage.setItem(
-      STORAGE,
-      JSON.stringify({
-        ...rest,
-        draft: {
-          ...state.draft,
-          videoUrl: persistableUrl(state.draft.videoUrl),
-          voiceUrl: persistableUrl(state.draft.voiceUrl),
-          photo: persistableUrl(state.draft.photo),
-        },
-        shopDraft: state.shopDraft ? (persistShop(state.shopDraft) as ShopDraft) : null,
-      }),
-    );
+    const payload = {
+      ...rest,
+      draft: durableDraft(state.draft),
+      shopDraft: state.shopDraft ? (persistShop(state.shopDraft) as ShopDraft) : null,
+    };
+    try {
+      localStorage.setItem(STORAGE, JSON.stringify(payload));
+    } catch (err) {
+      try {
+        const light = { ...payload.draft, description: "", transcript: "", photos: [] as string[] };
+        localStorage.setItem(STORAGE, JSON.stringify({ ...payload, draft: light, shopDraft: null }));
+      } catch {
+        console.warn("state persist skipped", err);
+      }
+    }
   }, [state, ready]);
 
   const update = useCallback((patch: Partial<State> | ((s: State) => State)) => {
@@ -1170,7 +1213,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     requireAuth: () => Boolean(state.user),
     setPendingPath: (path) => update({ pendingPath: path }),
-    setDraft: (patch) => update((s) => ({ ...s, draft: { ...s.draft, ...patch } })),
+    setDraft: (patch) => {
+      update((s) => ({ ...s, draft: { ...s.draft, ...patch, savedAt: new Date().toISOString() } }));
+      void absorbMediaPatch(patch).then(async (media) => {
+        if (!media) return;
+        const shownVideo = media.videoUrl ? await displayUrl(media.videoUrl) : undefined;
+        const shownVoice = media.voiceUrl ? await displayUrl(media.voiceUrl) : undefined;
+        const shownPhoto = media.photo ? await displayUrl(media.photo) : undefined;
+        update((s) => {
+          const next = { ...s.draft };
+          const mediaRefs = { ...s.draft.draftMedia };
+          let applied = false;
+          if (shownVideo && patch.videoUrl && s.draft.videoUrl === patch.videoUrl) {
+            next.videoUrl = shownVideo;
+            mediaRefs.video = media.draftMedia?.video;
+            applied = true;
+          }
+          if (shownVoice && patch.voiceUrl && s.draft.voiceUrl === patch.voiceUrl) {
+            next.voiceUrl = shownVoice;
+            mediaRefs.voice = media.draftMedia?.voice;
+            applied = true;
+          }
+          if (shownPhoto && patch.photo && s.draft.photo === patch.photo) {
+            next.photo = shownPhoto;
+            next.photos = [shownPhoto];
+            mediaRefs.photos = media.draftMedia?.photos;
+            applied = true;
+          }
+          // A cleared or replaced draft must not receive this upload.
+          if (!applied) return s;
+          next.savedAt = new Date().toISOString();
+          next.draftMedia = mediaRefs;
+          return { ...s, draft: next };
+        });
+      });
+    },
+    updateProfile: async (patch) => {
+      const res = await api<{ user?: User }>("/api/me", { method: "PATCH", json: patch });
+      if (!res.ok || !res.data?.user) return { ok: false, error: res.status === 0 ? "network" : res.error || "save" };
+      const serverUser = res.data.user;
+      const nextUser = state.user
+        ? {
+            ...state.user,
+            name: serverUser.name || state.user.name,
+            phone: serverUser.phone || "",
+            roles: rolesForPhone(serverUser.phone || "", false, state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
+          }
+        : null;
+      if (nextUser) userRef.current = nextUser;
+      update((s) => ({ ...s, user: nextUser ?? s.user }));
+      return { ok: true };
+    },
+    discardDraft: () => {
+      const current = state.draft;
+      void releaseRefs(current);
+      update((s) => ({
+        ...s,
+        draft: { ...defaultDraft(), name: s.user?.name ?? "", phone: s.user?.phone ?? "", city: s.city || "bishkek" },
+      }));
+    },
+    setLeaveGuard: (fn) => {
+      leaveGuardRef.current = fn;
+    },
+    askLeave: (proceed) => {
+      const fn = leaveGuardRef.current;
+      if (!fn) return false;
+      fn({ proceed });
+      return true;
+    },
     saveDraft: () => {
       const listing = userListingFromDraft(state.draft, {
         user: state.user,
@@ -1194,9 +1304,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })),
     publishDraft: () => {
       const d = state.draft;
-      if (!d.title.trim() || !d.price.trim()) return null;
+      const liveUser = userRef.current ?? state.user;
+      const priced = Boolean(d.priceNegotiable) || d.section === "vacancies" || Boolean(d.price.trim());
+      if (!d.title.trim() || !priced) return null;
       const listing = userListingFromDraft(d, {
-        user: state.user,
+        user: liveUser,
         dealerProfiles: state.dealerProfiles,
         untitled: t.draft,
         status: d.promote ? "promoted" : "active",

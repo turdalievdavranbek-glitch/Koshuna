@@ -11,6 +11,8 @@ export async function wireNativeShell(): Promise<void> {
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) return;
   wired = true;
+  const { wireNativeBack } = await import("./native-back");
+  void wireNativeBack();
   wireJsErrors();
   await wirePushPermission();
 }

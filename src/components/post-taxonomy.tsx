@@ -46,12 +46,12 @@ export function pickSection(draft: DraftListing, id: SectionId): Partial<DraftLi
   }
   if (id === "secondhand") {
     const keep = draft.category && (CATEGORIES as readonly string[]).includes(draft.category);
-    next.category = keep ? draft.category : "phones";
+    next.category = keep ? draft.category : undefined;
   }
-  if (id === "animals") next.animalGroup = draft.animalGroup ?? "farm";
+  if (id === "animals" && draft.animalGroup) next.animalGroup = draft.animalGroup;
   if (id === "services") {
     const keep = draft.category && (SERVICE_CATEGORIES as readonly string[]).includes(draft.category);
-    next.category = keep ? draft.category : SERVICE_CATEGORIES[0];
+    next.category = keep ? draft.category : undefined;
   }
   if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
   if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
@@ -84,7 +84,7 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
   }, [draft.vehicleGroup, draft.vehicleType]);
 
   useEffect(() => {
-    onTaxonomyReady?.(draft.section === "services" ? serviceLeafReady(draft.category, openGroup) : true);
+    onTaxonomyReady?.(true);
   }, [draft.section, draft.category, openGroup, onTaxonomyReady]);
 
   return (
@@ -312,7 +312,7 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
             rows={ANIMAL_GROUPS.map((id) => ({
               id,
               label: t.animalGroups[id] ?? id,
-              active: (draft.animalGroup ?? "farm") === id,
+              active: draft.animalGroup === id,
               onClick: () => onPatch({ animalGroup: id, animalKind: undefined }),
             }))}
           />
@@ -330,6 +330,9 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
 
       {draft.section === "services" ? (
         <>
+          {serviceLeafReady(draft.category, openGroup) ? null : (
+            <p className="text-[12px] leading-[1.4] text-muted">{t.catRefine}</p>
+          )}
           <SectionList
             title={t.category}
             rows={SERVICE_TOP.map((id) => ({
@@ -339,13 +342,13 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
               onClick: () => {
                 if (isServiceGroup(id)) {
                   setOpenGroup(id);
-                  onTaxonomyReady?.(serviceLeafReady(draft.category, id));
+                  onTaxonomyReady?.(true);
                   return;
                 }
                 setOpenGroup(null);
                 const next = draftAfterServiceTap(draft, id);
                 onPatch(next);
-                onTaxonomyReady?.(serviceLeafReady(next.category, null));
+                onTaxonomyReady?.(true);
               },
             }))}
           />

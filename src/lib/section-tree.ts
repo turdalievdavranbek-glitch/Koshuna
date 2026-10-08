@@ -115,8 +115,8 @@ function secondhand(path: string[]): BranchState | null {
       parentPath: [],
       options: kindOptions,
       patch: catPatch,
-      isPicker: true,
-      showFeed: false,
+      isPicker: kinds.length > 0,
+      showFeed: kinds.length === 0,
       eyebrow: (t) => (isTechCategory(cat) ? t.equipmentType : t.itemType),
     };
   }

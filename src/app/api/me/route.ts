@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { normalizePhoneInput } from "@/lib/phone";
 import { getDb } from "@/server/db";
 import { users } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
@@ -29,12 +30,20 @@ export async function PATCH(req: Request) {
   if (!body) return json({ error: "bad-json" }, 400);
   const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
   if (body.name != null) {
-    if (typeof body.name !== "string" || body.name.trim().length > 80) return bad("name");
-    patch.name = body.name.trim();
+    if (typeof body.name !== "string") return bad("name");
+    const name = body.name.trim();
+    if (name.length < 1 || name.length > 80) return bad("name");
+    patch.name = name;
   }
   if (body.phone != null) {
-    if (typeof body.phone !== "string" || body.phone.trim().length > 32) return bad("phone");
-    patch.phone = body.phone.trim() || null;
+    if (typeof body.phone !== "string") return bad("phone");
+    if (!body.phone.trim()) {
+      patch.phone = null;
+    } else {
+      const phone = normalizePhoneInput(body.phone);
+      if (!phone) return bad("phone");
+      patch.phone = phone;
+    }
   }
   if (body.lang != null) {
     if (body.lang !== "ru" && body.lang !== "ky") return bad("lang");

@@ -2,6 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api/client";
+import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { useApp } from "@/lib/store";
@@ -18,7 +20,24 @@ export default function ChatPage() {
   const listing = allListings.find((item) => item.id === (thread?.listingId ?? id));
   const owner = ownerById(thread?.ownerId ?? listing?.ownerId ?? "aida");
   const [text, setText] = useState("");
+  const [sellerPhone, setSellerPhone] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user || !listing || listing.ownerId === user.id || !isDbUserId(listing.ownerId)) {
+      setSellerPhone(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ phone?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`).then((res) => {
+      if (!cancel) setSellerPhone(res.ok ? res.data?.phone || null : null);
+    });
+    return () => {
+      cancel = true;
+    };
+    // Refetch only when the listing or the signed-in user changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, listing?.id, listing?.ownerId]);
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,9 +80,11 @@ export default function ChatPage() {
             </div>
             <div className="text-xs font-semibold text-success">{t.online}</div>
           </div>
-          <a href="tel:+996555123456">
-            <IconPhone size={19} color="#17140F" />
-          </a>
+          {sellerPhone && listing.ownerId !== user.id ? (
+            <a href={`tel:${sellerPhone}`} data-testid="chat-phone" aria-label={phoneDigits(sellerPhone)}>
+              <IconPhone size={19} color="#17140F" />
+            </a>
+          ) : null}
         </div>
         <button
           type="button"

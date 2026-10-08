@@ -36,10 +36,12 @@ export function ShopItemCapture({
   parent,
   kind,
   card,
+  shopId,
 }: {
   parent?: ShopCategory;
   kind?: ShopKind;
   card?: "shop" | "stall";
+  shopId?: string;
 }) {
   const { t, user, shops, ready, upsertShopProduct, setPendingPath, startShopDraft, setShopDraft, publishShop } = useApp();
   const router = useRouter();
@@ -77,7 +79,7 @@ export function ShopItemCapture({
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoFail, setGeoFail] = useState(false);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
-  const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
+  const shop = shopId ? shops.find((row) => row.id === shopId) : parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
   const here = parent && kind ? `/shops/c/${parent}/${kind}` : "/shops/quick";
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { captureVideoPoster, dropBlob, keepBlob, recorderMime, recorderOptions, startSpeech } from "@/lib/blob-media";
 import { FEATURES } from "@/lib/features";
-import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
+import { videoMaxBytes, videoMaxSeconds, voiceMaxSeconds } from "@/lib/media-limits";
 import {
   DEMO_POSTER_URL,
   DEMO_TRANSCRIPT,
@@ -21,11 +21,6 @@ import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 import { PostTypePicker } from "./post-type-picker";
 import { PostTaxonomy, pickSection } from "./post-taxonomy";
 
-function voiceMaxSeconds(): number {
-  const raw = Number(process.env.NEXT_PUBLIC_VOICE_MAX_SECONDS);
-  return Number.isFinite(raw) && raw > 0 ? raw : 120;
-}
-
 export function clampWall(wallSec: number, limit: number, auto: boolean) {
   return auto ? Math.min(wallSec, limit) : wallSec;
 }
@@ -40,9 +35,10 @@ function clock(total: number) {
 type Props = {
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
+  variant?: "default" | "personal";
 };
 
-export function MediaCapture({ draft, onPatch }: Props) {
+export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
   const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,6 +97,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
     });
 
   useEffect(() => {
+    if (variant === "personal") return;
     if (kind !== "video" || recording) return;
     const url = draft.videoUrl;
     if (!url || draft.transcript?.trim() || draft.voiceUrl) return;
@@ -112,7 +109,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
     return () => window.clearTimeout(id);
     // startRec is stable enough for this prompt-once path.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, draft.videoUrl, draft.transcript, draft.voiceUrl, recording]);
+  }, [kind, draft.videoUrl, draft.transcript, draft.voiceUrl, recording, variant]);
 
   const applySpeech = (text: string) => {
     heardRef.current = text;
@@ -274,6 +271,10 @@ export function MediaCapture({ draft, onPatch }: Props) {
       return;
     }
     const url = keepBlob(isVideo ? "video" : isAudio ? "voice" : "photo", file);
+    if (!isVideo && !isAudio && variant === "personal") {
+      onPatch({ photo: url, photos: [url], mediaKind: "photos", aiConfirmed: false });
+      return;
+    }
     if (isVideo) {
       const duration = await videoDuration(url);
       if (duration > videoMaxSeconds()) {
@@ -332,6 +333,88 @@ export function MediaCapture({ draft, onPatch }: Props) {
     setLive(DEMO_VOICE_TRANSCRIPT);
     setBusy("");
   };
+
+  if (variant === "personal") {
+    const hasMedia = Boolean(draft.videoUrl || draft.photo);
+    return (
+      <div>
+        {hasMedia ? (
+          <div className="overflow-hidden rounded-[16px] border border-line bg-white">
+            {draft.videoUrl ? (
+              <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="h-40 w-full bg-ink object-cover" />
+            ) : draft.photo ? (
+              <div className="h-40">
+                <Photo src={draft.photo} alt="" />
+              </div>
+            ) : null}
+            <button
+              type="button"
+              data-testid="post-reshoot"
+              onClick={() => onPatch({ videoUrl: undefined, photo: undefined, photos: [], draftMedia: undefined })}
+              className="h-11 w-full text-[14px] font-semibold text-accent"
+            >
+              {t.postReshoot}
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              data-testid="post-shoot"
+              onClick={() => void startRec("video")}
+              className="h-12 flex-1 rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
+            >
+              {t.postShootVideo}
+            </button>
+            <button
+              type="button"
+              data-testid="post-photo"
+              onClick={() => fileRef.current?.click()}
+              className="h-12 flex-1 rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+            >
+              {t.postPhoto}
+            </button>
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          data-testid="post-photo-file"
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void onFile(file);
+            e.target.value = "";
+          }}
+        />
+        <div className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+          <div className="text-[15px] font-semibold text-ink">{t.ownerVoice}</div>
+          <p className="mt-1 text-[12px] leading-[1.4] text-muted">
+            {t.ownerVoiceHint} ({t.voiceUpTo(voiceMaxSeconds())})
+          </p>
+          {draft.voiceUrl ? (
+            <div className="mt-2">
+              <audio src={draft.voiceUrl} controls className="w-full" />
+              <button type="button" onClick={() => onPatch({ voiceUrl: undefined })} className="mt-2 text-[13px] font-semibold text-accent">
+                {t.leaveDelete}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              data-testid="post-voice"
+              onClick={() => (recording ? stopRec() : void startRec("audio"))}
+              className="mt-2 h-10 rounded-xl border border-line px-3 text-[13px] font-bold"
+            >
+              {recording ? t.mediaListening : t.ownerVoice}
+            </button>
+          )}
+        </div>
+        {busy ? <p className="mt-2 text-[13px] text-accent">{busy}</p> : null}
+      </div>
+    );
+  }
 
   return (
     <div>

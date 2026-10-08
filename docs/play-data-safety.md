@@ -23,7 +23,7 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 | Personal info → Name (Имя) — from Google, shown on listings | Yes | No | No | Optional (Google account; also needed to post) | Account management, App functionality |
 | Personal info → Email address (Эл. почта) — from Google sign-in | Yes | No | No | Optional | Account management |
 | Personal info → User IDs (ID аккаунта Google, `sub`) | Yes | No | No | Optional | Account management |
-| Personal info → Phone number (Телефон) | Yes | No | No | Optional (needed to post, shown for «Позвонить») | App functionality |
+| Personal info → Phone number (Телефон) | Yes | No | No | Collected, required to publish a personal listing. Visible to other signed-in users on your listings (call / WhatsApp). Change or remove it in «Мои данные». | App functionality |
 | Photos and videos → Photos (Фото) | Yes | No | No | Optional | App functionality |
 | Photos and videos → Videos (Видео) | Yes | No | No | Optional | App functionality |
 | Audio files → Voice or sound recordings (Голос, звук) | Yes | No | No | Optional | App functionality |

@@ -61,6 +61,7 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   }
   const categoryError = listingCategoryError(merged, shopKinds);
   if (categoryError) return json({ error: categoryError }, 400);
+  if (!existing[0] && !merged.shopId && !user.phone) return json({ error: "phone-required" }, 400);
   if (merged.status && !isListingStatus(merged.status)) return json({ error: "bad-status" }, 400);
   if (!merged.status) merged.status = "active";
   const urls = listingMediaUrls(merged);

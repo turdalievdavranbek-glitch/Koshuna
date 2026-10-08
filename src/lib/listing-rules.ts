@@ -1,4 +1,4 @@
-import { isAnimalGroup, isKnownAnimalKind, SERVICE_CATEGORIES } from "./data";
+import { isAnimalGroup, isKnownAnimalKind, isServiceGroup, SERVICE_CATEGORIES } from "./data";
 
 export type ListingRuleError = "bad-category" | "pharmacy-only";
 
@@ -13,8 +13,9 @@ export function listingCategoryError(
   l: { section?: string; category?: string | null; animalGroup?: string | null; animalKind?: string | null },
   shopKinds: readonly string[] | null,
 ): ListingRuleError | null {
-  if (l.section === "services") {
-    if (!l.category || !LEAVES.includes(l.category)) return "bad-category";
+  if (l.section === "services" && l.category) {
+    const known = LEAVES.includes(l.category) || isServiceGroup(l.category);
+    if (!known) return "bad-category";
   }
   if (l.section === "animals") {
     if (l.animalGroup && !isAnimalGroup(l.animalGroup)) return "bad-category";
