@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { recorderMime, sampleVideoStills, startSpeech } from "@/lib/blob-media";
+import { recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
 import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { listingTitle } from "@/lib/i18n";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
@@ -135,7 +135,7 @@ export function RestaurantMenuCapture() {
       const recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recStreamRef.current = recStream;
       const mime = recorderMime("audio");
-      const rec = mime ? new MediaRecorder(recStream, { mimeType: mime }) : new MediaRecorder(recStream);
+      const rec = new MediaRecorder(recStream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("audio") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };
@@ -177,7 +177,7 @@ export function RestaurantMenuCapture() {
       setLive(true);
       setRecording(true);
       const mime = recorderMime("video");
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("video") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };

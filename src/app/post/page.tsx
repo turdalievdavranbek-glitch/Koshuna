@@ -8,6 +8,7 @@ import { meetupSpotsFor } from "@/lib/deal";
 import { gisCity, meetupCoords, nearestDistrict } from "@/lib/geo";
 import { listingChipLabel } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
+import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
 import { useApp } from "@/lib/store";
 import { classifyListingSpeech, aiToDraftPatch } from "@/lib/video-ai";
 import { MarketRangeCard } from "@/components/market-range";
@@ -29,6 +30,8 @@ export default function PostPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [error, setError] = useState("");
   const [publishedId, setPublishedId] = useState<string | null>(null);
+  const [uploadPending, setUploadPending] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const [paste, setPaste] = useState("");
   const [entryCard, setEntryCard] = useState<string | null>(null);
 
@@ -78,6 +81,23 @@ export default function PostPage() {
     // pendingPath/setPendingPath change identity each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
+  useEffect(() => {
+    if (step !== 3 || !publishedId) return;
+    return subscribeOutbox((snap) => {
+      const mine = pendingOps().some((op) => op.kind !== "putShop" && op.listingId === publishedId && !op.failed);
+      const item = allListings.find((row) => row.id === publishedId);
+      const localMedia = Boolean(
+        item &&
+          [item.videoUrl, item.voiceUrl, ...item.photos].some(
+            (url) => !!url && (url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("kmedia:")),
+          ),
+      );
+      setUploadPending(mine || localMedia);
+      const total = snap.sending?.total ?? 0;
+      setUploadPct(total > 0 ? Math.min(100, Math.round(((snap.sending?.sent ?? 0) / total) * 100)) : 0);
+    });
+  }, [step, publishedId, allListings]);
 
   if (!user) return null;
 
@@ -575,7 +595,12 @@ export default function PostPage() {
           <div className="flex flex-col items-center text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-tint text-2xl text-success">✓</div>
             <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
-            <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.publishedHint}</p>
+            <p className="mt-2 text-[15px] leading-[1.5] text-muted">{uploadPending ? t.publishedPendingHint : t.publishedHint}</p>
+            {uploadPending ? (
+              <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-chip">
+                <div className="h-full bg-accent" style={{ width: `${uploadPct}%` }} />
+              </div>
+            ) : null}
           </div>
           {published?.lat != null && published.lng != null ? (
             <div className="mt-6">

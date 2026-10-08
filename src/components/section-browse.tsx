@@ -18,6 +18,7 @@ import { RealtyChips } from "@/components/realty-chips";
 import { SellerKindChips } from "@/components/seller-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
+import { EmptyState } from "@/components/empty-state";
 import { PhoneShell } from "@/components/shell";
 import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
@@ -231,7 +232,7 @@ function BranchList({
 
 export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   const router = useRouter();
-  const { t, lang, filters, setFilters, setPendingPath, toggleFav } = useApp();
+  const { t, lang, filters, setFilters, setPendingPath, toggleFav, allListings, online, synced, resync } = useApp();
   const listings = useFiltered();
   const state = resolveBranch(id, path);
   const pathKey = path.join("/");
@@ -394,13 +395,13 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
         />
 
         {listings.length === 0 ? (
-          <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
-            <div className="text-[15px] font-semibold text-ink">{t.empty}</div>
-            <p className="mt-2 text-[13px] text-muted">{t.emptyHint}</p>
-            <button type="button" onClick={reset} className="mt-4 text-[13px] font-semibold text-accent">
-              {t.resetFilters}
-            </button>
-          </div>
+          !synced ? null : !online && allListings.every((item) => item.section !== id) ? (
+            <EmptyState variant="offline" onRetry={() => resync()} />
+          ) : allListings.every((item) => item.section !== id) ? (
+            <EmptyState variant="first" />
+          ) : (
+            <EmptyState variant="nothing" onReset={reset} />
+          )
         ) : (
           <ListingGrid listings={listings} onFav={onFav} />
         )}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
 import { useApp } from "@/lib/store";
+import { EmptyState } from "@/components/empty-state";
 import { PhoneShell } from "@/components/shell";
 import { ShopRows } from "@/components/shop-rows";
 import { ListingGrid } from "@/components/listing-grid";
@@ -92,8 +93,11 @@ export default function ShopsPage() {
           ))}
         </div>
         {!ready ? <p className="mt-6 text-[14px] text-muted">{t.shopLoad}</p> : null}
-        {ready && !list.length ? (
-          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : mine ? t.shopEmptyMine : t.shopEmpty}</p>
+        {ready && !list.length && !query && cat === "all" && city === "all" && !mine ? (
+          <EmptyState variant="nothing" title={t.shopEmpty} quiet />
+        ) : null}
+        {ready && !list.length && (query || cat !== "all" || city !== "all" || mine) ? (
+          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : t.shopEmptyMine}</p>
         ) : null}
         <div className="mt-4">
           <ShopRows shops={list} />
