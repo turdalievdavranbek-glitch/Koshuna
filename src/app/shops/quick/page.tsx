@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 
 export default function ShopQuickPage() {
@@ -32,7 +33,7 @@ export default function ShopQuickPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button type="button" onClick={() => goBack(router, "/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
             <IconBack size={16} color="#17140F" />
           </button>
           <span className="font-display text-[16px] font-bold">

@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { isShopCategory, shopKindsOf } from "@/lib/shops";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { ShopKindPicker } from "@/components/shop-kind-picker";
 
@@ -14,7 +15,10 @@ export default function ShopCategoryPage() {
   if (!isShopCategory(category) || !shopKindsOf(category).length) {
     return (
       <PhoneShell tab>
-        <div className="p-6 text-[15px] text-muted">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/shops" />
+          <div className="mt-4 text-[15px] text-muted">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }

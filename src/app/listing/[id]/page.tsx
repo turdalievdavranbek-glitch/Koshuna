@@ -11,7 +11,9 @@ import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
 import { shareListingLink } from "@/lib/share";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconWa } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
 import { NeighborCard, NeighborMark } from "@/components/neighbor-seal";
@@ -75,7 +77,10 @@ export default function ListingPage() {
   if (!listing) {
     return (
       <PhoneShell>
-        <div className="p-6">{t.empty}</div>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <p className="mt-4">{t.empty}</p>
+        </div>
       </PhoneShell>
     );
   }
@@ -140,7 +145,7 @@ export default function ListingPage() {
           <div className="absolute left-[18px] right-[18px] top-[12px] z-10 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => goBack(router, "/")}
               className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
             >
               <IconBack size={17} color="#17140F" />

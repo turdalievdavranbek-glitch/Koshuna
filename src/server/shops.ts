@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
-import { listingSectionForShop } from "@/lib/shops";
+import { listingSectionForShop, sanitizeShopHours } from "@/lib/shops";
 import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
 import { getDb } from "./db";
@@ -96,13 +96,14 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   const db = getDb();
   const existing = await db.select().from(shops).where(eq(shops.id, shop.id)).limit(1);
   if (existing[0] && existing[0].ownerId !== user.id) return { error: "forbidden", status: 403 };
-  const columns = shopToColumns({ ...shop, id: shop.id }, user.id);
+  const clean: Shop = { ...shop, hours: sanitizeShopHours(shop.hours) };
+  const columns = shopToColumns({ ...clean, id: clean.id }, user.id);
   if (!existing[0]) {
     await db.insert(shops).values(columns);
   } else {
-    await db.update(shops).set(columns).where(and(eq(shops.id, shop.id), eq(shops.ownerId, user.id)));
+    await db.update(shops).set(columns).where(and(eq(shops.id, clean.id), eq(shops.ownerId, user.id)));
   }
-  await syncProductListings(user, shop);
-  await attachMedia(user.id, shopMediaUrls(shop), { shopId: shop.id });
-  return { shop };
+  await syncProductListings(user, clean);
+  await attachMedia(user.id, shopMediaUrls(clean), { shopId: clean.id });
+  return { shop: clean };
 }

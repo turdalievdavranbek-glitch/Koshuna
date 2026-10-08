@@ -6,6 +6,7 @@ import { applyShopFilters, isShopCategory, isShopKind, parentOfShopKind, publicS
 import { shopKindLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
 import type { ShopCategory, ShopKind } from "@/lib/types";
+import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { ShopRows } from "@/components/shop-rows";
@@ -32,7 +33,10 @@ export default function ShopKindResultsPage() {
   if (!parentOk || !shopKindsOf(category).length || !kindOk) {
     return (
       <PhoneShell tab>
-        <div className="p-6 text-[15px] text-muted">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/shops" />
+          <div className="mt-4 text-[15px] text-muted">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }

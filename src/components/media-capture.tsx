@@ -36,9 +36,11 @@ type Props = {
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
   variant?: "default" | "personal";
+  hint?: string;
+  emptyText?: string;
 };
 
-export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
+export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyText }: Props) {
   const { t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -436,7 +438,7 @@ export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
           {t.mediaText}
         </Chip>
       </div>
-      <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.mediaHint}</p>
+      <p className="mt-2 text-[12px] leading-[1.45] text-muted">{hint || t.mediaHint}</p>
 
       {kind === "video" ? (
         <div className="mt-3 overflow-hidden rounded-[16px] border border-line bg-ink">
@@ -445,6 +447,11 @@ export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
           ) : (
             <div className="relative">
               <video ref={videoRef} muted playsInline className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover" />
+              {emptyText && !draft.videoUrl && !(recording && recMode === "video") ? (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-[14px] font-semibold text-screen">
+                  {emptyText}
+                </div>
+              ) : null}
               {recording && recMode === "video" ? (
                 <div className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
                   <div className="rounded-full bg-[rgba(23,20,15,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
@@ -539,7 +546,7 @@ export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
               }}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
-              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
+              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
             </button>
             <button
               type="button"
@@ -575,7 +582,7 @@ export function MediaCapture({ draft, onPatch, variant = "default" }: Props) {
               onClick={() => cameraRef.current?.click()}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
-              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="text-[11px] text-muted">{t.photos}</span>}
+              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
               <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
                 {t.mainPhoto}
               </span>

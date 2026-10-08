@@ -10,10 +10,11 @@ import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { applyShopAi, classifyShopSpeech } from "@/lib/shop-ai";
 import { shopErrorText } from "@/lib/shop-copy";
 import { publishErrors } from "@/lib/shop-rules";
-import { parentOfShopKind, SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
+import { hasShopHours, parentOfShopKind, SHOP_CATEGORIES, setPrimaryCategory, shopKindsOf, toggleExtraCategory, toggleShopKind } from "@/lib/shops";
 import { useApp } from "@/lib/store";
-import type { Shop, ShopCategory, ShopHoursSlot } from "@/lib/types";
+import type { Shop, ShopCategory } from "@/lib/types";
 import { GisOnMapCard } from "./gis-on-map";
+import { HoursPicker } from "./hours-picker";
 import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
 import { applySellerShopCategory } from "./shop-chips";
@@ -22,7 +23,7 @@ const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: f
 
 type AiState = "idle" | "recording" | "analyzing" | "ready" | "empty" | "error";
 
-export function ShopForm() {
+export function ShopForm({ boot = true }: { boot?: boolean } = {}) {
   const {
     t,
     user,
@@ -49,11 +50,13 @@ export function ShopForm() {
   const [error, setError] = useState("");
   const [onMap, setOnMap] = useState<{ lat: number; lng: number; city: string } | null>(null);
   const [deptParent, setDeptParent] = useState<ShopCategory | null>(null);
+  const [hoursAsk, setHoursAsk] = useState<"" | "save" | "publish">("");
 
   useEffect(() => {
+    if (!boot) return;
     if (!shopDraft && user) startShopDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopDraft, user]);
+  }, [shopDraft, user, boot]);
 
   if (!shopDraft) return <p className="text-[14px] text-muted">{t.shopLoad}</p>;
   const d = shopDraft;
@@ -169,6 +172,16 @@ export function ShopForm() {
     setError("");
   };
 
+  const runSave = (kind: "save" | "publish", skipHours = false) => {
+    if (!skipHours && !hasShopHours(d.hours)) {
+      setHoursAsk(kind);
+      return;
+    }
+    setHoursAsk("");
+    if (kind === "save") save();
+    else void publish();
+  };
+
   const publish = async () => {
     setError("");
     if (!d.aiConfirmed) {
@@ -199,27 +212,6 @@ export function ShopForm() {
     }
     setNote(t.published);
   };
-
-  const slot = (label: string, value: ShopHoursSlot | null | undefined, onChange: (next: ShopHoursSlot | null | undefined) => void) => (
-    <div className="rounded-[14px] border border-line bg-white p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-ink">{label}</span>
-        <Chip active={value === null} onClick={() => onChange(value === null ? { open: "09:00", close: "18:00" } : null)}>
-          {t.shopClosedDay}
-        </Chip>
-      </div>
-      {value !== null ? (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <Field label={t.shopOpen}>
-            <Input value={value?.open ?? ""} onChange={(v) => onChange({ open: v, close: value?.close ?? "18:00" })} placeholder="09:00" />
-          </Field>
-          <Field label={t.shopClose}>
-            <Input value={value?.close ?? ""} onChange={(v) => onChange({ open: value?.open ?? "09:00", close: v })} placeholder="18:00" />
-          </Field>
-        </div>
-      ) : null}
-    </div>
-  );
 
   return (
     <>
@@ -448,15 +440,42 @@ export function ShopForm() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Eyebrow>{t.shopHours}</Eyebrow>
-        {slot(t.shopWeekdays, d.hours?.weekdays, (weekdays) => lock("hours", { hours: { ...d.hours, weekdays } }))}
-        {slot(t.shopSaturday, d.hours?.saturday, (saturday) => lock("hours", { hours: { ...d.hours, saturday } }))}
-        {slot(t.shopSunday, d.hours?.sunday, (sunday) => lock("hours", { hours: { ...d.hours, sunday } }))}
-        <Field label={t.shopHoursNote}>
-          <Input value={d.hoursNote ?? ""} onChange={(v) => lock("hoursNote", { hoursNote: v })} />
-        </Field>
-      </div>
+      <HoursPicker hours={d.hours} onChange={(hours) => lock("hours", { hours })} />
+      {d.hoursNote?.trim() ? (
+        <div className="rounded-[14px] border border-line bg-white p-3">
+          <div className="text-[12px] font-semibold text-muted">{t.hoursOldNote}</div>
+          <p className="mt-1 text-[13px] leading-[1.4] text-ink">{d.hoursNote}</p>
+          <button type="button" onClick={() => lock("hoursNote", { hoursNote: "" })} className="mt-2 text-[13px] font-semibold text-accent">
+            {t.leaveDelete}
+          </button>
+        </div>
+      ) : null}
+      {hoursAsk ? (
+        <div data-testid="hours-soft" className="rounded-[14px] border border-line bg-white p-3">
+          <p className="text-[13px] leading-[1.45] text-ink">{t.hoursSoftAsk}</p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              data-testid="hours-soft-fill"
+              onClick={() => {
+                setHoursAsk("");
+                document.getElementById("hours-block")?.scrollIntoView({ block: "center" });
+              }}
+              className="h-10 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen"
+            >
+              {t.hoursSoftFill}
+            </button>
+            <button
+              type="button"
+              data-testid="hours-soft-skip"
+              onClick={() => runSave(hoursAsk, true)}
+              className="h-10 flex-1 rounded-xl border border-line text-[13px] font-semibold"
+            >
+              {t.hoursSoftSkip}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <Field label={t.shopPhone}>
         <Input value={d.contacts.phone ?? ""} onChange={(v) => lock("contacts", { contacts: { ...d.contacts, phone: v } })} />
@@ -493,10 +512,10 @@ export function ShopForm() {
       {note ? <p className="text-[13px] font-semibold text-success-ink">{note}</p> : null}
       {onMap ? <GisOnMapCard city={onMap.city} lat={onMap.lat} lng={onMap.lng} compact showHint /> : null}
 
-      <button type="button" onClick={save} className="h-12 rounded-2xl border border-line bg-white text-[15px] font-semibold">
+      <button type="button" onClick={() => runSave("save")} className="h-12 rounded-2xl border border-line bg-white text-[15px] font-semibold">
         {t.shopDraftSave}
       </button>
-      <button type="button" onClick={() => void publish()} className="shadow-btn h-12 rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
+      <button type="button" onClick={() => runSave("publish")} className="shadow-btn h-12 rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
         {t.shopPublish}
       </button>
     </div>

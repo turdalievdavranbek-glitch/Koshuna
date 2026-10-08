@@ -3,7 +3,9 @@
 import { useParams, useRouter } from "next/navigation";
 import { ownerById } from "@/lib/data";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack, IconVerified } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { ListingRow, RoundBtn } from "@/components/ui";
 
@@ -17,7 +19,10 @@ export default function OwnerPage() {
   if (!owner) {
     return (
       <PhoneShell>
-        <div className="p-6">{t.empty}</div>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <p className="mt-4">{t.empty}</p>
+        </div>
       </PhoneShell>
     );
   }
@@ -25,7 +30,7 @@ export default function OwnerPage() {
   return (
     <PhoneShell>
       <div className="px-5 pt-1">
-        <RoundBtn onClick={() => router.back()}>
+        <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/")}>
           <IconBack size={16} color="#17140F" />
         </RoundBtn>
         <div className="mt-5 flex items-center gap-3.5">

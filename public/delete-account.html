@@ -17,12 +17,14 @@
     .date { color:var(--muted); margin:0; }
     .note { background:#fff3e4; border-left:4px solid var(--red); padding:12px 16px; margin:18px 0; }
     a { color:var(--red); }
+    .back { display:inline-flex; align-items:center; margin:0 0 14px; color:var(--red); font-weight:700; text-decoration:none; }
     footer { border-top:1px solid #e3d7ca; color:var(--muted); font-size:.93rem; margin-top:34px; padding-top:18px; }
   </style>
 </head>
 <body>
   <main>
     <header>
+      <a class="back" data-legal-back href="/profile">‹ Назад</a>
       <h1>Удаление аккаунта</h1>
       <p class="date">Коңшу / Koshuna · дата: 8 октября 2026 года</p>
     </header>
@@ -50,5 +52,6 @@
 
     <footer>Коңшу / Koshuna · разработчик: Давранбек Турдалиев</footer>
   </main>
+  <script src="/legal-back.js"></script>
 </body>
 </html>

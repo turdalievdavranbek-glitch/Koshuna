@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
+import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
 import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
 import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
@@ -22,6 +22,9 @@ import {
   validPrice,
   validQuantity,
   SHOP_CATEGORIES,
+  hasShopHours,
+  hoursToStored,
+  type HoursPickerState,
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
@@ -30,6 +33,7 @@ import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
 import { GisOnMapCard } from "./gis-on-map";
+import { HoursPicker } from "./hours-picker";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function ShopItemCapture({
@@ -45,6 +49,7 @@ export function ShopItemCapture({
 }) {
   const { t, user, shops, ready, upsertShopProduct, setPendingPath, startShopDraft, setShopDraft, publishShop } = useApp();
   const router = useRouter();
+  const createdQuery = useSearchParams().get("created");
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,13 +78,24 @@ export function ShopItemCapture({
   const [placeName, setPlaceName] = useState("");
   const [placeAddress, setPlaceAddress] = useState("");
   const [hoursNote, setHoursNote] = useState("");
+  const [hoursState, setHoursState] = useState<HoursPickerState>({ days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false });
+  const [pointVideo, setPointVideo] = useState("");
+  const [doneId, setDoneId] = useState(createdQuery);
+  const [hoursAsk, setHoursAsk] = useState(false);
   const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
   const [placeLat, setPlaceLat] = useState<number | undefined>();
   const [placeLng, setPlaceLng] = useState<number | undefined>();
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoFail, setGeoFail] = useState(false);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
-  const shop = shopId ? shops.find((row) => row.id === shopId) : parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
+  const pointMode = Boolean(card) && !shopId;
+  const shop = shopId
+    ? shops.find((row) => row.id === shopId)
+    : pointMode
+      ? undefined
+      : parent
+        ? pickShopForKind(shops, user, parent, kind)
+        : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
   const here = parent && kind ? `/shops/c/${parent}/${kind}` : "/shops/quick";
 
@@ -95,7 +111,7 @@ export function ShopItemCapture({
   }, []);
 
   useEffect(() => {
-    if (!photo) return;
+    if (pointMode || !photo) return;
     const next = photoForProductTitle(title, kind);
     if (!next || next === photo) return;
     if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title)) {
@@ -109,7 +125,7 @@ export function ShopItemCapture({
     return () => {
       cancelled = true;
     };
-  }, [kind, photo, title]);
+  }, [kind, photo, pointMode, title]);
 
   const rememberSpeech = (text: string) => {
     spokenRef.current = text;
@@ -145,6 +161,12 @@ export function ShopItemCapture({
 
   const applyPhoto = async (dataUrl: string) => {
     setError("");
+    if (pointMode) {
+      const compact = await jpegDataUrl(dataUrl, 900);
+      setPhoto(compact);
+      setAi("");
+      return;
+    }
     setAi(t.shopItemAiBusy);
     const compact = await jpegDataUrl(dataUrl, 900);
     const tag =
@@ -343,6 +365,13 @@ export function ShopItemCapture({
       setError(t.shopVideoSize);
       return;
     }
+    if (pointMode) {
+      const url = keepBlob("video", blob);
+      const poster = (await captureVideoPoster(url)) ?? "";
+      setPointVideo(url);
+      if (poster) setPhoto(poster);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     try {
       const stills = await sampleVideoStills(url, shopVideoMaxStills());
@@ -405,7 +434,74 @@ export function ShopItemCapture({
     setMapPin(null);
   };
 
+  const registerPoint = async (skipHours = false) => {
+    setError("");
+    setNote("");
+    setMapPin(null);
+    if (!user) {
+      setPendingPath(here);
+      router.push("/login");
+      return;
+    }
+    if (!photo && !pointVideo) {
+      setError(t.shopItemNeedPhoto);
+      return;
+    }
+    if (!placeName.trim()) {
+      setError(t.shopNeedName);
+      return;
+    }
+    if (!placeAddress.trim() && placeLat == null) {
+      setError(t.shopNeedAddress);
+      return;
+    }
+    if (!cardCat) {
+      setError(t.shopNeedCategory);
+      return;
+    }
+    const stored = hoursToStored(hoursState);
+    if (!skipHours && !hasShopHours(stored)) {
+      setHoursAsk(true);
+      return;
+    }
+    setHoursAsk(false);
+    const draft = startShopDraft(undefined, { fresh: true });
+    if (!draft) {
+      setPendingPath(here);
+      router.push("/shops/new");
+      return;
+    }
+    const shopToSave: Shop = {
+      ...draft,
+      name: placeName.trim(),
+      address: placeAddress.trim() || t.cities[draft.city] || draft.city,
+      hours: stored,
+      hoursNote: "",
+      venueKind: card ?? "shop",
+      category: cardCat,
+      status: "draft",
+      lat: placeLat ?? draft.lat,
+      lng: placeLng ?? draft.lng,
+      coverUrl: photo || undefined,
+      videoUrl: pointVideo || undefined,
+      contacts: { ...draft.contacts, whatsapp: true },
+      products: [],
+    };
+    setShopDraft(shopToSave);
+    const saved = await publishShop(shopToSave);
+    if (saved.error || !saved.shop) {
+      setError(shopErrorText(t, saved.error));
+      return;
+    }
+    setDoneId(saved.shop.id);
+    router.replace(`/shops/quick?card=${card}&created=${saved.shop.id}`);
+  };
+
   const publish = async () => {
+    if (pointMode) {
+      await registerPoint();
+      return;
+    }
     setError("");
     setNote("");
     setMapPin(null);
@@ -553,6 +649,28 @@ export function ShopItemCapture({
   const confirming = drafts.length > 0;
   const selectedCount = drafts.filter((row) => row.selected).length;
 
+  if (doneId) {
+    return (
+      <div className="pb-5" data-testid="point-created">
+        <p className="font-display text-[22px] font-bold text-ink">{t.pointCreated}</p>
+        <button
+          type="button"
+          onClick={() => router.push(`/shops/quick?shop=${doneId}`)}
+          className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
+        >
+          {t.pointAddProduct}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/shops/${doneId}`)}
+          className="mt-2 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
+        >
+          {t.pointOpen}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-5">
       {parent && kind ? (
@@ -570,15 +688,19 @@ export function ShopItemCapture({
         <Chip active={mode === "photos"} onClick={() => changeMode("photos")}>
           {t.mediaPhotos}
         </Chip>
-        <Chip active={mode === "voice"} accent={mode === "voice"} onClick={() => changeMode("voice")}>
-          {t.mediaVoice}
-        </Chip>
+        {pointMode ? null : (
+          <Chip active={mode === "voice"} accent={mode === "voice"} onClick={() => changeMode("voice")}>
+            {t.mediaVoice}
+          </Chip>
+        )}
         <Chip active={mode === "video"} accent={mode === "video"} onClick={() => changeMode("video")}>
           {t.mediaVideo}
         </Chip>
-        <Chip active={mode === "text"} onClick={() => changeMode("text")}>
-          {t.mediaText}
-        </Chip>
+        {pointMode ? null : (
+          <Chip active={mode === "text"} onClick={() => changeMode("text")}>
+            {t.mediaText}
+          </Chip>
+        )}
       </div>
 
       {confirming ? (
@@ -649,6 +771,7 @@ export function ShopItemCapture({
         </div>
       ) : (
         <>
+          {pointMode ? <p className="mt-3 text-[13px] leading-[1.45] text-muted">{t.pointPhotoHint}</p> : null}
           {mode !== "text" ? (
           <div className="mt-3 overflow-hidden rounded-[18px] bg-ink">
             <video ref={videoRef} muted playsInline className={live ? "aspect-[4/5] w-full object-cover" : "hidden"} />
@@ -659,7 +782,7 @@ export function ShopItemCapture({
             {!live && (mode === "video" || !photo) ? (
               <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 px-6 text-center">
                 <IconCamera size={28} color="#FFF7F0" />
-                <div className="text-[14px] font-semibold text-screen">{mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
+                <div className="text-[14px] font-semibold text-screen">{pointMode ? t.pointLive : mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
               </div>
             ) : null}
           </div>
@@ -685,9 +808,11 @@ export function ShopItemCapture({
                   {t.gallery}
                 </button>
               </div>
+              {pointMode ? null : (
               <button type="button" onClick={() => void demoTag()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
                 {t.shopItemDemoTag}
               </button>
+              )}
             </>
           ) : null}
 
@@ -757,13 +882,14 @@ export function ShopItemCapture({
             </div>
           ) : null}
 
-          {mode !== "text" ? (
+          {mode !== "text" && !pointMode ? (
           <button type="button" onClick={() => void runDemo()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
             {t.shopQuickDemo}
           </button>
           ) : null}
           <input
             ref={fileRef}
+            data-testid="point-photo"
             type="file"
             accept="image/*"
             capture="environment"
@@ -778,10 +904,10 @@ export function ShopItemCapture({
           {card ? (
             <div className="mt-3 flex flex-col gap-3">
               <Field label={t.shopName}>
-                <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
+                <Input testId="point-name" value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
               </Field>
               <Field label={t.venueAddress}>
-                <Input value={placeAddress} onChange={setPlaceAddress} />
+                <Input testId="point-address" value={placeAddress} onChange={setPlaceAddress} />
               </Field>
               <button
                 type="button"
@@ -812,13 +938,25 @@ export function ShopItemCapture({
                   </Chip>
                 ))}
               </div>
+              {pointMode ? (
+                <HoursPicker
+                  onChange={(next) => {
+                    setHoursState(
+                      next
+                        ? { days: next.days ?? ["mon", "tue", "wed", "thu", "fri"], slot: next.allDay ? null : next.slot ?? null, allDay: Boolean(next.allDay) }
+                        : { days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false },
+                    );
+                  }}
+                />
+              ) : (
               <Field label={t.shopHoursOptional}>
                 <Input value={hoursNote} onChange={setHoursNote} />
               </Field>
+              )}
             </div>
           ) : null}
 
-          {mode === "photos" ? (
+          {mode === "photos" && !pointMode ? (
             <div className="mt-4 flex flex-col gap-3">
               <Field label={t.shopItemName}>
                 <Input value={title} onChange={setTitle} />
@@ -866,6 +1004,32 @@ export function ShopItemCapture({
         </>
       )}
 
+      {hoursAsk && pointMode ? (
+        <div data-testid="hours-soft" className="mt-3 rounded-[14px] border border-line bg-white p-3">
+          <p className="text-[13px] leading-[1.45] text-ink">{t.hoursSoftAsk}</p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              data-testid="hours-soft-fill"
+              onClick={() => {
+                setHoursAsk(false);
+                document.getElementById("hours-block")?.scrollIntoView({ block: "center" });
+              }}
+              className="h-10 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen"
+            >
+              {t.hoursSoftFill}
+            </button>
+            <button
+              type="button"
+              data-testid="hours-soft-skip"
+              onClick={() => void registerPoint(true)}
+              className="h-10 flex-1 rounded-xl border border-line text-[13px] font-semibold"
+            >
+              {t.hoursSoftSkip}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
       {mapPin ? (
@@ -895,8 +1059,8 @@ export function ShopItemCapture({
         >
           {t.shopPublishSelected(selectedCount)}
         </button>
-      ) : mode === "photos" || mode === "text" ? (
-        <button type="button" onClick={() => void publish()} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
+      ) : pointMode || mode === "photos" || mode === "text" ? (
+        <button type="button" data-testid="point-publish" onClick={() => void publish()} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
           {t.shopItemPublish}
         </button>
       ) : null}

@@ -7,6 +7,7 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input, RoundBtn } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { FEATURES } from "@/lib/features";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 
 export default function CardPage() {
@@ -28,7 +29,7 @@ export default function CardPage() {
   return (
     <PhoneShell>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-8">
-        <RoundBtn onClick={() => router.back()}>
+        <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
           <IconBack size={16} color="#17140F" />
         </RoundBtn>
         <h1 className="mt-8 font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.cardTitle}</h1>

@@ -10,6 +10,7 @@
   h1 { font-size: 22px; margin: 0 0 12px; }
   p { font-size: 15px; line-height: 1.45; color: #D9D0C3; margin: 0 0 24px; }
   button { background: #E8112D; color: #fff; border: 0; border-radius: 14px; height: 48px; padding: 0 20px; font-size: 16px; font-weight: 600; }
+  a.back { display: inline-block; margin-top: 18px; color: #F7F3EC; font-weight: 700; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -17,11 +18,12 @@
   <h1 id="title">Нет интернета</h1>
   <p id="hint">Проверьте связь. То, что сохранено на телефоне, не пропадёт.</p>
   <button id="retry" type="button">Повторить</button>
+  <div><a id="back" class="back" href="/">‹ Назад</a></div>
 </main>
 <script>
   var copy = {
-    ru: { title: "Нет интернета", hint: "Проверьте связь. То, что сохранено на телефоне, не пропадёт.", retry: "Повторить" },
-    ky: { title: "Интернет жок", hint: "Байланышты текшериңиз. Телефонго сакталгандар жоголбойт.", retry: "Кайталоо" }
+    ru: { title: "Нет интернета", hint: "Проверьте связь. То, что сохранено на телефоне, не пропадёт.", retry: "Повторить", back: "‹ Назад" },
+    ky: { title: "Интернет жок", hint: "Байланышты текшериңиз. Телефонго сакталгандар жоголбойт.", retry: "Кайталоо", back: "‹ Артка" }
   };
   var lang = "ru";
   try {
@@ -34,6 +36,14 @@
   document.getElementById("hint").textContent = text.hint;
   document.getElementById("retry").textContent = text.retry;
   document.getElementById("retry").onclick = function () { location.reload(); };
+  var back = document.getElementById("back");
+  back.textContent = text.back;
+  back.onclick = function (event) {
+    if (window.history.length > 1) {
+      event.preventDefault();
+      window.history.back();
+    }
+  };
   window.addEventListener("online", function () { location.reload(); });
 </script>
 </body>

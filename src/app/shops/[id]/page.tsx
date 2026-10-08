@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
-import { canSeeShop, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
+import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
 import { useApp } from "@/lib/store";
@@ -16,7 +16,9 @@ import { TrustStars } from "@/components/trust-stars";
 import { FEATURES } from "@/lib/features";
 import { GisOnMapCard } from "@/components/gis-on-map";
 import { starsForUser } from "@/lib/trust";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,11 +46,19 @@ export default function ShopDetailPage() {
   if (!shop || !visible) {
     return (
       <PhoneShell>
-        <div className="p-6 text-[15px] text-muted">{shop ? t.shopHidden : t.empty}</div>
+        <div className="p-6 text-[15px] text-muted">
+          <ScreenBack fallback="/shops" />
+          <p className="mt-4">{shop ? t.shopHidden : t.empty}</p>
+        </div>
       </PhoneShell>
     );
   }
 
+  const hoursLine = formatShopHours(shop.hours, {
+    days: { mon: t.dayMon, tue: t.dayTue, wed: t.dayWed, thu: t.dayThu, fri: t.dayFri, sat: t.daySat, sun: t.daySun },
+    daily: t.hoursDaily,
+    allDay: t.hours24,
+  });
   const url = shopPublicUrl(shop.id);
   const shareText = t.shopShareBody(shop.name, t.cities[shop.city] || shop.city, shop.address, url);
   const ping = (msg: string) => {
@@ -81,7 +91,7 @@ export default function ShopDetailPage() {
     <PhoneShell>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.back()} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button type="button" onClick={() => goBack(router, "/shops")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
             <IconBack size={16} color="#17140F" />
           </button>
           <span className="font-display text-[15px] font-bold">{t.shopCard}</span>
@@ -136,11 +146,7 @@ export default function ShopDetailPage() {
           {open === true ? <div className="mt-1 text-[12px] font-bold text-success">{t.shopOpenNow}</div> : null}
           {open === false ? <div className="mt-1 text-[12px] font-bold text-muted">{t.shopClosedNow}</div> : null}
           {shop.hoursNote ? <div className="mt-1 text-[12px] text-muted">{shop.hoursNote}</div> : null}
-          {shop.hours?.weekdays ? (
-            <div className="mt-1 text-[12px] text-muted">
-              {t.shopWeekdays}: {shop.hours.weekdays.open}–{shop.hours.weekdays.close}
-            </div>
-          ) : null}
+          {hoursLine ? <div className="mt-1 text-[12px] text-muted">{hoursLine}</div> : null}
         </div>
         {shop.lat != null && shop.lng != null ? (
           <div className="mt-3">

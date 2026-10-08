@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { COMPLEX_AMENITIES, COMPLEX_CLASSES, COMPLEX_STAGES, hasRole, type ComplexAmenity } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
@@ -41,8 +42,9 @@ export default function DeveloperCabinetPage() {
   if (!hasRole(user, "developer") || !profile) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <p className="text-muted">{t.applyDeveloper}</p>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/selling" />
+          <p className="mt-4 text-muted">{t.applyDeveloper}</p>
           <button type="button" onClick={() => router.push("/partner?kind=developer")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.partnerApplyTitle}
           </button>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { RoundBtn } from "@/components/ui";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 
 export default function NotificationsPage() {
@@ -23,7 +24,7 @@ export default function NotificationsPage() {
   return (
     <PhoneShell>
       <div className="flex items-center gap-3 px-5 pt-1">
-        <RoundBtn onClick={() => router.back()}>
+        <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
           <IconBack size={16} color="#17140F" />
         </RoundBtn>
         <h1 className="font-display text-[22px] font-bold text-ink">{t.notifTitle}</h1>

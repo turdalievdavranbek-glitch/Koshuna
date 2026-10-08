@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FEATURES } from "@/lib/features";
 import { hasRole, type ApplicationKind } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
@@ -27,8 +28,9 @@ function PartnerApplyInner() {
   if (!user) {
     return (
       <PhoneShell>
-        <div className="px-5 pt-4">
-          <button type="button" onClick={() => { setPendingPath("/partner"); router.push("/login"); }} className="shadow-btn h-12 w-full rounded-2xl bg-accent font-semibold text-accent-on">
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/selling" />
+          <button type="button" onClick={() => { setPendingPath("/partner"); router.push("/login"); }} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent font-semibold text-accent-on">
             {t.loginCta}
           </button>
         </div>

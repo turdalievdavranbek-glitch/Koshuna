@@ -21,6 +21,7 @@ import {
   type PlacePatch,
 } from "@/lib/places";
 import { locate, type LocateError } from "@/lib/locate";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 import type { Filters } from "@/lib/types";
 import { GeoError } from "@/components/geo-error";
@@ -115,7 +116,7 @@ export default function LocationPage() {
       <div className="flex items-center justify-between px-5 pb-2 pt-1">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
           <IconBack size={16} color="#17140F" />

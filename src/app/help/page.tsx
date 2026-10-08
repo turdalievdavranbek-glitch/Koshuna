@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { RoundBtn } from "@/components/ui";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 
 export default function HelpPage() {
@@ -12,7 +13,7 @@ export default function HelpPage() {
   return (
     <PhoneShell>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
-        <RoundBtn onClick={() => router.back()}>
+        <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
           <IconBack size={16} color="#17140F" />
         </RoundBtn>
         <h1 className="mt-5 font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.helpTitle}</h1>

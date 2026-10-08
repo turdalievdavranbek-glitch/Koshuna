@@ -6,6 +6,8 @@ import { api } from "@/lib/api/client";
 import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { ScreenBack } from "@/components/back-button";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 import { IconBack, IconPhone, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -51,7 +53,10 @@ export default function ChatPage() {
   if (!thread || !listing || !owner) {
     return (
       <PhoneShell>
-        <div className="p-6">{t.emptyInbox}</div>
+        <div className="p-6">
+          <ScreenBack fallback="/messages" />
+          <p className="mt-4">{t.emptyInbox}</p>
+        </div>
       </PhoneShell>
     );
   }
@@ -67,7 +72,7 @@ export default function ChatPage() {
     <PhoneShell>
       <div className="shrink-0 border-b border-line bg-white">
         <div className="flex items-center gap-3 px-4 pb-3 pt-1.5">
-          <button type="button" onClick={() => router.back()}>
+          <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
             <IconBack size={18} color="#17140F" />
           </button>
           <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-ink font-display text-base font-bold text-screen">

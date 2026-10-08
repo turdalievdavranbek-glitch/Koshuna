@@ -7,7 +7,10 @@ import {
   type ShopCategory,
   type ShopDraft,
   type ShopFilters,
+  SHOP_DAYS,
+  type ShopDay,
   type ShopHours,
+  type ShopHoursSlot,
   type ShopKind,
   type ShopProduct,
   type ShopStatus,
@@ -161,15 +164,150 @@ export function parseHour(raw: string): { h: number; m: number } | null {
   return { h, m: min };
 }
 
-export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): boolean | null {
-  if (!hours) return null;
-  const usable = [hours.weekdays, hours.saturday, hours.sunday].some(
-    (slot) => slot && parseHour(slot.open) && parseHour(slot.close),
-  );
-  if (!usable) return null;
-  const slot = slotForDay(hours, at);
-  if (slot === undefined) return null;
-  if (slot === null) return false;
+const WEEK_DAYS: ShopDay[] = ["mon", "tue", "wed", "thu", "fri"];
+
+export type HoursPickerState = {
+  days: ShopDay[];
+  slot: ShopHoursSlot | null;
+  allDay: boolean;
+};
+
+export type ShopHoursLabels = {
+  days: Record<ShopDay, string>;
+  daily: string;
+  allDay: string;
+};
+
+function padTime(h: number, m: number): string {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function cleanSlot(slot: ShopHoursSlot | null | undefined): ShopHoursSlot | null {
+  if (!slot || typeof slot !== "object") return null;
+  if (typeof slot.open !== "string" || typeof slot.close !== "string") return null;
+  const open = parseHour(slot.open);
+  const close = parseHour(slot.close);
+  if (!open || !close) return null;
+  return { open: padTime(open.h, open.m), close: padTime(close.h, close.m) };
+}
+
+function isAllDaySlot(slot: ShopHoursSlot | null): boolean {
+  if (!slot) return false;
+  return (slot.open === "00:00" && slot.close === "00:00") || (slot.open === "00:00" && slot.close === "23:59");
+}
+
+function knownDays(days: ShopDay[] | undefined): ShopDay[] {
+  const set = new Set(days ?? []);
+  return SHOP_DAYS.filter((id) => set.has(id));
+}
+
+function hasModernHours(hours: ShopHours): boolean {
+  if (hours.allDay === true) return true;
+  if (hours.days?.length) return true;
+  return Boolean(cleanSlot(hours.slot));
+}
+
+/** Old weekdays/saturday/sunday rows, or a speech guess, become one range and day chips. */
+export function hoursFromLegacy(hours: ShopHours | undefined | null): HoursPickerState {
+  const blank: HoursPickerState = { days: [...WEEK_DAYS], slot: null, allDay: false };
+  if (!hours) return blank;
+  if (hasModernHours(hours)) {
+    const days = knownDays(hours.days);
+    const slot = cleanSlot(hours.slot);
+    const allDay = hours.allDay === true || isAllDaySlot(slot);
+    return {
+      days: days.length ? days : [...WEEK_DAYS],
+      slot: allDay ? null : slot,
+      allDay,
+    };
+  }
+  const week = hours.weekdays === null ? null : cleanSlot(hours.weekdays);
+  const sat = hours.saturday === undefined ? week : hours.saturday === null ? null : cleanSlot(hours.saturday);
+  const sun = hours.sunday === undefined ? week : hours.sunday === null ? null : cleanSlot(hours.sunday);
+  const days: ShopDay[] = [];
+  if (week) days.push(...WEEK_DAYS);
+  if (sat) days.push("sat");
+  if (sun) days.push("sun");
+  const slot = week ?? sat ?? sun;
+  if (!days.length || !slot) return blank;
+  const allDay = isAllDaySlot(slot);
+  return { days, slot: allDay ? null : slot, allDay };
+}
+
+function legacyFromDays(days: ShopDay[], slot: ShopHoursSlot): Pick<ShopHours, "weekdays" | "saturday" | "sunday"> | null {
+  const on = new Set(days);
+  const weekOn = WEEK_DAYS.every((id) => on.has(id));
+  const weekOff = WEEK_DAYS.every((id) => !on.has(id));
+  if (!weekOn && !weekOff) return null;
+  return {
+    weekdays: weekOn ? slot : null,
+    saturday: on.has("sat") ? slot : null,
+    sunday: on.has("sun") ? slot : null,
+  };
+}
+
+/** Picker state → jsonb. Legacy weekdays/saturday/sunday are filled when the pattern still fits. */
+export function hoursToStored(state: HoursPickerState): ShopHours | undefined {
+  const days = knownDays(state.days);
+  if (!days.length) return undefined;
+  if (!state.allDay && !state.slot) return undefined;
+  const slot = state.allDay ? { open: "00:00", close: "00:00" } : cleanSlot(state.slot);
+  if (!slot) return undefined;
+  const legacy = legacyFromDays(days, slot);
+  const out: ShopHours = {
+    days,
+    slot: state.allDay ? null : slot,
+    ...(state.allDay ? { allDay: true } : {}),
+    ...(legacy ?? {}),
+  };
+  return out;
+}
+
+export function sanitizeShopHours(raw: unknown): ShopHours | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const src = raw as Record<string, unknown>;
+  const out: ShopHours = {};
+  const takeSlot = (key: "weekdays" | "saturday" | "sunday" | "slot") => {
+    if (!(key in src)) return;
+    const value = src[key];
+    if (value === null) {
+      out[key] = null;
+      return;
+    }
+    const slot = cleanSlot(value as ShopHoursSlot);
+    if (slot) out[key] = slot;
+  };
+  takeSlot("weekdays");
+  takeSlot("saturday");
+  takeSlot("sunday");
+  takeSlot("slot");
+  if (Array.isArray(src.days)) {
+    const days: ShopDay[] = [];
+    for (const id of src.days) {
+      if (typeof id === "string" && (SHOP_DAYS as readonly string[]).includes(id) && !days.includes(id as ShopDay)) {
+        days.push(id as ShopDay);
+      }
+    }
+    if (days.length) out.days = knownDays(days);
+  }
+  if (src.allDay === true || src.allDay === false) out.allDay = src.allDay;
+  return Object.keys(out).length ? out : undefined;
+}
+
+export function hasShopHours(hours: ShopHours | undefined | null): boolean {
+  if (!hours) return false;
+  if (hours.allDay && knownDays(hours.days).length) return true;
+  if (cleanSlot(hours.slot) && knownDays(hours.days).length) return true;
+  return [hours.weekdays, hours.saturday, hours.sunday].some((slot) => cleanSlot(slot ?? undefined));
+}
+
+function dayInBishkek(at: Date): ShopDay {
+  const dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Bishkek" }).format(at);
+  const map: Record<string, ShopDay> = { Sun: "sun", Mon: "mon", Tue: "tue", Wed: "wed", Thu: "thu", Fri: "fri", Sat: "sat" };
+  return map[dow] ?? "mon";
+}
+
+function openDuring(slot: ShopHoursSlot, at: Date): boolean | null {
   const open = parseHour(slot.open);
   const close = parseHour(slot.close);
   if (!open || !close) return null;
@@ -180,11 +318,62 @@ export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): bool
   return mins >= a && mins < b;
 }
 
+export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): boolean | null {
+  if (!hours) return null;
+  if (hasModernHours(hours)) {
+    const days = knownDays(hours.days);
+    if (!days.length) return null;
+    if (!days.includes(dayInBishkek(at))) return false;
+    if (hours.allDay || isAllDaySlot(cleanSlot(hours.slot))) return true;
+    const slot = cleanSlot(hours.slot);
+    if (!slot) return null;
+    return openDuring(slot, at);
+  }
+  const usable = [hours.weekdays, hours.saturday, hours.sunday].some((slot) => cleanSlot(slot ?? undefined));
+  if (!usable) return null;
+  const slot = slotForDay(hours, at);
+  if (slot === undefined) return null;
+  if (slot === null) return false;
+  return openDuring(slot, at);
+}
+
 function slotForDay(hours: ShopHours, at: Date): ShopHours["weekdays"] | null | undefined {
   const dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Bishkek" }).format(at);
   if (dow === "Sat") return hours.saturday === undefined ? hours.weekdays : hours.saturday;
   if (dow === "Sun") return hours.sunday === undefined ? hours.weekdays : hours.sunday;
   return hours.weekdays;
+}
+
+function groupDayLabels(days: ShopDay[], label: (id: ShopDay) => string): string {
+  const idx = days.map((id) => SHOP_DAYS.indexOf(id)).filter((n) => n >= 0).sort((a, b) => a - b);
+  const parts: string[] = [];
+  let i = 0;
+  while (i < idx.length) {
+    let j = i;
+    while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j += 1;
+    const start = label(SHOP_DAYS[idx[i]]);
+    const end = label(SHOP_DAYS[idx[j]]);
+    parts.push(i === j ? start : `${start}–${end}`);
+    i = j + 1;
+  }
+  return parts.join(", ");
+}
+
+export function formatShopHours(hours: ShopHours | undefined | null, labels: ShopHoursLabels): string {
+  if (!hours || !hasShopHours(hours)) return "";
+  const state = hoursFromLegacy(hours);
+  if (!state.allDay && !state.slot) return "";
+  const days = knownDays(state.days);
+  if (!days.length) return "";
+  const dayText = days.length === SHOP_DAYS.length ? labels.daily : groupDayLabels(days, (id) => labels.days[id]);
+  if (state.allDay) {
+    if (days.length === SHOP_DAYS.length) return labels.allDay;
+    const word = labels.allDay.charAt(0).toLowerCase() + labels.allDay.slice(1);
+    return `${dayText} ${word}`;
+  }
+  const slot = state.slot;
+  if (!slot) return "";
+  return `${dayText} ${slot.open}–${slot.close}`;
 }
 
 export function nowInKg(): Date {

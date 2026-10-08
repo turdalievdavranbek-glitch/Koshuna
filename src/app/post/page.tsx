@@ -6,6 +6,7 @@ import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
 import { useApp } from "@/lib/store";
 import { GisOnMapCard } from "@/components/gis-on-map";
 import { ShareToSocial } from "@/components/share-to-social";
+import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { Price } from "@/components/ui";
 import { BusinessPost } from "@/components/post-business";
@@ -77,8 +78,9 @@ function Published({ id }: { id: string }) {
 
   return (
     <PhoneShell>
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-6">
-        <div className="flex flex-col items-center text-center">
+      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-2">
+        <ScreenBack fallback="/" />
+        <div className="mt-4 flex flex-col items-center text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success-tint text-2xl text-success">✓</div>
           <h2 className="mt-5 font-display text-[26px] font-bold text-ink">{t.published}</h2>
           <p className="mt-2 text-[15px] leading-[1.5] text-muted">{uploadPending ? t.publishedPendingHint : t.publishedHint}</p>
