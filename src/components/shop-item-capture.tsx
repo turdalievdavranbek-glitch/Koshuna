@@ -25,6 +25,7 @@ import {
 } from "@/lib/shops";
 import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
+import { locate } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
@@ -73,6 +74,8 @@ export function ShopItemCapture({
   const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
   const [placeLat, setPlaceLat] = useState<number | undefined>();
   const [placeLng, setPlaceLng] = useState<number | undefined>();
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoFail, setGeoFail] = useState(false);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
   const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
@@ -780,17 +783,26 @@ export function ShopItemCapture({
               </Field>
               <button
                 type="button"
+                disabled={geoBusy}
                 onClick={() => {
-                  if (!navigator.geolocation) return;
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                    setPlaceLat(pos.coords.latitude);
-                    setPlaceLng(pos.coords.longitude);
+                  if (geoBusy) return;
+                  setGeoBusy(true);
+                  setGeoFail(false);
+                  void locate().then((res) => {
+                    setGeoBusy(false);
+                    if (!res.ok) {
+                      setGeoFail(true);
+                      return;
+                    }
+                    setPlaceLat(res.lat);
+                    setPlaceLng(res.lng);
                   });
                 }}
-                className="h-10 rounded-xl border border-line text-[13px] font-semibold"
+                className="h-10 rounded-xl border border-line text-[13px] font-semibold disabled:opacity-60"
               >
-                {t.locationGeo}
+                {geoBusy ? t.locationGeoBusy : t.locationGeo}
               </button>
+              {geoFail ? <p className="text-[12px] leading-[1.4] text-muted">{t.geoShopFail}</p> : null}
               <div className="flex flex-wrap gap-2">
                 {SHOP_CATEGORIES.map((id) => (
                   <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>

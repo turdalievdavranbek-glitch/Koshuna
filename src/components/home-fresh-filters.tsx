@@ -8,7 +8,7 @@ import { patchForSection } from "@/lib/section";
 import { applySellerShopCategory } from "@/components/shop-chips";
 import { isShopCategory, isShopKind, parentOfShopKind, shopKindsOf, SHOP_CATEGORIES } from "@/lib/shops";
 import { JOB_SPHERES } from "@/lib/vacancies";
-import { locationLineLabel } from "@/lib/places";
+import { shownLocationLabel } from "@/components/location-line";
 import { openLocationPicker } from "@/components/location-line";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
@@ -81,7 +81,7 @@ export function HomeFreshFilters() {
       >
         <IconPin size={12} color="#B8452F" />
         <span className="truncate">
-          {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
+          {shownLocationLabel(lang, city, filters, t)}
         </span>
       </button>
 

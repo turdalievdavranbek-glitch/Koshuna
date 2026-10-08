@@ -137,7 +137,8 @@ async function allRecords(): Promise<MediaRecord[]> {
 type NetInfo = { effectiveType?: string; saveData?: boolean };
 
 function wantedChunk(serverChunk: number) {
-  const conn = (navigator as Navigator & { connection?: NetInfo }).connection;
+  const nav = typeof navigator === "undefined" ? undefined : (navigator as Navigator & { connection?: NetInfo });
+  const conn = nav?.connection;
   const slow =
     smallChunks ||
     Boolean(conn?.saveData) ||
@@ -170,7 +171,20 @@ async function waitForAuth() {
   if (mod.authSerialNow() === serial) await sleep(1500);
 }
 
-type HttpResult = { ok: boolean; status: number; data: { received?: number; error?: string; uploadId?: string; chunkSize?: number; url?: string; status?: string }; error?: string };
+export type HttpResult = {
+  ok: boolean;
+  status: number;
+  data: { received?: number; error?: string; uploadId?: string; chunkSize?: number; url?: string; status?: string };
+  error?: string;
+  retryAfter?: number;
+};
+
+function retryAfterSeconds(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const n = Number(header);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(60, Math.max(0, n));
+}
 
 async function request(url: string, init: RequestInit): Promise<HttpResult> {
   const ctrl = new AbortController();
@@ -182,8 +196,9 @@ async function request(url: string, init: RequestInit): Promise<HttpResult> {
   try {
     const res = await fetch(url, { ...init, credentials: "same-origin", signal: ctrl.signal });
     const data = (await res.json().catch(() => ({}))) as HttpResult["data"];
-    if (!res.ok) return { ok: false, status: res.status, data, error: data?.error || String(res.status) };
-    return { ok: true, status: res.status, data };
+    const retryAfter = retryAfterSeconds(res.headers.get("retry-after"));
+    if (!res.ok) return { ok: false, status: res.status, data, error: data?.error || String(res.status), retryAfter };
+    return { ok: true, status: res.status, data, retryAfter };
   } catch {
     if (timedOut) smallChunks = true;
     return { ok: false, status: 0, data: {}, error: timedOut ? "timeout" : "network" };
@@ -192,18 +207,32 @@ async function request(url: string, init: RequestInit): Promise<HttpResult> {
   }
 }
 
-async function withRetry(run: () => Promise<HttpResult>, returnStatuses: number[], onWait?: (waiting: boolean) => void): Promise<HttpResult> {
+export async function withRetry(run: () => Promise<HttpResult>, returnStatuses: number[], onWait?: (waiting: boolean) => void): Promise<HttpResult> {
   let netAttempt = 0;
   let serverFails = 0;
   for (;;) {
     const res = await run();
     if (res.ok) return res;
     if (returnStatuses.includes(res.status)) return res;
-    if (res.status === 400) throw new UploadFatal(res.error || res.data?.error || "bad");
     if (res.status === 401) {
       onWait?.(false);
       await waitForAuth();
       continue;
+    }
+    if (res.status === 408 || res.status === 429) {
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      if (offline) {
+        onWait?.(true);
+        await waitOnline();
+        onWait?.(false);
+      } else {
+        await sleep(res.retryAfter != null ? res.retryAfter * 1000 : backoff(netAttempt));
+        netAttempt += 1;
+      }
+      continue;
+    }
+    if (res.status >= 400 && res.status <= 499) {
+      throw new UploadFatal(res.error || res.data?.error || String(res.status));
     }
     if (res.status >= 500) {
       serverFails += 1;
@@ -212,7 +241,7 @@ async function withRetry(run: () => Promise<HttpResult>, returnStatuses: number[
       continue;
     }
     serverFails = 0;
-    if (navigator.onLine === false) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
       onWait?.(true);
       await waitOnline();
       onWait?.(false);
@@ -220,6 +249,111 @@ async function withRetry(run: () => Promise<HttpResult>, returnStatuses: number[
       await sleep(backoff(netAttempt));
       netAttempt += 1;
     }
+  }
+}
+
+export type UploadRequest = (url: string, init: RequestInit) => Promise<HttpResult>;
+
+/** One upload from create through complete. A 404 on a chunk or complete restarts the session once. */
+export async function uploadSession(args: {
+  bytes: Uint8Array;
+  meta: { kind: MediaKind; mime: string; size: number; durationSec?: number };
+  request: UploadRequest;
+  uploadId?: string;
+  offset?: number;
+  serverChunk?: number;
+  remember: (patch: { uploadId?: string; received?: number; url?: string }) => Promise<void> | void;
+  onBytes?: (sent: number) => void;
+  onWait?: (waiting: boolean) => void;
+}): Promise<string> {
+  let uploadId = args.uploadId;
+  let offset = args.offset ?? 0;
+  let serverChunk = args.serverChunk ?? 2_097_152;
+  let restarts = 0;
+
+  const restart = async () => {
+    restarts += 1;
+    if (restarts > 1) throw new UploadFatal("expired");
+    uploadId = undefined;
+    offset = 0;
+    await args.remember({ uploadId: undefined, received: 0 });
+  };
+
+  for (;;) {
+    if (!uploadId) {
+      const created = await withRetry(
+        () =>
+          args.request("/api/uploads", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              kind: args.meta.kind,
+              mime: args.meta.mime,
+              size: args.meta.size,
+              ...(args.meta.durationSec != null ? { durationSec: args.meta.durationSec } : {}),
+            }),
+          }),
+        [],
+        args.onWait,
+      );
+      if (!created.ok || !created.data.uploadId) throw new UploadFatal(created.error || "upload");
+      uploadId = created.data.uploadId;
+      serverChunk = created.data.chunkSize || serverChunk;
+      offset = 0;
+      await args.remember({ uploadId, received: 0 });
+    }
+
+    let expired = false;
+    while (offset < args.bytes.length) {
+      const size = wantedChunk(serverChunk);
+      const end = Math.min(offset + size, args.bytes.length);
+      const chunk = args.bytes.slice(offset, end);
+      const put = await withRetry(
+        () =>
+          args.request(`/api/uploads/${uploadId}?offset=${offset}`, {
+            method: "PUT",
+            headers: { "content-type": "application/octet-stream" },
+            body: chunk,
+          }),
+        [409, 404],
+        args.onWait,
+      );
+      if (put.status === 404) {
+        await restart();
+        expired = true;
+        break;
+      }
+      if (put.status === 409 && typeof put.data.received === "number") {
+        offset = put.data.received;
+        await args.remember({ received: offset });
+        args.onBytes?.(Math.min(offset, args.meta.size));
+        continue;
+      }
+      if (!put.ok) throw new UploadFatal(put.error || "chunk");
+      offset = typeof put.data.received === "number" ? put.data.received : end;
+      await args.remember({ received: offset });
+      args.onBytes?.(Math.min(offset, args.meta.size));
+    }
+    if (expired) continue;
+
+    const done = await withRetry(
+      () =>
+        args.request(`/api/uploads/${uploadId}/complete`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        }),
+      [404],
+      args.onWait,
+    );
+    if (done.status === 404) {
+      await restart();
+      continue;
+    }
+    if (!done.ok || !done.data.url) throw new UploadFatal(done.error || "complete");
+    await args.remember({ url: done.data.url });
+    args.onBytes?.(args.meta.size);
+    return done.data.url;
   }
 }
 
@@ -274,7 +408,7 @@ async function uploadRecord(record: MediaRecord, onBytes?: (sent: number) => voi
   const bytes = new Uint8Array(await current.blob.arrayBuffer());
   let uploadId = current.uploadId;
   let offset = current.received ?? 0;
-  let serverChunk = 2_097_152;
+  const serverChunk = 2_097_152;
 
   if (uploadId) {
     const probe = await withRetry(
@@ -292,69 +426,17 @@ async function uploadRecord(record: MediaRecord, onBytes?: (sent: number) => voi
     }
   }
 
-  if (!uploadId) {
-    const created = await withRetry(
-      () =>
-        request("/api/uploads", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            kind: current.kind,
-            mime: current.mime,
-            size: current.size,
-            ...(current.durationSec != null ? { durationSec: current.durationSec } : {}),
-          }),
-        }),
-      [],
-      onWait,
-    );
-    if (!created.ok || !created.data.uploadId) throw new UploadFatal(created.error || "upload");
-    uploadId = created.data.uploadId;
-    serverChunk = created.data.chunkSize || serverChunk;
-    offset = 0;
-    await remember({ uploadId, received: 0 });
-  }
-
-  while (offset < bytes.length) {
-    const size = wantedChunk(serverChunk);
-    const end = Math.min(offset + size, bytes.length);
-    const chunk = bytes.slice(offset, end);
-    const put = await withRetry(
-      () =>
-        request(`/api/uploads/${uploadId}?offset=${offset}`, {
-          method: "PUT",
-          headers: { "content-type": "application/octet-stream" },
-          body: chunk,
-        }),
-      [409],
-      onWait,
-    );
-    if (put.status === 409 && typeof put.data.received === "number") {
-      offset = put.data.received;
-      await remember({ received: offset });
-      onBytes?.(Math.min(offset, current.size));
-      continue;
-    }
-    if (!put.ok) throw new UploadFatal(put.error || "chunk");
-    offset = typeof put.data.received === "number" ? put.data.received : end;
-    await remember({ received: offset });
-    onBytes?.(Math.min(offset, current.size));
-  }
-
-  const done = await withRetry(
-    () =>
-      request(`/api/uploads/${uploadId}/complete`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: "{}",
-      }),
-    [],
+  return uploadSession({
+    bytes,
+    meta: { kind: current.kind, mime: current.mime, size: current.size, durationSec: current.durationSec },
+    request,
+    uploadId,
+    offset,
+    serverChunk,
+    remember,
+    onBytes,
     onWait,
-  );
-  if (!done.ok || !done.data.url) throw new UploadFatal(done.error || "complete");
-  await remember({ url: done.data.url });
-  onBytes?.(current.size);
-  return done.data.url;
+  });
 }
 
 export function uploadRef(ref: string, onBytes?: (sent: number) => void, onWait?: (waiting: boolean) => void): Promise<string> {

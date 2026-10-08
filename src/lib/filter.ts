@@ -1,7 +1,7 @@
 import type { Filters, Listing } from "./types";
 import { isAiylListing } from "./data";
 import { hasPriceDrop } from "./deal";
-import { haversineKm } from "./geo";
+import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { oblastOfListing } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
@@ -96,7 +96,78 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
     settlement: filters.settlement,
     aiylOnly: filters.aiylOnly,
     query: filters.query,
+    scope:
+      (filters.settlement && filters.settlement !== "any") ||
+      (filters.oblast && filters.oblast !== "any") ||
+      (filters.city && filters.city !== "all")
+        ? "area"
+        : "all",
   };
+}
+
+export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel">): boolean {
+  if (filters.settlement && filters.settlement !== "any") return true;
+  if (filters.oblast && filters.oblast !== "any") return true;
+  if (filters.city && filters.city !== "all") return true;
+  if (filters.locLabel) return true;
+  return false;
+}
+
+/** «Рядом» is the phone. A district or map pin in locLat is not a shortcut. */
+export function nearDecision(filters: Pick<Filters, "scope" | "nearLat">): "keep" | "locate" {
+  if (filters.scope === "near" && filters.nearLat != null) return "keep";
+  return "locate";
+}
+
+export function nearPatch(res: { lat: number; lng: number }): Pick<Filters, "nearLat" | "nearLng" | "scope"> {
+  return { nearLat: res.lat, nearLng: res.lng, scope: "near" };
+}
+
+/** A map point, district chip, search hit, or deep link is «Мой район». */
+export function mapPointFilters(patch: {
+  section: Filters["section"];
+  autoType?: Filters["autoType"];
+  locLat: number | null;
+  locLng: number | null;
+  locLabel: string | null;
+}): Partial<Filters> {
+  return { ...patch, scope: "area" };
+}
+
+export function clearMapPoint(filters: Filters): Partial<Filters> {
+  const next = { ...filters, locLat: null, locLng: null, locLabel: null };
+  return {
+    locLat: null,
+    locLng: null,
+    locLabel: null,
+    scope: hasPlaceFilter(next) ? "area" : "all",
+  };
+}
+
+/** Old saved filters have no scope. A phone fix → near; a picked pin or place → area; otherwise all. An explicit scope is kept. */
+export function scopeForSaved(filters: {
+  scope?: string | null;
+  locLat?: number | null;
+  locLng?: number | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
+  locLabel?: string | null;
+  settlement?: string | null;
+  city?: string | null;
+  oblast?: string | null;
+}): "near" | "area" | "all" {
+  if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
+  if (filters.nearLat != null) return "near";
+  if (filters.locLat != null) return "area";
+  if (
+    (filters.settlement && filters.settlement !== "any") ||
+    filters.locLabel ||
+    (filters.city && filters.city !== "all") ||
+    (filters.oblast && filters.oblast !== "any")
+  ) {
+    return "area";
+  }
+  return "all";
 }
 
 function placeMatches(item: Listing, filters: Filters, city: string): boolean {
@@ -111,7 +182,12 @@ function placeMatches(item: Listing, filters: Filters, city: string): boolean {
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   let out = list.filter((item) => {
     if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
-    if (!placeMatches(item, filters, city)) return false;
+    if (filters.scope === "near") {
+      if (filters.nearLat == null || filters.nearLng == null || !hasCoords(item)) return false;
+      if (haversineKm(filters.nearLat, filters.nearLng, item.lat, item.lng) > nearRadiusKm()) return false;
+    } else if (filters.scope !== "all") {
+      if (!placeMatches(item, filters, city)) return false;
+    }
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";
       if (item.section !== want) return false;
@@ -171,17 +247,6 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (filters.section === "rent" && filters.stockType && filters.stockType !== "any") {
       if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
-    }
-    if (
-      !filters.aiylOnly &&
-      (!filters.settlement || filters.settlement === "any") &&
-      (filters.section === "rent" || filters.section === "restaurants") &&
-      filters.locLng != null &&
-      filters.locLat != null &&
-      item.lng != null &&
-      item.lat != null
-    ) {
-      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
     }
     const rentFilters = filters.section === "rent";
     if (rentFilters && !listingMatchesRealty(item, filters)) return false;

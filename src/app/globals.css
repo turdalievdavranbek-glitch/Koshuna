@@ -96,6 +96,10 @@ button {
   background: rgba(247, 243, 236, 0.92) !important;
 }
 
+.leaflet-container .leaflet-control-attribution {
+  pointer-events: none;
+}
+
 .leaflet-control-zoom {
   border: none !important;
   margin-bottom: 190px !important;

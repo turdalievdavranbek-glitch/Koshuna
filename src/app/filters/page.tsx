@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { SECTIONS, SERVICE_CATEGORIES, SHOP_ART } from "@/lib/data";
 import { FEATURES, isSectionVisible } from "@/lib/features";
-import { applyFilters } from "@/lib/filter";
+import { applyFilters, clearMapPoint } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { realtyIsLiving } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
 import { feedHrefFromFilters, sectionHref } from "@/lib/section-tree";
-import { locationLineLabel } from "@/lib/places";
+import { shownLocationLabel } from "@/components/location-line";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -161,7 +161,7 @@ export default function FiltersPage() {
             className="mt-2.5 flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
           >
             <span className="text-[15px] font-semibold text-ink">
-              {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
+              {shownLocationLabel(lang, city, filters, t)}
             </span>
             <span className="text-[18px] text-muted-2">›</span>
           </button>
@@ -169,7 +169,7 @@ export default function FiltersPage() {
 
         {isRent || isRestaurants ? (
           <div>
-            <Eyebrow>2ГИС</Eyebrow>
+            <Eyebrow>{t.mapEyebrow}</Eyebrow>
             <button
               type="button"
               onClick={() => router.push("/map")}
@@ -181,7 +181,7 @@ export default function FiltersPage() {
             {filters.locLabel ? (
               <button
                 type="button"
-                onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null })}
+                onClick={() => setFilters(clearMapPoint(filters))}
                 className="mt-2 text-[13px] font-semibold text-accent"
               >
                 {t.clearLocation}

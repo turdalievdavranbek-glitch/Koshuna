@@ -96,3 +96,39 @@ export function mapPointPath(lat: number, lng: number, city?: string) {
   if (city) q.set("city", city);
   return `/map?${q.toString()}`;
 }
+
+/** «Рядом» radius. `NEXT_PUBLIC_NEAR_RADIUS_KM`, default 5, clamped to 1–50. */
+export function nearRadiusKm() {
+  const raw = Number(process.env.NEXT_PUBLIC_NEAR_RADIUS_KM) || 5;
+  return Math.min(50, Math.max(1, raw));
+}
+
+export const MAP_TILE_2GIS = "https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}";
+export const MAP_TILE_OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+export type MapTileConfig = {
+  url: string;
+  subdomains?: string;
+  attribution: string;
+  maxZoom: number;
+};
+
+/** Build-time switch. Unset / unknown → 2GIS. `osm` → OpenStreetMap. URL and attribution env override either. */
+export function mapTileConfig(env?: {
+  tiles?: string;
+  url?: string;
+  attribution?: string;
+  subdomains?: string;
+}): MapTileConfig {
+  const src = env ?? {
+    tiles: process.env.NEXT_PUBLIC_MAP_TILES,
+    url: process.env.NEXT_PUBLIC_MAP_TILE_URL,
+    attribution: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION,
+    subdomains: process.env.NEXT_PUBLIC_MAP_TILE_SUBDOMAINS,
+  };
+  const osm = src.tiles === "osm";
+  const url = src.url || (osm ? MAP_TILE_OSM : MAP_TILE_2GIS);
+  const attribution = src.attribution || (osm ? "© OpenStreetMap contributors" : "© 2ГИС");
+  const subdomains = url.includes("{s}") ? src.subdomains || (osm ? "abc" : "0123") : undefined;
+  return { url, attribution, maxZoom: osm ? 19 : 18, subdomains };
+}
