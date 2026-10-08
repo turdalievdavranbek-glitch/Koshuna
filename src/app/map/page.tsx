@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DISTRICTS, formatSom } from "@/lib/data";
+import { clearMapPoint, mapPointFilters } from "@/lib/filter";
 import { districtLabel, gisCity, hasCoords, nearestCityId, nearestDistrict, twoGisUrl } from "@/lib/geo";
 import { listingTitle } from "@/lib/i18n";
 import { locate, type LocateError } from "@/lib/locate";
@@ -71,12 +72,14 @@ export default function MapPage() {
     const nextCity = nearestCityId(lat, lng);
     const area = nearestDistrict(lat, lng, nextCity);
     setCity(nextCity);
-    setFilters({
-      section: filters.section ?? "rent",
-      locLat: lat,
-      locLng: lng,
-      locLabel: label ?? (area ? districtLabel(area, lang) : t.cities[nextCity]),
-    });
+    setFilters(
+      mapPointFilters({
+        section: filters.section ?? "rent",
+        locLat: lat,
+        locLng: lng,
+        locLabel: label ?? (area ? districtLabel(area, lang) : t.cities[nextCity]),
+      }),
+    );
   };
 
   const locateHere = async () => {
@@ -99,13 +102,15 @@ export default function MapPage() {
     if (pin && hasCoords(pin)) {
       setSelected(pin.id);
       setCity(pin.city);
-      setFilters({
-        section: pin.section === "car-rental" ? "cars" : pin.section,
-        autoType: pin.section === "car-rental" ? "rent" : pin.section === "cars" ? "sale" : filters.autoType,
-        locLat: pin.lat,
-        locLng: pin.lng,
-        locLabel: listingTitle(pin, lang),
-      });
+      setFilters(
+        mapPointFilters({
+          section: pin.section === "car-rental" ? "cars" : pin.section,
+          autoType: pin.section === "car-rental" ? "rent" : pin.section === "cars" ? "sale" : filters.autoType,
+          locLat: pin.lat ?? null,
+          locLng: pin.lng ?? null,
+          locLabel: listingTitle(pin, lang),
+        }),
+      );
       return;
     }
     if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
@@ -263,7 +268,7 @@ export default function MapPage() {
               {pick ? (
                 <button
                   type="button"
-                  onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null })}
+                  onClick={() => setFilters(clearMapPoint(filters))}
                   className="text-[13px] font-semibold text-accent"
                 >
                   {t.clearLocation}

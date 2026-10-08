@@ -1,9 +1,10 @@
+import { DISTRICTS } from "../src/lib/data";
 import { haversineKm, mapTileConfig, nearRadiusKm } from "../src/lib/geo";
-import { applyFilters, scopeForSaved } from "../src/lib/filter";
+import { applyFilters, homeFeedFilters, mapPointFilters, nearDecision, nearPatch, scopeForSaved } from "../src/lib/filter";
 import { locate } from "../src/lib/locate";
 import { UploadFatal, uploadSession, withRetry, type HttpResult, type UploadRequest } from "../src/lib/media-queue";
 import { clampWall } from "../src/components/media-capture";
-import { placeFromGeo } from "../src/lib/places";
+import { placeDistrict, placeFromGeo } from "../src/lib/places";
 import type { Filters, Listing } from "../src/lib/types";
 
 let failed = 0;
@@ -61,6 +62,8 @@ function filters(patch: Partial<Filters>): Filters {
     locLng: null,
     locLat: null,
     locLabel: null,
+    nearLng: null,
+    nearLat: null,
     oblast: "any",
     settlement: "any",
     aiylOnly: false,
@@ -202,7 +205,7 @@ function ids(list: Listing[]) {
   return list.map((item) => item.id).sort();
 }
 
-function testFilters() {
+async function testFilters() {
   process.env.NEXT_PUBLIC_NEAR_RADIUS_KM = "5";
   check("near radius default 5", nearRadiusKm() === 5);
   const origin = { lat: 42.8746, lng: 74.5698 };
@@ -221,7 +224,7 @@ function testFilters() {
   ];
   const near = applyFilters(
     rows,
-    filters({ scope: "near", locLat: origin.lat, locLng: origin.lng, section: null }),
+    filters({ scope: "near", nearLat: origin.lat, nearLng: origin.lng, locLat: 40, locLng: 70, section: null }),
     "all",
   );
   const nearIds = ids(near);
@@ -241,13 +244,77 @@ function testFilters() {
   const rentIds = ids(applyFilters(rows, rentArea, "bishkek"));
   check("area keeps a rent listing outside the old 6km rule", rentIds.includes("far-rent") && rentIds.includes("near-rent"), rentIds);
 
-  check("saved locLat migrates to near", scopeForSaved({ locLat: 42.8, locLng: 74.6, city: "bishkek" }) === "near");
+  check("saved locLat migrates to area", scopeForSaved({ locLat: 42.8, locLng: 74.6, city: "bishkek" }) === "area");
+  check("saved nearLat migrates to near", scopeForSaved({ nearLat: 40.51, nearLng: 72.8, locLat: 42.882, city: "bishkek" }) === "near");
   check("saved city migrates to area", scopeForSaved({ city: "osh" }) === "area");
   check("saved settlement migrates to area", scopeForSaved({ settlement: "kant" }) === "area");
   check("saved oblast migrates to area", scopeForSaved({ oblast: "naryn" }) === "area");
   check("saved district label migrates to area", scopeForSaved({ locLabel: "Ленинский район" }) === "area");
   check("saved empty migrates to all", scopeForSaved({}) === "all");
   check("explicit scope is kept", scopeForSaved({ locLat: 42.8, scope: "area" }) === "area");
+
+  const sverdlov = DISTRICTS.find((d) => d.id === "sverdlov");
+  check("sverdlov fixture", Boolean(sverdlov));
+  if (sverdlov) {
+    const district = placeDistrict(sverdlov, "ru");
+    const manual = filters({
+      scope: "area",
+      city: district.city,
+      locLat: district.locLat,
+      locLng: district.locLng,
+      locLabel: district.locLabel,
+    });
+    installWindow(true);
+    const calls = installGeo(["ok"]);
+    check("manual district asks locate", nearDecision(manual) === "locate");
+    const asked = await locate();
+    check("manual district calls locate", asked.ok === true && calls.length === 1, { asked, calls });
+    const gps = { lat: 40.513, lng: 72.816 };
+    const patch = nearPatch(gps);
+    check(
+      "nearby patch is the phone",
+      patch.scope === "near" && patch.nearLat === gps.lat && patch.nearLng === gps.lng && !("locLat" in patch),
+      patch,
+    );
+    const next = { ...manual, ...patch };
+    const around = ids(
+      applyFilters(
+        [
+          listing({ id: "sverdlov-centre", section: "secondhand", city: "bishkek", lat: district.locLat ?? 0, lng: district.locLng ?? 0 }),
+          listing({ id: "phone-osh", section: "secondhand", city: "osh", lat: gps.lat, lng: gps.lng }),
+        ],
+        next,
+        "bishkek",
+      ),
+    );
+    check("near uses phone not district centre", around.includes("phone-osh") && !around.includes("sverdlov-centre"), around);
+    check("nearby keeps the district pin", next.locLat === district.locLat && next.locLabel === district.locLabel);
+  }
+
+  const point = mapPointFilters({ section: "rent", locLat: 42.87, locLng: 74.59, locLabel: "Ленинский район" });
+  check("map applyPoint patch contains scope area", point.scope === "area" && point.locLat === 42.87, point);
+  const oshHidden = applyFilters(
+    [listing({ id: "osh-flat", section: "rent", city: "osh", lat: 40.51, lng: 72.8 })],
+    filters({ ...point, city: "bishkek" }),
+    "bishkek",
+  );
+  check("area bishkek hides osh", oshHidden.length === 0, ids(oshHidden));
+
+  const fed = homeFeedFilters(
+    filters({
+      scope: "near",
+      nearLat: 40.51,
+      nearLng: 72.8,
+      locLat: 42.882,
+      locLng: 74.635,
+      locLabel: "Свердловский район",
+    }),
+  );
+  check(
+    "home feed keeps phone and clears pin",
+    fed.nearLat === 40.51 && fed.nearLng === 72.8 && fed.locLat == null && fed.locLng == null && fed.locLabel == null,
+    fed,
+  );
 }
 
 function testTiles() {
@@ -344,7 +411,7 @@ function testClamp() {
 async function main() {
   await testLocate();
   testPlaces();
-  testFilters();
+  await testFilters();
   testTiles();
   await testQueue();
   testClamp();

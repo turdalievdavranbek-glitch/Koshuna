@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { SECTIONS, SERVICE_CATEGORIES, SHOP_ART } from "@/lib/data";
 import { FEATURES, isSectionVisible } from "@/lib/features";
-import { applyFilters } from "@/lib/filter";
+import { applyFilters, clearMapPoint } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { realtyIsLiving } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
@@ -181,7 +181,7 @@ export default function FiltersPage() {
             {filters.locLabel ? (
               <button
                 type="button"
-                onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null })}
+                onClick={() => setFilters(clearMapPoint(filters))}
                 className="mt-2 text-[13px] font-semibold text-accent"
               >
                 {t.clearLocation}

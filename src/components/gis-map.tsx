@@ -127,7 +127,7 @@ export function GisMap({
       ref={ref}
       data-tile-2gis={MAP_TILE_2GIS}
       data-tile-osm={MAP_TILE_OSM}
-      className={`relative isolate h-full w-full [&_.leaflet-control-attribution]:pointer-events-none${interactive ? "" : " pointer-events-none"}`}
+      className={`relative isolate h-full w-full${interactive ? "" : " pointer-events-none"}`}
     />
   );
 }

@@ -16,9 +16,9 @@ export function homeFeedFilters(filters: Filters): Filters {
     photosOnly: false,
     verifiedOnly: false,
     noAgents: false,
-    locLng: filters.scope === "near" ? filters.locLng : null,
-    locLat: filters.scope === "near" ? filters.locLat : null,
-    locLabel: filters.scope === "near" ? filters.locLabel : null,
+    locLng: null,
+    locLat: null,
+    locLabel: null,
     priceMin: null,
     priceMax: null,
     rooms: section === "rent" ? filters.rooms : [],
@@ -105,26 +105,60 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
   };
 }
 
-export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel" | "scope">): boolean {
+export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel">): boolean {
   if (filters.settlement && filters.settlement !== "any") return true;
   if (filters.oblast && filters.oblast !== "any") return true;
   if (filters.city && filters.city !== "all") return true;
-  if (filters.scope !== "near" && filters.locLabel) return true;
+  if (filters.locLabel) return true;
   return false;
 }
 
-/** Old saved filters have no scope. locLat → near; a place → area; otherwise all. An explicit scope is kept. */
+/** «Рядом» is the phone. A district or map pin in locLat is not a shortcut. */
+export function nearDecision(filters: Pick<Filters, "scope" | "nearLat">): "keep" | "locate" {
+  if (filters.scope === "near" && filters.nearLat != null) return "keep";
+  return "locate";
+}
+
+export function nearPatch(res: { lat: number; lng: number }): Pick<Filters, "nearLat" | "nearLng" | "scope"> {
+  return { nearLat: res.lat, nearLng: res.lng, scope: "near" };
+}
+
+/** A map point, district chip, search hit, or deep link is «Мой район». */
+export function mapPointFilters(patch: {
+  section: Filters["section"];
+  autoType?: Filters["autoType"];
+  locLat: number | null;
+  locLng: number | null;
+  locLabel: string | null;
+}): Partial<Filters> {
+  return { ...patch, scope: "area" };
+}
+
+export function clearMapPoint(filters: Filters): Partial<Filters> {
+  const next = { ...filters, locLat: null, locLng: null, locLabel: null };
+  return {
+    locLat: null,
+    locLng: null,
+    locLabel: null,
+    scope: hasPlaceFilter(next) ? "area" : "all",
+  };
+}
+
+/** Old saved filters have no scope. A phone fix → near; a picked pin or place → area; otherwise all. An explicit scope is kept. */
 export function scopeForSaved(filters: {
   scope?: string | null;
   locLat?: number | null;
   locLng?: number | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
   locLabel?: string | null;
   settlement?: string | null;
   city?: string | null;
   oblast?: string | null;
 }): "near" | "area" | "all" {
   if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
-  if (filters.locLat != null) return "near";
+  if (filters.nearLat != null) return "near";
+  if (filters.locLat != null) return "area";
   if (
     (filters.settlement && filters.settlement !== "any") ||
     filters.locLabel ||
@@ -149,8 +183,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
   let out = list.filter((item) => {
     if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
     if (filters.scope === "near") {
-      if (filters.locLat == null || filters.locLng == null || !hasCoords(item)) return false;
-      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > nearRadiusKm()) return false;
+      if (filters.nearLat == null || filters.nearLng == null || !hasCoords(item)) return false;
+      if (haversineKm(filters.nearLat, filters.nearLng, item.lat, item.lng) > nearRadiusKm()) return false;
     } else if (filters.scope !== "all") {
       if (!placeMatches(item, filters, city)) return false;
     }

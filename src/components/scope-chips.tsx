@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { nearRadiusKm } from "@/lib/geo";
-import { hasPlaceFilter } from "@/lib/filter";
+import { hasPlaceFilter, nearDecision, nearPatch } from "@/lib/filter";
 import { locate, type LocateError } from "@/lib/locate";
 import { clearPlace, locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
@@ -20,7 +19,7 @@ export function ScopeChips() {
   const [error, setError] = useState<LocateError | null>(null);
   const place = hasPlaceFilter(filters);
   const areaLabel = place
-    ? locationLineLabel(lang, city, filters.scope === "near" ? { ...filters, locLabel: null } : filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)
+    ? locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)
     : t.scopeArea;
   const pickAll = () => {
     const next = clearPlace();
@@ -31,12 +30,12 @@ export function ScopeChips() {
   const pickNear = async () => {
     if (busy) return;
     setError(null);
-    if (filters.locLat != null) return setFilters({ scope: "near" });
+    if (nearDecision(filters) === "keep") return;
     setBusy(true);
     const res = await locate();
     setBusy(false);
     if (!res.ok) return setError(res.error);
-    setFilters({ locLat: res.lat, locLng: res.lng, locLabel: t.nearLabel(nearRadiusKm()), scope: "near" });
+    setFilters(nearPatch(res));
   };
   return (
     <div>

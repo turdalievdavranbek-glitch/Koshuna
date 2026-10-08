@@ -322,6 +322,8 @@ export type Filters = {
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
+  nearLng: number | null;
+  nearLat: number | null;
   oblast: string;
   settlement: string;
   aiylOnly: boolean;
