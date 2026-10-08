@@ -168,6 +168,7 @@ const defaultFilters = (): Filters => ({
   nearLng: null,
   nearLat: null,
   oblast: "any",
+  rayon: "any",
   settlement: "any",
   aiylOnly: false,
   priceDroppedOnly: false,
@@ -576,6 +577,7 @@ export function normalizeFilters(filters: Filters, savedScope?: unknown): Filter
         : "any",
     settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
     oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
+    rayon: next.rayon && next.rayon !== "any" ? next.rayon : "any",
     nearLat: typeof next.nearLat === "number" ? next.nearLat : null,
     nearLng: typeof next.nearLng === "number" ? next.nearLng : null,
     scope: scopeForSaved({
@@ -586,6 +588,7 @@ export function normalizeFilters(filters: Filters, savedScope?: unknown): Filter
       settlement: next.settlement && next.settlement !== "any" ? next.settlement : "any",
       city: next.city,
       oblast: next.oblast && next.oblast !== "any" ? next.oblast : "any",
+      rayon: next.rayon && next.rayon !== "any" ? next.rayon : "any",
     }),
   };
 }

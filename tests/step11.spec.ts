@@ -1,10 +1,13 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { listingCategoryError } from "../src/lib/listing-rules";
 import { publishErrors } from "../src/lib/shop-rules";
+import { areasOfOblast, adminAreaMatchesListing, adminAreaById } from "../src/lib/admin-areas";
 import {
+  applyNameChip,
   landmarksFromText,
   pointGroupsFor,
   pointKindsFor,
+  pointNameChips,
   sanitizeShopPointFields,
   shopPointSubtitle,
 } from "../src/lib/shops";
@@ -180,6 +183,27 @@ test("point fields, groups and the pharmacy rule", () => {
     "Прилавок · Ленинский район · ряд 12",
   );
   expect(shopPointSubtitle(shop({ venueKind: "shop", address: "Чуй 1" }), "Магазин", "Прилавок", "Бишкек", "ru")).toBe("Магазин · Бишкек · Чуй 1");
+
+  const emptyName = pointNameChips({ categoryShort: "", place: "", landmarkText: "" });
+  expect(emptyName.main).toBe("");
+  expect(emptyName.row).toBe("");
+  const named = pointNameChips({ categoryShort: "Одежда", place: "Дордой", landmarkText: "Дордой · ряд 12" });
+  expect(named.main).toBe("Одежда · Дордой");
+  expect(named.row).toBe("Ряд 12");
+  expect(applyNameChip("Одежда · Дордой", "Одежда · Дордой", "replace")).toBe("Одежда · Дордой");
+  expect(applyNameChip("Одежда · Дордой", "Ряд 12", "once")).toBe("Одежда · Дордой, Ряд 12");
+  expect(applyNameChip("Одежда · Дордой, Ряд 12", "Ряд 12", "once")).toBe("Одежда · Дордой, Ряд 12");
+
+  const jalal = areasOfOblast("jalal-abad");
+  expect(jalal.districts.map((area) => area.nameKy)).toContain("Сузак району");
+  expect(jalal.cities.map((area) => area.name)).toEqual(expect.arrayContaining(["Жалал-Абад", "Кара-Куль", "Майлуу-Суу", "Таш-Кумыр"]));
+  expect(areasOfOblast("osh").districts).toHaveLength(0);
+  expect(areasOfOblast("bishkek").districts).toHaveLength(4);
+  const suzak = adminAreaById("suzak-rayon");
+  expect(suzak && adminAreaMatchesListing(suzak, { city: "jalal-abad", settlement: "suzak" })).toBe(true);
+  expect(suzak && adminAreaMatchesListing(suzak, { city: "jalal-abad" })).toBe(false);
+  const oblastOnly = adminAreaById("jalal-abad");
+  expect(oblastOnly && adminAreaMatchesListing(oblastOnly, { city: "jalal-abad" })).toBe(true);
 });
 
 test.describe("point screen", () => {
@@ -213,7 +237,14 @@ test.describe("point screen", () => {
     await expect(page.getByTestId("point-group-beauty")).toHaveCount(0);
     await expect(page.getByTestId("point-group-repair")).toHaveCount(0);
     await expect(page.getByTestId("point-group-travel")).toHaveCount(0);
-    await expect(page.getByTestId("point-service-link")).toBeVisible();
+    await expect(page.getByTestId("point-venue-row")).toBeVisible();
+    await expect(page.getByTestId("point-venue-shop")).toBeVisible();
+    await expect(page.getByTestId("point-venue-stall")).toBeVisible();
+    await expect(page.getByTestId("point-venue-service")).toBeVisible();
+    await expect(page.getByTestId("point-service-link")).toHaveCount(0);
+    await page.getByTestId("point-venue-stall").click();
+    await expect(page.getByTestId("point-venue-stall")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Прилавок — ряд, контейнер или место на базаре")).toBeVisible();
     await expect(page.getByText("Частная клиника")).toHaveCount(0);
     await expect(page.getByText("Стоматология")).toHaveCount(0);
     await expect(page.getByText("Турагентство")).toHaveCount(0);

@@ -563,6 +563,47 @@ export function pointKindsFor(category: ShopCategory, current: readonly ShopKind
   });
 }
 
+const NAME_PLACE_SKIP = /^(ряд|катар|у входа|кире бериште|возле|жанында|\d+\s*этаж|\d+-кабат)\b/i;
+const NAME_ROW = /(?:ряд|катар)\s*\d+/i;
+
+/** Market or district already chosen. Placeholder words («Район», «ряд …») are not a place. */
+export function namePlacePart(districtName: string, landmarks: string[]): string {
+  const named = landmarks.find((part) => {
+    const value = part.trim();
+    if (!value || NAME_PLACE_SKIP.test(value)) return false;
+    if (NAME_ROW.test(value)) return false;
+    return true;
+  });
+  return (named ?? districtName).trim();
+}
+
+export function nameRowPart(landmarkText: string): string {
+  const hit = landmarkText.match(NAME_ROW);
+  if (!hit) return "";
+  const raw = hit[0].replace(/\s+/g, " ").trim();
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** Real name chips only. Unknown parts stay hidden so a tap cannot insert «Раздел · Район». */
+export function pointNameChips(input: { categoryShort: string; place: string; landmarkText: string }): { main: string; row: string } {
+  const category = input.categoryShort.trim();
+  const place = input.place.trim();
+  const main = category && place ? `${category} · ${place}` : category || place;
+  const row = nameRowPart(input.landmarkText);
+  return { main, row: row && main.toLowerCase() !== row.toLowerCase() ? row : "" };
+}
+
+/** A main chip replaces the field. A row chip is added once and never repeated. */
+export function applyNameChip(current: string, chip: string, mode: "replace" | "once"): string {
+  const piece = chip.trim();
+  const cur = current.trim();
+  if (!piece) return cur;
+  if (mode === "replace") return piece;
+  if (!cur) return piece;
+  if (cur.toLowerCase().includes(piece.toLowerCase())) return cur;
+  return `${cur}, ${piece}`;
+}
+
 export function landmarksFromText(text: string): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];

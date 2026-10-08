@@ -4,6 +4,7 @@ import { listingTextHit } from "./catalog-words";
 import { hasPriceDrop } from "./deal";
 import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
+import { adminAreaById, adminAreaMatchesListing } from "./admin-areas";
 import { oblastOfListing } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
@@ -95,9 +96,11 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
     city: filters.city,
     oblast: filters.oblast,
     settlement: filters.settlement,
+    rayon: filters.rayon,
     aiylOnly: filters.aiylOnly,
     query: filters.query,
     scope:
+      (filters.rayon && filters.rayon !== "any") ||
       (filters.settlement && filters.settlement !== "any") ||
       (filters.oblast && filters.oblast !== "any") ||
       (filters.city && filters.city !== "all")
@@ -106,7 +109,8 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
   };
 }
 
-export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel">): boolean {
+export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel" | "rayon">): boolean {
+  if (filters.rayon && filters.rayon !== "any") return true;
   if (filters.settlement && filters.settlement !== "any") return true;
   if (filters.oblast && filters.oblast !== "any") return true;
   if (filters.city && filters.city !== "all") return true;
@@ -156,11 +160,13 @@ export function scopeForSaved(filters: {
   settlement?: string | null;
   city?: string | null;
   oblast?: string | null;
+  rayon?: string | null;
 }): "near" | "area" | "all" {
   if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
   if (filters.nearLat != null) return "near";
   if (filters.locLat != null) return "area";
   if (
+    (filters.rayon && filters.rayon !== "any") ||
     (filters.settlement && filters.settlement !== "any") ||
     filters.locLabel ||
     (filters.city && filters.city !== "all") ||
@@ -172,6 +178,10 @@ export function scopeForSaved(filters: {
 }
 
 function placeMatches(item: Listing, filters: Filters, city: string): boolean {
+  if (filters.rayon && filters.rayon !== "any") {
+    const area = adminAreaById(filters.rayon);
+    if (area) return adminAreaMatchesListing(area, item);
+  }
   if (filters.settlement && filters.settlement !== "any") return item.settlement === filters.settlement;
   if (filters.aiylOnly) return isAiylListing(item);
   const cityKey = filters.city !== "all" ? filters.city : city;

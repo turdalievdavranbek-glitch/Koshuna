@@ -4,15 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
-import { captureVideoPoster, keepBlob } from "@/lib/blob-media";
+import { captureVideoPoster, keepBlob, videoFileDuration } from "@/lib/blob-media";
 import { districtLabel, nearestDistrict } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
-import { videoMaxBytes } from "@/lib/media-limits";
+import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import {
+  applyNameChip,
   formatShopHours,
   landmarksFromText,
+  namePlacePart,
+  pointNameChips,
   pointGroupsFor,
   pointKindsFor,
   POINT_HIDDEN_GROUPS,
@@ -33,7 +36,7 @@ import { sectionIcon } from "./icons";
 import { HoursPicker } from "./hours-picker";
 import { LeaveDialog } from "./leave-dialog";
 import { DeleteCardDialog } from "./card-delete";
-import { NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
 import { POINT_GROUP_ICON, PointAvatar } from "./point-rows";
 import { Chip, Field, Input, Toggle } from "./ui";
 
@@ -80,6 +83,7 @@ export function PointForm({
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  const venueSeeded = useRef("");
   const seenId = useRef("");
   const booted = useRef(false);
   const leaveBack = useRef<() => void>(() => undefined);
@@ -114,11 +118,14 @@ export function PointForm({
   }, [shopDraft, mode]);
 
   useEffect(() => {
-    if (mode !== "create" || !venue || !shopDraft || shopDraft.venueKind === venue) return;
-    setShopDraft({ venueKind: venue });
-    // set once per draft; venueKind equality stops the loop.
+    if (mode !== "create" || !venue || !shopDraft) return;
+    const key = `${shopDraft.id}:${venue}`;
+    if (venueSeeded.current === key) return;
+    venueSeeded.current = key;
+    if (shopDraft.venueKind !== venue) setShopDraft({ venueKind: venue });
+    // Seed from the link once per draft. A later tap on Прилавок must not be reset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, venue, shopDraft?.id, shopDraft?.venueKind]);
+  }, [mode, venue, shopDraft?.id]);
 
   useEffect(() => {
     if (!touched || doneId) {
@@ -211,9 +218,29 @@ export function PointForm({
     setLandmark(next.join(" · "));
   };
 
-  const insertName = (piece: string) => {
-    const cur = d.name.trim();
-    patch({ name: cur ? `${cur} ${piece}` : piece });
+  const openService = () => {
+    const carry = {
+      title: d.name.trim() || undefined,
+      phone: (d.contacts.phone ?? "").trim() || undefined,
+      photo: d.coverUrl || undefined,
+      photos: d.coverUrl ? [d.coverUrl] : undefined,
+      address: (landmarkText || d.address || "").trim() || undefined,
+      hours: d.hours,
+      city: d.city && d.city !== "all" ? d.city : undefined,
+      lat: d.lat,
+      lng: d.lng,
+      district: districtName || undefined,
+      videoUrl: d.videoUrl,
+      mediaKind: d.videoUrl ? ("video" as const) : d.coverUrl ? ("photos" as const) : undefined,
+    };
+    try {
+      sessionStorage.setItem("konshu-service-carry", JSON.stringify(carry));
+    } catch {
+      /* private mode */
+    }
+    setLeaveGuard(null);
+    setTouched(false);
+    router.push("/post?card=service");
   };
 
   const locatePin = async () => {
@@ -246,9 +273,24 @@ export function PointForm({
       setError(t.shopVideoSize);
       return;
     }
+    const duration = await videoFileDuration(file);
+    if (duration > videoMaxSeconds()) {
+      setError(t.shopVideoTime);
+      return;
+    }
     const url = keepBlob("video", file);
     const poster = (await captureVideoPoster(url)) ?? "";
     patch(poster ? { videoUrl: url, coverUrl: poster } : { videoUrl: url });
+  };
+
+  const onGallery = async (files: File[]) => {
+    const video = files.find((file) => isGalleryVideo(file));
+    if (video) {
+      await onVideo(video);
+      return;
+    }
+    const image = files.find((file) => !isGalleryVideo(file));
+    if (image) await onPhoto(image);
   };
 
   const submit = async (skipHours = false) => {
@@ -302,7 +344,17 @@ export function PointForm({
     router.push(`/shops/${result.shop.id}`);
   };
 
-  const nameCombo = `${groupChosen ? t.shopCats[d.category] : t.postSection} · ${districtName || t.pointDistrict}`;
+  const venueNow = d.venueKind ?? venue ?? "shop";
+  const categoryShort = !groupChosen
+    ? ""
+    : d.category === "other" && (d.kindOther ?? "").trim()
+      ? (d.kindOther ?? "").trim()
+      : t.pointCatShort[d.category] ?? "";
+  const nameChips = pointNameChips({
+    categoryShort,
+    place: namePlacePart(districtName, liveMarks),
+    landmarkText,
+  });
   const landmarkChips = [
     { id: "entrance", label: t.pointChipEntrance, stem: t.pointChipEntrance },
     { id: "row", label: t.pointLandmarkRow, stem: t.pointLandmarkRow.replace("…", "").trim() },
@@ -318,14 +370,36 @@ export function PointForm({
   return (
     <div data-testid="point-form" className="flex w-full min-w-0 max-w-full flex-col gap-5 overflow-x-hidden pb-4">
       <div>
-        <div className="flex flex-wrap gap-2">
-          {(["shop", "stall"] as const).map((id) => (
-            <Chip key={id} testId={`point-venue-${id}`} active={(d.venueKind ?? "shop") === id} accent={(d.venueKind ?? "shop") === id} onClick={() => patch({ venueKind: id })}>
-              {id === "shop" ? t.sellCardShop : t.sellCardStall}
-            </Chip>
-          ))}
+        <div data-testid="point-venue-row" className="flex w-full gap-1.5">
+          {(creating ? (["shop", "stall", "service"] as const) : (["shop", "stall"] as const)).map((id) => {
+            const active = id !== "service" && venueNow === id;
+            const label = id === "shop" ? t.sellCardShop : id === "stall" ? t.sellCardStall : t.pointVenueService;
+            return (
+              <button
+                key={id}
+                type="button"
+                data-testid={`point-venue-${id}`}
+                aria-pressed={active}
+                onClick={() => {
+                  if (id === "service") {
+                    openService();
+                    return;
+                  }
+                  patch({ venueKind: id });
+                }}
+                className="h-11 min-w-0 flex-1 rounded-full px-2 text-[13px] font-semibold touch-manipulation"
+                style={{
+                  background: active ? "#B8452F" : "#FFFFFF",
+                  color: active ? "#FFF7F0" : "#17140F",
+                  border: active ? "none" : "1px solid #E4DCCE",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-        <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.pointVenueHint}</p>
+        {venueNow === "stall" ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.pointVenueHint}</p> : null}
       </div>
 
       <div>
@@ -368,23 +442,6 @@ export function PointForm({
             </Field>
           </div>
         ) : null}
-        {creating ? (
-          <button
-            type="button"
-            data-testid="point-service-link"
-            onClick={() => {
-              const go = () => router.push("/post?card=service");
-              if (!touched) {
-                go();
-                return;
-              }
-              setLeave({ proceed: go });
-            }}
-            className="mt-3 text-left text-[13px] font-semibold leading-[1.4] text-accent"
-          >
-            {t.pointServiceLink}
-          </button>
-        ) : null}
       </div>
 
       <div>
@@ -392,17 +449,20 @@ export function PointForm({
           <Input testId="point-name" value={d.name} onChange={(value) => patch({ name: value })} />
         </Field>
         <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.pointNameHint}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Chip testId="point-name-combo" onClick={() => insertName(nameCombo)}>
-            {nameCombo}
-          </Chip>
-          <Chip testId="point-name-row" onClick={() => insertName(t.pointChipRow.replace("…", "").trim())}>
-            {t.pointChipRow}
-          </Chip>
-          <Chip testId="point-name-entrance" onClick={() => insertName(t.pointChipEntrance)}>
-            {t.pointChipEntrance}
-          </Chip>
-        </div>
+        {nameChips.main || nameChips.row ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {nameChips.main ? (
+              <Chip testId="point-name-combo" onClick={() => patch({ name: applyNameChip(d.name, nameChips.main, "replace") })}>
+                {nameChips.main}
+              </Chip>
+            ) : null}
+            {nameChips.row ? (
+              <Chip testId="point-name-row" onClick={() => patch({ name: applyNameChip(d.name, nameChips.row, "once") })}>
+                {nameChips.row}
+              </Chip>
+            ) : null}
+          </div>
+        ) : null}
         <p className="mt-2 text-[12px] leading-[1.4] text-muted">{t.pointNameExample}</p>
       </div>
 
@@ -578,11 +638,22 @@ export function PointForm({
           <button type="button" onClick={() => cameraRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
             {t.postPhoto}
           </button>
+          <button type="button" data-testid="point-gallery" onClick={() => galleryRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
+            {t.postGallery}
+          </button>
           <button type="button" onClick={() => videoRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
             {t.pointPhotoVideo}
           </button>
         </div>
-        <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} galleryTestId="point-photo" onFile={(file) => void onPhoto(file)} />
+        <NativePhotoInputs
+          cameraRef={cameraRef}
+          galleryRef={galleryRef}
+          galleryTestId="point-photo"
+          galleryAccept="image/*,video/*"
+          galleryMultiple
+          onFile={(file) => void onPhoto(file)}
+          onGalleryFiles={(files) => void onGallery(files)}
+        />
         <input
           ref={videoRef}
           type="file"
