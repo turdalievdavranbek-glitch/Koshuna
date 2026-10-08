@@ -16,6 +16,7 @@ import {
   userAuth,
   users,
 } from "./db/schema";
+import { rowToShop } from "./mappers";
 import { partPath, removeFile } from "./media";
 
 /**
@@ -72,7 +73,8 @@ export async function listingReminders(): Promise<{ ok: true; counts: Record<str
   return { ok: true, counts: { reminders, expired } };
 }
 
-async function wipeUser(userId: string) {
+/** Owner account removal. Listings and points are hidden (not hard-deleted). Session, login, and profile fields are cleared. */
+export async function wipeUser(userId: string) {
   const db = getDb();
   await db.execute(sql`
     UPDATE listings SET likes = GREATEST(likes - sub.n, 0)
@@ -99,8 +101,16 @@ async function wipeUser(userId: string) {
     await removeFile(partPath(row.id)).catch(() => undefined);
   }
 
-  const ownedListings = await db.select({ id: listings.id }).from(listings).where(eq(listings.ownerId, userId));
-  const ownedShops = await db.select({ id: shops.id }).from(shops).where(eq(shops.ownerId, userId));
+  const now = new Date();
+  const ownedShops = await db.select().from(shops).where(eq(shops.ownerId, userId));
+  for (const row of ownedShops) {
+    const shop = { ...rowToShop(row), status: "hidden" as const, updatedAt: now.toISOString() };
+    await db.update(shops).set({ status: "hidden", updatedAt: now, doc: shop }).where(eq(shops.id, row.id));
+  }
+  await db.update(listings).set({ status: "hidden", updatedAt: now }).where(eq(listings.ownerId, userId));
+  if (ownedShops.length) {
+    await db.update(listings).set({ status: "hidden", updatedAt: now }).where(inArray(listings.shopId, ownedShops.map((row) => row.id)));
+  }
 
   await db.delete(reactions).where(eq(reactions.userId, userId));
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
@@ -111,8 +121,6 @@ async function wipeUser(userId: string) {
   await db.delete(notifications).where(eq(notifications.userId, userId));
   await db.delete(reservations).where(eq(reservations.buyerId, userId));
   await db.delete(purchaseRequests).where(eq(purchaseRequests.buyerId, userId));
-  if (ownedShops.length) await db.delete(shops).where(inArray(shops.id, ownedShops.map((row) => row.id)));
-  if (ownedListings.length) await db.delete(listings).where(inArray(listings.id, ownedListings.map((row) => row.id)));
   await db.delete(media).where(eq(media.ownerId, userId));
   await db
     .update(users)

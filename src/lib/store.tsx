@@ -1222,12 +1222,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       update({ user: null, extraListings: [], favouriteIds: [], reactions: {}, blockedUserIds: [] });
       void (async () => {
         await api("/api/auth/logout", { method: "POST", json: {} });
-        const feed = await api<{ listings?: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000");
+        const [feed, shopList] = await Promise.all([
+          api<{ listings?: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+          api<{ shops?: Shop[] }>("/api/shops"),
+        ]);
         applyCounts(feed.data?.counts, {}, null);
-        if (feed.ok && feed.data?.listings) {
-          const listings = feed.data.listings;
-          update((s) => ({ ...s, feed: listings, blockedUserIds: [] }));
-        }
+        update((s) => ({
+          ...s,
+          ...(feed.ok && feed.data?.listings ? { feed: feed.data.listings } : {}),
+          ...(shopList.ok && shopList.data?.shops ? { shops: shopList.data.shops } : {}),
+          blockedUserIds: [],
+        }));
       })();
     },
     linkCard: () =>

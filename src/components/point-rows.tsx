@@ -44,11 +44,14 @@ export function PointAvatar({ shop, size = 44 }: { shop: Pick<Shop, "coverUrl" |
 export function PointList({
   shops,
   actions,
+  open = "goods",
   testId = "point-list",
 }: {
   shops: Shop[];
   /** «Изменить» and «Выложить товар» on profile and selling lists. */
   actions?: boolean;
+  /** Cabinet rows open the point page. «Куда выложить?» still opens the goods form. */
+  open?: "point" | "goods";
   testId?: string;
 }) {
   const { t, lang, deleteShop } = useApp();
@@ -66,7 +69,7 @@ export function PointList({
             <div className="flex min-w-0 items-start gap-1">
             <button
               type="button"
-              onClick={() => router.push(`/shops/quick?shop=${shop.id}`)}
+              onClick={() => router.push(open === "point" ? `/shops/${shop.id}` : `/shops/quick?shop=${shop.id}`)}
               className="flex min-w-0 flex-1 items-center gap-3 text-left"
             >
               <PointAvatar shop={shop} />
