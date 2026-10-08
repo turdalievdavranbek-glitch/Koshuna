@@ -75,7 +75,7 @@ export function shopMatchesCategory(shop: Shop, filter: ShopCategory | ShopKind)
 export function emptyShopDraft(user: User): ShopDraft {
   const now = new Date().toISOString();
   return {
-    id: `shop-${Date.now()}`,
+    id: `shop-${crypto.randomUUID()}`,
     name: "",
     ownerPhone: user.phone,
     ownerName: user.name,

@@ -34,7 +34,7 @@ import { GisOnMapCard } from "@/components/gis-on-map";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft, dealerProfiles } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [photo, setPhoto] = useState(0);
@@ -45,6 +45,8 @@ export default function ListingPage() {
     // Record the visit once per listing id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing?.id]);
+
+  if (!listing && !synced) return null;
 
   if (!listing) {
     return (

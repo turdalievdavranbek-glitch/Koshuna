@@ -21,7 +21,7 @@ import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, shops, user, allListings, withdrawShop, reportShop, reports } = useApp();
+  const { t, shops, user, allListings, withdrawShop, reportShop, reports, synced } = useApp();
   const shop = shops.find((item) => item.id === id);
   const [toast, setToast] = useState("");
   const [playing, setPlaying] = useState(false);
@@ -38,6 +38,8 @@ export default function ShopDetailPage() {
     () => (shop ? allListings.filter((item) => item.shopId === shop.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed") : []),
     [allListings, shop],
   );
+
+  if (!shop && !synced) return null;
 
   if (!shop || !visible) {
     return (

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { captureVideoPoster, dropBlob, keepBlob, recorderMime, startSpeech } from "@/lib/blob-media";
+import { videoMaxSeconds } from "@/lib/media-limits";
 import {
   DEMO_POSTER_URL,
   DEMO_TRANSCRIPT,
@@ -32,6 +33,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const chunks = useRef<Blob[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
+  const recStartedAt = useRef(0);
   const stopSpeech = useRef<(() => void) | null>(null);
   const heardRef = useRef("");
   const autoMicFor = useRef<string | null>(null);
@@ -41,6 +43,20 @@ export function MediaCapture({ draft, onPatch }: Props) {
   const [live, setLive] = useState("");
 
   const kind: MediaKind = draft.mediaKind ?? "photos";
+
+  const videoDuration = (url: string) =>
+    new Promise<number>((resolve) => {
+      const el = document.createElement("video");
+      el.preload = "metadata";
+      const finish = (value: number) => {
+        el.removeAttribute("src");
+        el.load();
+        resolve(value);
+      };
+      el.onloadedmetadata = () => finish(Number.isFinite(el.duration) ? el.duration : 0);
+      el.onerror = () => finish(0);
+      el.src = url;
+    });
 
   useEffect(() => {
     if (kind !== "video" || recording) return;
@@ -126,12 +142,26 @@ export function MediaCapture({ draft, onPatch }: Props) {
         if (ev.data.size) chunks.current.push(ev.data);
       };
       rec.onstop = async () => {
+        const wallSec = recStartedAt.current ? (Date.now() - recStartedAt.current) / 1000 : 0;
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: rec.mimeType || (mode === "video" ? "video/webm" : "audio/webm") });
         const url = keepBlob(mode === "video" ? "video" : "voice", blob);
         if (mode === "video") {
+          const meta = await videoDuration(url);
+          const duration = meta > 0 && Number.isFinite(meta) ? meta : wallSec;
+          if (duration > videoMaxSeconds()) {
+            dropBlob("video");
+            setBusy(t.shopVideoTime);
+            return;
+          }
           const poster = (await captureVideoPoster(url)) ?? undefined;
-          onPatch({ mediaKind: "video", videoUrl: url, photo: poster || draft.photo, aiConfirmed: false });
+          onPatch({
+            mediaKind: "video",
+            videoUrl: url,
+            videoSec: duration || undefined,
+            photo: poster || draft.photo,
+            aiConfirmed: false,
+          });
         } else {
           onPatch({
             mediaKind: draft.videoUrl ? "video" : "voice",
@@ -141,6 +171,7 @@ export function MediaCapture({ draft, onPatch }: Props) {
           });
         }
       };
+      recStartedAt.current = Date.now();
       rec.start();
       recRef.current = rec;
       setRecMode(mode);
@@ -171,8 +202,14 @@ export function MediaCapture({ draft, onPatch }: Props) {
     const isAudio = file.type.startsWith("audio");
     const url = keepBlob(isVideo ? "video" : isAudio ? "voice" : "photo", file);
     if (isVideo) {
+      const duration = await videoDuration(url);
+      if (duration > videoMaxSeconds()) {
+        dropBlob("video");
+        setBusy(t.shopVideoTime);
+        return;
+      }
       const poster = (await captureVideoPoster(url)) ?? DEMO_POSTER_URL;
-      onPatch({ mediaKind: "video", videoUrl: url, photo: poster, aiConfirmed: false });
+      onPatch({ mediaKind: "video", videoUrl: url, videoSec: duration || undefined, photo: poster, aiConfirmed: false });
     } else if (isAudio) {
       onPatch({ mediaKind: "voice", voiceUrl: url, aiConfirmed: false });
     } else {

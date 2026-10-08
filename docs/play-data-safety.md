@@ -10,7 +10,7 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 | Does your app collect or share any of the required user data types? | Yes |
 | Is all of the user data collected by your app encrypted in transit? | Yes (HTTPS only, cleartext disabled) |
 | Do you provide a way for users to request that their data be deleted? | Yes — https://koshuna.ru/delete-account (in-app button «Удалить аккаунт» comes in Шаг 16) |
-| Account creation | Users can create an account with OAuth: Telegram, Google, Apple (TikTok after Шаг 8). Delete-account URL as above. |
+| Account creation | Demo login only, no SMS. Telegram, Google, Apple and TikTok login are not shipped yet (Шаг 8). Account and session data are stored on our server. Delete-account URL as above removes that server data; backups rotate out (7 daily DB dumps, 4 weekly media archives). |
 | Data shared with third parties? | No. Firebase, Timeweb, 2GIS, and the login providers are service providers, or the transfer is user-initiated. Neither counts as "sharing" under Play's definition. |
 
 ## Data types
@@ -27,18 +27,18 @@ Privacy policy URL: https://koshuna.ru/privacy · Account deletion URL: https://
 | Photos and videos → Photos (Фото) | Yes | No | No | Optional | App functionality |
 | Photos and videos → Videos (Видео) | Yes | No | No | Optional | App functionality |
 | Audio files → Voice or sound recordings (Голос, звук) | Yes | No | No | Optional | App functionality |
-| Messages → Other in-app messages (Сообщения в чате, №84) | Yes | No | No | Optional | App functionality |
+| Messages → Other in-app messages (Сообщения в чате, №84) | Not yet — tables exist; messages stay on the device until Шаг 19 | No | No | Optional | App functionality |
 | App activity → App interactions (лайки, корзина, подписки, блокировки) | Yes | No | No | Optional | App functionality |
 | App activity → Other user-generated content (объявления, точки, жалобы) | Yes | No | No | Optional | App functionality |
 | App info and performance → Crash logs (Crashlytics) | Yes | No | No | Required (automatic) | App functionality, Analytics |
 | App info and performance → Diagnostics (Crashlytics device/OS info) | Yes | No | No | Required (automatic) | App functionality, Analytics |
-| Device or other IDs → Device or other IDs (FCM push token, Firebase installation ID) | Yes | No | No | Required (automatic) | App functionality (push), Analytics (crash grouping) |
+| Device or other IDs → Device or other IDs (FCM push token, Firebase installation ID) | Yes (Шаг 4 stores the token when the app sends it; sending needs google-services.json) | No | No | Required (automatic) | App functionality (push), Analytics (crash grouping) |
 
 ## Not collected
-Financial info, Health and fitness, Contacts, Calendar (the «В календарь» link only opens the user's calendar app), Web browsing, Files and docs, Emails/SMS, Installed apps, Race/religion/political/sexual orientation, Precise purchase history, In-app search history (saved searches stay on device; re-check after Шаг 4).
+Financial info, Health and fitness, Contacts, Calendar (the «В календарь» link only opens the user's calendar app), Web browsing, Files and docs, Emails/SMS, Installed apps, Race/religion/political/sexual orientation, Precise purchase history, In-app search history (saved searches stay on the device).
 
 ## To re-check in Шаг 26
 - In-app account deletion button exists (Шаг 16) → mention it.
 - TikTok login actually shipped (Шаг 8).
-- Server really stores messages (Шаг 19), likes/cart/subscriptions (Шаг 4); saved searches still on device?
+- Шаг 4 stores listings, shops, photos, videos, voice, likes, cart, subscriptions, reports, push tokens, and account/session data on the Timeweb VPS in Russia, with daily backups (7 daily DB dumps, 4 weekly media archives). Deletion via /delete-account removes the server copy; backups rotate out inside that window. Chat messages stay on the device until Шаг 19. Saved searches stay on the device. Demo login has no SMS. Telegram/Google/Apple/TikTok login is still future (Шаг 8).
 - No ads SDK and no analytics SDK beyond Crashlytics added since.

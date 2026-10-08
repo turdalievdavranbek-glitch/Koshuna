@@ -51,6 +51,18 @@ async function wirePushPermission(): Promise<void> {
       status = await PushNotifications.requestPermissions();
     }
     if (status.receive !== "granted") return;
+    try {
+      await PushNotifications.addListener("registration", ({ value }) => {
+        void fetch("/api/devices", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token: value, platform: "android" }),
+        }).catch(() => undefined);
+      });
+    } catch {
+      /* FCM token needs a real google-services.json. */
+    }
     await PushNotifications.register();
   } catch {
     /* FCM token needs a real google-services.json. The permission request still ran. */
