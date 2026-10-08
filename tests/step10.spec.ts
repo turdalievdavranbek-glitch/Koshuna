@@ -481,15 +481,16 @@ test.describe("point registration", () => {
     const api = await signedIn(page, "+996555123456");
     for (const card of ["shop", "stall"] as const) {
       await page.goto(`/shops/quick?card=${card}`);
+      await expect(page.getByTestId("point-form")).toBeVisible();
       await expect(page.getByText("Сфотографируйте фасад вашего здания")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Только фото" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Видео", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Только фото" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Фото и голос" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Текстом" })).toHaveCount(0);
       await expect(page.getByText("Наименование")).toHaveCount(0);
       await expect(page.getByText("Наведите на товар и ценник")).toHaveCount(0);
       await expect(page.getByText("Пример ценника для ИИ")).toHaveCount(0);
       await expect(page.getByText("Пример: проход по прилавку")).toHaveCount(0);
+      await expect(page.getByText("улица, дом")).toHaveCount(0);
     }
 
     await page.getByTestId("point-photo").setInputFiles({
@@ -498,10 +499,9 @@ test.describe("point registration", () => {
       buffer: PNG,
     });
     await page.getByTestId("point-name").fill("Лавка у дома");
-    await page.getByTestId("point-address").fill("Чуй 10");
-    await page.getByRole("button", { name: "Продукты питания" }).click();
+    await page.getByTestId("point-group-food").click();
     await page.getByTestId("hours-918").click();
-    await page.getByTestId("point-publish").click();
+    await page.getByTestId("point-create").click();
     await expect(page.getByTestId("point-created")).toBeVisible();
     await expect(page.getByText("Точка создана")).toBeVisible();
 
@@ -522,15 +522,9 @@ test.describe("point registration", () => {
     const api = await installApi(page, { phone: "+996555123456", shops: [sampleShop()] });
     await page.goto("/shops/quick?card=shop");
     await expect(page.getByText("Наименование")).toHaveCount(0);
-    await page.getByTestId("point-photo").setInputFiles({
-      name: "facade.png",
-      mimeType: "image/png",
-      buffer: PNG,
-    });
     await page.getByTestId("point-name").fill("Вторая точка");
-    await page.getByTestId("point-address").fill("Московская 5");
-    await page.getByRole("button", { name: "Другое" }).click();
-    await page.getByTestId("point-publish").click();
+    await page.getByTestId("point-group-other").click();
+    await page.getByTestId("point-create").click();
     await page.getByTestId("hours-soft-skip").click();
     await expect(page.getByTestId("point-created")).toBeVisible();
     await expect.poll(() => api.shopPuts().length).toBeGreaterThan(0);
@@ -571,14 +565,19 @@ test.describe("point registration", () => {
     const api = await signedIn(page, "+996555123456");
     await page.goto("/shops/new");
     await expect(page.getByTestId("hours-block")).toBeVisible();
-    await page.getByRole("button", { name: "Сохранить черновик" }).click();
+    await page.getByTestId("point-group-food").click();
+    await page.getByTestId("point-name").fill("Часы");
+    await page.getByTestId("point-create").click();
     await expect(page.getByTestId("hours-soft")).toBeVisible();
     await page.getByTestId("hours-soft-skip").click();
     await expect.poll(() => api.shopPuts().length).toBeGreaterThan(0);
     const skipped = api.shopPuts().at(-1) as { action?: string; shop?: { hours?: unknown } };
-    expect(skipped.action).toBe("save-draft");
+    expect(skipped.action).toBe("publish");
     expect(skipped.shop?.hours).toBeFalsy();
 
+    await page.goto("/shops/new");
+    await page.getByTestId("point-group-food").click();
+    await page.getByTestId("point-name").fill("Часы с режимом");
     await page.getByTestId("day-sat").click();
     await expect(page.getByTestId("day-sat")).toHaveAttribute("aria-pressed", "true");
     await page.getByTestId("hours-weekend").click();
@@ -586,10 +585,10 @@ test.describe("point registration", () => {
     await expect(page.getByTestId("day-sun")).toHaveAttribute("aria-pressed", "false");
     await page.getByTestId("hours-918").click();
     const before = api.shopPuts().length;
-    await page.getByRole("button", { name: "Сохранить черновик" }).click();
+    await page.getByTestId("point-create").click();
     await expect.poll(() => api.shopPuts().length).toBeGreaterThan(before);
     const saved = api.shopPuts().at(-1) as { action?: string; shop?: { hours?: Record<string, unknown> } };
-    expect(saved.action).toBe("save-draft");
+    expect(saved.action).toBe("publish");
     expect(saved.shop?.hours).toMatchObject({
       days: ["mon", "tue", "wed", "thu", "fri"],
       slot: { open: "09:00", close: "18:00" },

@@ -579,7 +579,7 @@ export function PointForm({
             {t.pointPhotoVideo}
           </button>
         </div>
-        <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onPhoto(file)} />
+        <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} galleryTestId="point-photo" onFile={(file) => void onPhoto(file)} />
         <input
           ref={videoRef}
           type="file"

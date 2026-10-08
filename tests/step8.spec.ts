@@ -1,8 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function dismissLanguage(page: Page) {
+  const chosen = await page
+    .evaluate(() => {
+      try {
+        return JSON.parse(localStorage.getItem("konshu-state-v1") || "{}").langChosen === true;
+      } catch {
+        return false;
+      }
+    })
+    .catch(() => false);
+  if (chosen) return;
   const ru = page.getByRole("button", { name: "RU / Русский" });
-  if (await ru.isVisible().catch(() => false)) await ru.click();
+  await ru.waitFor({ state: "visible", timeout: 15000 });
+  await ru.click();
 }
 
 function overlaps(
