@@ -4,7 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandFacebook, BrandInstagram, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
 import { BrandMark } from "@/components/brand";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
 import { formatSom } from "@/lib/data";
@@ -58,7 +60,10 @@ export default function StoryPage() {
   if (!listing) {
     return (
       <PhoneShell>
-        <div className="p-6">{t.empty}</div>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <p className="mt-4">{t.empty}</p>
+        </div>
       </PhoneShell>
     );
   }
@@ -117,7 +122,7 @@ export default function StoryPage() {
         <div className="flex items-center justify-between pb-2">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => goBack(router, "/")}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
           >
             <IconBack size={16} color="#17140F" />

@@ -9,6 +9,7 @@ import { realtyIsLiving } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
 import { feedHrefFromFilters, sectionHref } from "@/lib/section-tree";
 import { shownLocationLabel } from "@/components/location-line";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 import { IconBack, IconHeart } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -72,7 +73,7 @@ export default function FiltersPage() {
       <div className="flex items-center justify-between px-5 pb-3.5 pt-1">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => goBack(router, "/search")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
           <IconBack size={16} color="#17140F" />

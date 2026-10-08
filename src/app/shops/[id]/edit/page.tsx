@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ShopForm } from "@/components/shop-form";
+import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
 import { isOwnShop } from "@/lib/shops";
@@ -28,7 +29,10 @@ export default function EditShopPage() {
   if (!shop || !isOwnShop(shop, user)) {
     return (
       <PhoneShell>
-        <div className="p-6 text-[15px] text-muted">{t.shopForbidden}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/shops" />
+          <div className="mt-4 text-[15px] text-muted">{t.shopForbidden}</div>
+        </div>
       </PhoneShell>
     );
   }
@@ -45,7 +49,7 @@ export default function EditShopPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <ShopForm />
+        <ShopForm boot={false} />
       </div>
     </PhoneShell>
   );

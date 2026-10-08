@@ -6,6 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { BrandGoogle } from "@/components/auth-brands";
 import { Flag } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
+import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { fetchGoogleClientId, isInAppBrowser } from "@/lib/google-login";
@@ -123,7 +124,10 @@ function LoginInner() {
   return (
     <PhoneShell>
       <div className="sc flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-8 pt-4">
-        <LangSwitch />
+        <ScreenBack fallback="/" />
+        <div className="mt-3">
+          <LangSwitch />
+        </div>
         <div className="mt-8">
           <BrandMark size={40} wordClass="text-[32px] leading-none text-ink" />
           <div className="mt-3 flex w-fit items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1">

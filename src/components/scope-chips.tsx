@@ -39,10 +39,21 @@ export function ScopeChips() {
   };
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
-        <Chip active={filters.scope === "near"} onClick={() => void pickNear()}>{busy ? t.locationGeoBusy : t.scopeNear}</Chip>
-        <Chip active={filters.scope === "area"} onClick={() => (place ? setFilters({ scope: "area" }) : openLocationPicker(router, path || "/"))}>{areaLabel}</Chip>
-        <Chip active={filters.scope === "all"} onClick={pickAll}>{t.scopeAll}</Chip>
+      <div
+        data-testid="scope-chips"
+        className="flex flex-nowrap gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <Chip size="compact" active={filters.scope === "near"} onClick={() => void pickNear()}>{busy ? t.locationGeoBusy : t.scopeNear}</Chip>
+        <Chip
+          size="compact"
+          truncate
+          testId="scope-area"
+          active={filters.scope === "area"}
+          onClick={() => (place ? setFilters({ scope: "area" }) : openLocationPicker(router, path || "/"))}
+        >
+          {areaLabel}
+        </Chip>
+        <Chip size="compact" active={filters.scope === "all"} onClick={pickAll}>{t.scopeAll}</Chip>
       </div>
       {error ? <div className="mt-2"><GeoError compact error={error} onRetry={() => void pickNear()} /></div> : null}
     </div>

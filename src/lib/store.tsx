@@ -471,11 +471,11 @@ type Store = State & {
   toggleSearchNotify: (id: string) => void;
   saveCurrentSearch: () => void;
   setNotificationsOn: (on: boolean) => void;
-  startShopDraft: (id?: string) => ShopDraft | null;
+  startShopDraft: (id?: string, opts?: { fresh?: boolean }) => ShopDraft | null;
   setShopDraft: (patch: Partial<ShopDraft>) => void;
   lockShopField: (key: keyof Shop) => void;
   saveShopDraft: () => Shop | null;
-  publishShop: () => Promise<{ shop: Shop | null; error?: string }>;
+  publishShop: (shop?: Shop) => Promise<{ shop: Shop | null; error?: string }>;
   withdrawShop: (id: string) => Promise<{ error?: string }>;
   upsertShopProduct: (
     shopId: string,
@@ -1305,7 +1305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     publishDraft: () => {
       const d = state.draft;
       const liveUser = userRef.current ?? state.user;
-      const priced = Boolean(d.priceNegotiable) || d.section === "vacancies" || Boolean(d.price.trim());
+      const priced = Boolean(d.priceNegotiable) || d.section === "vacancies" || d.section === "restaurants" || Boolean(d.price.trim());
       if (!d.title.trim() || !priced) return null;
       const listing = userListingFromDraft(d, {
         user: liveUser,
@@ -1546,7 +1546,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     setNotificationsOn: (on) => update({ notificationsOn: on }),
-    startShopDraft: (id) => {
+    startShopDraft: (id, opts) => {
       if (!state.user) return null;
       if (id) {
         const existing = state.shops.find((s) => s.id === id);
@@ -1555,7 +1555,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         update({ shopDraft: draft });
         return draft;
       }
-      if (state.shopDraft && state.shopDraft.status !== "active" && isOwnShop(state.shopDraft, state.user)) {
+      if (!opts?.fresh && state.shopDraft && state.shopDraft.status !== "active" && isOwnShop(state.shopDraft, state.user)) {
         return state.shopDraft;
       }
       const draft = emptyShopDraft(state.user);
@@ -1601,9 +1601,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })();
       return saved;
     },
-    publishShop: async () => {
+    publishShop: async (source) => {
       const user = state.user;
-      const draft = state.shopDraft;
+      const draft = source ?? state.shopDraft;
       if (!user) return { shop: null, error: "auth" };
       if (!draft || !isOwnShop(draft, user)) return { shop: null, error: "forbidden" };
       const shop: Shop = { ...draft, status: "active", updatedAt: new Date().toISOString(), aiConfirmed: true };
@@ -1627,10 +1627,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...shop.products.filter((row) => !(prev?.products ?? []).some((p) => p.id === row.id)),
           ],
         };
+        const kept = s.shopDraft?.id === merged.id ? s.shopDraft : null;
         return {
           ...s,
           shops: prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops],
-          shopDraft: { ...draft, ...merged },
+          shopDraft: {
+            ...draft,
+            ...merged,
+            locked: kept?.locked ?? {},
+            pendingProducts: kept?.pendingProducts,
+          },
           extraListings: syncShopListings(s.extraListings, prev ? s.shops.map((item) => (item.id === shop.id ? merged : item)) : [merged, ...s.shops], user),
         };
       });

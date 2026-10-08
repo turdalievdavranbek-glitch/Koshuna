@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 
@@ -18,7 +19,10 @@ export default function AdminPage() {
   if (!isAdminUser(user)) {
     return (
       <PhoneShell>
-        <div className="p-5 text-muted">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/selling" />
+          <div className="mt-4 text-muted">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }

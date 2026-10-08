@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { threadSide } from "@/lib/listing-owner";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 import type { AppSide } from "@/lib/types";
 import { IconBack } from "@/components/icons";
@@ -25,7 +26,7 @@ export default function MessagesPage() {
     return (
       <PhoneShell>
         <div className="px-5 pt-2">
-          <RoundBtn onClick={() => router.back()}>
+          <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
             <IconBack size={16} color="#17140F" />
           </RoundBtn>
           <h1 className="mt-4 font-display text-[28px] font-extrabold text-ink">{t.inbox}</h1>
@@ -53,7 +54,7 @@ export default function MessagesPage() {
   return (
     <PhoneShell>
       <div className="flex items-center gap-3 px-5 pt-1">
-        <RoundBtn onClick={() => router.back()}>
+        <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
           <IconBack size={16} color="#17140F" />
         </RoundBtn>
         <h1 className="font-display text-[22px] font-bold text-ink">{t.inbox}</h1>

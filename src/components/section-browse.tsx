@@ -12,6 +12,7 @@ import { BRANCH_ALL, parseBranch, resolveBranch, sectionFeedReset, sectionHref }
 import { makeListView } from "@/lib/transport";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
 import { LocationLine } from "@/components/location-line";
@@ -253,7 +254,10 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   if (!state) {
     return (
       <PhoneShell tab>
-        <div className="p-6">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <div className="mt-4">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }
@@ -460,7 +464,9 @@ export function SectionRoutePage() {
   if (id === "car-rental") {
     return (
       <PhoneShell tab>
-        <div className="p-6" />
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+        </div>
       </PhoneShell>
     );
   }
@@ -468,7 +474,10 @@ export function SectionRoutePage() {
   if (!isSectionId(id) || !isSectionVisible(id)) {
     return (
       <PhoneShell tab>
-        <div className="p-6">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <div className="mt-4">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }

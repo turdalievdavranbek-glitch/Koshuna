@@ -7,6 +7,7 @@ import { useState } from "react";
 import { FEATURES } from "@/lib/features";
 import { hasRole, isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
@@ -29,8 +30,9 @@ export default function SellingPage() {
   if (!user) {
     return (
       <PhoneShell tab>
-        <div className="flex flex-1 flex-col px-5 pt-4">
-          <h1 className="font-display text-[28px] font-extrabold text-ink">{t.myListings}</h1>
+        <div className="flex flex-1 flex-col px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <h1 className="mt-3 font-display text-[28px] font-extrabold text-ink">{t.myListings}</h1>
           <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.guestSideHint}</p>
           <button
             type="button"

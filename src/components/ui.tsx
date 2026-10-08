@@ -24,29 +24,44 @@ export function Chip({
   accent,
   className,
   size = "md",
+  testId,
+  pressed,
+  truncate,
 }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   accent?: boolean;
   className?: string;
-  size?: "md" | "sm" | "xs";
+  size?: "md" | "sm" | "xs" | "compact";
+  testId?: string;
+  pressed?: boolean;
+  truncate?: boolean;
 }) {
   const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
   const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
-  const pad = size === "xs" ? "px-2 py-[3px] text-[10px]" : size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
+  const pad =
+    size === "xs"
+      ? "px-2 py-[3px] text-[10px]"
+      : size === "sm"
+        ? "px-[11px] py-[5px] text-[11px]"
+        : size === "compact"
+          ? "px-2.5 py-1.5 text-[12px]"
+          : "px-[15px] py-2 text-[13px]";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full font-semibold ${pad} ${className ?? ""}`}
+      data-testid={testId}
+      aria-pressed={pressed}
+      className={`${truncate ? "min-w-[4.5rem] max-w-full shrink overflow-hidden text-left" : "shrink-0 whitespace-nowrap"} rounded-full font-semibold ${pad} ${className ?? ""}`}
       style={{
         background: bg,
         color,
         border: active ? "none" : "1px solid #E4DCCE",
       }}
     >
-      {children}
+      {truncate ? <span className="block truncate">{children}</span> : children}
     </button>
   );
 }
@@ -77,6 +92,7 @@ function priceLabel(listing: Listing, ask: string, negotiable: string) {
 
 export function Price({ listing, large, compact }: { listing: Listing; large?: boolean; compact?: boolean }) {
   const { t } = useApp();
+  if (listing.section === "restaurants" && listing.price === 0) return null;
   const unit = listing.unit && listingHasPrice(listing) ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
   const empty = priceLabel(listing, t.shopAskPrice, t.priceNegotiable);
@@ -286,11 +302,12 @@ export function useFiltered() {
   return applyFilters(allListings, filters, city);
 }
 
-export function RoundBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+export function RoundBtn({ children, onClick, label }: { children: React.ReactNode; onClick?: () => void; label?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
     >
       {children}
@@ -319,12 +336,14 @@ export function Input({
   placeholder,
   type = "text",
   disabled,
+  testId,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <input
@@ -332,6 +351,7 @@ export function Input({
       value={value}
       placeholder={placeholder}
       disabled={disabled}
+      data-testid={testId}
       onChange={(e) => onChange(e.target.value)}
       className="h-[50px] w-full rounded-[14px] border border-line bg-surface px-[15px] text-[15px] text-ink outline-none placeholder:text-muted-2 disabled:bg-chip disabled:text-muted"
     />

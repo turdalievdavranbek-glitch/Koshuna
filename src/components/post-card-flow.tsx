@@ -213,7 +213,12 @@ export function CardPost({ card }: { card: string }) {
               </div>
             </div>
 
-            <MediaCapture draft={draft} onPatch={setDraft} />
+            <MediaCapture
+              draft={draft}
+              onPatch={setDraft}
+              hint={entryCard === "cafe" ? t.pointPhotoHint : undefined}
+              emptyText={entryCard === "cafe" ? t.pointLive : undefined}
+            />
 
             {draft.mediaKind === "text" ? (
               <div className="rounded-[14px] border border-line bg-white px-3.5 py-3">
@@ -349,7 +354,7 @@ export function CardPost({ card }: { card: string }) {
               ) : null}
               <PostTaxonomy draft={draft} onPatch={setDraft} onTaxonomyReady={setTaxonomyReady} />
               {bizCard ? (
-                <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                <Field label={entryCard === "cafe" ? t.avgCheckField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                   <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
                 </Field>
               ) : null}
@@ -548,7 +553,7 @@ export function CardPost({ card }: { card: string }) {
                   setError(t.needFields);
                   return;
                 }
-                if (!spoken && !draft.price.trim() && draft.section !== "vacancies") {
+                if (!spoken && !draft.price.trim() && draft.section !== "vacancies" && entryCard !== "cafe") {
                   setError(t.needFields);
                   return;
                 }
@@ -581,9 +586,11 @@ export function CardPost({ card }: { card: string }) {
                 <div className="flex h-44 items-center justify-center bg-chip text-sm text-muted">{t.photos}</div>
               )}
               <div className="p-4">
+                {entryCard === "cafe" && !draft.price.trim() ? null : (
                 <div className="font-display text-[21px] font-bold text-ink">
                   {draft.price} KGS {draft.kind === "rent" ? t.perMonth : ""}
                 </div>
+                )}
                 <div className="mt-1 text-[15px] font-medium text-ink">{draft.title}</div>
                 <div className="mt-1 text-[13px] text-muted">
                   {t.cities[draft.city]}

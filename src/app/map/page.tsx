@@ -10,6 +10,7 @@ import { listingTitle } from "@/lib/i18n";
 import { locate, type LocateError } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import { GeoError } from "@/components/geo-error";
+import { ScreenBack } from "@/components/back-button";
 import { IconLocate, IconSearch, IconSliders } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingRow, Photo, useFiltered } from "@/components/ui";
@@ -138,6 +139,7 @@ export default function MapPage() {
         ) : null}
 
         <div className="relative z-10 flex gap-2 px-4 pt-1">
+          <ScreenBack fallback="/" />
           <button
             type="button"
             onClick={() => router.push("/filters")}

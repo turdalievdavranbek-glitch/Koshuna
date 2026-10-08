@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { minSqmPrice, type UnitStatus } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input, Photo } from "@/components/ui";
@@ -38,8 +39,9 @@ export default function ComplexDetailPage() {
   if (!complex || !complex.isPublished) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <button type="button" onClick={() => router.push("/complexes")} className="text-[15px] font-semibold text-accent">
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/complexes" />
+          <button type="button" onClick={() => router.push("/complexes")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.complexesTitle}
           </button>
           <p className="mt-4 text-muted">{t.empty}</p>

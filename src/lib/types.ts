@@ -485,10 +485,18 @@ export type ShopStock = "in" | "out" | "order" | "ask";
 
 export type ShopHoursSlot = { open: string; close: string };
 
+export const SHOP_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+export type ShopDay = (typeof SHOP_DAYS)[number];
+
 export type ShopHours = {
   weekdays?: ShopHoursSlot | null;
   saturday?: ShopHoursSlot | null;
   sunday?: ShopHoursSlot | null;
+  /** Selected days. One time range applies to all of them. */
+  days?: ShopDay[];
+  slot?: ShopHoursSlot | null;
+  allDay?: boolean;
 };
 
 export type ShopContacts = {

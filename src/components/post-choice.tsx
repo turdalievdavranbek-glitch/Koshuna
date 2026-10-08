@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ScreenBack } from "@/components/back-button";
 import { draftUnfinished } from "@/lib/draft-media";
 import { useApp } from "@/lib/store";
 import type { DraftListing } from "@/lib/types";
@@ -117,7 +118,8 @@ export function ChoicePage() {
   const router = useRouter();
   return (
     <div className="px-5 pb-8 pt-4">
-      <h1 className="font-display text-[26px] font-extrabold text-ink">{t.postChoiceTitle}</h1>
+      <ScreenBack fallback="/" />
+      <h1 className="mt-3 font-display text-[26px] font-extrabold text-ink">{t.postChoiceTitle}</h1>
       <div className="mt-4">
         <PostChoices onPersonal={() => router.push("/post?type=personal")} onBusiness={() => router.push("/post?type=business")} />
       </div>
