@@ -1,6 +1,7 @@
 "use client";
 
 import { CATEGORIES, RESTAURANT_CATEGORIES, SERVICE_CATEGORIES, ANIMAL_GROUPS, goodsKindsOf } from "@/lib/data";
+import { isSectionVisible } from "@/lib/features";
 import { clearFreshListPatch } from "@/lib/filter";
 import { housingKindOfRealty, REALTY_GROUPS } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
@@ -88,7 +89,7 @@ export function HomeFreshFilters() {
         <SmChip active={!section} onClick={() => pickSection(null)}>
           {t.freshAll}
         </SmChip>
-        {HOME_SECTIONS.map((id) => (
+        {HOME_SECTIONS.filter(isSectionVisible).map((id) => (
           <SmChip key={id} active={section === id} onClick={() => pickSection(section === id ? null : id)}>
             {id === "shops" ? t.homeQuickBazaar : id === "restaurants" ? t.homeQuickFood : t.sectionNames[id]}
           </SmChip>

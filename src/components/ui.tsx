@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { dropAmount, dropPercent, hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
-import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { LANG_LABEL, listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import { LANGS, type Listing } from "@/lib/types";
@@ -421,7 +421,7 @@ export function LangSwitch() {
             color: lang === code ? "#F7F3EC" : "#6E6558",
           }}
         >
-          {code.toUpperCase()}
+          {LANG_LABEL[code].short}
         </button>
       ))}
     </div>

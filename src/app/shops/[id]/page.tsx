@@ -13,6 +13,7 @@ import { ShopProductsEditor } from "@/components/shop-products";
 import { ShopThumb, ShopVideo } from "@/components/shop-thumb";
 import { Chip, Eyebrow } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
+import { FEATURES } from "@/lib/features";
 import { GisOnMapCard } from "@/components/gis-on-map";
 import { starsForUser } from "@/lib/trust";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
@@ -95,7 +96,7 @@ export default function ShopDetailPage() {
               <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
             </div>
             <div className="mt-1 text-[13px] text-muted">{shop.ownerName}</div>
-            {mine ? (
+            {FEATURES.accountStars && mine ? (
               <div className="mt-1">
                 <TrustStars n={starsForUser(user)} size={12} />
               </div>

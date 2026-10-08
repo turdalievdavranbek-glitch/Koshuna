@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { mineListings, threadSide } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
 import { hasRole } from "@/lib/partners";
+import { FEATURES } from "@/lib/features";
+import { LANG_LABEL } from "@/lib/i18n";
 import { starsForUser } from "@/lib/trust";
 import { useApp } from "@/lib/store";
 import { LANGS } from "@/lib/types";
@@ -76,16 +78,18 @@ export default function ProfilePage() {
               {hasRole(user, "realtor") ? (
                 <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
               ) : null}
-              {hasRole(user, "developer") ? (
+              {FEATURES.developers && hasRole(user, "developer") ? (
                 <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
-              {hasRole(user, "dealer") ? (
+              {FEATURES.dealers && hasRole(user, "dealer") ? (
                 <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
               ) : null}
             </div>
-            <div className="mt-1">
-              <TrustStars n={stars} size={15} />
-            </div>
+            {FEATURES.accountStars ? (
+              <div className="mt-1">
+                <TrustStars n={stars} size={15} />
+              </div>
+            ) : null}
             <div className="mt-0.5 text-[13px] text-muted">
               {user.email || user.phone}
               {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
@@ -111,6 +115,7 @@ export default function ProfilePage() {
           </div>
         ) : null}
 
+        {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustYours}</div>
           <div className="mt-2 flex items-center gap-2">
@@ -131,6 +136,7 @@ export default function ProfilePage() {
           ) : null}
           {user.cardLinked ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{t.cardOn}</p> : null}
         </div>
+        ) : null}
 
         <Link
           href="/messages"
@@ -203,12 +209,14 @@ export default function ProfilePage() {
               >
                 {LANGS.map((code) => (
                   <option key={code} value={code}>
-                    {t.langName[code]}
+                    {LANG_LABEL[code].full}
                   </option>
                 ))}
               </select>
             }
           />
+          <Row label={t.privacyPolicy} value={<a href="/privacy" className="text-sm font-semibold text-accent">›</a>} />
+          <Row label={t.termsOfUse} value={<a href="/terms" className="text-sm font-semibold text-accent">›</a>} />
           <Row
             label={t.countryRow}
             value={

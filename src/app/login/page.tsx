@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/brand";
 import { PhoneShell } from "@/components/shell";
 import { Chip, LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
+import { FEATURES } from "@/lib/features";
 import { useApp } from "@/lib/store";
 import type { AuthMethod } from "@/lib/types";
 
@@ -86,6 +87,7 @@ function LoginInner() {
           {t.skipCatalog}
         </Link>
 
+        {FEATURES.accountStars ? (
         <div className="mt-5 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustHow}</div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-ink">{t.trustLead}</p>
@@ -103,6 +105,7 @@ function LoginInner() {
             ))}
           </div>
         </div>
+        ) : null}
 
         <div className="mt-6 flex gap-2">
           <Chip active={mode === "phone"} onClick={() => setMode("phone")}>
@@ -133,7 +136,7 @@ function LoginInner() {
               className="shadow-btn mt-3.5 flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
             >
               {t.getCode}
-              <TrustStars n={2} size={13} onDark />
+              {FEATURES.accountStars ? <TrustStars n={2} size={13} onDark /> : null}
             </button>
           </>
         ) : (
@@ -154,7 +157,7 @@ function LoginInner() {
               className="shadow-btn mt-3.5 flex h-14 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
             >
               {t.getEmailLink}
-              <TrustStars n={0} size={13} onDark />
+              {FEATURES.accountStars ? <TrustStars n={0} size={13} onDark /> : null}
             </button>
           </>
         )}
@@ -181,7 +184,7 @@ function LoginInner() {
             >
               {brandMark(id, 20)}
               <span className="flex-1">{t.continueWith(t.authMethods[id])}</span>
-              <TrustStars n={1} size={12} />
+              {FEATURES.accountStars ? <TrustStars n={1} size={12} /> : null}
             </button>
           ))}
         </div>
@@ -197,19 +200,19 @@ function LoginInner() {
             >
               {brandMark(id, 18)}
               <span className="flex-1">{t.authMethods[id]}</span>
-              <TrustStars n={1} size={12} />
+              {FEATURES.accountStars ? <TrustStars n={1} size={12} /> : null}
             </button>
           ))}
         </div>
         <p className="mt-auto pt-[22px] text-center text-xs leading-[1.5] text-muted-2">
           {t.terms}{" "}
-          <Link href="/help" className="text-accent">
+          <a href="/terms" className="text-accent">
             {t.termsLink}
-          </Link>
+          </a>
           {" · "}
-          <Link href="/help" className="text-accent">
+          <a href="/privacy" className="text-accent">
             {t.privacyLink}
-          </Link>
+          </a>
         </p>
       </div>
     </PhoneShell>

@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/privacy", destination: "/privacy.html" },
+      { source: "/terms", destination: "/terms.html" },
       { source: "/delete-account", destination: "/delete-account.html" },
     ];
   },

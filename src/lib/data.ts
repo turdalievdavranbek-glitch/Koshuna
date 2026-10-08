@@ -1,3 +1,4 @@
+import { isSectionVisible } from "./features";
 import type { Lang, Listing, ListingComment, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
 
 export const CITIES = [
@@ -48,7 +49,7 @@ export function homeTiles() {
     if (id === "shops") return { id, art: SHOP_ART, href: "/shops" as const };
     const s = SECTIONS.find((item) => item.id === id);
     return { id, art: s?.art ?? SHOP_ART, href: `/section/${id}` as const };
-  });
+  }).filter((tile) => isSectionVisible(tile.id));
 }
 
 export const CATEGORIES = [

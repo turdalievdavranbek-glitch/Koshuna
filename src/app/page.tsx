@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HOME_HERO_COUNT, PROMOTED_IDS, formatSom, homeTiles } from "@/lib/data";
+import { isSectionVisible } from "@/lib/features";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { patchForSection } from "@/lib/section";
@@ -123,18 +124,14 @@ export default function FeedPage() {
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
         <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
-          {feedQuick.map((item) => (
+          {feedQuick.filter((item) => isSectionVisible(item.id)).map((item) => (
             <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
               {item.label}
             </Chip>
           ))}
         </div>
 
-        <div className="mt-[16px] flex items-baseline justify-between">
-          <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
-          <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <div className="mt-[16px] grid grid-cols-2 gap-2.5">
           {hero.map((s) => (
             <button
               key={s.id}

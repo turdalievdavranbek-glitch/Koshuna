@@ -1,3 +1,4 @@
+import { FEATURES } from "./features";
 import { oblastOfListing } from "./places";
 import { socialCounts, type ReactionsByVoter } from "./reactions";
 import type { Listing } from "./types";
@@ -55,7 +56,7 @@ export function engagementScore(
   commentCount: number,
 ): number {
   const { likes, comments } = socialCounts(id, reactions, commentCount);
-  return likes + comments;
+  return FEATURES.comments ? likes + comments : likes;
 }
 
 function inSelectedRegion(item: Listing, scope: CircleScope): boolean {

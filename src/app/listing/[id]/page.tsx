@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatSom, ownerById } from "@/lib/data";
+import { FEATURES } from "@/lib/features";
 import { formatStayRange, nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
@@ -54,7 +55,7 @@ export default function ListingPage() {
   }
 
   const owner = ownerById(listing.ownerId);
-  const dealer = listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
+  const dealer = FEATURES.dealers && listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
   const title = listingTitle(listing, lang);
   const gate = (path: string) => {
     if (!user) {
@@ -143,11 +144,11 @@ export default function ListingPage() {
           </div>
           {isVideoListing(listing) ? (
             <span className="pointer-events-none absolute bottom-4 right-4">
-              <SellerStarsBadge listing={listing} placed />
+              {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
             </span>
           ) : (
             <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2">
-              <SellerStarsBadge listing={listing} placed />
+              {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
               <span className="rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
                 {photo + 1} / {listing.photos.length}
               </span>
@@ -260,7 +261,7 @@ export default function ListingPage() {
               {t.duplicateListing}
             </button>
           ) : null}
-          {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
+          {FEATURES.goLookMeet && reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
           {personal ? <PayAfterNote listing={listing} /> : null}
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
@@ -271,9 +272,9 @@ export default function ListingPage() {
 
           {personal ? <NeighborCard listing={listing} /> : null}
           {!mine && (listing.sellerType === "realtor" || listing.sellerType === "dealer") ? <ListingLeadForm listing={listing} /> : null}
-          {personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
+          {FEATURES.goLookMeet && personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
           {personal ? <VoiceNote listing={listing} /> : null}
-          <AiylRoad listing={listing} />
+          {FEATURES.aiyl ? <AiylRoad listing={listing} /> : null}
 
           <button
             type="button"
@@ -391,7 +392,7 @@ export default function ListingPage() {
             </button>
           ) : null}
 
-          <HonestyCard listing={listing} />
+          {FEATURES.honesty ? <HonestyCard listing={listing} /> : null}
           <ListingSocial listing={listing} />
 
           {listing.shopId || listing.sellerName || dealer ? (
@@ -409,7 +410,7 @@ export default function ListingPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name}</span>
-                  <SellerStarsBadge listing={listing} placed />
+                  {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
                   {mine

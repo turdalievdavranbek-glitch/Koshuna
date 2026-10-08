@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { CONSTRUCTION_CATEGORIES } from "@/lib/data";
+import { FEATURES, isSectionVisible } from "@/lib/features";
 import { realtyIsLiving } from "@/lib/realty";
 import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { searchPlaceholder } from "@/lib/i18n";
@@ -32,7 +33,7 @@ function FeedExtras({ id }: { id: SectionId }) {
         <DealTypeChips labeled />
         <RealtyChips list />
         <SellerKindChips />
-        {filters.realtyKind === "newbuild" || filters.stockType === "newbuild" || filters.realtyGroup === "apartments" ? (
+        {FEATURES.complexes && (filters.realtyKind === "newbuild" || filters.stockType === "newbuild" || filters.realtyGroup === "apartments") ? (
           <button
             type="button"
             onClick={() => router.push("/complexes")}
@@ -108,7 +109,7 @@ function FeedExtras({ id }: { id: SectionId }) {
             ))}
           </FeedFilterBar>
         ) : null}
-        <button
+        {FEATURES.dealers ? <button
           type="button"
           onClick={() => router.push("/dealers")}
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
@@ -118,7 +119,7 @@ function FeedExtras({ id }: { id: SectionId }) {
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">{t.dealersTitle}</span>
           </span>
           <span className="text-[13px] font-semibold text-accent">›</span>
-        </button>
+        </button> : null}
       </div>
     );
   }
@@ -296,7 +297,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
           </div>
           <LocationLine className="px-5 pb-2" />
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-            {id === "rent" && path[0] === "apartments" ? (
+            {FEATURES.complexes && id === "rent" && path[0] === "apartments" ? (
               <button
                 type="button"
                 onClick={() => router.push("/complexes")}
@@ -309,7 +310,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
                 <span className="text-muted-2">›</span>
               </button>
             ) : null}
-            {id === "cars" && !path.length ? (
+            {FEATURES.dealers && id === "cars" && !path.length ? (
               <button
                 type="button"
                 onClick={() => router.push("/dealers")}
@@ -428,7 +429,7 @@ export function SectionRoutePage() {
     );
   }
 
-  if (!isSectionId(id)) {
+  if (!isSectionId(id) || !isSectionVisible(id)) {
     return (
       <PhoneShell tab>
         <div className="p-6">{t.empty}</div>

@@ -6,6 +6,7 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input, RoundBtn } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
+import { FEATURES } from "@/lib/features";
 import { useApp } from "@/lib/store";
 
 export default function CardPage() {
@@ -32,10 +33,12 @@ export default function CardPage() {
         </RoundBtn>
         <h1 className="mt-8 font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.cardTitle}</h1>
         <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.cardHint}</p>
-        <div className="mt-3 flex items-center gap-2">
-          <TrustStars n={3} />
-          <span className="text-[13px] font-semibold text-ink">{t.trustPhoneCard}</span>
-        </div>
+        {FEATURES.accountStars ? (
+          <div className="mt-3 flex items-center gap-2">
+            <TrustStars n={3} />
+            <span className="text-[13px] font-semibold text-ink">{t.trustPhoneCard}</span>
+          </div>
+        ) : null}
         <p className="mt-3 text-[13px] text-muted-2">{t.cardDemo}</p>
         <div className="mt-4 flex gap-2">
           <Chip active>{t.cardElcart}</Chip>

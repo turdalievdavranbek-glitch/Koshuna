@@ -1,18 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { FEATURES } from "@/lib/features";
 import { useApp } from "@/lib/store";
 
 export function SellerEntryCards() {
   const { t, setSide } = useApp();
   const router = useRouter();
-  const cards = [
+  const cards = ([
     { id: "shop", href: "/shops/quick?card=shop", title: t.sellCardShop, hint: t.sellCardShopHint },
     { id: "stall", href: "/shops/quick?card=stall", title: t.sellCardStall, hint: t.sellCardStallHint },
     { id: "cafe", href: "/post?card=cafe", title: t.sellCardCafe, hint: t.sellCardCafeHint },
     { id: "developer", href: "/post?card=developer", title: t.sellCardDeveloper, hint: t.sellCardDeveloperHint },
     { id: "dealer", href: "/post?card=dealer", title: t.sellCardDealer, hint: t.sellCardDealerHint },
-  ] as const;
+  ] as const).filter((card) => {
+    if (card.id === "developer") return FEATURES.developers;
+    if (card.id === "dealer") return FEATURES.dealers;
+    return true;
+  });
 
   return (
     <div data-testid="seller-entry-cards">
