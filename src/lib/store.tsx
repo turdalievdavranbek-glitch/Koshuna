@@ -14,6 +14,7 @@ import { api, onceRetry } from "./api/client";
 import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
+import { isAnimalGroup, isKnownAnimalKind } from "./data";
 import { scopeForSaved } from "./filter";
 import { collectRefKeys, hydrateRefs, sweepOrphans, UploadFatal } from "./media-queue";
 import { nearestDistrict, publishCoords } from "./geo";
@@ -235,7 +236,7 @@ function userListingFromDraft(
     sellerType,
     sellerPhone: dealer?.phone ?? ctx.user?.phone,
     dealerId: dealer?.id,
-    animalGroup: d.section === "animals" ? d.animalGroup ?? "pets" : undefined,
+    animalGroup: d.section === "animals" ? d.animalGroup ?? "farm" : undefined,
     animalKind: d.section === "animals" ? d.animalKind : undefined,
     carMake: isCar ? d.carMake : undefined,
     carModel: isCar ? d.carModel : undefined,
@@ -499,7 +500,7 @@ function migrateElectronicsCategory(filters: Filters): Filters {
   return { ...filters, category: "phones", goodsKind: "any" };
 }
 
-function normalizeFilters(filters: Filters, savedScope?: unknown): Filters {
+export function normalizeFilters(filters: Filters, savedScope?: unknown): Filters {
   if (filters.section === "car-rental") {
     return { ...filters, section: "cars", autoType: "rent" };
   }
@@ -509,8 +510,8 @@ function normalizeFilters(filters: Filters, savedScope?: unknown): Filters {
     autoType: next.autoType === "rent" ? "rent" : "sale",
     vehicleGroup: next.vehicleGroup === "special" || next.vehicleGroup === "passenger" ? next.vehicleGroup : "any",
     goodsKind: next.goodsKind && next.goodsKind !== "any" ? next.goodsKind : "any",
-    animalGroup: next.animalGroup === "farm" ? "farm" : next.animalGroup === "any" ? "any" : "pets",
-    animalKind: next.animalKind && next.animalKind !== "any" ? next.animalKind : "any",
+    animalGroup: isAnimalGroup(next.animalGroup) || next.animalGroup === "any" ? next.animalGroup : "any",
+    animalKind: isKnownAnimalKind(next.animalKind) ? next.animalKind : "any",
     carMake: next.carMake && next.carMake !== "any" ? next.carMake : "any",
     carModel: next.carModel && next.carModel !== "any" ? next.carModel : "any",
     techBrand: next.techBrand && next.techBrand !== "any" ? next.techBrand : "any",

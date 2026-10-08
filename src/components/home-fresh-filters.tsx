@@ -1,6 +1,6 @@
 "use client";
 
-import { CATEGORIES, RESTAURANT_CATEGORIES, SERVICE_CATEGORIES, ANIMAL_GROUPS, goodsKindsOf } from "@/lib/data";
+import { CATEGORIES, RESTAURANT_CATEGORIES, SERVICE_TOP, ANIMAL_GROUPS, goodsKindsOf } from "@/lib/data";
 import { isSectionVisible } from "@/lib/features";
 import { clearFreshListPatch } from "@/lib/filter";
 import { housingKindOfRealty, REALTY_GROUPS } from "@/lib/realty";
@@ -196,7 +196,7 @@ export function HomeFreshFilters() {
             ))
           : null}
         {section === "services"
-          ? SERVICE_CATEGORIES.map((id) => (
+          ? SERVICE_TOP.map((id) => (
               <SmChip
                 key={id}
                 active={filters.category === id}
@@ -247,7 +247,7 @@ export function HomeFreshFilters() {
                   })
                 }
               >
-                {id === "pets" ? t.animalPets : t.animalFarm}
+                {t.animalGroups[id] ?? id}
               </SmChip>
             ))
           : null}

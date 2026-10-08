@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SECTIONS, SERVICE_CATEGORIES, SHOP_ART } from "@/lib/data";
+import { SECTIONS, SERVICE_TOP, SHOP_ART } from "@/lib/data";
 import { FEATURES, isSectionVisible } from "@/lib/features";
 import { applyFilters, clearMapPoint } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
@@ -274,7 +274,7 @@ export default function FiltersPage() {
         <div>
           <Eyebrow>{t.category}</Eyebrow>
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {SERVICE_CATEGORIES.map((c) => (
+            {SERVICE_TOP.map((c) => (
               <Chip key={c} active={filters.category === c} onClick={() => setFilters({ category: filters.category === c ? null : c })}>
                 {t.cats[c]}
               </Chip>

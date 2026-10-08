@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CONSTRUCTION_CATEGORIES, SERVICE_CATEGORIES } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES, SERVICE_TOP } from "@/lib/data";
 import { patchForSection } from "@/lib/section";
 import { realtyIsLiving } from "@/lib/realty";
 import { useApp } from "@/lib/store";
@@ -145,7 +145,7 @@ export function SectionExtras() {
     return (
       <SectionList
         title={t.category}
-          rows={SERVICE_CATEGORIES.map((c) => ({
+          rows={SERVICE_TOP.map((c) => ({
             id: c,
             label: t.cats[c],
             active: filters.category === c,

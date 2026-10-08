@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CONSTRUCTION_CATEGORIES } from "@/lib/data";
 import { FEATURES, isSectionVisible } from "@/lib/features";
 import { realtyIsLiving } from "@/lib/realty";
@@ -9,6 +9,7 @@ import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { searchPlaceholder } from "@/lib/i18n";
 import { isSectionId, patchForSection } from "@/lib/section";
 import { BRANCH_ALL, parseBranch, resolveBranch, sectionFeedReset, sectionHref } from "@/lib/section-tree";
+import { makeListView } from "@/lib/transport";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
@@ -237,6 +238,10 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   const listings = useFiltered();
   const state = resolveBranch(id, path);
   const pathKey = path.join("/");
+  const [makesOpen, setMakesOpen] = useState(false);
+  useEffect(() => {
+    setMakesOpen(false);
+  }, [pathKey]);
 
   useEffect(() => {
     if (!state) return;
@@ -274,11 +279,32 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
     router.push(sectionHref(id));
   };
 
-  const rows = state.options.map((row) => ({
+  const makeStep = (id === "cars" || id === "car-rental") && path.length === 2 && path[1] !== BRANCH_ALL;
+  const makeView = makeStep
+    ? makeListView(
+        state.options.map((row) => row.id),
+        { expanded: makesOpen, selected: filters.carMake, labelOf: (mid) => t.carMakes[mid] ?? mid },
+      )
+    : null;
+  const optionById = new Map(state.options.map((row) => [row.id, row]));
+  const shown = makeView
+    ? makeView.ids.flatMap((mid) => {
+        const row = optionById.get(mid);
+        return row ? [row] : [];
+      })
+    : state.options;
+  const rows = shown.map((row) => ({
     id: row.id,
     label: row.label(t),
-    onClick: () => router.push(sectionHref(id, [...path, row.id])),
+    onClick: () => router.push(row.href ?? sectionHref(id, [...path, row.id])),
   }));
+  if (makeView?.showAll) {
+    rows.push({
+      id: "all-makes",
+      label: t.allMakes(makeView.total),
+      onClick: () => setMakesOpen(true),
+    });
+  }
 
   if (state.isPicker) {
     return (
