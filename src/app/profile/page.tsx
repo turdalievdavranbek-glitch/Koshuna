@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { mineListings, threadSide } from "@/lib/listing-owner";
+import { mineListings } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
 import { hasRole } from "@/lib/partners";
 import { FEATURES } from "@/lib/features";
@@ -16,20 +16,16 @@ import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { SellerHub } from "@/components/seller-hub";
 import { SellerEntryCards } from "@/components/seller-entry-cards";
-import { SideSwitch } from "@/components/side-switch";
 import { MyListings } from "@/components/my-listings";
 import { KonshuBridges } from "@/components/konshu-bridges";
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, side, threads } =
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, threads } =
     useApp();
   const router = useRouter();
   const stars = starsForUser(user);
-  const selling = side === "sell";
   const mine = mineListings(allListings, extraListings, user, shops);
-  const inboxCount = user
-    ? threads.filter((th) => (selling ? threadSide(th, extraListings, user) === "sell" : threadSide(th, extraListings, user) === "buy")).length
-    : 0;
+  const inboxCount = user ? threads.length : 0;
 
   if (!user) {
     return (
@@ -37,9 +33,6 @@ export default function ProfilePage() {
         <div className="flex flex-1 flex-col px-5 pt-4">
           <h1 className="font-display text-[28px] font-extrabold text-ink">{t.profile}</h1>
           <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.guestSideHint}</p>
-          <div className="mt-5">
-            <SideSwitch />
-          </div>
           <button
             type="button"
             onClick={() => router.push("/login")}
@@ -62,9 +55,7 @@ export default function ProfilePage() {
   return (
     <PhoneShell tab>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-2">
-        <SideSwitch />
-
-        <div className="mt-5 flex items-center gap-3.5">
+        <div className="mt-3 flex items-center gap-3.5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">
             {user.name.slice(0, 1)}
           </div>
@@ -72,7 +63,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-1.5">
               <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
-              {selling && userHasShopBadge(shops, user) ? (
+              {userHasShopBadge(shops, user) ? (
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
               ) : null}
               {hasRole(user, "realtor") ? (
@@ -100,20 +91,10 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {selling ? (
-          <div className="mt-[18px] grid grid-cols-3 gap-2">
-            {[
-              [String(mine.length), t.listingsCount],
-              ["1 284", t.views],
-              ["4,9", t.rating],
-            ].map(([v, l]) => (
-              <div key={l} className="rounded-[14px] border border-line bg-white p-3">
-                <div className="font-display text-xl font-bold text-ink">{v}</div>
-                <div className="mt-0.5 text-[11px] text-muted">{l}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <div className="mt-[18px] rounded-[14px] border border-line bg-white p-3">
+          <div className="font-display text-xl font-bold text-ink">{mine.length}</div>
+          <div className="mt-0.5 text-[11px] text-muted">{t.listingsCount}</div>
+        </div>
 
         {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
@@ -144,55 +125,42 @@ export default function ProfilePage() {
         >
           <span>
             {t.inbox}
-            <span className="mt-0.5 block text-[12px] text-muted">{selling ? t.inboxSell : t.inboxBuy}</span>
+            <span className="mt-0.5 block text-[12px] text-muted">{t.inboxPurchasesSales}</span>
           </span>
           <span className="text-[13px] font-semibold text-accent">{inboxCount}</span>
         </Link>
 
-        {selling ? (
-          <>
-            <div className="mt-3">
-              <SellerHub />
-            </div>
+        <div className="mt-3">
+          <SellerHub />
+        </div>
 
-            <div className="mt-6 flex items-baseline justify-between">
-              <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
-              <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
-                {t.allN(shopsOf(shops, user).length)}
-              </button>
-            </div>
-            <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
-            <div className="mt-3">
-              <SellerEntryCards />
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/shops/new")}
-              className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
-            >
-              {t.shopNew}
-            </button>
-
-            <div className="mt-6 flex items-baseline justify-between">
-              <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
-              <button type="button" onClick={() => router.push("/selling")} className="text-[13px] font-semibold text-accent">
-                {t.allN(mine.length)}
-              </button>
-            </div>
-            <div className="mt-3">
-              <MyListings limit={3} />
-            </div>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => router.push("/favorites")}
-            className="mt-3 flex h-[54px] w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 text-left"
-          >
-            <span className="text-[15px] font-semibold text-ink">{t.fav}</span>
-            <span className="text-[13px] font-semibold text-accent">›</span>
+        <div className="mt-6 flex items-baseline justify-between">
+          <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
+          <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
+            {t.allN(shopsOf(shops, user).length)}
           </button>
-        )}
+        </div>
+        <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+        <div className="mt-3">
+          <SellerEntryCards />
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/shops/new")}
+          className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+        >
+          {t.shopNew}
+        </button>
+
+        <div className="mt-6 flex items-baseline justify-between">
+          <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
+          <button type="button" onClick={() => router.push("/selling")} className="text-[13px] font-semibold text-accent">
+            {t.allN(mine.length)}
+          </button>
+        </div>
+        <div className="mt-3">
+          <MyListings limit={3} />
+        </div>
 
         <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
           <KonshuBridges />

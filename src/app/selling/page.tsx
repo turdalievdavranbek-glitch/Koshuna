@@ -10,7 +10,6 @@ import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
-import { SideSwitch } from "@/components/side-switch";
 import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { Field, Input } from "@/components/ui";
 
@@ -62,9 +61,6 @@ export default function SellingPage() {
           </button>
           <h1 className="min-w-0 flex-1 font-display text-[24px] font-extrabold tracking-[-0.02em] text-ink">{t.myListings}</h1>
           <span className="text-[13px] font-semibold text-muted">{t.nListings(mine.length)}</span>
-        </div>
-        <div className="mt-3.5">
-          <SideSwitch compact />
         </div>
       </div>
       <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-5">
