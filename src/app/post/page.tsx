@@ -30,6 +30,7 @@ export default function PostPage() {
   const { t, user, draft, setDraft, publishDraft, saveDraft, clearPostedDraft, setPendingPath, pendingPath, allListings, setSide } = useApp();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [taxonomyReady, setTaxonomyReady] = useState(true);
   const [error, setError] = useState("");
   const [publishedId, setPublishedId] = useState<string | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
@@ -310,7 +311,7 @@ export default function PostPage() {
                   </div>
                 </Field>
               ) : null}
-              <PostTaxonomy draft={draft} onPatch={setDraft} />
+              <PostTaxonomy draft={draft} onPatch={setDraft} onTaxonomyReady={setTaxonomyReady} />
               {bizCard ? (
                 <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                   <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
@@ -485,7 +486,9 @@ export default function PostPage() {
             <button
               type="button"
               data-testid="post-next"
+              disabled={!taxonomyReady}
               onClick={() => {
+                if (!taxonomyReady) return;
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (draft.mediaKind === "text" && paste.trim() && !draft.description.trim()) {
                   const guess = classifyListingSpeech(paste.trim());
@@ -516,7 +519,7 @@ export default function PostPage() {
                 setError("");
                 setStep(2);
               }}
-              className="shadow-btn h-[54px] flex-1 rounded-2xl bg-accent text-base font-semibold text-accent-on"
+              className="shadow-btn h-[54px] flex-1 rounded-2xl bg-accent text-base font-semibold text-accent-on disabled:opacity-50"
             >
               {t.nextReview}
             </button>

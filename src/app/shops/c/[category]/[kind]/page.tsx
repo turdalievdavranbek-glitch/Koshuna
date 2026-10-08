@@ -37,7 +37,7 @@ export default function ShopKindResultsPage() {
     );
   }
 
-  if (!all && isShopKind(kind)) {
+  if (!all && isShopKind(kind) && kind !== "health-pharmacy") {
     return (
       <PhoneShell tab>
         <div className="px-5 pb-2 pt-1">

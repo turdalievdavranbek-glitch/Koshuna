@@ -1,5 +1,8 @@
 import { isSectionVisible } from "./features";
-import type { Lang, Listing, ListingComment, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
+import { SHOP_CATEGORIES, type Lang, type Listing, type ListingComment, type Owner, type ReserveAccount, type SavedSearch, type SectionId, type Thread } from "./types";
+
+/** Private posts cannot offer medicines. «Здоровье» stays in shop browse and filters. */
+export const PRIVATE_POST_SHOP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c !== "health");
 
 export const CITIES = [
   "all",
@@ -167,21 +170,53 @@ export function propertyShowsStock(type: string) {
   return STOCK_PROPERTY.has(type);
 }
 
-export const ANIMAL_GROUPS = ["pets", "farm"] as const;
+export const ANIMAL_GROUPS = ["farm", "plants", "pets"] as const;
 export type AnimalGroup = (typeof ANIMAL_GROUPS)[number];
 
 export const ANIMAL_KINDS: Record<AnimalGroup, readonly string[]> = {
+  farm: ["cow", "bull", "sheep", "horses", "goats", "chickens", "rabbits", "pigs", "other-farm"],
+  plants: ["potato", "carrot", "onion", "cabbage", "fruit", "hay", "seedlings", "other-plants"],
   pets: ["dogs", "cats", "fish", "pet-food", "birds", "rodents", "pet-goods", "other-pets"],
-  farm: ["cattle", "horses", "sheep", "goats", "chickens", "rabbits", "pigs", "other-farm"],
 };
 
+export function isAnimalGroup(id: string | null | undefined): id is AnimalGroup {
+  return id === "farm" || id === "plants" || id === "pets";
+}
+
 export function animalKindsOf(group: string | null | undefined): readonly string[] {
-  if (group === "pets" || group === "farm") return ANIMAL_KINDS[group];
+  if (isAnimalGroup(group)) return ANIMAL_KINDS[group];
   return [];
+}
+
+/** Selectable kinds only. Legacy "cattle" keeps a label but is not a choice. */
+export function isKnownAnimalKind(id: string | null | undefined): boolean {
+  if (!id || id === "any") return false;
+  return (Object.values(ANIMAL_KINDS) as readonly (readonly string[])[]).some((list) => list.includes(id));
 }
 
 export { CAR_MAKES, carModelsOf } from "./transport";
 export type { CarMake, VehicleGroup } from "./transport";
+
+export const SERVICE_GROUPS = {
+  "svc-transport": ["transport-local", "transport-intl"],
+  "svc-health": ["clinic", "dentist"],
+  "svc-leisure": ["sauna", "billiards"],
+} as const;
+
+export type ServiceGroupId = keyof typeof SERVICE_GROUPS;
+
+export const SERVICE_TOP = [
+  "repairs-finish",
+  "house-build",
+  "appliance-repair",
+  "svc-transport",
+  "svc-health",
+  "svc-leisure",
+  "beauty",
+  "education",
+  "cleaning",
+  "other",
+] as const;
 
 export const SERVICE_CATEGORIES = [
   "repairs-finish",
@@ -191,7 +226,54 @@ export const SERVICE_CATEGORIES = [
   "education",
   "cleaning",
   "other",
+  "transport-local",
+  "transport-intl",
+  "clinic",
+  "dentist",
+  "sauna",
+  "billiards",
 ] as const;
+
+export const PHARMACY_SHOP_HREF = "/shops/c/health/health-pharmacy";
+
+export function isServiceGroup(id: string | null | undefined): id is ServiceGroupId {
+  return !!id && Object.prototype.hasOwnProperty.call(SERVICE_GROUPS, id);
+}
+
+export function serviceGroupOf(leaf: string | null | undefined): ServiceGroupId | null {
+  if (!leaf) return null;
+  for (const group of Object.keys(SERVICE_GROUPS) as ServiceGroupId[]) {
+    if ((SERVICE_GROUPS[group] as readonly string[]).includes(leaf)) return group;
+  }
+  return null;
+}
+
+/** Filter category may be a leaf or a svc-* group. A listing category is always a leaf. */
+export function serviceCategoryMatches(itemCat: string | null | undefined, filterCat: string | null | undefined): boolean {
+  if (!filterCat || filterCat === "all") return true;
+  if (!itemCat) return false;
+  if (itemCat === filterCat) return true;
+  if (!isServiceGroup(filterCat)) return false;
+  return (SERVICE_GROUPS[filterCat] as readonly string[]).includes(itemCat);
+}
+
+export function serviceChoicesForPost(openGroup: string | null): readonly string[] {
+  if (openGroup && isServiceGroup(openGroup)) return SERVICE_GROUPS[openGroup];
+  return SERVICE_TOP;
+}
+
+export function draftAfterServiceTap<T extends { category?: string }>(draft: T, id: string): T {
+  if (isServiceGroup(id)) return draft;
+  if ((SERVICE_CATEGORIES as readonly string[]).includes(id)) return { ...draft, category: id };
+  return draft;
+}
+
+export function serviceLeafReady(category: string | null | undefined, openGroup: string | null): boolean {
+  if (!category || isServiceGroup(category)) return false;
+  if (!(SERVICE_CATEGORIES as readonly string[]).includes(category)) return false;
+  if (openGroup && isServiceGroup(openGroup) && serviceGroupOf(category) !== openGroup) return false;
+  return true;
+}
 
 export const CONSTRUCTION_CATEGORIES = [
   "cement",
@@ -1385,7 +1467,7 @@ export const LISTINGS: Listing[] = [
     id: "cattle-talas",
     section: "animals",
     animalGroup: "farm",
-    animalKind: "cattle",
+    animalKind: "cow",
     title: "Корова, дойная, Талас",
     titleKy: "Саан уй, Талас",
     titleEn: "Dairy cow, Talas",

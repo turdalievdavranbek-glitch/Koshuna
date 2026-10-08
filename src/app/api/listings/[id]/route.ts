@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
+import { listingCategoryError } from "@/lib/listing-rules";
 import type { Listing } from "@/lib/types";
 import { getDb } from "@/server/db";
-import { listings } from "@/server/db/schema";
+import { listings, shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { attachMedia } from "@/server/media";
-import { isListingStatus, listingCounts, listingMediaUrls, listingToRow, mediaUrlError, rowToListing } from "@/server/mappers";
+import { isListingStatus, listingCounts, listingMediaUrls, listingToRow, mediaUrlError, rowToListing, rowToShop } from "@/server/mappers";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -51,6 +52,15 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   if (mode === "patch" && !base) return json({ error: "not-found" }, 404);
   const merged = { ...(base ?? {}), ...patch, id } as Listing;
   if (!merged.section || !merged.title) return json({ error: "bad-listing" }, 400);
+  let shopKinds: readonly string[] | null = null;
+  if (merged.shopId) {
+    const shopRows = await db.select().from(shops).where(eq(shops.id, merged.shopId)).limit(1);
+    const shopRow = shopRows[0];
+    if (!shopRow || shopRow.ownerId !== user.id) return json({ error: "forbidden-shop" }, 403);
+    shopKinds = rowToShop(shopRow).kinds ?? [];
+  }
+  const categoryError = listingCategoryError(merged, shopKinds);
+  if (categoryError) return json({ error: categoryError }, 400);
   if (merged.status && !isListingStatus(merged.status)) return json({ error: "bad-status" }, 400);
   if (!merged.status) merged.status = "active";
   const urls = listingMediaUrls(merged);

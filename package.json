@@ -13,7 +13,9 @@
     "smoke:step4": "node scripts/smoke-step4.mjs",
     "smoke:step5": "node scripts/smoke-step5.mjs",
     "smoke:step6": "node scripts/smoke-step6.mjs",
-    "test:geo": "tsx scripts/test-geo.ts"
+    "test:geo": "tsx scripts/test-geo.ts",
+    "test:catalog": "tsx scripts/test-catalog.ts",
+    "smoke:step7": "node scripts/smoke-step7.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/crashlytics": "^8.5.2",

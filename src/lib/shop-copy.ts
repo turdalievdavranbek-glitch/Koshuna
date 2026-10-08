@@ -32,6 +32,10 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopItemReuseMax;
     case "need-transcript":
       return t.shopAiNeedSpeech;
+    case "pharmacy-only":
+      return t.pharmacyOnly;
+    case "bad-category":
+      return t.badCategory;
     default:
       return t.shopError;
   }

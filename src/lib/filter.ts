@@ -1,5 +1,6 @@
 import type { Filters, Listing } from "./types";
-import { isAiylListing } from "./data";
+import { isAiylListing, serviceCategoryMatches } from "./data";
+import { listingTextHit } from "./catalog-words";
 import { hasPriceDrop } from "./deal";
 import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
@@ -195,9 +196,10 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       return false;
     }
     if (filters.category && filters.category !== "all") {
-      if (
+      if (filters.section === "services") {
+        if (!serviceCategoryMatches(item.category, filters.category)) return false;
+      } else if (
         (filters.section === "secondhand" ||
-          filters.section === "services" ||
           filters.section === "construction" ||
           filters.section === "restaurants") &&
         item.category !== filters.category
@@ -293,11 +295,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (filters.priceMin != null && item.price < filters.priceMin) return false;
     if (filters.priceMax != null && item.price > filters.priceMax) return false;
-    if (filters.query.trim()) {
-      const q = filters.query.trim().toLowerCase();
-      const blob = `${item.title} ${item.titleEn} ${item.titleKy} ${item.description}`.toLowerCase();
-      if (!blob.includes(q)) return false;
-    }
+    if (filters.query.trim() && !listingTextHit(item, filters.query)) return false;
     return true;
   });
 

@@ -97,7 +97,7 @@ export type PropertyType =
 
 export type DealKind = "long" | "short" | "buy" | "share";
 
-export type AnimalGroup = "pets" | "farm";
+export type AnimalGroup = "pets" | "farm" | "plants";
 
 export const SELLER_CHANNELS = ["instagram", "facebook", "telegram", "whatsapp"] as const;
 export type SellerChannel = (typeof SELLER_CHANNELS)[number];
@@ -424,11 +424,18 @@ export type DraftListing = {
 
 export const SHOP_CATEGORIES = [
   "food",
+  "farm",
   "construction",
   "furniture",
   "electronics",
   "apparel",
   "home",
+  "health",
+  "beauty",
+  "repair",
+  "travel",
+  "books",
+  "pets",
   "other",
 ] as const;
 export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
@@ -449,6 +456,13 @@ export const SHOP_KINDS = {
   electronics: ["el-phones", "el-computers", "el-tv", "el-appliances", "el-audio"],
   apparel: ["ap-men", "ap-women", "ap-kids", "ap-shoes", "ap-acc"],
   home: ["home-kitchen", "home-textile", "home-decor", "home-clean"],
+  farm: ["farm-animals", "farm-plants"],
+  health: ["health-pharmacy", "health-clinic", "health-dentist"],
+  beauty: ["beauty-hair", "beauty-salon"],
+  repair: ["repair-electronics"],
+  travel: ["travel-agency"],
+  books: ["books-shop", "books-stationery"],
+  pets: ["pets-food", "pets-goods"],
   other: [],
 } as const satisfies Record<ShopCategory, readonly string[]>;
 
