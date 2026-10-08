@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
@@ -11,14 +11,15 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Photo, RoundBtn } from "@/components/ui";
 
-export default function MessagesPage() {
-  const { t, lang, user, threads, setPendingPath, allListings, extraListings, side } = useApp();
-  const router = useRouter();
-  const [tab, setTab] = useState<"all" | AppSide>(side);
+function threadOnTab(kind: AppSide, selected: "all" | AppSide) {
+  if (selected === "all") return true;
+  return kind === selected;
+}
 
-  useEffect(() => {
-    setTab(side);
-  }, [side]);
+export default function MessagesPage() {
+  const { t, lang, user, threads, setPendingPath, allListings, extraListings } = useApp();
+  const router = useRouter();
+  const [tab, setTab] = useState<"all" | AppSide>("all");
 
   if (!user) {
     return (
@@ -45,9 +46,9 @@ export default function MessagesPage() {
   }
 
   const withSide = threads.map((th) => ({ th, side: threadSide(th, extraListings, user) }));
-  const visible = tab === "all" ? withSide : withSide.filter((row) => row.side === tab);
-  const buyN = withSide.filter((row) => row.side === "buy").length;
-  const sellN = withSide.filter((row) => row.side === "sell").length;
+  const visible = withSide.filter((row) => threadOnTab(row.side, tab));
+  const buyN = withSide.filter((row) => threadOnTab(row.side, "buy")).length;
+  const sellN = withSide.filter((row) => threadOnTab(row.side, "sell")).length;
 
   return (
     <PhoneShell>

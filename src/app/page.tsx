@@ -102,6 +102,11 @@ export default function FeedPage() {
         <div className="mt-2">
           <ScopeChips />
         </div>
+        {filters.scope === "near" ? (
+          <Link href="/map" data-testid="home-map-link" className="mt-2 inline-flex text-[13px] font-semibold text-accent">
+            {t.map} ›
+          </Link>
+        ) : null}
         <div className="mt-2">
           <NeighborCircles listings={listings} />
         </div>

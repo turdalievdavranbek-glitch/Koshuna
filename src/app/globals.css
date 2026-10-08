@@ -67,6 +67,16 @@ button {
   box-shadow: 0 8px 18px rgba(184, 69, 47, 0.35);
 }
 
+.tabbar-nav {
+  transition: height 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar-nav {
+    transition: none;
+  }
+}
+
 .section-tile {
   background: #f3eee4;
   border: 1px solid #efe8db;

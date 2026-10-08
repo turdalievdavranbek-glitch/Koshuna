@@ -503,7 +503,11 @@ export default function ListingPage() {
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-[78px] z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5">
+      <div
+        data-testid="listing-contact"
+        className="absolute inset-x-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5"
+        style={{ bottom: "var(--tabbar-h, 78px)" }}
+      >
         {mine ? (
           <>
             <button
