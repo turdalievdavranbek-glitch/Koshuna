@@ -66,35 +66,39 @@ export default function FeedPage() {
       <header className="z-20 shrink-0 border-b border-line/70 bg-screen px-5 pb-2 pt-1.5" data-testid="home-sticky">
         <div className="flex items-center gap-1.5">
           <BrandMark size={26} className="shrink-0" wordClass="text-[19px] text-ink min-[380px]:text-[23px]" />
-          <div data-testid="home-lang" className="shrink-0">
-            <LangSwitch size="sm" />
-          </div>
-          <button
-            type="button"
-            data-testid="home-location"
-            onClick={() => openLocationPicker(router, "/")}
-            className="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-[7px] text-[13px] font-semibold text-ink"
-          >
-            <IconPin size={13} color="#B8452F" />
-            <span className="min-w-0 flex-1 truncate">{shownLocationLabel(lang, city, filters, t)}</span>
-            <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
-              <IconChevronDown size={14} color="#17140F" />
-            </span>
-          </button>
-          <Link
-            href="/notifications"
-            data-testid="home-bell"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
-          >
-            <IconBell size={16} color="#17140F" />
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <div data-testid="home-lang" className="shrink-0">
+              <LangSwitch size="sm" />
+            </div>
+            <Link
+              href="/notifications"
+              data-testid="home-bell"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+            >
+              <IconBell size={16} color="#17140F" />
               {hasUnread ? (
                 <span
                   data-testid="notif-dot"
                   className="absolute top-1.5 right-[7px] h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent"
                 />
               ) : null}
-          </Link>
+            </Link>
+          </div>
         </div>
+        <button
+          type="button"
+          data-testid="home-location"
+          onClick={() => openLocationPicker(router, "/")}
+          className="mt-2 flex w-full items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-[7px] text-left text-[13px] font-semibold text-ink"
+        >
+          <IconPin size={13} color="#B8452F" />
+          <span data-testid="home-location-label" className="min-w-0 flex-1">
+            {shownLocationLabel(lang, city, filters, t)}
+          </span>
+          <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
+            <IconChevronDown size={14} color="#17140F" />
+          </span>
+        </button>
         <div className="mt-2">
           <ScopeChips />
         </div>
