@@ -15,7 +15,7 @@ import { classifyListingSpeech, aiToDraftPatch } from "@/lib/video-ai";
 import { MarketRangeCard } from "@/components/market-range";
 import { AiConfirmCard, MediaCapture } from "@/components/media-capture";
 import { GisOnMapCard } from "@/components/gis-on-map";
-import { ShareToSocial } from "@/components/share-to-social";
+import { ShareButton } from "@/components/share-button";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Eyebrow, Field, Input, Photo, Toggle } from "@/components/ui";
 import { PostTypePicker } from "@/components/post-type-picker";
@@ -836,8 +836,8 @@ export function CardPost({ card }: { card: string }) {
             </div>
           ) : null}
           {published ? (
-            <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-              <ShareToSocial listing={published} />
+            <div className="mt-6 flex rounded-[18px] border border-line bg-white p-4">
+              <ShareButton listing={published} />
             </div>
           ) : null}
           <button

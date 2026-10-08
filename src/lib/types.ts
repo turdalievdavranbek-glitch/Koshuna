@@ -561,6 +561,8 @@ export type Shop = {
   hours?: ShopHours;
   hoursNote?: string;
   contacts: ShopContacts;
+  /** Sanitized shops.telegram username. Empty when the column is only the old on/off flag. */
+  telegramUsername?: string;
   pickup: boolean;
   delivery: boolean;
   deliveryNote?: string;

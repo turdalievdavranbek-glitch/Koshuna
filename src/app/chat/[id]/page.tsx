@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
+import { FEATURES } from "@/lib/features";
 import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
@@ -21,6 +22,7 @@ export default function ChatPage() {
   const thread = threads.find((th) => th.id === id) ?? threads.find((th) => th.listingId === id);
   const listing = allListings.find((item) => item.id === (thread?.listingId ?? id));
   const owner = ownerById(thread?.ownerId ?? listing?.ownerId ?? "aida");
+  const listingParam = thread?.listingId ?? listing?.id ?? id;
   const [text, setText] = useState("");
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -46,9 +48,14 @@ export default function ChatPage() {
   }, [thread?.messages.length]);
 
   useEffect(() => {
+    if (!FEATURES.localChat) {
+      router.replace(`/chat/soon?listing=${encodeURIComponent(listingParam)}`);
+      return;
+    }
     if (!user) router.replace("/login");
-  }, [user, router]);
+  }, [user, router, listingParam]);
 
+  if (!FEATURES.localChat) return null;
   if (!user) return null;
   if (!thread || !listing || !owner) {
     return (

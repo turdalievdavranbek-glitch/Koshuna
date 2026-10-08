@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { getSessionUser } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { listings } from "@/server/db/schema";
+import { blocks, listings } from "@/server/db/schema";
 import { json } from "@/server/http";
 import { listingCounts, rowToListing } from "@/server/mappers";
 
@@ -18,6 +19,12 @@ export async function GET(req: Request) {
   const requested = Number(url.searchParams.get("limit") || 100);
   const limit = Math.min(1000, Math.max(1, Number.isFinite(requested) ? requested : 100));
   const filters: SQL[] = [inArray(listings.status, PUBLIC_STATUS)];
+  const viewer = await getSessionUser(req).catch(() => null);
+  if (viewer) {
+    filters.push(
+      sql`(${listings.ownerId} is null or ${listings.ownerId} not in (select ${blocks.blockedUserId} from ${blocks} where ${blocks.blockerId} = ${viewer.id}))`,
+    );
+  }
   if (section) filters.push(eq(listings.section, section));
   if (city && city !== "all") filters.push(eq(listings.city, city));
   if (q) {

@@ -6,7 +6,7 @@ import { formatSom } from "@/lib/data";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
-import { shopPublicUrl, shopShareHref } from "@/lib/shop-share";
+import { telegramLink } from "@/lib/telegram-username";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopProductsEditor } from "@/components/shop-products";
@@ -17,15 +17,18 @@ import { FEATURES } from "@/lib/features";
 import { GisOnMapCard } from "@/components/gis-on-map";
 import { starsForUser } from "@/lib/trust";
 import { ScreenBack } from "@/components/back-button";
+import { BlockedAuthorNotice } from "@/components/block-author";
+import { PlayBanner } from "@/components/play-banner";
+import { ShareButton } from "@/components/share-button";
+import { ShopSubscribe } from "@/components/shop-subscribe";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
 
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, shops, user, allListings, withdrawShop, reportShop, reports, synced } = useApp();
-  const shop = shops.find((item) => item.id === id);
-  const [toast, setToast] = useState("");
+  const { t, lang, shops, user, allListings, withdrawShop, reportShop, reports, synced, recallShop, isBlocked } = useApp();
+  const shop = recallShop(id) ?? shops.find((item) => item.id === id);
   const [playing, setPlaying] = useState(false);
 
   const mine = shop ? isOwnShop(shop, user) : false;
@@ -43,6 +46,17 @@ export default function ShopDetailPage() {
 
   if (!shop && !synced) return null;
 
+  if (shop && isBlocked(shop.ownerId)) {
+    return (
+      <PhoneShell>
+        <div className="p-6 text-[15px] text-muted">
+          <ScreenBack fallback="/shops" />
+          <BlockedAuthorNotice userId={shop.ownerId || ""} />
+        </div>
+      </PhoneShell>
+    );
+  }
+
   if (!shop || !visible) {
     return (
       <PhoneShell>
@@ -59,36 +73,9 @@ export default function ShopDetailPage() {
     daily: t.hoursDaily,
     allDay: t.hours24,
   });
-  const url = shopPublicUrl(shop.id);
   const cityLabel = t.cities[shop.city] || shop.city;
-  const sharePlace = shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : shop.address;
-  const shareText = t.shopShareBody(shop.name, cityLabel, sharePlace, url);
   const deliveryLine = shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine);
-  const ping = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(""), 1800);
-  };
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(shareText);
-      ping(t.shopCopied);
-    } catch {
-      ping(url);
-    }
-  };
-
-  const more = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: shop.name, text: shareText, url });
-        return;
-      } catch {
-        /* cancelled */
-      }
-    }
-    await copy();
-  };
+  const telegramHref = telegramLink(shop.telegramUsername);
 
   return (
     <PhoneShell>
@@ -142,6 +129,30 @@ export default function ShopDetailPage() {
 
         {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2">{shop.description}</p> : null}
 
+        <ShopSubscribe shopId={shop.id} mine={mine} />
+        <PlayBanner />
+
+        <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden">
+          {shop.contacts.phone ? (
+            <a href={`tel:${shop.contacts.phone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
+              <IconPhone size={18} color="#FFF7F0" />
+              {t.callNow}
+            </a>
+          ) : null}
+          {shop.contacts.whatsapp && shop.contacts.phone ? (
+            <a href={`https://wa.me/${shop.contacts.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success text-white">
+              <IconWa size={18} color="#fff" />
+            </a>
+          ) : null}
+          {telegramHref ? (
+            <a href={telegramHref} target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl border border-line bg-white">
+              <IconTg size={18} color="#17140F" />
+            </a>
+          ) : null}
+        </div>
+        {/* Later: «Сегодня на точке» */}
+        <div data-slot="today-on-point" className="h-0 overflow-hidden" />
+
         <div className="mt-4 rounded-[16px] border border-line bg-white p-4">
           <div className="text-[13px] font-semibold text-ink">
             {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : `${cityLabel}, ${shop.address}`}
@@ -173,24 +184,6 @@ export default function ShopDetailPage() {
             {!shop.pickup && !shop.delivery ? t.shopAskPrice : null}
           </div>
           {shop.deliveryNote ? <p className="mt-1 text-[12px] text-muted">{shop.deliveryNote}</p> : null}
-        </div>
-
-        <div className="mt-3 flex gap-2">
-          {shop.contacts.phone ? (
-            <a href={`tel:${shop.contacts.phone}`} className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-ink text-screen">
-              <IconPhone size={18} color="#FFF7F0" />
-            </a>
-          ) : null}
-          {shop.contacts.whatsapp && shop.contacts.phone ? (
-            <a href={`https://wa.me/${shop.contacts.phone.replace(/\D/g, "")}`} className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-success text-white">
-              <IconWa size={18} color="#fff" />
-            </a>
-          ) : null}
-          {shop.contacts.telegram ? (
-            <a href="https://t.me/" className="flex h-12 flex-1 items-center justify-center rounded-2xl border border-line bg-white">
-              <IconTg size={18} color="#17140F" />
-            </a>
-          ) : null}
         </div>
 
         <div className="mt-5">
@@ -248,23 +241,8 @@ export default function ShopDetailPage() {
           </div>
         ) : null}
 
-        <div className="mt-5 rounded-[16px] border border-line bg-white p-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shopShare}</div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => window.open(shopShareHref("whatsapp", shop, shareText), "_blank")} className="h-11 rounded-2xl border border-line text-[13px] font-semibold">
-              WhatsApp
-            </button>
-            <button type="button" onClick={() => window.open(shopShareHref("telegram", shop, shareText), "_blank")} className="h-11 rounded-2xl border border-line text-[13px] font-semibold">
-              Telegram
-            </button>
-            <button type="button" onClick={() => void more()} className="h-11 rounded-2xl bg-ink text-[13px] font-semibold text-screen">
-              {t.shopShare}
-            </button>
-            <button type="button" onClick={() => void copy()} className="h-11 rounded-2xl border border-line text-[13px] font-semibold">
-              {t.shopCopyLink}
-            </button>
-          </div>
-          {toast ? <p className="mt-2 text-[12px] font-semibold text-accent-dark">{toast}</p> : null}
+        <div className="mt-5 flex">
+          <ShareButton shop={shop} />
         </div>
 
         {mine ? (

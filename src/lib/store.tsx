@@ -23,7 +23,9 @@ import { collectRefKeys, displayUrl, hydrateRefs, releaseRefs, sweepOrphans, Upl
 import { nearestDistrict, publishCoords } from "./geo";
 import { sanitizeServiceListing } from "./service-listing";
 import { channelsOf } from "./channels";
+import { hiddenByBlock } from "./blocks";
 import { isSectionVisible } from "./features";
+import { isDbUserId } from "./phone";
 import { DICT } from "./i18n";
 import { setServerCounts, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
@@ -381,6 +383,7 @@ type State = {
   complexUnits: ComplexUnit[];
   partnerLeads: PartnerLead[];
   telegramOutbox: TelegramOutboxItem[];
+  blockedUserIds: string[];
 };
 
 const initial: State = {
@@ -417,6 +420,7 @@ const initial: State = {
   complexUnits: SEED_UNITS,
   partnerLeads: [],
   telegramOutbox: [],
+  blockedUserIds: [],
 };
 
 type Store = State & {
@@ -424,6 +428,12 @@ type Store = State & {
   ready: boolean;
   synced: boolean;
   allListings: Listing[];
+  blockedUserIds: string[];
+  isBlocked: (ownerId?: string | null) => boolean;
+  blockUser: (userId: string) => Promise<{ ok: boolean }>;
+  unblockUser: (userId: string) => Promise<{ ok: boolean }>;
+  recallListing: (id: string) => Listing | undefined;
+  recallShop: (id: string) => Shop | undefined;
   signInWithGoogle: (opts: {
     locale: "ky" | "ru";
     container?: HTMLElement | null;
@@ -668,6 +678,7 @@ function load(): State {
       complexUnits: mergeById(Array.isArray(saved.complexUnits) ? saved.complexUnits : [], SEED_UNITS),
       partnerLeads: Array.isArray(saved.partnerLeads) ? saved.partnerLeads : [],
       telegramOutbox: Array.isArray(saved.telegramOutbox) ? saved.telegramOutbox : [],
+      blockedUserIds: [],
     };
   } catch {
     return initial;
@@ -701,8 +712,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (cancelled || epochAtBoot !== sessionEpoch) return null;
       if (!me.ok && me.status === 0) return next.user ?? null;
       const serverUser = me.ok ? me.data?.user ?? null : null;
-      if (!serverUser) {
-        setState((s) => ({ ...s, user: null }));
+        if (!serverUser) {
+        setState((s) => ({ ...s, user: null, blockedUserIds: [] }));
         return null;
       }
       setState((s) => ({
@@ -799,6 +810,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let reactions: ReactionsByVoter = {};
       let counts = feedRes.data?.counts;
       let useServerExtra = false;
+      let blockedUserIds: string[] = [];
       const base = userRef.current;
       const reactionUser: User | null = serverUser
         ? {
@@ -810,10 +822,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         : null;
       if (serverUser) {
-        const [mine, cart, reacts] = await Promise.all([
+        const [mine, cart, reacts, blockRes] = await Promise.all([
           api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
           api<{ favouriteIds: string[] }>("/api/me/cart"),
           api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
+          api<{ blockedUserIds?: string[] }>("/api/me/blocks"),
         ]);
         if (mine.ok) {
           extra = mine.data?.listings ?? [];
@@ -823,6 +836,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const vid = voterId(reactionUser);
         if (vid && reacts.data?.reactions) reactions = { [vid]: reacts.data.reactions };
         counts = { ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) };
+        if (blockRes.ok && Array.isArray(blockRes.data?.blockedUserIds)) blockedUserIds = blockRes.data.blockedUserIds;
       }
       if (epoch !== sessionEpoch) return;
       setSyncError(feedRes.status === 0 || feedRes.status >= 500);
@@ -852,6 +866,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           extraListings,
           favouriteIds: serverUser ? favs : s.favouriteIds,
           reactions: serverUser ? reactions : s.reactions,
+          blockedUserIds: serverUser ? blockedUserIds : [],
         };
       });
       setSynced(true);
@@ -943,6 +958,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       favouriteIds: _favs,
       reactions: _reactions,
       feed: _feed,
+      blockedUserIds: _blocked,
       ...rest
     } = state;
     const payload = {
@@ -967,7 +983,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = DICT[state.lang];
-  const allListings = useMemo(() => {
+  const catalog = useMemo(() => {
     const fromShops = syncShopListings(
       state.extraListings.filter((item) => item.shopProductId),
       state.shops,
@@ -990,6 +1006,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return true;
       });
   }, [state.extraListings, state.feed, state.listingEdits, state.shops, state.user]);
+  const allListings = useMemo(
+    () => catalog.filter((item) => !hiddenByBlock(item.ownerId, state.blockedUserIds, state.user?.id)),
+    [catalog, state.blockedUserIds, state.user?.id],
+  );
+  const visibleShops = useMemo(
+    () => state.shops.filter((shop) => !hiddenByBlock(shop.ownerId, state.blockedUserIds, state.user?.id)),
+    [state.shops, state.blockedUserIds, state.user?.id],
+  );
 
   const value: Store = {
     ...state,
@@ -1002,6 +1026,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       void syncRef.current(userRef.current);
     },
     allListings,
+    shops: visibleShops,
+    isBlocked: (ownerId) => hiddenByBlock(ownerId, state.blockedUserIds, state.user?.id),
+    recallListing: (id) => catalog.find((item) => item.id === id),
+    recallShop: (id) => state.shops.find((item) => item.id === id),
+    blockUser: async (userId) => {
+      if (!state.user || !isDbUserId(userId) || userId === state.user.id) return { ok: false };
+      update((s) => ({
+        ...s,
+        blockedUserIds: s.blockedUserIds.includes(userId) ? s.blockedUserIds : [...s.blockedUserIds, userId],
+      }));
+      const res = await api<{ blockedUserIds?: string[] }>("/api/me/blocks", { method: "POST", json: { userId } });
+      if (!res.ok) {
+        update((s) => ({ ...s, blockedUserIds: s.blockedUserIds.filter((id) => id !== userId) }));
+        return { ok: false };
+      }
+      if (Array.isArray(res.data?.blockedUserIds)) {
+        const ids = res.data.blockedUserIds;
+        update((s) => ({ ...s, blockedUserIds: ids }));
+      }
+      return { ok: true };
+    },
+    unblockUser: async (userId) => {
+      const prev = state.blockedUserIds;
+      update((s) => ({ ...s, blockedUserIds: s.blockedUserIds.filter((id) => id !== userId) }));
+      const res = await api<{ blockedUserIds?: string[] }>("/api/me/blocks", { method: "DELETE", json: { userId } });
+      if (!res.ok) {
+        update((s) => ({ ...s, blockedUserIds: prev }));
+        return { ok: false };
+      }
+      if (Array.isArray(res.data?.blockedUserIds)) {
+        const ids = res.data.blockedUserIds;
+        update((s) => ({ ...s, blockedUserIds: ids }));
+      }
+      const feedRes = await api<{ listings: Listing[] }>("/api/listings?limit=1000");
+      if (feedRes.ok) update((s) => ({ ...s, feed: feedRes.data?.listings ?? s.feed }));
+      return { ok: true };
+    },
     signInWithGoogle: async ({ locale, container, navigate, dest }) => {
       let credential: string | null;
       try {
@@ -1054,11 +1115,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       trackAuth(
         (async () => {
-          const [mine, cart, reacts, feedRes] = await Promise.all([
+          const [mine, cart, reacts, feedRes, blockRes] = await Promise.all([
             api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
             api<{ favouriteIds: string[] }>("/api/me/cart"),
             api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
             api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+            api<{ blockedUserIds?: string[] }>("/api/me/blocks"),
           ]);
           if (epoch !== sessionEpoch) return;
           const reactionUser: User = {
@@ -1080,6 +1142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             extraListings: mine.data?.listings ?? s.extraListings,
             favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
             reactions,
+            blockedUserIds: Array.isArray(blockRes.data?.blockedUserIds) ? blockRes.data.blockedUserIds : [],
           }));
         })(),
       );
@@ -1120,11 +1183,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       trackAuth(
         (async () => {
-          const [mine, cart, reacts, feedRes] = await Promise.all([
+          const [mine, cart, reacts, feedRes, blockRes] = await Promise.all([
             api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/me/listings"),
             api<{ favouriteIds: string[] }>("/api/me/cart"),
             api<{ reactions: Record<string, "like" | "dislike"> }>("/api/me/reactions"),
             api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+            api<{ blockedUserIds?: string[] }>("/api/me/blocks"),
           ]);
           if (epoch !== sessionEpoch) return;
           const reactionUser: User = {
@@ -1146,19 +1210,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
             extraListings: mine.data?.listings ?? s.extraListings,
             favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
             reactions,
+            blockedUserIds: Array.isArray(blockRes.data?.blockedUserIds) ? blockRes.data.blockedUserIds : [],
           }));
         })(),
       );
     },
     logout: () => {
       sessionEpoch += 1;
-      void api("/api/auth/logout", { method: "POST", json: {} });
       void nativeGoogleSignOut().catch(() => undefined);
       disableGoogleAutoSelect();
-      update({ user: null, extraListings: [], favouriteIds: [], reactions: {} });
+      update({ user: null, extraListings: [], favouriteIds: [], reactions: {}, blockedUserIds: [] });
       void (async () => {
-        const feed = await api<{ counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000");
+        await api("/api/auth/logout", { method: "POST", json: {} });
+        const feed = await api<{ listings?: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000");
         applyCounts(feed.data?.counts, {}, null);
+        if (feed.ok && feed.data?.listings) {
+          const listings = feed.data.listings;
+          update((s) => ({ ...s, feed: listings, blockedUserIds: [] }));
+        }
       })();
     },
     linkCard: () =>

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
 import { useApp } from "@/lib/store";
 import { GisOnMapCard } from "@/components/gis-on-map";
-import { ShareToSocial } from "@/components/share-to-social";
+import { ShareButton } from "@/components/share-button";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { Price } from "@/components/ui";
@@ -97,7 +97,9 @@ function Published({ id }: { id: string }) {
         ) : null}
         {published ? (
           <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-            <ShareToSocial listing={published} />
+            <div className="flex">
+              <ShareButton listing={published} />
+            </div>
             <div className="mt-3">
               <Price listing={published} large />
             </div>
