@@ -60,6 +60,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
         height: hidden ? 0 : TAB_H,
         overflow: hidden ? "hidden" : "visible",
         paddingBottom: hidden ? 0 : 8,
+        borderTopWidth: hidden ? 0 : undefined,
       }}
     >
       {item("/", "tab-home", t.feed, IconHome, homeOn)}
