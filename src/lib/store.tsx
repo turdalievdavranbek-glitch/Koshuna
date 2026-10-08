@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, onceRetry } from "./api/client";
+import { mergeCartIds, savedCartIds } from "./cart";
 import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
@@ -623,6 +624,12 @@ function mergeById<T extends { id: string }>(saved: T[], seed: T[]): T[] {
   return [...map.values()];
 }
 
+function publishGuestCart(ids: string[]) {
+  for (const id of ids) {
+    onceRetry(() => api(`/api/me/cart/${encodeURIComponent(id)}`, { method: "PUT", json: {} }));
+  }
+}
+
 function persistShop(shop: Shop): Shop {
   return {
     ...shop,
@@ -659,7 +666,7 @@ function load(): State {
       shops: [],
       extraListings: [],
       feed: [],
-      favouriteIds: [],
+      favouriteIds: savedCartIds(saved.favouriteIds),
       threads: Array.isArray(saved.threads) ? saved.threads : [],
       savedSearches: Array.isArray(saved.savedSearches) ? saved.savedSearches : [],
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
@@ -694,8 +701,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncErrorRef = useRef(false);
   const syncRef = useRef<(serverUser: User | null) => Promise<void>>(async () => undefined);
   const userRef = useRef<User | null>(state.user);
+  const favRef = useRef<string[]>(state.favouriteIds);
   const leaveGuardRef = useRef<((intent: { proceed: () => void }) => void) | null>(null);
   userRef.current = state.user;
+  favRef.current = state.favouriteIds;
   syncErrorRef.current = syncError;
 
   useEffect(() => {
@@ -806,7 +815,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         api("/api/config"),
       ]);
       let extra = [] as Listing[];
-      let favs = [] as string[];
+      let serverCart: string[] | null = null;
       let reactions: ReactionsByVoter = {};
       let counts = feedRes.data?.counts;
       let useServerExtra = false;
@@ -832,7 +841,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           extra = mine.data?.listings ?? [];
           useServerExtra = true;
         }
-        if (cart.ok && cart.data?.favouriteIds) favs = cart.data.favouriteIds;
+        if (cart.ok && cart.data?.favouriteIds) {
+          serverCart = cart.data.favouriteIds;
+          publishGuestCart(mergeCartIds(favRef.current, serverCart).push);
+        }
         const vid = voterId(reactionUser);
         if (vid && reacts.data?.reactions) reactions = { [vid]: reacts.data.reactions };
         counts = { ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) };
@@ -864,7 +876,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           feed: feedRes.ok ? (feedRes.data?.listings ?? []) : s.feed,
           shops,
           extraListings,
-          favouriteIds: serverUser ? favs : s.favouriteIds,
+          favouriteIds: serverCart ? mergeCartIds(s.favouriteIds, serverCart).ids : s.favouriteIds,
           reactions: serverUser ? reactions : s.reactions,
           blockedUserIds: serverUser ? blockedUserIds : [],
         };
@@ -955,7 +967,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const {
       extraListings: _extra,
       shops: _shops,
-      favouriteIds: _favs,
+      favouriteIds,
       reactions: _reactions,
       feed: _feed,
       blockedUserIds: _blocked,
@@ -963,6 +975,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } = state;
     const payload = {
       ...rest,
+      favouriteIds: state.user ? [] : favouriteIds.slice(0, 200),
       draft: durableDraft(state.draft),
       shopDraft: state.shopDraft ? (persistShop(state.shopDraft) as ShopDraft) : null,
     };
@@ -1137,10 +1150,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const vid = voterId(reactionUser);
           const reactions = vid && reacts.data?.reactions ? { [vid]: reacts.data.reactions } : {};
           applyCounts({ ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) }, reactions, reactionUser);
+          if (cart.ok && cart.data?.favouriteIds) publishGuestCart(mergeCartIds(favRef.current, cart.data.favouriteIds).push);
           update((s) => ({
             ...s,
             extraListings: mine.data?.listings ?? s.extraListings,
-            favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
+            favouriteIds: cart.ok && cart.data?.favouriteIds ? mergeCartIds(s.favouriteIds, cart.data.favouriteIds).ids : s.favouriteIds,
             reactions,
             blockedUserIds: Array.isArray(blockRes.data?.blockedUserIds) ? blockRes.data.blockedUserIds : [],
           }));
@@ -1205,10 +1219,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const vid = voterId(reactionUser);
           const reactions = vid && reacts.data?.reactions ? { [vid]: reacts.data.reactions } : {};
           applyCounts({ ...(feedRes.data?.counts ?? {}), ...(mine.data?.counts ?? {}) }, reactions, reactionUser);
+          if (cart.ok && cart.data?.favouriteIds) publishGuestCart(mergeCartIds(favRef.current, cart.data.favouriteIds).push);
           update((s) => ({
             ...s,
             extraListings: mine.data?.listings ?? s.extraListings,
-            favouriteIds: cart.data?.favouriteIds ?? s.favouriteIds,
+            favouriteIds: cart.ok && cart.data?.favouriteIds ? mergeCartIds(s.favouriteIds, cart.data.favouriteIds).ids : s.favouriteIds,
             reactions,
             blockedUserIds: Array.isArray(blockRes.data?.blockedUserIds) ? blockRes.data.blockedUserIds : [],
           }));
@@ -1274,15 +1289,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         city: "all",
       }),
     toggleFav: (id) => {
-      if (!state.user) return false;
       const has = state.favouriteIds.includes(id);
+      const signedIn = Boolean(state.user);
       update({
-        favouriteIds: has ? state.favouriteIds.filter((x) => x !== id) : [id, ...state.favouriteIds],
+        favouriteIds: has ? state.favouriteIds.filter((x) => x !== id) : [id, ...state.favouriteIds].slice(0, 200),
       });
-      void (async () => {
-        await authReady;
-        onceRetry(() => api(`/api/me/cart/${encodeURIComponent(id)}`, { method: has ? "DELETE" : "PUT", json: {} }));
-      })();
+      if (signedIn) {
+        void (async () => {
+          await authReady;
+          onceRetry(() => api(`/api/me/cart/${encodeURIComponent(id)}`, { method: has ? "DELETE" : "PUT", json: {} }));
+        })();
+      }
       return true;
     },
     isFav: (id) => state.favouriteIds.includes(id),

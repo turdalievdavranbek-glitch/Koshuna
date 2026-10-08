@@ -127,16 +127,9 @@ for (const viewport of [
     await page.goto("/");
     await dismissLanguage(page);
     await page.getByTestId("tab-favorites").click();
-    await expect(page).toHaveURL(/\/login/);
-    await expect
-      .poll(async () =>
-        page.evaluate(() => {
-          const raw = localStorage.getItem("konshu-state-v1");
-          if (!raw) return "";
-          return JSON.parse(raw).pendingPath || "";
-        }),
-      )
-      .toBe("/favorites");
+    await expect(page).toHaveURL(/\/favorites$/);
+    await expect(page.getByTestId("cart-empty")).toContainText("В корзине пусто");
+    await expect(page.getByTestId("cart-feed")).toHaveAttribute("href", "/");
 
     await page.goto("/");
     await dismissLanguage(page);

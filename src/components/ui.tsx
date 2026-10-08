@@ -140,7 +140,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
 }
 
 export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () => void }) {
-  const { t, lang, isFav, user } = useApp();
+  const { t, lang, isFav } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const video = isVideoListing(listing);
@@ -181,7 +181,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           }}
           className="absolute right-2.5 top-2.5 flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white/92"
         >
-          <IconHeart size={16} color={user && isFav(listing.id) ? "#B8452F" : "#17140F"} filled={Boolean(user && isFav(listing.id))} />
+          <IconHeart size={16} color={isFav(listing.id) ? "#B8452F" : "#17140F"} filled={isFav(listing.id)} />
         </span>
       </div>
       <div className={`px-[15px] pb-[15px] pt-[13px] ${video ? "text-center" : ""}`}>
@@ -228,7 +228,7 @@ export function ListingRow({
   heart?: boolean;
   dim?: boolean;
 }) {
-  const { t, lang, isFav, user } = useApp();
+  const { t, lang, isFav } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const cat = listingChipLabel(listing, t);
@@ -290,7 +290,7 @@ export function ListingRow({
         <div className="pr-3 pt-3">
           <IconHeart size={18} filled color="#B8452F" />
         </div>
-      ) : user && isFav(listing.id) ? (
+      ) : isFav(listing.id) ? (
         <div className="pr-3 pt-3">
           <IconHeart size={18} filled color="#B8452F" />
         </div>
