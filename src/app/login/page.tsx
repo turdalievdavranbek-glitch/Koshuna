@@ -3,17 +3,26 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { BrandGoogle } from "@/components/auth-brands";
+import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
 import { Flag } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { fetchGoogleClientId, isInAppBrowser } from "@/lib/google-login";
+import {
+  fetchTelegramConfig,
+  mountTelegramWidget,
+  pollTelegramLogin,
+  startTelegramAppLogin,
+  tryClickTelegramWidget,
+  writeTelegramDestCookie,
+  type TelegramClientConfig,
+} from "@/lib/telegram-login";
 import { useApp } from "@/lib/store";
 
 function LoginInner() {
-  const { t, lang, user, ready, pendingPath, signInWithGoogle } = useApp();
+  const { t, lang, user, ready, pendingPath, signInWithGoogle, acceptSignedInUser } = useApp();
   const router = useRouter();
   const params = useSearchParams();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -27,12 +36,116 @@ function LoginInner() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [shell, setShell] = useState<"unknown" | "web" | "app">("unknown");
+  const [telegram, setTelegram] = useState<TelegramClientConfig | null>(null);
+  const [tgWait, setTgWait] = useState(false);
+  const [tgBusy, setTgBusy] = useState(false);
+  const [tgLocalError, setTgLocalError] = useState("");
+  const [widgetOn, setWidgetOn] = useState(false);
+  const tgBoxRef = useRef<HTMLDivElement>(null);
+  const tgMounted = useRef(false);
+  const pollRef = useRef<() => void>(() => undefined);
+  const acceptRef = useRef(acceptSignedInUser);
+  acceptRef.current = acceptSignedInUser;
 
   useEffect(() => {
     if (!ready) return;
     if (arrivedSignedIn.current === null) arrivedSignedIn.current = Boolean(user);
     if (arrivedSignedIn.current && user) router.replace(pendingPath || "/");
   }, [ready, user, pendingPath, router]);
+
+  useEffect(() => {
+    let dead = false;
+    void import("@capacitor/core")
+      .then(({ Capacitor }) => {
+        if (!dead) setShell(Capacitor.isNativePlatform() ? "app" : "web");
+      })
+      .catch(() => {
+        if (!dead) setShell("web");
+      });
+    void fetchTelegramConfig().then((config) => {
+      if (!dead) setTelegram(config);
+    });
+    return () => {
+      dead = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tgWait) return;
+    let dead = false;
+    const started = Date.now();
+    const tick = async () => {
+      if (dead) return;
+      if (Date.now() - started > 10 * 60 * 1000) {
+        setTgWait(false);
+        setTgLocalError(t.loginTelegramTimeout);
+        return;
+      }
+      if (document.visibilityState !== "visible") return;
+      const result = await pollTelegramLogin();
+      if (dead) return;
+      if (result.ok) {
+        dead = true;
+        setTgWait(false);
+        acceptRef.current(result.user, result.isNew, (href) => router.replace(href), destRef.current);
+        return;
+      }
+      if (result.status === "expired") {
+        setTgWait(false);
+        setTgLocalError(t.loginTelegramTimeout);
+      } else if (result.status === "blocked") {
+        setTgWait(false);
+        setTgLocalError(t.loginAccountUnavailable);
+      } else if (result.status === "error") {
+        setTgWait(false);
+        setTgLocalError(t.loginTelegramError);
+      }
+    };
+    pollRef.current = () => {
+      void tick();
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 2000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      dead = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [tgWait, router, t.loginAccountUnavailable, t.loginTelegramError, t.loginTelegramTimeout]);
+
+  useEffect(() => {
+    if (shell !== "app" || !telegram?.enabled || tgWait) return;
+    let dead = false;
+    void pollTelegramLogin().then((result) => {
+      if (dead) return;
+      if (result.ok) {
+        acceptRef.current(result.user, result.isNew, (href) => router.replace(href), destRef.current);
+        return;
+      }
+      if (result.status === "pending") setTgWait(true);
+      else if (result.status === "blocked") setTgLocalError(t.loginAccountUnavailable);
+    });
+    return () => {
+      dead = true;
+    };
+  }, [shell, telegram, tgWait, router, t.loginAccountUnavailable]);
+
+  useEffect(() => {
+    if (!widgetOn || shell !== "web" || !telegram?.botUsername) return;
+    const box = tgBoxRef.current;
+    if (!box || tgMounted.current) return;
+    tgMounted.current = true;
+    mountTelegramWidget(box, {
+      botUsername: telegram.botUsername,
+      authUrl: `${window.location.origin}/api/auth/telegram/callback`,
+    });
+    tryClickTelegramWidget(box);
+  }, [widgetOn, shell, telegram]);
 
   useEffect(() => {
     let dead = false;
@@ -121,6 +234,32 @@ function LoginInner() {
     })();
   };
 
+  const tgFlag = params.get("tg");
+  const queryError = tgFlag === "blocked" ? t.loginAccountUnavailable : tgFlag === "error" ? t.loginTelegramError : "";
+  const tgError = tgLocalError || queryError;
+  const telegramOn = telegram?.enabled === true;
+
+  const onTelegram = () => {
+    if (tgBusy || shell === "unknown") return;
+    setTgLocalError("");
+    if (shell === "app") {
+      setTgBusy(true);
+      void (async () => {
+        const started = await startTelegramAppLogin();
+        setTgBusy(false);
+        if ("error" in started) {
+          setTgLocalError(t.loginTelegramError);
+          return;
+        }
+        setTgWait(true);
+        window.location.href = started.link;
+      })();
+      return;
+    }
+    writeTelegramDestCookie(destRef.current);
+    setWidgetOn(true);
+  };
+
   return (
     <PhoneShell>
       <div className="sc flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-8 pt-4">
@@ -164,6 +303,46 @@ function LoginInner() {
           ) : null}
           {!native && phase !== "soon" && phase !== "webview" ? <div ref={boxRef} className="min-h-10 w-full" /> : null}
         </div>
+
+        {telegramOn ? (
+          <div className="mt-4" data-testid="telegram-login">
+            <div className="flex items-center gap-3 text-[13px] text-muted">
+              <span className="h-px flex-1 bg-line" />
+              <span>{t.loginOr}</span>
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            {tgError ? <p className="mt-3 text-[13px] leading-[1.45] text-accent">{tgError}</p> : null}
+            {tgWait ? (
+              <div className="mt-3">
+                <p className="flex items-center gap-2 text-[14px] leading-[1.45] text-ink">
+                  <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden />
+                  {t.loginTelegramWait}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => pollRef.current()}
+                  className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-line bg-white text-[15px] font-semibold text-ink"
+                >
+                  {t.loginTelegramConfirmed}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onTelegram}
+                disabled={tgBusy || shell === "unknown"}
+                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-line bg-white text-[15px] font-semibold text-ink"
+              >
+                <BrandTelegram size={18} />
+                {t.loginTelegram}
+              </button>
+            )}
+            {widgetOn && shell === "web" ? <div ref={tgBoxRef} className="mt-3 min-h-10 w-full" /> : null}
+            <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.loginTelegramSeparate}</p>
+          </div>
+        ) : tgError ? (
+          <p className="mt-4 text-[13px] leading-[1.45] text-accent">{tgError}</p>
+        ) : null}
 
         <Link
           href="/"
