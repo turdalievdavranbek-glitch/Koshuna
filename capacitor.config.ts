@@ -1,21 +1,28 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * WebView shell loads the live VPS (nginx → Next).
- * Use the IP until koshuna.ru DNS is ready; HTTP needs cleartext.
+ * WebView shell loads the live site over HTTPS.
+ * WebView debugging is forced off in release builds (see MainActivity).
+ * Google / Apple client IDs are read at sign-in time from the website env
+ * (Шаг 8 draws the buttons). See android/OWNER-SETUP.md.
  */
 const config: CapacitorConfig = {
   appId: "com.koshuna.app",
-  appName: "Koshuna",
+  appName: "Коңшу",
   webDir: "public",
   server: {
-    url: "http://147.45.98.245",
-    cleartext: true,
-    androidScheme: "http",
+    url: "https://koshuna.ru",
+    cleartext: false,
+    androidScheme: "https",
   },
   android: {
-    allowMixedContent: true,
-    webContentsDebuggingEnabled: true,
+    allowMixedContent: false,
+    webContentsDebuggingEnabled: false,
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ["alert", "sound", "badge"],
+    },
   },
 };
 

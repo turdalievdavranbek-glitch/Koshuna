@@ -2,6 +2,8 @@ package com.koshuna.app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.pm.ApplicationInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
@@ -11,6 +13,7 @@ import androidx.core.app.ActivityCompat;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
+import java.util.ArrayList;
 
 public class MainActivity extends BridgeActivity {
     private static final int MEDIA_PERMISSIONS_REQUEST = 4281;
@@ -21,6 +24,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         requestRuntimePermissions();
         configureWebView();
+        configureWebViewDebugging();
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -45,16 +49,25 @@ public class MainActivity extends BridgeActivity {
         webViewConfigured = true;
     }
 
+    /** Release builds keep WebView debugging off. Debug builds can still be inspected. */
+    private void configureWebViewDebugging() {
+        boolean debuggable = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        WebView.setWebContentsDebuggingEnabled(debuggable);
+    }
+
     private void requestRuntimePermissions() {
+        ArrayList<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.CAMERA);
+        permissions.add(Manifest.permission.RECORD_AUDIO);
+        permissions.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
+        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
         ActivityCompat.requestPermissions(
             this,
-            new String[] {
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            },
+            permissions.toArray(new String[0]),
             MEDIA_PERMISSIONS_REQUEST
         );
     }
