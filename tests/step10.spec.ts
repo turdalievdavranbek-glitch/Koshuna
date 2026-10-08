@@ -918,3 +918,62 @@ test.describe("owner voice hidden", () => {
     await expect(page.getByRole("button", { name: "Фото и голос" })).toHaveCount(0);
   });
 });
+
+test("filters fit a 360px phone with no horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("konshu-state-v1", JSON.stringify({ lang: "ru", langChosen: true }));
+  });
+  await page.goto("/filters");
+  await expect(page.getByRole("heading", { name: "Фильтры" }).or(page.getByText("Фильтры", { exact: true }))).toBeVisible();
+  const scroll = page.getByTestId("filters-scroll");
+  await expect(scroll.getByRole("button", { name: "Сначала новые", exact: true })).toBeVisible();
+  await expect(scroll.getByRole("button", { name: "Цена ↑", exact: true })).toBeVisible();
+  await expect(scroll.getByRole("button", { name: "Цена ↓", exact: true })).toBeVisible();
+  await expect(scroll.getByPlaceholder("20 000")).toBeVisible();
+  await expect(scroll.getByPlaceholder("45 000")).toBeVisible();
+  await expect(scroll.getByText("Только с фотографиями", { exact: true })).toBeVisible();
+
+  const fit = await page.evaluate(() => {
+    const phone = document.getElementById("konshu-phone");
+    const wide: string[] = [];
+    const walk = (el: Element) => {
+      if (!(el instanceof HTMLElement)) return;
+      if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1) {
+        const label = el.getAttribute("data-testid") || String(el.className).slice(0, 48);
+        wide.push(`${el.tagName} ${label} +${el.scrollWidth - el.clientWidth}`);
+      }
+      for (const child of el.children) walk(child);
+    };
+    if (phone) walk(phone);
+    const place = (selector: string) => {
+      const el = document.querySelector(selector);
+      if (!(el instanceof HTMLElement)) return null;
+      const rect = el.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, scroll: el.scrollWidth - el.clientWidth };
+    };
+    return {
+      wide,
+      doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      phone: phone ? phone.scrollWidth - phone.clientWidth : 999,
+      scrollLeft: (document.querySelector("[data-testid='filters-scroll']") as HTMLElement | null)?.scrollLeft ?? -1,
+    };
+  });
+  expect(fit.doc).toBeLessThanOrEqual(1);
+  expect(fit.phone).toBeLessThanOrEqual(1);
+  expect(fit.scrollLeft).toBe(0);
+  expect(fit.wide).toEqual([]);
+
+  const inside = async (locator: ReturnType<Page["locator"]>) => {
+    const box = await locator.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+  };
+  await inside(scroll.getByRole("button", { name: "Сначала новые", exact: true }));
+  await inside(scroll.getByRole("button", { name: "Цена ↑", exact: true }));
+  await inside(scroll.getByRole("button", { name: "Цена ↓", exact: true }));
+  await inside(scroll.getByPlaceholder("20 000"));
+  await inside(scroll.getByPlaceholder("45 000"));
+  await inside(scroll.getByText("Только с фотографиями", { exact: true }));
+});
