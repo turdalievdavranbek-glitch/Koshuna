@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FEATURES } from "@/lib/features";
 import { hasRole, type ApplicationKind } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
@@ -68,8 +69,12 @@ function PartnerApplyInner() {
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
         <div className="flex flex-wrap gap-2">
           <Chip active={kind === "realtor"} onClick={() => router.replace("/partner?kind=realtor")}>{t.applyRealtor}</Chip>
-          <Chip active={kind === "developer"} onClick={() => router.replace("/partner?kind=developer")}>{t.applyDeveloper}</Chip>
-          <Chip active={kind === "dealer"} onClick={() => router.replace("/partner?kind=dealer")}>{t.applyDealer}</Chip>
+          {FEATURES.developers ? (
+            <Chip active={kind === "developer"} onClick={() => router.replace("/partner?kind=developer")}>{t.applyDeveloper}</Chip>
+          ) : null}
+          {FEATURES.dealers ? (
+            <Chip active={kind === "dealer"} onClick={() => router.replace("/partner?kind=dealer")}>{t.applyDealer}</Chip>
+          ) : null}
         </div>
         {already ? <p className="mt-4 text-[15px] text-success">{t.partnerApproved}</p> : null}
         {mine && !already ? (

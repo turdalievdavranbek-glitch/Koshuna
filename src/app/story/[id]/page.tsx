@@ -8,6 +8,7 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
 import { formatSom } from "@/lib/data";
+import { FEATURES } from "@/lib/features";
 import { listingTitle } from "@/lib/i18n";
 import { isFromNeighbor } from "@/lib/neighbor";
 import { listingPlace, listingPublicUrl, ownerShareText, socialShareHref } from "@/lib/share";
@@ -214,14 +215,16 @@ export default function StoryPage() {
             <BrandInstagram size={18} />
             Stories
           </button>
-          <button
-            type="button"
-            onClick={() => window.open(socialShareHref("facebook", listing, t, lang), "_blank", "noreferrer")}
-            className="flex h-12 items-center justify-center gap-1.5 rounded-2xl border border-line bg-white text-[12px] font-semibold"
-          >
-            <BrandFacebook size={18} />
-            Facebook
-          </button>
+          {FEATURES.shareFacebookVk ? (
+            <button
+              type="button"
+              onClick={() => window.open(socialShareHref("facebook", listing, t, lang), "_blank", "noreferrer")}
+              className="flex h-12 items-center justify-center gap-1.5 rounded-2xl border border-line bg-white text-[12px] font-semibold"
+            >
+              <BrandFacebook size={18} />
+              Facebook
+            </button>
+          ) : null}
         </div>
         <button
           type="button"

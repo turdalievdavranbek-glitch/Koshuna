@@ -13,6 +13,7 @@ import { persistableUrl } from "./blob-media";
 import { nearestDistrict, publishCoords } from "./geo";
 import { channelsOf, parseSellerChannel } from "./channels";
 import { DEFAULT_COMMENTS, DEFAULT_SAVED, DEFAULT_THREADS, LISTINGS } from "./data";
+import { isSectionVisible } from "./features";
 import { DICT } from "./i18n";
 import { hydrateReactions, voterId, type ReactionsByVoter } from "./reactions";
 import { isJobType } from "./vacancies";
@@ -275,6 +276,7 @@ function upsertExtraListing(extra: Listing[], listing: Listing): Listing[] {
 type State = {
   user: User | null;
   lang: Lang;
+  langChosen: boolean;
   city: string;
   filters: Filters;
   favouriteIds: string[];
@@ -309,6 +311,7 @@ type State = {
 const initial: State = {
   user: null,
   lang: "ru",
+  langChosen: false,
   city: "all",
   filters: defaultFilters(),
   favouriteIds: ["apt-sunny", "sofa-leather", "bike-blue", "camera-canon", "apt-osh", "house-karakol"],
@@ -550,6 +553,7 @@ function load(): State {
       filters: normalizeFilters({ ...defaultFilters(), ...saved.filters }),
       side: isAppSide(saved.side) ? saved.side : "buy",
       lang: isLang(saved.lang) ? saved.lang : "ru",
+      langChosen: saved.langChosen === true,
       applications: Array.isArray(saved.applications) ? saved.applications : [],
       realtorProfiles: Array.isArray(saved.realtorProfiles) ? saved.realtorProfiles : [],
       developerProfiles: mergeById(Array.isArray(saved.developerProfiles) ? saved.developerProfiles : [], [SEED_DEVELOPER]),
@@ -647,10 +651,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...seedCars,
       ...LISTINGS.filter((item) => !extraIds.has(item.id) && !seedIds.has(item.id)),
     ];
-    return merged.map((item) => {
-      const edit = state.listingEdits[item.id];
-      return edit ? { ...item, ...edit } : item;
-    });
+    return merged
+      .map((item) => {
+        const edit = state.listingEdits[item.id];
+        return edit ? { ...item, ...edit } : item;
+      })
+      .filter((item) => isSectionVisible(item.section));
   }, [state.extraListings, state.listingEdits, state.shops, state.user]);
 
   const value: Store = {
@@ -708,7 +714,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (channelsOf(s.user).includes(channel)) return s;
         return { ...s, user: { ...s.user, linkedChannels: [...channelsOf(s.user), channel] } };
       }),
-    setLang: (lang) => update({ lang }),
+    setLang: (lang) => update({ lang, langChosen: true }),
     setListingLayout: (listingLayout) => update({ listingLayout }),
     setElderMode: (elderMode) =>
       update({ elderMode, listingLayout: elderMode ? "large" : "medium" }),

@@ -29,26 +29,11 @@ const MONTHS: Record<Lang, string[]> = {
     "Ноябрь",
     "Декабрь",
   ],
-  uz: [
-    "Yanvar",
-    "Fevral",
-    "Mart",
-    "Aprel",
-    "May",
-    "Iyun",
-    "Iyul",
-    "Avgust",
-    "Sentabr",
-    "Oktabr",
-    "Noyabr",
-    "Dekabr",
-  ],
 };
 
 const MONTHS_SHORT: Record<Lang, string[]> = {
   ru: ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"],
   ky: ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"],
-  uz: ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"],
 };
 
 export function dateKey(d: Date): string {

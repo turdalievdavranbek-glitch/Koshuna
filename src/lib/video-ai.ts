@@ -1,3 +1,4 @@
+import { isSectionVisible } from "./features";
 import type { AnimalGroup, DraftListing, PropertyType, SectionId } from "./types";
 import { JOB_ROLE_RU, JOB_ROWS, type JobType } from "./vacancies";
 import { housingTypeToRealtyGroup } from "./realty";
@@ -423,6 +424,7 @@ export function classifyListingSpeech(raw: string): AiGuess {
   const text = norm(raw);
   let best: { rule: Rule; score: number } | null = null;
   for (const rule of RULES) {
+    if (!isSectionVisible(rule.section)) continue;
     const s = score(text, rule.keys);
     if (s > 0 && (!best || s > best.score)) best = { rule, score: s };
   }

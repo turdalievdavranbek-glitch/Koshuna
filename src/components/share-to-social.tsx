@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { BrandFacebook, BrandInstagram, BrandTelegram, BrandVk, BrandWhatsApp } from "@/components/auth-brands";
 import { hasChannel } from "@/lib/channels";
+import { FEATURES } from "@/lib/features";
 import { listingTitle } from "@/lib/i18n";
 import { listingPublicUrl, ownerShareText, socialShareHref } from "@/lib/share";
 import { useApp } from "@/lib/store";
@@ -125,12 +126,16 @@ export function ShareToSocial({ listing }: { listing: Listing }) {
           window.open(socialShareHref("telegram", listing, t, lang), "_blank", "noreferrer");
         }, hasChannel(user, "telegram"))}
         {cell("ig", t.shareIg, <BrandInstagram size={28} />, () => router.push(`/story/${listing.id}`), hasChannel(user, "instagram"))}
-        {cell("fb", t.shareFb, <BrandFacebook size={28} />, () => {
-          window.open(socialShareHref("facebook", listing, t, lang), "_blank", "noreferrer");
-        }, hasChannel(user, "facebook"))}
-        {cell("vk", t.shareVk, <BrandVk size={28} />, () => {
-          window.open(socialShareHref("vk", listing, t, lang), "_blank", "noreferrer");
-        })}
+        {FEATURES.shareFacebookVk
+          ? cell("fb", t.shareFb, <BrandFacebook size={28} />, () => {
+              window.open(socialShareHref("facebook", listing, t, lang), "_blank", "noreferrer");
+            }, hasChannel(user, "facebook"))
+          : null}
+        {FEATURES.shareFacebookVk
+          ? cell("vk", t.shareVk, <BrandVk size={28} />, () => {
+              window.open(socialShareHref("vk", listing, t, lang), "_blank", "noreferrer");
+            })
+          : null}
         {cell("copy", t.shareCopyLink, <CopyMark />, copy)}
       </div>
       <button

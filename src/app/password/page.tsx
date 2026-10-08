@@ -6,6 +6,7 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Field, Input, RoundBtn } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
+import { FEATURES } from "@/lib/features";
 import { useApp } from "@/lib/store";
 
 function PasswordInner() {
@@ -45,10 +46,12 @@ function PasswordInner() {
         <p className="mt-2 text-[15px] leading-[1.5] text-muted">
           {t.mailLinkHint} {email}
         </p>
-        <div className="mt-3 flex items-center gap-2 text-[13px] text-muted">
-          <TrustStars n={0} />
-          <span>{t.trustNone}</span>
-        </div>
+        {FEATURES.accountStars ? (
+          <div className="mt-3 flex items-center gap-2 text-[13px] text-muted">
+            <TrustStars n={0} />
+            <span>{t.trustNone}</span>
+          </div>
+        ) : null}
         <p className="mt-3 text-[13px] text-muted-2">{t.mailLinkDemo}</p>
         <div className="mt-6">
           <Field label={t.password}>

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf } from "@/lib/shops";
 import { useState } from "react";
+import { FEATURES } from "@/lib/features";
 import { hasRole, isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
@@ -95,21 +96,25 @@ export default function SellingPage() {
         >
           {t.applyRealtor}
         </button>
-        <button
-          type="button"
-          onClick={() => router.push("/partner?kind=developer")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.applyDeveloper}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/partner?kind=dealer")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.applyDealer}
-        </button>
-        {user && hasRole(user, "developer") ? (
+        {FEATURES.developers ? (
+          <button
+            type="button"
+            onClick={() => router.push("/partner?kind=developer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.applyDeveloper}
+          </button>
+        ) : null}
+        {FEATURES.dealers ? (
+          <button
+            type="button"
+            onClick={() => router.push("/partner?kind=dealer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.applyDealer}
+          </button>
+        ) : null}
+        {FEATURES.developers && user && hasRole(user, "developer") ? (
           <button
             type="button"
             onClick={() => router.push("/developer")}
@@ -118,7 +123,7 @@ export default function SellingPage() {
             {t.developerCabinet}
           </button>
         ) : null}
-        {user && hasRole(user, "dealer") ? (
+        {FEATURES.dealers && user && hasRole(user, "dealer") ? (
           <button
             type="button"
             onClick={() => router.push("/dealer")}
@@ -164,7 +169,7 @@ export default function SellingPage() {
             ) : null}
           </div>
         ) : null}
-        {user && hasRole(user, "dealer") ? (
+        {FEATURES.dealers && user && hasRole(user, "dealer") ? (
           <div className="mt-2.5 rounded-[16px] border border-line bg-white p-3.5">
             <div className="text-[13px] font-bold text-accent-dark">{t.dealerBadge}</div>
             <div className="mt-2">

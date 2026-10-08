@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { SECTIONS, SERVICE_CATEGORIES, SHOP_ART } from "@/lib/data";
+import { FEATURES, isSectionVisible } from "@/lib/features";
 import { applyFilters } from "@/lib/filter";
 import { searchPlaceholder } from "@/lib/i18n";
 import { realtyIsLiving } from "@/lib/realty";
@@ -117,7 +118,7 @@ export default function FiltersPage() {
               </span>
               <span style={{ color: isShops ? "rgba(247,243,236,.45)" : "#A79C8C" }}>›</span>
             </button>
-            {SECTIONS.map((s) => {
+            {SECTIONS.filter((s) => isSectionVisible(s.id)).map((s) => {
               const on = filters.section === s.id;
               return (
                 <button
@@ -351,7 +352,7 @@ export default function FiltersPage() {
               ...(isRent ? [] : ([["neighborOnly", t.neighborOnly]] as const)),
               ["priceDroppedOnly", t.priceDropped],
               ["videoOnly", t.videoOnly],
-              ["aiylOnly", t.bridgeAiyl],
+              ...(FEATURES.aiyl ? ([["aiylOnly", t.bridgeAiyl]] as const) : []),
             ] as const
           ).map(([key, label]) => (
             <div key={key} className="flex items-center justify-between border-t border-line py-3.5">

@@ -2,6 +2,7 @@
 
 import type { AuthMethod, Listing } from "@/lib/types";
 import { isVideoListing as videoOf, isVoiceListing as voiceOf } from "@/lib/video-ai";
+import { FEATURES } from "@/lib/features";
 import { SellerStarsBadge } from "./trust-stars";
 import { Photo } from "./ui";
 
@@ -67,7 +68,7 @@ export function ListingThumb({
           <Photo src={listing.photos[0]} alt={alt} />
         )}
         {video ? <PlayBadge compact={compact} /> : isVoiceListing(listing) ? <VoiceBadge compact={compact} /> : null}
-        {listing.id && listing.ownerId ? (
+        {FEATURES.accountStars && listing.id && listing.ownerId ? (
           <SellerStarsBadge
             listing={{
               id: listing.id,

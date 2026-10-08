@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FEATURES } from "@/lib/features";
 import { socialCounts } from "@/lib/reactions";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
@@ -38,10 +39,12 @@ export function ListingSocialMeta({
         <IconDislike size={icon} color="#6E6558" />
         <span className="tabular-nums">{dislikes}</span>
       </span>
-      <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconChat size={icon} color="#6E6558" />
-        <span className="tabular-nums">{comments}</span>
-      </span>
+      {FEATURES.comments ? (
+        <span className="inline-flex min-w-0 items-center gap-0.5">
+          <IconChat size={icon} color="#6E6558" />
+          <span className="tabular-nums">{comments}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -105,13 +108,15 @@ export function ListingSocial({ listing }: { listing: Listing }) {
           <IconDislike size={18} color={reaction === "dislike" ? "#B8452F" : "#17140F"} filled={reaction === "dislike"} />
           {dislikes}
         </button>
-        <div className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border border-line bg-white text-[14px] font-semibold text-ink">
-          <IconChat size={17} color="#17140F" />
-          {comments.length}
-        </div>
+        {FEATURES.comments ? (
+          <div className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border border-line bg-white text-[14px] font-semibold text-ink">
+            <IconChat size={17} color="#17140F" />
+            {comments.length}
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-5">
+      {FEATURES.comments ? <div className="mt-5">
         <Eyebrow>{t.comments}</Eyebrow>
         <div className="mt-3 flex items-center gap-2">
           <input
@@ -152,7 +157,7 @@ export function ListingSocial({ listing }: { listing: Listing }) {
         ) : (
           <p className="mt-4 text-[13px] text-muted">{t.commentsEmpty}</p>
         )}
-      </div>
+      </div> : null}
     </div>
   );
 }
