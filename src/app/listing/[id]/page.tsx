@@ -34,6 +34,7 @@ import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
+import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { GisOnMapCard } from "@/components/gis-on-map";
 
 export default function ListingPage() {
@@ -75,7 +76,7 @@ export default function ListingPage() {
 
   if (!listing && !synced) return null;
 
-  if (!listing) {
+  if (!listing || listing.status === "hidden") {
     return (
       <PhoneShell>
         <div className="p-6">
@@ -257,18 +258,27 @@ export default function ListingPage() {
                 const shop = shops.find((item) => item.id === listing.shopId);
                 if (!shop) return null;
                 const others = allListings.filter(
-                  (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed",
+                  (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden",
                 );
                 return (
                   <div className="mt-3 rounded-[16px] border border-line bg-white p-4">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shopFromListing}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">
+                      {listing.section === "services" ? t.serviceFromCard : t.shopFromListing}
+                    </div>
                     <button type="button" onClick={() => router.push(`/shops/${shop.id}`)} className="mt-1.5 text-left">
                       <div className="font-display text-[17px] font-bold text-ink">{shop.name}</div>
-                      <div className="text-[13px] text-muted">{t.shopToShop} · {t.cities[shop.city]}</div>
+                      <div className="text-[13px] text-muted">
+                        {t.shopToShop} · {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, t.cities[shop.city] || shop.city, lang) : t.cities[shop.city]}
+                      </div>
+                      {shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine) ? (
+                        <div className="text-[12px] text-muted">{shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine)}</div>
+                      ) : null}
                     </button>
                     {others.length ? (
                       <div className="mt-2">
-                        <div className="text-[12px] font-semibold text-muted">{t.shopMoreFrom}</div>
+                        <div className="text-[12px] font-semibold text-muted">
+                          {listing.section === "services" ? t.serviceMoreFrom : t.shopMoreFrom}
+                        </div>
                         {others.slice(0, 4).map((item) => (
                           <button
                             key={item.id}
@@ -493,10 +503,12 @@ export default function ListingPage() {
             </button>
           ) : null}
 
-          <div className="mt-3 rounded-[18px] bg-accent-tint p-4">
-            <div className="text-[15px] font-bold text-accent-dark">{t.meetSafe}</div>
+          <div className="mt-3 rounded-[18px] bg-accent-tint p-4" data-testid="listing-safety">
+            <div className="text-[15px] font-bold text-accent-dark">
+              {listing.section === "services" ? t.meetService : t.meetSafe}
+            </div>
             <p className="mt-1.5 text-[13px] leading-[1.5] text-safe">
-              {listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
+              {listing.section === "services" ? t.meetServiceText : listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
             </p>
           </div>
 

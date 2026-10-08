@@ -11,6 +11,7 @@ import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
+import { PointList } from "@/components/point-rows";
 import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { Field, Input } from "@/components/ui";
 
@@ -84,9 +85,12 @@ export default function SellingPage() {
           onClick={() => router.push("/shops")}
           className="mt-2.5 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left"
         >
-          <span className="text-[15px] font-semibold text-ink">{t.shopMine}</span>
+          <span className="text-[15px] font-semibold text-ink">{t.myPoints}</span>
           <span className="text-[13px] font-semibold text-accent">{t.allN(shopCount)}</span>
         </button>
+        <div className="mt-2.5">
+          <PointList shops={shopsOf(shops, user)} actions />
+        </div>
         <button
           type="button"
           onClick={() => router.push("/partner?kind=realtor")}

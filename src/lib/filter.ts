@@ -182,7 +182,7 @@ function placeMatches(item: Listing, filters: Filters, city: string): boolean {
 
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   let out = list.filter((item) => {
-    if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
+    if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
     if (filters.scope === "near") {
       if (filters.nearLat == null || filters.nearLng == null || !hasCoords(item)) return false;
       if (haversineKm(filters.nearLat, filters.nearLng, item.lat, item.lng) > nearRadiusKm()) return false;

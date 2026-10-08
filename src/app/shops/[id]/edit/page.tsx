@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ShopForm } from "@/components/shop-form";
+import { PointForm } from "@/components/point-form";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
@@ -11,7 +11,7 @@ import { useApp } from "@/lib/store";
 
 export default function EditShopPage() {
   const { id } = useParams<{ id: string }>();
-  const { t, user, shops, startShopDraft, setPendingPath } = useApp();
+  const { t, user, shops, startShopDraft, setPendingPath, askLeave } = useApp();
   const router = useRouter();
   const shop = shops.find((item) => item.id === id);
 
@@ -41,15 +41,24 @@ export default function EditShopPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push(`/shops/${id}`)} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button
+            type="button"
+            onClick={() => {
+              const run = () => router.push(`/shops/${id}`);
+              if (askLeave(run)) return;
+              run();
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
+            aria-label={t.backLeave}
+          >
             <IconBack size={16} color="#17140F" />
           </button>
-          <span className="font-display text-[16px] font-bold">{t.shopEdit}</span>
+          <span className="font-display text-[16px] font-bold">{t.pointEdit}</span>
           <span className="w-9" />
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <ShopForm boot={false} />
+        <PointForm mode="edit" />
       </div>
     </PhoneShell>
   );

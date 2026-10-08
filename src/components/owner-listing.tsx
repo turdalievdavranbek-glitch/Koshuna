@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RESERVE_ACCOUNTS, formatSom } from "@/lib/data";
 import { DEAL_STAGES, stageOf, statusForStage } from "@/lib/listing-owner";
@@ -7,6 +8,7 @@ import { offerWhen } from "@/lib/meet";
 import { parseDraftPrice } from "@/lib/market";
 import { useApp } from "@/lib/store";
 import type { DealStage, Listing, ReserveAccount } from "@/lib/types";
+import { DeleteCardDialog } from "./card-delete";
 import { CategoryChips } from "./category-chips";
 import { Chip, Eyebrow, Field, Input } from "./ui";
 import type { DraftListing } from "@/lib/types";
@@ -74,7 +76,10 @@ function listingAsDraft(listing: Listing): DraftListing {
 }
 
 export function OwnerListingTools({ listing }: { listing: Listing }) {
-  const { t, updateListing, ensureMeetDeal, clearMeetDeal } = useApp();
+  const { t, updateListing, ensureMeetDeal, clearMeetDeal, deleteListing } = useApp();
+  const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [price, setPrice] = useState(String(listing.price));
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -211,6 +216,31 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
       </div>
       {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
+      <button
+        type="button"
+        data-testid="listing-delete"
+        onClick={() => setConfirmDelete(true)}
+        className="mt-4 h-11 w-full text-[15px] font-semibold text-accent"
+      >
+        {t.cardDelete}
+      </button>
+      <DeleteCardDialog
+        open={confirmDelete}
+        busy={deleting}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setDeleting(true);
+          void deleteListing(listing.id).then((result) => {
+            setDeleting(false);
+            if (result.error) {
+              setError(t.cardDeleteError);
+              setConfirmDelete(false);
+              return;
+            }
+            router.push("/profile");
+          });
+        }}
+      />
     </div>
   );
 }

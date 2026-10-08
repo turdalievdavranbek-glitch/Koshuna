@@ -1,4 +1,4 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, ne, or } from "drizzle-orm";
 import { getSessionUser } from "@/server/auth";
 import { getDb } from "@/server/db";
 import { shops } from "@/server/db/schema";
@@ -12,7 +12,10 @@ export async function GET(req: Request) {
   const user = await getSessionUser(req).catch(() => null);
   const db = getDb();
   const rows = user
-    ? await db.select().from(shops).where(or(eq(shops.status, "active"), and(eq(shops.ownerId, user.id))))
+    ? await db
+        .select()
+        .from(shops)
+        .where(or(eq(shops.status, "active"), and(eq(shops.ownerId, user.id), ne(shops.status, "hidden"))))
     : await db.select().from(shops).where(eq(shops.status, "active"));
   return json({ shops: rows.map(rowToShop) });
 }

@@ -41,7 +41,7 @@ function rentLike(item: Listing): boolean {
 }
 
 function eligible(draft: DraftListing, item: Listing): boolean {
-  if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
+  if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
   if (!sameSection(draft, item)) return false;
   if (!item.price || item.price <= 0) return false;
   if (draft.section === "rent" && draft.kind === "rent" && !rentLike(item)) return false;

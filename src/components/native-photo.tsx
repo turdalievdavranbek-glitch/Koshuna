@@ -6,6 +6,7 @@ type Props = {
   cameraRef: RefObject<HTMLInputElement | null>;
   galleryRef: RefObject<HTMLInputElement | null>;
   onFile: (file: File) => void;
+  galleryTestId?: string;
 };
 
 function takeFile(e: ChangeEvent<HTMLInputElement>, onFile: (file: File) => void) {
@@ -15,7 +16,7 @@ function takeFile(e: ChangeEvent<HTMLInputElement>, onFile: (file: File) => void
 }
 
 /** Same native camera path as bazaar «Быстрое объявление»: capture=environment. */
-export function NativePhotoInputs({ cameraRef, galleryRef, onFile }: Props) {
+export function NativePhotoInputs({ cameraRef, galleryRef, onFile, galleryTestId }: Props) {
   return (
     <>
       <input
@@ -30,6 +31,7 @@ export function NativePhotoInputs({ cameraRef, galleryRef, onFile }: Props) {
         ref={galleryRef}
         type="file"
         accept="image/*"
+        data-testid={galleryTestId}
         className="hidden"
         onChange={(e) => takeFile(e, onFile)}
       />

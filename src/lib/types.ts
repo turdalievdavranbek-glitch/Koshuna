@@ -29,7 +29,7 @@ export type SectionId =
   | "restaurants"
   | "shops";
 
-export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed";
+export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed" | "hidden";
 
 export type DealStage = "active" | "reserved" | "closed" | "withdrawn";
 
@@ -488,7 +488,7 @@ export const SHOP_KINDS = {
 
 export type ShopKind = (typeof SHOP_KINDS)[Exclude<ShopCategory, "other">][number];
 
-export type ShopStatus = "draft" | "active" | "withdrawn";
+export type ShopStatus = "draft" | "active" | "withdrawn" | "hidden";
 
 export type ShopProductUnit = "piece" | "kg" | "meter" | "liter" | "pack" | "other";
 
@@ -562,6 +562,16 @@ export type Shop = {
   pickup: boolean;
   delivery: boolean;
   deliveryNote?: string;
+  /** Free delivery when true, paid when false. Only meaningful while delivery is on. */
+  deliveryFree?: boolean;
+  /** District ids the point delivers to. */
+  deliveryDistricts?: string[];
+  /** District id from DISTRICTS, or a short label. */
+  district?: string;
+  /** Short landmarks, no street. */
+  landmarks?: string[];
+  /** Free text when the group is «Другое». */
+  kindOther?: string;
   videoUrl?: string;
   coverUrl?: string;
   transcript?: string;

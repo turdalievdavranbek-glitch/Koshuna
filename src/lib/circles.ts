@@ -72,7 +72,7 @@ function rankVideos(
 ): Listing[] {
   return [...list]
     .filter(isVideoListing)
-    .filter((item) => item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed")
+    .filter((item) => item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden")
     .sort((a, b) => {
       const ea = engagementScore(a.id, reactions, comments[a.id]?.length ?? 0);
       const eb = engagementScore(b.id, reactions, comments[b.id]?.length ?? 0);
@@ -108,7 +108,7 @@ export function pickNeighborCircles(
   const used = new Set(videos.map((item) => item.id));
   const fill = [...all]
     .filter((item) => !used.has(item.id))
-    .filter((item) => item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed")
+    .filter((item) => item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden")
     .filter((item) => inSelectedRegion(item, scope))
     .sort((a, b) => {
       const ea = engagementScore(a.id, reactions, comments[a.id]?.length ?? 0);
