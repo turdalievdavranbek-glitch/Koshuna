@@ -3,16 +3,18 @@ import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { notifications } from "./db/schema";
 
-type NoticeParams = { name?: string; title?: string; threadId?: string };
+type NoticeParams = { name?: string; title?: string; threadId?: string; requestId?: string };
 
 function readParams(value: unknown): NoticeParams {
   if (!value || typeof value !== "object") return {};
   const row = value as Record<string, unknown>;
   const threadId = typeof row.threadId === "string" && isDbUserId(row.threadId) ? row.threadId : undefined;
+  const requestId = typeof row.requestId === "string" && isDbUserId(row.requestId) ? row.requestId : undefined;
   return {
     name: typeof row.name === "string" ? row.name : undefined,
     title: typeof row.title === "string" ? row.title : undefined,
     threadId,
+    requestId,
   };
 }
 

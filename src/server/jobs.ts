@@ -17,6 +17,7 @@ import {
   users,
 } from "./db/schema";
 import { rowToShop } from "./mappers";
+import { closeExpiredPurchaseRequests } from "./purchase-requests";
 import { partPath, removeFile } from "./media";
 
 /**
@@ -171,7 +172,8 @@ export async function cleanupJob(): Promise<{ ok: true; counts: Record<string, n
   if (orphans.length) await db.delete(media).where(inArray(media.id, orphans.map((row) => row.id)));
 
   const gone = await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ id: sessions.id });
-  return { ok: true, counts: { uploading: stale.length, orphans: orphans.length, sessions: gone.length } };
+  const requests = await closeExpiredPurchaseRequests();
+  return { ok: true, counts: { uploading: stale.length, orphans: orphans.length, sessions: gone.length, requests } };
 }
 
 export const JOBS = {

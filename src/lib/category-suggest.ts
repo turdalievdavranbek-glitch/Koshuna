@@ -50,6 +50,9 @@ function tokensOf(text: string): string[] {
 function hit(text: string, tokens: string[], keyRaw: string): number {
   const key = normCategoryText(keyRaw);
   if (key.length < 2) return 0;
+  // Whole words. A 3-letter prefix would also mark «турмуш» and «гидравлика».
+  if (key === "тур") return tokens.includes("тур") ? key.length : 0;
+  if (key === "гид") return tokens.some((tok) => tok === "гид" || tok === "гиды") ? key.length : 0;
   if (text.includes(key)) return key.length;
   const head = key.split(" ")[0] ?? key;
   for (const tok of tokens) {
@@ -236,6 +239,8 @@ export function suggestCategories(
     if (out.length === 3) break;
   }
   if (out.length) return out;
+  // Service card: no keyword means the person picks a group. Do not reuse the last one.
+  if (only === "services") return [];
   const last = opts?.last;
   if (last && (!only || last.section === only) && allowed({ ...last, score: 0 }, personal)) return [{ ...last, score: 0 }];
   if (only) return [{ section: only, score: 0 }];

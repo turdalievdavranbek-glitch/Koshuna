@@ -22,6 +22,7 @@ import { TrustStars } from "@/components/trust-stars";
 import { PointList } from "@/components/point-rows";
 import { MyListings } from "@/components/my-listings";
 import { HoldInbox } from "@/components/hold-inbox";
+import { IncomingBuyRequests, MyBuyRequests } from "@/components/buy-requests";
 import { SubscriptionList } from "@/components/subscription-list";
 
 const PHONE_LATER = "konshu.phoneLater";
@@ -211,6 +212,16 @@ export default function ProfilePage() {
         >
           {t.shopNew}
         </button>
+
+        <div className="mt-6">
+          <MyBuyRequests />
+        </div>
+
+        {points.length ? (
+          <div className="mt-6">
+            <IncomingBuyRequests />
+          </div>
+        ) : null}
 
         <div className="mt-6">
           <HoldInbox />

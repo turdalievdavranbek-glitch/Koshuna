@@ -8,7 +8,7 @@ export type AppNotice = {
   type: string;
   listingId: string | null;
   textKey: string;
-  params: { name?: string; title?: string; threadId?: string };
+  params: { name?: string; title?: string; threadId?: string; requestId?: string };
   createdAt: string;
   readAt: string | null;
 };

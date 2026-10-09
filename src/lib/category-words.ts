@@ -203,9 +203,39 @@ export const CATEGORY_WORDS: CategoryWord[] = [
     category: "photo-video",
   },
   {
-    keys: ["прокат посуды", "юрта", "боз үй", "декор"],
+    keys: ["прокат посуды", "декор"],
     section: "services",
     category: "event-rent",
+  },
+  {
+    keys: ["туризм", "туризм жана эс алуу"],
+    section: "services",
+    category: "svc-tourism",
+  },
+  {
+    keys: ["тур"],
+    section: "services",
+    category: "svc-tourism",
+  },
+  {
+    keys: ["туроператор", "турагент", "турагентство", "турагенттик"],
+    section: "services",
+    category: "tour-operator",
+  },
+  {
+    keys: ["экскурсия", "экскурсии", "экскурсиялар", "гид", "гиды", "поход", "жөө жүрүш"],
+    section: "services",
+    category: "tour-guide",
+  },
+  {
+    keys: ["юрта", "юрты", "боз үй", "боз үйлөр", "гостевой дом", "конок үй"],
+    section: "services",
+    category: "guest-yurt",
+  },
+  {
+    keys: ["снаряжен", "прокат снаряжения", "жабдуу"],
+    section: "services",
+    category: "gear-rental",
   },
   {
     keys: ["трактор", "вспашка", "сенокос", "комбайн", "айдоо", "чөп чабуу"],

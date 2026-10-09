@@ -65,9 +65,11 @@ export default function NotificationsPage() {
             const className = "rounded-[18px] border border-line bg-white px-4 py-3.5";
             const href = row.params.threadId
               ? `/chat/${row.params.threadId}`
-              : row.listingId
-                ? `/listing/${row.listingId}`
-                : "";
+              : row.params.requestId
+                ? "/requests"
+                : row.listingId
+                  ? `/listing/${row.listingId}`
+                  : "";
             return href ? (
               <Link key={row.id} href={href} className={className}>
                 {body}

@@ -50,7 +50,7 @@ export function ServiceCardFields({
       <Field label={t.serviceWork}>
         <Input
           value={draft.title}
-          onChange={(v) => onPatch({ title: v, categoryLocked: false })}
+          onChange={(v) => onPatch({ title: v })}
           placeholder={t.serviceWorkPh}
           testId="service-work"
         />

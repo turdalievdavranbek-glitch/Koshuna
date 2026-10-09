@@ -60,9 +60,11 @@ export function DraftContinueCard({ onOpen }: { onOpen: (draft: DraftListing) =>
 export function PostChoices({
   onPersonal,
   onBusiness,
+  onRequest,
 }: {
   onPersonal: () => void;
   onBusiness: () => void;
+  onRequest: () => void;
 }) {
   const { t, draft, discardDraft } = useApp();
   const [askNew, setAskNew] = useState(false);
@@ -88,6 +90,10 @@ export function PostChoices({
       <button type="button" data-testid="post-choice-business" onClick={onBusiness} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
         <div className="text-[16px] font-semibold text-ink">{t.postBusiness}</div>
         <div className="mt-1 text-[13px] text-muted">{t.postBusinessHint}</div>
+      </button>
+      <button type="button" data-testid="post-choice-request" onClick={onRequest} className="mt-2 w-full rounded-[12px] border border-line bg-white px-3 py-2 text-left">
+        <div className="text-[14px] font-semibold text-ink">{t.postRequest}</div>
+        <div className="mt-0.5 text-[12px] text-muted">{t.postRequestHint}</div>
       </button>
       {askNew ? (
         <div className="mt-3 rounded-[14px] bg-chip p-3" data-testid="draft-start">
@@ -121,7 +127,11 @@ export function ChoicePage() {
       <ScreenBack fallback="/" />
       <h1 className="mt-3 font-display text-[26px] font-extrabold text-ink">{t.postChoiceTitle}</h1>
       <div className="mt-4">
-        <PostChoices onPersonal={() => router.push("/post?type=personal")} onBusiness={() => router.push("/post?type=business")} />
+        <PostChoices
+          onPersonal={() => router.push("/post?type=personal")}
+          onBusiness={() => router.push("/post?type=business")}
+          onRequest={() => router.push("/post?type=request")}
+        />
       </div>
     </div>
   );

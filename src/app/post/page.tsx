@@ -13,6 +13,7 @@ import { BusinessPost } from "@/components/post-business";
 import { CardPost } from "@/components/post-card-flow";
 import { ChoicePage } from "@/components/post-choice";
 import { PersonalPost } from "@/components/personal-post";
+import { BuyRequestForm } from "@/components/buy-request-form";
 
 export default function PostPage() {
   const params = useSearchParams();
@@ -25,7 +26,7 @@ export default function PostPage() {
   useEffect(() => {
     if (!ready) return;
     if (!user) {
-      setPendingPath("/post");
+      setPendingPath(type === "request" ? "/post?type=request" : "/post");
       router.replace("/login");
       return;
     }
@@ -37,6 +38,7 @@ export default function PostPage() {
   if (!ready || !user) return null;
   if (published) return <Published id={published} />;
   if (card === "cafe" || card === "developer" || card === "dealer" || card === "service") return <CardPost card={card} />;
+  if (type === "request") return <BuyRequestForm />;
   if (type === "personal") return <PersonalPost />;
   if (type === "business") return <BusinessPost />;
   return (
