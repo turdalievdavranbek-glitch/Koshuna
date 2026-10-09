@@ -99,9 +99,25 @@ install -d -m 0755 /var/koshuna/media/tmp
 7 * * * *    /var/www/koshuna/scripts/run-job.sh listing-reminders
 */15 * * * * /var/www/koshuna/scripts/run-job.sh account-deletions
 0 4 * * *    /var/www/koshuna/scripts/run-job.sh cleanup
+17 * * * *   /var/www/koshuna/scripts/run-job.sh circles
+27 3 * * *   /var/www/koshuna/scripts/run-job.sh price-stats
 ```
 
-Задания `circles` и `price-stats` в Шаге 4 не ставить. Владелец 2026-10-08 09:41 перенёс их в Шаги 23 и 24. Таблицы в базе есть, логики заданий нет: вызов этих имён вернёт 404.
+`circles` — Шаг 23, раз в час. `price-stats` — Шаг 24, раз в сутки. Если строка `circles` уже стоит, вторую такую же не добавлять.
+
+Миграции для магнитов нет. Ключи в `app_config` (json). Если ключа нет, код берёт значение сам:
+
+- `magnets_enabled` — `true`. `false` прячет все магниты без новой выкладки.
+- `magnet_min_listings` — `20`. Столько открытых объявлений должно быть в выбранном районе, чтобы магниты на главной появились.
+- `price_min_n` — `5`. Столько объявлений нужно, чтобы на карточке появилась строка «Цена честная?».
+
+```sql
+insert into app_config (key, value) values
+  ('magnets_enabled', 'true'::jsonb),
+  ('magnet_min_listings', '20'::jsonb),
+  ('price_min_n', '5'::jsonb)
+on conflict (key) do update set value = excluded.value, updated_at = now();
+```
 
 ## 8. Х-08
 
