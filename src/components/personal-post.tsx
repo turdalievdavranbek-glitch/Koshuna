@@ -41,13 +41,34 @@ export function PersonalPost() {
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sectionHint, setSectionHint] = useState(false);
   const leaveBack = useRef<() => void>(() => undefined);
   const unfinished = draftUnfinished(draft);
   const historyGuard = useDraftHistoryGuard(unfinished, () => setLeave({ proceed: () => leaveBack.current() }));
   leaveBack.current = () => historyGuard.leave();
 
   useEffect(() => {
-    setDraft({ flow: "personal", city: draft.city || city || "bishkek" });
+    // A draft left by a business card (service, cafe, dealer) must not hand its locked
+    // section to a personal post: that is how «Ноутбук» was published as «СТО / автосервис».
+    const fromCard = Boolean(draft.flow && draft.flow !== "personal");
+    setDraft({
+      flow: "personal",
+      city: draft.city || city || "bishkek",
+      ...(fromCard
+        ? {
+            section: "secondhand" as const,
+            kind: "goods" as const,
+            category: undefined,
+            goodsKind: undefined,
+            techBrand: undefined,
+            techModel: undefined,
+            categoryLocked: false,
+            sectionPicked: false,
+          }
+        : {}),
+      // An old lock without a real pick would stop the guesser on a fresh form.
+      ...(!fromCard && !draft.editing && !draft.sectionPicked ? { categoryLocked: false } : {}),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,6 +120,13 @@ export function PersonalPost() {
     }
     if (!draft.title.trim()) {
       setError(t.postNeedTitle);
+      return;
+    }
+    // The section is the person's choice (or a sure match); never a silent default.
+    if (!draft.editing && !draft.sectionPicked) {
+      setSectionHint(true);
+      setError("");
+      document.querySelector('[data-testid="cat-other"]')?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
     if (!draft.priceNegotiable && draft.section !== "vacancies" && priceNumber <= 0) {
@@ -186,7 +214,7 @@ export function PersonalPost() {
           />
         </label>
         <div className="mt-3">
-          <CategoryChips draft={draft} onPatch={setDraft} personal />
+          <CategoryChips draft={draft} onPatch={setDraft} personal requirePick showHint={sectionHint} />
         </div>
         <label className="mt-4 block">
           <span className="text-[13px] font-semibold text-ink">{t.priceSomField}</span>
@@ -298,7 +326,7 @@ export function PersonalPost() {
         {more ? (
           <div className="mt-3 flex flex-col gap-3">
             <p className="text-[13px] font-semibold text-muted">{t.catRefine}</p>
-            <PostTaxonomy draft={draft} onPatch={setDraft} />
+            <PostTaxonomy draft={draft} onPatch={(patch) => setDraft(patch.section ? { ...patch, categoryLocked: true, sectionPicked: true } : patch)} />
             <Field label={t.venueAddress}>
               <input value={draft.address ?? ""} onChange={(e) => setDraft({ address: e.target.value })} className="h-[50px] w-full rounded-[14px] border border-line bg-white px-[15px] text-[15px] outline-none" />
             </Field>
