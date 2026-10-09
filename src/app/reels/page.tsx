@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCircleList } from "@/components/neighbor-circles";
@@ -14,10 +14,12 @@ import { formatSom } from "@/lib/data";
 import { listingHasPrice } from "@/lib/deal";
 import { goBack } from "@/lib/go-back";
 import { listingTitle } from "@/lib/i18n";
+import { PINNED_REEL_ID, pinnedTitle, type PinnedCircle } from "@/lib/pinned-circle";
 import { socialCounts } from "@/lib/reactions";
 import { listingsForSearch } from "@/lib/search-browse";
 import { listingPlace } from "@/lib/share";
 import { useApp } from "@/lib/store";
+import { usePinnedCircle } from "@/lib/use-pinned-circle";
 import type { Listing } from "@/lib/types";
 import { isVideoListing } from "@/lib/video-ai";
 
@@ -182,12 +184,133 @@ function ReelSlide({
   );
 }
 
+function PinnedReel({
+  pinned,
+  active,
+  sound,
+  videoRef,
+  onToggleSound,
+  onBlocked,
+}: {
+  pinned: PinnedCircle;
+  active: boolean;
+  sound: boolean;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  onToggleSound: () => void;
+  onBlocked: () => void;
+}) {
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (!active) {
+      el.pause();
+      return;
+    }
+    let cancelled = false;
+    el.muted = !sound;
+    void el.play().catch(() => {
+      if (cancelled || el.muted) return;
+      el.muted = true;
+      onBlocked();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [active, sound, pinned.videoUrl, onBlocked, videoRef]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={pinned.videoUrl}
+      poster={pinned.posterUrl ?? undefined}
+      muted={!sound}
+      playsInline
+      loop
+      autoPlay={active}
+      preload="auto"
+      className="absolute inset-0 h-full w-full object-cover"
+      onClick={onToggleSound}
+    />
+  );
+}
+
+/** Owner address: sound on (the circle tap is the gesture). Share the app only. */
+function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; active: boolean; onVisible: () => void }) {
+  const { t, lang } = useApp();
+  const router = useRouter();
+  const rootRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [sound, setSound] = useState(true);
+  const title = pinnedTitle(pinned, lang);
+  const blockSound = useRef(() => setSound(false));
+  const toggleSound = () => {
+    if (!active) return;
+    const next = !sound;
+    const el = videoRef.current;
+    if (el) {
+      el.muted = !next;
+      void el.play().catch(() => undefined);
+    }
+    setSound(next);
+  };
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.6)) onVisible();
+      },
+      { root: node.parentElement, threshold: [0.6] },
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, [onVisible]);
+
+  return (
+    <article ref={rootRef} data-testid="reel-pinned" className="relative h-full min-h-full w-full shrink-0 snap-start snap-always bg-ink">
+      <PinnedReel
+        pinned={pinned}
+        active={active}
+        sound={sound}
+        videoRef={videoRef}
+        onToggleSound={toggleSound}
+        onBlocked={blockSound.current}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
+      <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
+        <button
+          type="button"
+          data-testid="screen-back"
+          aria-label={t.backLeave}
+          onClick={() => goBack(router, "/")}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/92"
+        >
+          <IconBack size={16} color="#17140F" />
+        </button>
+        <button type="button" onClick={toggleSound} className="rounded-full bg-white/92 px-3 py-1.5 text-[12px] font-semibold text-ink">
+          {sound ? t.reelSoundOn : t.reelSoundOff}
+        </button>
+      </div>
+      <div className="absolute right-3 bottom-6 z-10 flex flex-col items-center gap-3">
+        <ShareButton variant="icon" appTitle={title} />
+      </div>
+      <div className="absolute right-16 bottom-0 left-0 z-10 px-4 pb-6">
+        <div className="truncate font-display text-[22px] font-bold text-white">{title}</div>
+      </div>
+    </article>
+  );
+}
+
+type FeedRow = { kind: "pinned"; pinned: PinnedCircle } | { kind: "listing"; listing: Listing };
+
 export default function ReelsPage() {
   const params = useSearchParams();
   const router = useRouter();
   const startId = params.get("id") || "";
   const { t, city, filters, allListings, shops } = useApp();
   const circles = useCircleList();
+  const { pinned } = usePinnedCircle();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(BATCH);
   const [current, setCurrent] = useState(0);
@@ -198,8 +321,12 @@ export default function ReelsPage() {
 
   const feed = useMemo(() => {
     const region = listingsForSearch(allListings, shops).filter((item) => listingInCircleScope(item, scope));
-    return reelsFeed(startId, circles, region);
-  }, [allListings, circles, scope, shops, startId]);
+    const openedPin = startId === PINNED_REEL_ID;
+    const listings = reelsFeed(openedPin ? "" : startId, circles, region);
+    const rows: FeedRow[] = listings.map((listing) => ({ kind: "listing", listing }));
+    if (pinned && openedPin) return [{ kind: "pinned" as const, pinned }, ...rows];
+    return rows;
+  }, [allListings, circles, pinned, scope, shops, startId]);
 
   useEffect(() => {
     setShown(BATCH);
@@ -207,6 +334,13 @@ export default function ReelsPage() {
     const node = scrollerRef.current;
     if (node) node.scrollTop = 0;
   }, [startId]);
+
+  useEffect(() => {
+    if (startId !== PINNED_REEL_ID) return;
+    setCurrent(0);
+    const node = scrollerRef.current;
+    if (node) node.scrollTop = 0;
+  }, [startId, pinned?.videoUrl]);
 
   useEffect(() => {
     const root = scrollerRef.current;
@@ -242,15 +376,19 @@ export default function ReelsPage() {
             <p className="mt-6 text-[15px] leading-[1.4]">{t.homeCirclesEmpty}</p>
           </div>
         ) : (
-          visible.map((item, index) => (
-            <ReelSlide
-              key={item.id}
-              listing={item}
-              active={index === current}
-              preloadNext={index === current + 1}
-              onVisible={() => setCurrent(index)}
-            />
-          ))
+          visible.map((item, index) =>
+            item.kind === "pinned" ? (
+              <PinnedReelSlide key={item.pinned.id} pinned={item.pinned} active={index === current} onVisible={() => setCurrent(index)} />
+            ) : (
+              <ReelSlide
+                key={item.listing.id}
+                listing={item.listing}
+                active={index === current}
+                preloadNext={index === current + 1}
+                onVisible={() => setCurrent(index)}
+              />
+            ),
+          )
         )}
         {shown < feed.length ? <div data-reel-more className="h-px w-full shrink-0" /> : null}
       </div>

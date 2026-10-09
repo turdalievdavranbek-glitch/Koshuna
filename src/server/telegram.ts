@@ -25,6 +25,18 @@ export const CONFIRM_TEXT = [
 
 export const DONE_TEXT = ["Готово! Вернитесь в приложение Коңшу.", "", "Даяр! Коңшу тиркемесине кайтыңыз."].join("\n");
 
+/** Opens the installed app on this path (App Link). The website page only finishes login or goes home. */
+export const TELEGRAM_RETURN_URL = "https://koshuna.ru/auth/telegram/back";
+
+export function telegramReturnKeyboard(): { inline_keyboard: Array<Array<{ text: string; url: string }>> } {
+  return {
+    inline_keyboard: [
+      [{ text: "Вернуться в Коңшу", url: TELEGRAM_RETURN_URL }],
+      [{ text: "Коңшуга кайтуу", url: TELEGRAM_RETURN_URL }],
+    ],
+  };
+}
+
 export const EXPIRED_TEXT = [
   "Ссылка устарела, нажмите «Войти через Telegram» ещё раз",
   "",
@@ -36,10 +48,6 @@ export const START_TEXT = [
   "",
   "Коңшуну ачыңыз жана «Telegram аркылуу кирүү» баскычын басыңыз",
 ].join("\n");
-
-// TODO (versionCode 3, Р-148): the final APK adds an Android App Link for
-// https://koshuna.ru/auth/telegram/back and a «Вернуться в Коңшу» button on
-// this confirmation. Do not add that link or a native intent filter in this step.
 
 type LoginRow = {
   status: "pending" | "confirmed";
@@ -344,7 +352,7 @@ export async function handleTelegramUpdate(update: unknown): Promise<void> {
       chat_id: chatId,
       message_id: messageId,
       text: DONE_TEXT,
-      reply_markup: { inline_keyboard: [] },
+      reply_markup: telegramReturnKeyboard(),
     });
   }
 }

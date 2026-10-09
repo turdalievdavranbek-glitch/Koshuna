@@ -13,10 +13,13 @@ import {
 } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { pinnedTitle } from "@/lib/pinned-circle";
 import { listingsForSearch } from "@/lib/search-browse";
 import { useApp } from "@/lib/store";
+import { usePinnedCircle } from "@/lib/use-pinned-circle";
 import type { Listing } from "@/lib/types";
-import { ListingThumb } from "./listing-media";
+import { ListingThumb, PlayBadge } from "./listing-media";
+import { Photo } from "./ui";
 
 /** Videos for the home strip. Server picks when the hourly job has written this city; otherwise the local likes ranking. */
 export function useCircleList(): Listing[] {
@@ -75,15 +78,38 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   const { t, lang } = useApp();
   const router = useRouter();
   const videos = useCircleList();
+  const { pinned, ready: pinReady } = usePinnedCircle();
+  const pinnedLabel = pinned ? pinnedTitle(pinned, lang) : "";
+  const showEmpty = pinReady && !pinned && videos.length === 0;
 
   return (
     <div data-testid="neighbor-circles">
-      {videos.length === 0 ? (
+      {showEmpty ? (
         <p className="text-[12px] leading-[1.35] text-muted" data-testid="circles-empty">
           {t.homeCirclesEmpty}
         </p>
       ) : (
         <div className="sc flex gap-2.5 overflow-x-auto pb-0.5">
+          {pinned ? (
+            <button
+              type="button"
+              data-testid="pinned-circle"
+              onClick={() => router.push(`/reels?id=${encodeURIComponent(pinned.id)}`)}
+              className="flex w-[76px] shrink-0 flex-col items-center text-center"
+            >
+              <div className="relative w-[60px] rounded-full p-[2.5px]" style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}>
+                <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
+                  {pinned.posterUrl ? (
+                    <Photo src={pinned.posterUrl} alt={pinnedLabel} />
+                  ) : (
+                    <video src={pinned.videoUrl} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+                  )}
+                  <PlayBadge compact />
+                </div>
+              </div>
+              <div className="mt-1 w-full truncate text-[12px] font-bold leading-[1.2] text-ink">{pinnedLabel}</div>
+            </button>
+          ) : null}
           {videos.map((item) => {
             const title = listingTitle(item, lang);
             return (

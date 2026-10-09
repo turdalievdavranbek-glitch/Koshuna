@@ -256,6 +256,10 @@ test("native back is a no-op without the plugin", async () => {
   expect(wired).toBe("noop");
   expect(listened).toBe(false);
   expect(decideHardwareBack({ pluginAvailable: false, overlayOpen: true, leaveGuard: true, canGoBack: true })).toBe("noop");
+  expect(decideHardwareBack({ pluginAvailable: true, overlayOpen: false, leaveGuard: false, canGoBack: true, atHome: false })).toBe("history");
+  expect(decideHardwareBack({ pluginAvailable: true, overlayOpen: false, leaveGuard: true, canGoBack: true, atHome: true, exitArmed: true })).toBe("leave-dialog");
+  expect(decideHardwareBack({ pluginAvailable: true, overlayOpen: false, leaveGuard: false, canGoBack: true, atHome: true })).toBe("toast-exit");
+  expect(decideHardwareBack({ pluginAvailable: true, overlayOpen: false, leaveGuard: false, canGoBack: false, atHome: true, exitArmed: true })).toBe("exit");
 });
 
 test.describe("publish flow", () => {

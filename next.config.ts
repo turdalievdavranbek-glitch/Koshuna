@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       { source: "/privacy", destination: "/privacy.html" },
       { source: "/terms", destination: "/terms.html" },
       { source: "/delete-account", destination: "/delete-account.html" },
+      { source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" },
     ];
   },
   async headers() {

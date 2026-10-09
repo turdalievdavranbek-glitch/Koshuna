@@ -258,6 +258,12 @@ test("start, confirm, poll succeeds once, then expires", async () => {
     );
     expect(confirmed.status).toBe(200);
     expect(calls.some((call) => call.method === "editMessageText" && String(call.body.text).includes("Готово! Вернитесь в приложение Коңшу."))).toBe(true);
+    const done = calls.find((call) => call.method === "editMessageText");
+    const back = JSON.stringify(done?.body.reply_markup);
+    expect(back).toContain("Вернуться в Коңшу");
+    expect(back).toContain("Коңшуга кайтуу");
+    expect(back).toContain("https://koshuna.ru/auth/telegram/back");
+    expect(back).not.toContain("AAFakeTokenForTestsOnly");
 
     const ok = await pollTelegramLogin(id, "app", signIn);
     expect(ok.ok).toBe(true);

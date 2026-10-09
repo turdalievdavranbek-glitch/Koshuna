@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatSom } from "@/lib/data";
 import { listingHasPrice } from "@/lib/deal";
 import { listingTitle } from "@/lib/i18n";
+import { SITE_ORIGIN } from "@/lib/open-graph";
 import { cardShareText, listingPlace, listingPublicUrl } from "@/lib/share";
 import { shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { shopPublicUrl } from "@/lib/shop-share";
@@ -16,16 +17,19 @@ type Props = {
   listing?: Listing;
   shop?: Shop;
   variant?: "icon" | "button";
+  /** Share the site itself (https://koshuna.ru), not a listing. */
+  appTitle?: string;
 };
 
-export function ShareButton({ listing, shop, variant = "button" }: Props) {
+export function ShareButton({ listing, shop, variant = "button", appTitle }: Props) {
   const { t, lang, shops } = useApp();
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const url = listing ? listingPublicUrl(listing.id) : shop ? shopPublicUrl(shop.id) : "";
-  const title = listing ? listingTitle(listing, lang) : shop?.name || t.share;
+  const sharingApp = Boolean(appTitle) && !listing && !shop;
+  const url = listing ? listingPublicUrl(listing.id) : shop ? shopPublicUrl(shop.id) : sharingApp ? SITE_ORIGIN : "";
+  const title = listing ? listingTitle(listing, lang) : shop?.name || appTitle || t.share;
   const point = listing?.shopId ? shops.find((item) => item.id === listing.shopId) : undefined;
   const place = listing
     ? listingPlace(listing, t, lang)
