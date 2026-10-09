@@ -349,7 +349,7 @@ export const SETTLEMENTS = [
   { id: "belovodskoe", city: "bishkek", name: "Беловодское", nameKy: "Беловодское", nameEn: "Belovodskoye", fromRu: "50 мин · трасса М-41", fromKy: "50 мүн · М-41 жолу", fromEn: "50 min · M-41 highway", lng: 74.118, lat: 42.829 },
   { id: "uzgen", city: "osh", name: "Узген", nameKy: "Өзгөн", nameEn: "Uzgen", fromRu: "1,5 ч · маршрутка с Оша", fromKy: "1,5 с · Оштон маршрутка", fromEn: "1.5 h · marshrutka from Osh", lng: 73.3, lat: 40.77 },
   { id: "kara-suu", city: "osh", name: "Кара-Суу", nameKy: "Кара-Суу", nameEn: "Kara-Suu", fromRu: "25 мин от Оша", fromKy: "Оштон 25 мүн", fromEn: "25 min from Osh", lng: 72.87, lat: 40.7 },
-  { id: "suzak", city: "jalal-abad", name: "Сузак", nameKy: "Сузак", nameEn: "Suzak", fromRu: "20 мин от Джалал-Абада", fromKy: "Жалал-Абаддан 20 мүн", fromEn: "20 min from Jalal-Abad", lng: 72.9, lat: 40.86 },
+  { id: "suzak", city: "jalal-abad", name: "Сузак", nameKy: "Сузак", nameEn: "Suzak", fromRu: "20 мин от Манаса", fromKy: "Манастан 20 мүн", fromEn: "20 min from Manas", lng: 72.9, lat: 40.86 },
   { id: "at-bashy", city: "naryn", name: "Ат-Башы", nameKy: "Ат-Башы", nameEn: "At-Bashy", fromRu: "2 ч от Нарына", fromKy: "Нарындан 2 с", fromEn: "2 h from Naryn", lng: 75.8, lat: 41.17 },
   { id: "balykchy", city: "cholpon-ata", name: "Балыкчы", nameKy: "Балыкчы", nameEn: "Balykchy", fromRu: "3 ч от Бишкека · запад Иссык-Куля", fromKy: "Бишкектен 3 с · Ысык-Көлдүн батышы", fromEn: "3 h from Bishkek · west Issyk-Kul", lng: 76.18, lat: 42.46 },
 ] as const;
