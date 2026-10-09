@@ -20,8 +20,11 @@ export type ChatThread = {
 export type ChatLine = {
   id: string;
   mine: boolean;
+  /** Empty when deleted. */
   text: string;
   createdAt: string;
+  editedAt?: string | null;
+  deleted?: boolean;
 };
 
 export type ChatDetail = {
@@ -32,6 +35,8 @@ export type ChatDetail = {
   peerId: string;
   peerName: string;
   blocked: boolean;
+  /** Listing section, so a service chat offers service quick replies. */
+  section?: string | null;
   messages: ChatLine[];
   requestQuantity?: string | null;
   requestUnit?: string | null;

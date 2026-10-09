@@ -16,6 +16,9 @@ import { MessageInbox } from "@/components/message-inbox";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
 import { useDesk } from "@/lib/desk";
+import { pushOverlay, removeOverlay } from "@/lib/native-back";
+
+const HOLD_MS = 500;
 
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,16 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const seen = useRef(0);
+  // Own message actions: long-press (phone) or «⋯» on hover (desktop) opens a sheet.
+  const [menuFor, setMenuFor] = useState<ChatLine | null>(null);
+  const [editing, setEditing] = useState<ChatLine | null>(null);
+  const hold = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!menuFor) return;
+    pushOverlay("chat-msg-menu", () => setMenuFor(null));
+    return () => removeOverlay("chat-msg-menu");
+  }, [menuFor]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -87,7 +100,66 @@ export default function ChatPage() {
     );
   }
 
+  const putLine = (line: ChatLine) =>
+    setDetail((cur) => (cur ? { ...cur, messages: cur.messages.map((row) => (row.id === line.id ? line : row)) } : cur));
+
+  const msgPath = (messageId: string) =>
+    `/api/threads/${encodeURIComponent(detail.id)}/messages/${encodeURIComponent(messageId)}`;
+
+  const saveEdit = async () => {
+    const target = editing;
+    const body = text.trim();
+    if (!target || !body || sending) return;
+    if (body === target.text) {
+      setEditing(null);
+      setText("");
+      return;
+    }
+    setSending(true);
+    setSendError("");
+    const res = await api<{ message?: ChatLine }>(msgPath(target.id), { method: "PATCH", json: { text: body } });
+    setSending(false);
+    if (!res.ok || !res.data?.message) {
+      setSendError(t.chatEditFailed);
+      return;
+    }
+    putLine(res.data.message);
+    setEditing(null);
+    setText("");
+  };
+
+  const removeLine = async (line: ChatLine) => {
+    setSendError("");
+    const res = await api<{ message?: ChatLine }>(msgPath(line.id), { method: "DELETE" });
+    if (!res.ok || !res.data?.message) {
+      setSendError(t.chatEditFailed);
+      return;
+    }
+    putLine(res.data.message);
+    if (editing?.id === line.id) {
+      setEditing(null);
+      setText("");
+    }
+  };
+
+  const holdStart = (line: ChatLine) => {
+    if (line.deleted) return;
+    if (hold.current) window.clearTimeout(hold.current);
+    hold.current = window.setTimeout(() => {
+      hold.current = null;
+      setMenuFor(line);
+    }, HOLD_MS);
+  };
+  const holdStop = () => {
+    if (hold.current) window.clearTimeout(hold.current);
+    hold.current = null;
+  };
+
   const send = async (value = text) => {
+    if (editing && value === text) {
+      await saveEdit();
+      return;
+    }
     const body = value.trim();
     if (!body || sending || detail.blocked) return;
     void enableNativePush();
@@ -163,19 +235,59 @@ export default function ChatPage() {
 
       <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-[18px]">
         {detail.messages.length === 0 ? <p className="text-center text-[13px] text-muted">{t.chatStart}</p> : null}
-        {detail.messages.map((m) =>
-          m.mine ? (
-            <div key={m.id} className="max-w-[78%] self-end rounded-[18px_18px_6px_18px] bg-ink px-3.5 py-2.5">
-              <div className="text-[15px] leading-[1.45] text-screen">{m.text}</div>
-              <div className="mt-1 text-right text-[11px] text-[rgba(247,243,236,.6)]">{formatWhen(m.createdAt, lang)}</div>
+        {detail.messages.map((m) => {
+          const when = `${m.editedAt && !m.deleted ? `${t.chatEdited} · ` : ""}${formatWhen(m.createdAt, lang)}`;
+          if (m.deleted) {
+            return (
+              <div
+                key={m.id}
+                data-testid="chat-msg-deleted"
+                className={`max-w-[78%] rounded-[18px] border border-dashed border-line px-3.5 py-2 ${m.mine ? "self-end" : "self-start"}`}
+              >
+                <div className="text-[14px] italic leading-[1.45] text-muted">{t.chatDeleted}</div>
+                <div className="mt-0.5 text-right text-[11px] text-muted-2">{formatWhen(m.createdAt, lang)}</div>
+              </div>
+            );
+          }
+          return m.mine ? (
+            <div key={m.id} className="group flex max-w-[86%] items-center gap-1 self-end">
+              <button
+                type="button"
+                data-testid="chat-msg-more"
+                aria-label={t.chatMsgActions}
+                onClick={() => setMenuFor(m)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[18px] font-bold leading-none text-muted opacity-0 focus:opacity-100 group-hover:opacity-100"
+              >
+                ⋯
+              </button>
+              <div
+                data-testid="chat-msg-mine"
+                className="min-w-0 select-none rounded-[18px_18px_6px_18px] bg-ink px-3.5 py-2.5"
+                style={{ WebkitTouchCallout: "none" }}
+                onPointerDown={() => holdStart(m)}
+                onPointerUp={holdStop}
+                onPointerLeave={holdStop}
+                onPointerCancel={holdStop}
+                onPointerMove={(e) => {
+                  if (Math.abs(e.movementX) + Math.abs(e.movementY) > 6) holdStop();
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  holdStop();
+                  setMenuFor(m);
+                }}
+              >
+                <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div>
+                <div className="mt-1 text-right text-[11px] text-[rgba(247,243,236,.6)]">{when}</div>
+              </div>
             </div>
           ) : (
             <div key={m.id} className="max-w-[78%] self-start rounded-[18px_18px_18px_6px] border border-line bg-white px-3.5 py-2.5">
-              <div className="text-[15px] leading-[1.45] text-ink">{m.text}</div>
-              <div className="mt-1 text-right text-[11px] text-muted-2">{formatWhen(m.createdAt, lang)}</div>
+              <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div>
+              <div className="mt-1 text-right text-[11px] text-muted-2">{when}</div>
             </div>
-          ),
-        )}
+          );
+        })}
         <div ref={end} />
       </div>
 
@@ -184,7 +296,7 @@ export default function ChatPage() {
       {detail.blocked ? null : (
         <>
           <div className="sc flex gap-2 overflow-x-auto px-4 pb-2">
-            {[t.qView, t.qBargain, t.qAddress].map((q) => (
+            {(detail.section === "services" ? [t.qWhen, t.qPrice, t.qWhere] : [t.qView, t.qBargain, t.qAddress]).map((q) => (
               <button
                 key={q}
                 type="button"
@@ -195,6 +307,24 @@ export default function ChatPage() {
               </button>
             ))}
           </div>
+          {editing ? (
+            <div className="flex items-center gap-2 border-t border-line bg-white px-4 pt-2 text-[13px]" data-testid="chat-editing">
+              <span className="min-w-0 flex-1 truncate font-semibold text-accent">
+                {t.chatEditing}: <span className="font-normal text-muted">{editing.text}</span>
+              </span>
+              <button
+                type="button"
+                aria-label={t.cardDeleteCancel}
+                onClick={() => {
+                  setEditing(null);
+                  setText("");
+                }}
+                className="h-8 w-8 shrink-0 rounded-full text-[16px] text-muted"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-center gap-2.5 border-t border-line bg-white px-4 pb-[26px] pt-2.5">
             <input
               value={text}
@@ -222,6 +352,55 @@ export default function ChatPage() {
       )}
       </div>
       </div>
+      {menuFor ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4"
+          onClick={() => setMenuFor(null)}
+          data-testid="chat-msg-sheet"
+        >
+          <div
+            role="dialog"
+            aria-label={t.chatMsgActions}
+            className="w-full max-w-[430px] rounded-t-[24px] bg-white px-3 pb-6 pt-3 desk:rounded-[24px]"
+            style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="truncate px-4 pb-2 text-[13px] text-muted">{menuFor.text}</p>
+            <button
+              type="button"
+              data-testid="chat-msg-edit"
+              onClick={() => {
+                const line = menuFor;
+                setMenuFor(null);
+                setEditing(line);
+                setText(line.text);
+              }}
+              className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-ink active:bg-chip"
+            >
+              {t.edit}
+            </button>
+            <button
+              type="button"
+              data-testid="chat-msg-delete"
+              onClick={() => {
+                const line = menuFor;
+                setMenuFor(null);
+                void removeLine(line);
+              }}
+              className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-accent active:bg-chip"
+            >
+              {t.cardDelete}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMenuFor(null)}
+              className="mt-1 block h-[48px] w-full text-center text-[15px] font-semibold text-muted"
+            >
+              {t.cardDeleteCancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </PhoneShell>
   );
 }
