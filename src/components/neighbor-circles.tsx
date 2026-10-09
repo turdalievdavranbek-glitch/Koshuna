@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { CIRCLE_TTL_MS, pickNeighborCircles, resetCircleCache } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { listingsForSearch } from "@/lib/search-browse";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { ListingThumb } from "./listing-media";
 
 export function NeighborCircles({ listings }: { listings: Listing[] }) {
   void listings;
-  const { t, lang, city, filters, allListings, comments, reactions } = useApp();
+  const { t, lang, city, filters, allListings, comments, reactions, shops } = useApp();
   const router = useRouter();
   const [tick, setTick] = useState(0);
   const scope = { city: filters.city && filters.city !== "all" ? filters.city : city, oblast: filters.oblast };
@@ -31,10 +32,10 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
     return () => window.clearInterval(id);
   }, []);
 
-  const { listings: videos } = useMemo(
-    () => pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), false),
-    [allListings, scope.city, scope.oblast, comments, reactions, tick],
-  );
+  const videos = useMemo(() => {
+    const picked = pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), false).listings;
+    return listingsForSearch(picked, shops);
+  }, [allListings, scope.city, scope.oblast, comments, reactions, shops, tick]);
 
   return (
     <div data-testid="neighbor-circles">

@@ -18,7 +18,7 @@ import {
 import { OBLAST_KY, OBLAST_RU } from "./places";
 
 const ru = {
-  brand: "Koshuna",
+  brand: "Коңшу",
   country: "Кыргызстан",
   feed: "Лента",
   map: "Карта",

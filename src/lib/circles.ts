@@ -59,6 +59,10 @@ export function engagementScore(
   return FEATURES.comments ? likes + comments : likes;
 }
 
+function shownInCircles(item: Listing): boolean {
+  return !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden";
+}
+
 function inSelectedRegion(item: Listing, scope: CircleScope): boolean {
   if (scope.oblast && scope.oblast !== "any") return listingInOblast(item, scope.oblast);
   if (scope.city && scope.city !== "all") return item.city === scope.city;
@@ -72,7 +76,7 @@ function rankVideos(
 ): Listing[] {
   return [...list]
     .filter(isVideoListing)
-    .filter((item) => !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden")
+    .filter(shownInCircles)
     .sort((a, b) => {
       const ea = engagementScore(a.id, reactions, comments[a.id]?.length ?? 0);
       const eb = engagementScore(b.id, reactions, comments[b.id]?.length ?? 0);
@@ -99,7 +103,7 @@ export function pickNeighborCircles(
   if (hit && hit.key === key && now - hit.at < CIRCLE_TTL_MS) {
     const map = new Map(all.map((item) => [item.id, item]));
     return {
-      listings: hit.ids.map((id) => map.get(id)).filter((item): item is Listing => Boolean(item)),
+      listings: hit.ids.map((id) => map.get(id)).filter((item): item is Listing => Boolean(item && shownInCircles(item))),
       widened: false,
     };
   }
@@ -108,7 +112,7 @@ export function pickNeighborCircles(
   const used = new Set(videos.map((item) => item.id));
   const fill = [...all]
     .filter((item) => !used.has(item.id))
-    .filter((item) => !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden")
+    .filter(shownInCircles)
     .filter((item) => inSelectedRegion(item, scope))
     .sort((a, b) => {
       const ea = engagementScore(a.id, reactions, comments[a.id]?.length ?? 0);

@@ -56,7 +56,7 @@ for (const viewport of [
     expect(bellBox.x).toBeGreaterThan(langBox.x + langBox.width - 1);
     expect(bellBox.x - (langBox.x + langBox.width)).toBeLessThan(16);
     expect(Math.abs(bellBox.y - langBox.y)).toBeLessThan(12);
-    const brand = page.locator("#konshu-phone").getByText("Koshuna", { exact: true });
+    const brand = page.locator("#konshu-phone").getByText("Коңшу", { exact: true });
     await expect(brand).toBeVisible();
     const brandBox = await brand.boundingBox();
     expect(brandBox).toBeTruthy();

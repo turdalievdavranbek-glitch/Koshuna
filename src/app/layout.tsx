@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image", images: [OG_FALLBACK] },
-  appleWebApp: { capable: true, title: "Koshuna", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Коңшу", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

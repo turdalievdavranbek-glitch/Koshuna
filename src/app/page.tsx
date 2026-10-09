@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { HOME_HERO_COUNT, formatSom, homeTiles } from "@/lib/data";
+import { formatSom } from "@/lib/data";
 import { isSectionVisible } from "@/lib/features";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
+import { listingsForSearch } from "@/lib/search-browse";
 import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
-import { shownLocationLabel } from "@/components/location-line";
+import { openLocationPicker, shownLocationLabel } from "@/components/location-line";
 import { PhoneShell } from "@/components/shell";
 import { Chip, LangSwitch } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
@@ -21,18 +22,14 @@ import { NeighborCircles } from "@/components/neighbor-circles";
 import { HomeFreshFilters } from "@/components/home-fresh-filters";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
-import { openLocationPicker } from "@/components/location-line";
 import { useNotices } from "@/lib/notices";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, online, synced, resync } = useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, shops, online, synced, resync } = useApp();
   const { unread } = useNotices(user?.id ?? null);
   const router = useRouter();
-  const listings = applyFilters(allListings, homeFeedFilters(filters), city);
-  const promoted = allListings.filter((item) => item.status === "promoted" && !item.underReview);
-  const tiles = homeTiles();
-  const hero = tiles.slice(0, HOME_HERO_COUNT);
-  const rest = tiles.slice(HOME_HERO_COUNT);
+  const listings = listingsForSearch(applyFilters(allListings, homeFeedFilters(filters), city), shops);
+  const promoted = listingsForSearch(allListings, shops).filter((item) => item.status === "promoted");
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
@@ -64,9 +61,17 @@ export default function FeedPage() {
 
   return (
     <PhoneShell tab>
-      <header className="z-20 shrink-0 border-b border-line/70 bg-screen px-5 pb-2 pt-1.5" data-testid="home-sticky">
+      <header
+        className="z-20 shrink-0 overflow-visible border-b border-line/70 bg-screen px-5 pb-2"
+        style={{ paddingTop: "max(6px, env(safe-area-inset-top, 0px))" }}
+        data-testid="home-sticky"
+      >
         <div className="flex items-center gap-1.5">
-          <BrandMark size={26} className="shrink-0" wordClass="text-[19px] text-ink min-[380px]:text-[23px]" />
+          <BrandMark
+            size={26}
+            className="shrink-0"
+            wordClass="text-[20px] text-ink min-[380px]:text-[23px]"
+          />
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <div data-testid="home-lang" className="shrink-0">
               <LangSwitch size="sm" />
@@ -145,42 +150,6 @@ export default function FeedPage() {
           ))}
         </div>
 
-        <div className="mt-[16px] grid grid-cols-2 gap-2.5">
-          {hero.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[128px] flex-col overflow-hidden rounded-[18px] text-center"
-            >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-1.5 text-[12px] font-semibold leading-[1.2] text-ink">
-                {s.id === "shops" ? t.shopNav : t.sectionNames[s.id]}
-              </span>
-              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-                <img src={s.art} alt="" className="h-full w-full object-cover" />
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
-          {rest.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[96px] flex-col overflow-hidden rounded-[14px] text-center"
-            >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1 text-[12px] font-semibold leading-[1.15] text-ink">
-                {t.sectionNames[s.id]}
-              </span>
-              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-                <img src={s.art} alt="" className="h-full w-full object-cover" />
-              </span>
-            </button>
-          ))}
-        </div>
-
         {promoted.length > 0 ? <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
             <span className="font-display text-[17px] font-bold text-ink">{t.promoted}</span>
@@ -240,12 +209,9 @@ export default function FeedPage() {
 
         <RecentlyViewed />
 
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
-            <LayoutSwitch />
-          </div>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <h2 className="min-w-0 flex-1 truncate font-display text-[15px] font-bold leading-tight tracking-[-0.01em] text-ink">{t.fresh}</h2>
+          <LayoutSwitch />
         </div>
         <HomeFreshFilters />
 
