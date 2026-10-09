@@ -74,7 +74,9 @@ assert.equal(DICT.ru.followersCount(11), "11 подписчиков");
 assert.equal(DICT.ru.followersCount(21), "21 подписчик");
 assert.equal(DICT.ky.followersCount(21), "21 жазылуучу");
 assert.equal(DICT.ru.followersNone, "Пока нет подписчиков");
-assert.equal(DICT.ky.chatSoonBody, "Коңшунун ичиндеги жазышуу жакында болот. Азырынча чалыңыз же WhatsApp'ка жазыңыз.");
+assert.equal(DICT.ky.chatBlocked, "Жазышуу жабык: автор бөгөттөлгөн.");
+assert.equal(DICT.ru.notifChat("Айбек", "Диван"), "Айбек написал про «Диван»");
+assert.equal(DICT.ky.notifChat("Айбек", "Диван"), "Айбек «Диван» жөнүндө жазды");
 
 assert.equal(hiddenByBlock("author", ["author"], "me"), true);
 assert.equal(hiddenByBlock("author", ["author"], "author"), false);

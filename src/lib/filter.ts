@@ -5,7 +5,7 @@ import { hasPriceDrop } from "./deal";
 import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { adminAreaById, adminAreaMatchesListing } from "./admin-areas";
-import { oblastOfListing } from "./places";
+import { listingInOblast } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
 import { isSpokenListing } from "./video-ai";
@@ -186,7 +186,7 @@ function placeMatches(item: Listing, filters: Filters, city: string): boolean {
   if (filters.aiylOnly) return isAiylListing(item);
   const cityKey = filters.city !== "all" ? filters.city : city;
   if (cityKey && cityKey !== "all") return item.city === cityKey;
-  if (filters.oblast && filters.oblast !== "any") return oblastOfListing(item) === filters.oblast;
+  if (filters.oblast && filters.oblast !== "any") return listingInOblast(item, filters.oblast);
   return true;
 }
 

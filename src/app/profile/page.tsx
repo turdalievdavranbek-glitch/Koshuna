@@ -37,11 +37,30 @@ export default function ProfilePage() {
   const router = useRouter();
   const [phoneLater, setPhoneLater] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   useEffect(() => {
     setPhoneLater(localStorage.getItem(PHONE_LATER) === "1");
   }, [user?.phone]);
+  useEffect(() => {
+    if (!user?.id) {
+      setChatUnread(0);
+      return;
+    }
+    let cancel = false;
+    const pull = () => {
+      void api<{ unread?: number }>("/api/me/threads").then((res) => {
+        if (!cancel && res.ok) setChatUnread(res.data?.unread ?? 0);
+      });
+    };
+    pull();
+    const timer = window.setInterval(pull, 8000);
+    return () => {
+      cancel = true;
+      window.clearInterval(timer);
+    };
+  }, [user?.id]);
   const stars = starsForUser(user);
   const mine = mineListings(allListings, extraListings, user, shops);
   const points = shopsOf(shops, user);
@@ -132,6 +151,23 @@ export default function ProfilePage() {
             </div>
           </div>
         ) : null}
+
+        <button
+          type="button"
+          data-testid="cabinet-messages"
+          onClick={() => router.push("/messages")}
+          className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.inbox}</span>
+          <span className="flex items-center gap-2">
+            {chatUnread > 0 ? (
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-accent px-1.5 text-[12px] font-bold text-accent-on">
+                {chatUnread}
+              </span>
+            ) : null}
+            <span className="text-[18px] text-muted-2">›</span>
+          </span>
+        </button>
 
         {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">

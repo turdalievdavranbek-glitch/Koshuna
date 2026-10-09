@@ -2,7 +2,6 @@
 
 export const ADMIN_OBLASTS = [
   "bishkek",
-  "osh",
   "chuy",
   "issyk-kul",
   "naryn",
@@ -83,6 +82,7 @@ export const ADMIN_AREAS: readonly AdminArea[] = [
   { id: "mailuu-suu", oblast: "jalal-abad", kind: "city", name: "Майлуу-Суу", nameKy: "Майлуу-Суу", lat: 41.26, lng: 72.45, aliases: ["Майлуу-Суу", "Майли-Сай"] },
   { id: "tash-komur", oblast: "jalal-abad", kind: "city", name: "Таш-Кумыр", nameKy: "Таш-Көмүр", lat: 41.35, lng: 72.22, aliases: ["Таш-Кумыр", "Таш-Көмүр"] },
 
+  { id: "osh-city", oblast: "osh-oblast", kind: "city", name: "г. Ош", nameKy: "Ош шаары", lat: 40.5283, lng: 72.7985, cityId: "osh", aliases: ["Ош", "г. Ош", "Ош шаары"] },
   { id: "alay", oblast: "osh-oblast", kind: "district", name: "Алайский район", nameKy: "Алай району", lat: 40.31, lng: 73.44, aliases: ["Алайский"] },
   { id: "aravan", oblast: "osh-oblast", kind: "district", name: "Араванский район", nameKy: "Араван району", lat: 40.52, lng: 72.5, aliases: ["Араванский"] },
   { id: "kara-kulja", oblast: "osh-oblast", kind: "district", name: "Кара-Кульджинский район", nameKy: "Кара-Кулжа району", lat: 40.25, lng: 73.55, aliases: ["Кара-Кульджинский", "Кара-Кулджинский"] },

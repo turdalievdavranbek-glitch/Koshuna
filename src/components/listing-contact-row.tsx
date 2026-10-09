@@ -64,6 +64,7 @@ export function ListingContactRow({
       ) : null}
       <button
         type="button"
+        data-testid={withTestIds ? "listing-write" : undefined}
         onClick={onWrite}
         aria-label={writeLabel}
         className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-accent"

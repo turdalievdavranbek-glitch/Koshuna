@@ -1,5 +1,5 @@
 import { FEATURES } from "./features";
-import { oblastOfListing } from "./places";
+import { listingInOblast } from "./places";
 import { socialCounts, type ReactionsByVoter } from "./reactions";
 import type { Listing } from "./types";
 import { isVideoListing } from "./video-ai";
@@ -60,7 +60,7 @@ export function engagementScore(
 }
 
 function inSelectedRegion(item: Listing, scope: CircleScope): boolean {
-  if (scope.oblast && scope.oblast !== "any") return oblastOfListing(item) === scope.oblast;
+  if (scope.oblast && scope.oblast !== "any") return listingInOblast(item, scope.oblast);
   if (scope.city && scope.city !== "all") return item.city === scope.city;
   return true;
 }
