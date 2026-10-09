@@ -1,4 +1,7 @@
-export type LocateError = "insecure" | "unsupported" | "denied" | "off" | "timeout";
+import { inKonshuZone } from "./geo";
+
+/** "outside": the phone is far from any place in Kyrgyzstan (VPN does not matter, GPS does). */
+export type LocateError = "insecure" | "unsupported" | "denied" | "off" | "timeout" | "outside";
 
 export type LocateResult =
   | { ok: true; lat: number; lng: number; accuracy: number }
@@ -18,14 +21,16 @@ function asError(code: number | undefined): LocateError {
   return "timeout";
 }
 
+/** Never turn a far-away fix into the nearest known place: report "outside" instead. */
 function ok(pos: Fix): LocateResult {
-  return {
-    ok: true,
-    lat: pos.coords.latitude,
-    lng: pos.coords.longitude,
-    accuracy: pos.coords.accuracy ?? 0,
-  };
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  if (!inKonshuZone(lat, lng)) return { ok: false, error: "outside" };
+  return { ok: true, lat, lng, accuracy: pos.coords.accuracy ?? 0 };
 }
+
+/** Whole attempt (precise + coarse) never takes longer than this. */
+const TOTAL_MS = 15000;
 
 /** Ask for a position only. Call this from a tap, never on page load. */
 export function locate(opts?: { signal?: AbortSignal }): Promise<LocateResult> {
@@ -39,11 +44,17 @@ export function locate(opts?: { signal?: AbortSignal }): Promise<LocateResult> {
   const once = (high: boolean) =>
     readPosition({
       enableHighAccuracy: high,
-      timeout: 10000,
+      timeout: high ? 8000 : 6000,
       maximumAge: high ? 60000 : 300000,
     });
 
-  return (async () => {
+  // Some WebViews never call back; the hard cap makes sure the button stops loading.
+  let cap: ReturnType<typeof setTimeout> | undefined;
+  const capped = new Promise<LocateResult>((resolve) => {
+    cap = setTimeout(() => resolve({ ok: false, error: "timeout" }), TOTAL_MS);
+  });
+
+  const attempt = (async (): Promise<LocateResult> => {
     if (signal?.aborted) return { ok: false as const, error: "timeout" as const };
     try {
       return ok(await once(true));
@@ -57,6 +68,8 @@ export function locate(opts?: { signal?: AbortSignal }): Promise<LocateResult> {
       }
     }
   })();
+
+  return Promise.race([attempt, capped]).finally(() => clearTimeout(cap));
 }
 
 /** Hint only. Android WebView often says "prompt" even after a denial, so never block on this. */

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
 import { captureVideoPoster, keepBlob, videoFileDuration } from "@/lib/blob-media";
-import { districtLabel, nearestDistrict } from "@/lib/geo";
+import { districtLabel, nearestDistrict, spotForFix } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
@@ -252,8 +252,8 @@ export function PointForm({
       setGeoError(fix.error);
       return;
     }
-    const district = nearestDistrict(fix.lat, fix.lng, d.city);
-    patch({ lat: fix.lat, lng: fix.lng, district: district?.id });
+    const spot = spotForFix(fix.lat, fix.lng);
+    patch({ lat: fix.lat, lng: fix.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.id });
   };
 
   const onPhoto = async (file: File) => {

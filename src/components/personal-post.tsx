@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { CITIES, GIS_CITIES } from "@/lib/data";
 import { meetupSpotsFor } from "@/lib/deal";
 import { draftUnfinished } from "@/lib/draft-media";
-import { gisCity, meetupCoords, nearestDistrict } from "@/lib/geo";
+import { gisCity, meetupCoords, nearestDistrict, spotForFix } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
 import { writeLastCategory } from "@/lib/category-suggest";
 import { formatPhoneDisplay, normalizePhoneInput } from "@/lib/phone";
@@ -86,8 +86,8 @@ export function PersonalPost() {
         setGeoError(res.error);
         return;
       }
-      const area = nearestDistrict(res.lat, res.lng, draft.city);
-      setDraft({ lat: res.lat, lng: res.lng, district: area?.name });
+      const spot = spotForFix(res.lat, res.lng);
+      setDraft({ lat: res.lat, lng: res.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.name });
     });
   };
 
