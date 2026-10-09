@@ -15,6 +15,7 @@ type Copy = {
   still: string;
   chat: (name: string, title: string) => string;
   buy: (title: string) => string;
+  comment: (name: string, title: string) => string;
   generic: string;
 };
 
@@ -30,6 +31,7 @@ const COPY: Record<PushLang, Copy> = {
     still: "Ещё актуально? Откройте объявление и нажмите «Да» или «Снять».",
     chat: (name, title) => (title ? `${name} написал про «${title}»` : `${name} написал сообщение`),
     buy: (title) => (title ? `Покупатель ищет: «${title}»` : "Покупатель ищет товар"),
+    comment: (name, title) => (title ? `${name} прокомментировал «${title}»` : `${name} оставил комментарий`),
     generic: "Новость в Коңшу",
   },
   ky: {
@@ -43,6 +45,7 @@ const COPY: Record<PushLang, Copy> = {
     still: "Дагы актуалдуубу? Жарнаманы ачып, «Ооба» же «Алуу» басыңыз.",
     chat: (name, title) => (title ? `${name} «${title}» жөнүндө жазды` : `${name} билдирүү жазды`),
     buy: (title) => (title ? `Сатып алуучу издеп жатат: «${title}»` : "Сатып алуучу товар издеп жатат"),
+    comment: (name, title) => (title ? `${name} «${title}» жарнамасына пикир жазды` : `${name} пикир жазды`),
     generic: "Коңшудагы жаңылык",
   },
 };
@@ -76,5 +79,6 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
   else if (input.textKey === "notifHoldNo") body = copy.holdNo(title);
   else if (input.textKey === "notifStillActual") body = copy.still;
   else if (input.textKey === "notifBuyRequest") body = copy.buy(title);
+  else if (input.textKey === "notifComment") body = copy.comment(name, title);
   return { title: copy.app, body: body.slice(0, 180) };
 }

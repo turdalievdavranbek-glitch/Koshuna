@@ -23,6 +23,8 @@ import { usePinnedCircle } from "@/lib/use-pinned-circle";
 import type { Listing } from "@/lib/types";
 import { isVideoListing } from "@/lib/video-ai";
 import { ReelVideo } from "@/components/reel-video";
+import { CommentsButton, CommentsSheet } from "@/components/listing-comments";
+import { FEATURES } from "@/lib/features";
 
 const BATCH = 4;
 
@@ -41,6 +43,7 @@ function ReelSlide({
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const [sound, setSound] = useState(false);
+  const [comments, setComments] = useState(false);
   const video = isVideoListing(listing) && Boolean(listing.videoUrl);
   const title = listingTitle(listing, lang);
   const place = listingPlace(listing, t, lang);
@@ -126,8 +129,10 @@ function ReelSlide({
           </span>
           <span className="text-[12px] font-semibold text-white tabular-nums">{likes}</span>
         </button>
+        {FEATURES.comments ? <CommentsButton listingId={listing.id} variant="reel" onOpen={() => setComments(true)} /> : null}
         <ShareButton listing={listing} variant="icon" />
       </div>
+      {comments ? <CommentsSheet listingId={listing.id} title={title} onClose={() => setComments(false)} /> : null}
       <div className="absolute right-16 bottom-0 left-0 z-10 px-4 pb-6">
         <div className="truncate font-display text-[22px] font-bold text-white">{title}</div>
         <div className="mt-1 text-[16px] font-semibold text-white">{price}</div>
