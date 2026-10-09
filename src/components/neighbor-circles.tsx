@@ -15,8 +15,9 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   const { t, lang, city, filters, allListings, comments, reactions, shops } = useApp();
   const router = useRouter();
   const [tick, setTick] = useState(0);
-  const scope = { city: filters.city && filters.city !== "all" ? filters.city : city, oblast: filters.oblast };
-  const scopeKey = `${scope.city}|${scope.oblast}`;
+  const scopeCity = filters.city && filters.city !== "all" ? filters.city : city;
+  const scopeOblast = filters.oblast;
+  const scopeKey = `${scopeCity}|${scopeOblast}`;
   const prevScope = useRef<string | null>(null);
 
   useEffect(() => {
@@ -33,9 +34,10 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   }, []);
 
   const videos = useMemo(() => {
-    const picked = pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), false).listings;
+    void tick; // hourly timer: recompute so a cached circle can expire
+    const picked = pickNeighborCircles(allListings, { city: scopeCity, oblast: scopeOblast }, reactions, comments, Date.now(), false).listings;
     return listingsForSearch(picked, shops);
-  }, [allListings, scope.city, scope.oblast, comments, reactions, shops, tick]);
+  }, [allListings, scopeCity, scopeOblast, comments, reactions, shops, tick]);
 
   return (
     <div data-testid="neighbor-circles">
