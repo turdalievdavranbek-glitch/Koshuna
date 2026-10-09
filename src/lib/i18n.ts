@@ -18,7 +18,7 @@ import {
 import { OBLAST_KY, OBLAST_RU } from "./places";
 
 const ru = {
-  brand: "Koshuna",
+  brand: "Коңшу",
   country: "Кыргызстан",
   feed: "Лента",
   map: "Карта",
@@ -1961,7 +1961,7 @@ const ru = {
   notifChat: (name: string, title: string) => (title ? `${name} написал про «${title}»` : `${name} написал сообщение`),
   notifBuyRequest: (title: string) => (title ? `Покупатель ищет: «${title}»` : "Покупатель ищет товар"),
   notifGeneric: "Новость в Коңшу",
-  postRequest: "Ищу товар — заявка продавцам",
+  postRequest: "Заявка на закупку",
   postRequestHint: "Категория, что нужно, район. Телефон не показываем",
   buyRequestTitle: "Заявка на закупку",
   buyRequestNeed: "Что нужно",
@@ -1976,6 +1976,7 @@ const ru = {
   buyRequestSent: "Заявку увидят точки этой категории в области. Телефон им не показывается.",
   buyRequestPhone: "Ваш телефон точкам не показывается",
   buyRequestMine: "Мои заявки",
+  buyRequestNew: "+ Новая заявка на закупку",
   buyRequestMineEmpty: "Заявок пока нет",
   buyRequestFound: "Уже нашёл",
   buyRequestClosed: "Закрыта",
@@ -3795,7 +3796,7 @@ const ky: typeof ru = {
   notifChat: (name: string, title: string) => (title ? `${name} «${title}» жөнүндө жазды` : `${name} билдирүү жазды`),
   notifBuyRequest: (title: string) => (title ? `Сатып алуучу издеп жатат: «${title}»` : "Сатып алуучу товар издеп жатат"),
   notifGeneric: "Коңшудагы жаңылык",
-  postRequest: "Товар издеп жатам — сатуучуларга өтүнмө",
+  postRequest: "Сатып алуу өтүнмөсү",
   postRequestHint: "Категория, эмне керек, район. Телефон көрүнбөйт",
   buyRequestTitle: "Сатып алуу өтүнмөсү",
   buyRequestNeed: "Эмне керек",
@@ -3810,6 +3811,7 @@ const ky: typeof ru = {
   buyRequestSent: "Өтүнмөнү ушул категориядагы түйүндөр облуста көрөт. Телефон аларга көрүнбөйт.",
   buyRequestPhone: "Телефонуңуз түйүндөргө көрүнбөйт",
   buyRequestMine: "Менин өтүнмөлөрүм",
+  buyRequestNew: "+ Жаңы сатып алуу өтүнмөсү",
   buyRequestMineEmpty: "Азырынча өтүнмө жок",
   buyRequestFound: "Таап алдым",
   buyRequestClosed: "Жабык",

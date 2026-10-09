@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { listingsForSearch } from "@/lib/search-browse";
 import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/data";
 import { dropPercent, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
@@ -176,11 +177,14 @@ export function ListingGrid({
 }
 
 export function RecentlyViewed() {
-  const { t, lang, viewedIds, allListings } = useApp();
+  const { t, lang, viewedIds, allListings, shops } = useApp();
   const router = useRouter();
-  const items = viewedIds
-    .map((id) => allListings.find((l) => l.id === id))
-    .filter((item): item is Listing => Boolean(item && !item.underReview));
+  const items = listingsForSearch(
+    viewedIds
+      .map((id) => allListings.find((l) => l.id === id))
+      .filter((item): item is Listing => Boolean(item)),
+    shops,
+  );
   if (items.length < 1) return null;
   return (
     <div className="mt-[22px]">
