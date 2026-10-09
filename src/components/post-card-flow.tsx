@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CITIES, GIS_CITIES } from "@/lib/data";
 import { meetupSpotsFor } from "@/lib/deal";
-import { gisCity, meetupCoords, nearestDistrict } from "@/lib/geo";
+import { gisCity, meetupCoords, nearestDistrict, spotForFix } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
 import { listingChipLabel } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
@@ -62,8 +62,8 @@ export function CardPost({ card }: { card: string }) {
         setGeoError(res.error);
         return;
       }
-      const area = nearestDistrict(res.lat, res.lng, draft.city);
-      setDraft({ lat: res.lat, lng: res.lng, district: area?.name });
+      const spot = spotForFix(res.lat, res.lng);
+      setDraft({ lat: res.lat, lng: res.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.name });
     });
   };
 
