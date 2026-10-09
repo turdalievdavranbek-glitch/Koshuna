@@ -22,9 +22,11 @@ import { HomeFreshFilters } from "@/components/home-fresh-filters";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { openLocationPicker } from "@/components/location-line";
+import { useNotices } from "@/lib/notices";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, threads, savedSearches, online, synced, resync } = useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, online, synced, resync } = useApp();
+  const { unread } = useNotices(user?.id ?? null);
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
   const promoted = allListings.filter((item) => item.status === "promoted");
@@ -49,8 +51,7 @@ export default function FeedPage() {
     router.push(href);
   };
 
-  const hasUnread =
-    threads.some((th) => th.unread) || savedSearches.some((row) => row.newCount > 0);
+  const hasUnread = unread > 0;
 
   const feedQuick = [
     { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },

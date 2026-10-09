@@ -62,6 +62,14 @@ export function monthLabel(cursor: Date, lang: Lang): string {
   return `${MONTHS[lang][cursor.getMonth()]} ${cursor.getFullYear()}`;
 }
 
+export function formatWhen(iso: string, lang: Lang): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${d.getDate()} ${MONTHS_SHORT[lang][d.getMonth()]}, ${hh}:${mm}`;
+}
+
 export function formatStayDay(key: string, lang: Lang): string {
   const d = parseKey(key);
   return `${d.getDate()} ${MONTHS_SHORT[lang][d.getMonth()]}`;

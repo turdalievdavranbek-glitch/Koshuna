@@ -212,6 +212,8 @@ export type Listing = {
   voiceTextEn?: string;
   postedAgo: string;
   postedAt?: string;
+  /** Owner pressed «Да» on «Ещё актуально?». Comes from listings.last_confirmed_at. */
+  confirmedAt?: string;
   rooms?: number;
   area?: number;
   housingKind?: PropertyType;
