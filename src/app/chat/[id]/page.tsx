@@ -8,6 +8,7 @@ import type { ChatDetail, ChatLine } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { isDbUserId } from "@/lib/phone";
+import { enableNativePush } from "@/lib/native-push";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { MessageInbox } from "@/components/message-inbox";
@@ -53,6 +54,7 @@ export default function ChatPage() {
       router.replace("/login");
       return;
     }
+    void enableNativePush();
     void load();
     const timer = window.setInterval(() => void load(), 4000);
     return () => window.clearInterval(timer);
@@ -86,6 +88,7 @@ export default function ChatPage() {
   const send = async (value = text) => {
     const body = value.trim();
     if (!body || sending || detail.blocked) return;
+    void enableNativePush();
     setSending(true);
     setSendError("");
     const res = await api<{ message?: ChatLine }>(`/api/threads/${encodeURIComponent(detail.id)}`, {

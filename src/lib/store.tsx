@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, onceRetry } from "./api/client";
+import { enableNativePush, forgetNativePush, resumeNativePush } from "./native-push";
 import { mergeCartIds, savedCartIds } from "./cart";
 import { enqueue, pendingOps, startOutbox } from "./api/outbox";
 import { materializeShop, stashListing } from "./api/upload";
@@ -751,6 +752,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
             },
       }));
+      void resumeNativePush();
       return serverUser;
     })();
     trackAuth(authTask);
@@ -1107,6 +1109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       const serverUser = signed.data?.user;
       if (!signed.ok || !serverUser?.id) return "error";
+      void enableNativePush();
       const epoch = ++sessionEpoch;
       const isNew = signed.data?.isNew === true;
       const pickPlace = isNew && !hasPlaceFilter(state.filters);
@@ -1175,6 +1178,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return "ok";
     },
     acceptSignedInUser: (serverUser, isNew, navigate, dest) => {
+      void enableNativePush();
       const epoch = ++sessionEpoch;
       const pickPlace = isNew && !hasPlaceFilter(state.filters);
       const method = serverUser.method ?? "telegram";
@@ -1248,6 +1252,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       disableGoogleAutoSelect();
       update({ user: null, extraListings: [], favouriteIds: [], reactions: {}, blockedUserIds: [] });
       void (async () => {
+        await forgetNativePush();
         await api("/api/auth/logout", { method: "POST", json: {} });
         const [feed, shopList] = await Promise.all([
           api<{ listings?: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),

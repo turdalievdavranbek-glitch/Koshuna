@@ -10,6 +10,7 @@ import {
   media,
   notifications,
   priceStats,
+  pushTokens,
   purchaseRequests,
   reactions,
   reservations,
@@ -22,6 +23,7 @@ import {
 import { rowToShop } from "./mappers";
 import { closeExpiredPurchaseRequests } from "./purchase-requests";
 import { partPath, removeFile } from "./media";
+import { bindNoticePushes, saveNotice } from "./notices";
 
 /**
  * Daily price bands per (category, city, unit).
@@ -102,23 +104,25 @@ export async function listingReminders(): Promise<{ ok: true; counts: Record<str
     .where(and(inArray(listings.status, ["active", "promoted"]), eq(listings.underReview, false), lt(listings.expiresAt, new Date()), isNull(listings.reminderSentAt)));
   let reminders = 0;
   for (const row of due) {
-    const wrote = await db.transaction(async (tx) => {
-      const fresh = await tx
-        .select({ id: listings.id })
-        .from(listings)
-        .where(and(eq(listings.id, row.id), isNull(listings.reminderSentAt)))
-        .limit(1);
-      if (!fresh[0]) return false;
-      await tx.insert(notifications).values({
-        userId: row.ownerId,
-        type: "listing_still_actual",
-        listingId: row.id,
-        textKey: "notifStillActual",
-        params: {},
-      });
-      await tx.update(listings).set({ reminderSentAt: new Date(), updatedAt: new Date() }).where(eq(listings.id, row.id));
-      return true;
-    });
+    const wrote = await bindNoticePushes(() =>
+      db.transaction(async (tx) => {
+        const fresh = await tx
+          .select({ id: listings.id })
+          .from(listings)
+          .where(and(eq(listings.id, row.id), isNull(listings.reminderSentAt)))
+          .limit(1);
+        if (!fresh[0]) return false;
+        await saveNotice(tx, {
+          userId: row.ownerId,
+          type: "listing_still_actual",
+          listingId: row.id,
+          textKey: "notifStillActual",
+          params: {},
+        });
+        await tx.update(listings).set({ reminderSentAt: new Date(), updatedAt: new Date() }).where(eq(listings.id, row.id));
+        return true;
+      }),
+    );
     if (wrote) reminders += 1;
   }
   let expired = 0;
@@ -186,6 +190,7 @@ export async function wipeUser(userId: string) {
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
   await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
   await db.delete(devices).where(eq(devices.userId, userId));
+  await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
   await db.delete(sessions).where(eq(sessions.userId, userId));
   await db.delete(userAuth).where(eq(userAuth.userId, userId));
   await db.delete(notifications).where(eq(notifications.userId, userId));

@@ -8,6 +8,7 @@ import type { ChatRole, ChatThread } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { setChatUnread } from "@/lib/chat-unread";
+import { enableNativePush } from "@/lib/native-push";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { Photo, RoundBtn } from "@/components/ui";
@@ -32,6 +33,7 @@ export function MessageInbox() {
 
   useEffect(() => {
     if (!ready || !user?.id) return;
+    void enableNativePush();
     void load();
     const timer = window.setInterval(() => void load(), 8000);
     return () => window.clearInterval(timer);

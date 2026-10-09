@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { holdPersonName } from "@/lib/public-name";
 import { getDb } from "./db";
-import { blocks, listings, notifications, reservations, shops, users } from "./db/schema";
+import { blocks, listings, reservations, shops, users } from "./db/schema";
+import { bindNoticePushes, saveNotice } from "./notices";
 
 const OPEN = ["requested", "confirmed"] as const;
 
@@ -41,11 +42,11 @@ function toView(row: { id: string; listingId: string; status: string; createdAt:
  * Ask the seller to set a listing aside.
  * One open row (requested or confirmed) per buyer per listing.
  * hold_until is filled because the existing column is required. It is not a paid window and nothing expires it.
- * No push: devices.fcm_token exists, but there is no Firebase Admin send path.
+ * The in-app notice is also pushed when FCM is configured.
  */
 export async function askHold(buyerId: string, listingId: string): Promise<{ hold: HoldView } | Fail> {
   const db = getDb();
-  return db.transaction(async (tx) => {
+  return bindNoticePushes(() => db.transaction(async (tx) => {
     const locked = await tx
       .select({
         id: listings.id,
@@ -108,15 +109,16 @@ export async function askHold(buyerId: string, listingId: string): Promise<{ hol
     const row = inserted[0];
     if (!row) return { error: "save", status: 500 };
 
-    await tx.insert(notifications).values({
+    await saveNotice(tx, {
       userId: listing.ownerId,
       type: "hold_asked",
       listingId,
       textKey: "notifHoldAsked",
       params: { name: holdPersonName(buyer[0]?.name), title: listing.title },
+      actorId: buyerId,
     });
     return { hold: toView(row) };
-  });
+  }));
 }
 
 export async function buyerHold(buyerId: string, listingId: string): Promise<HoldView | null> {
@@ -179,7 +181,7 @@ export async function answerHold(
   action: "confirm" | "decline",
 ): Promise<{ hold: IncomingHold } | Fail> {
   const db = getDb();
-  return db.transaction(async (tx) => {
+  return bindNoticePushes(() => db.transaction(async (tx) => {
     const locked = await tx.select().from(reservations).where(eq(reservations.id, holdId)).for("update").limit(1);
     const hold = locked[0];
     if (!hold) return { error: "not-found", status: 404 };
@@ -206,13 +208,14 @@ export async function answerHold(
       .update(reservations)
       .set({ status, confirmedAt: action === "confirm" ? now : null })
       .where(eq(reservations.id, holdId));
-    await tx.insert(notifications).values({
+    await saveNotice(tx, {
       userId: hold.buyerId,
       type: "hold_answered",
       listingId: hold.listingId,
       textKey: action === "confirm" ? "notifHoldYes" : "notifHoldNo",
       params: { title: listing.title },
+      actorId: sellerId,
     });
     return { hold: { ...current, status } };
-  });
+  }));
 }
