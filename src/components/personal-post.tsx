@@ -132,7 +132,7 @@ export function PersonalPost() {
       return;
     }
     setLimit(false);
-    if (await personalPostLimited()) {
+    if (!draft.editing && (await personalPostLimited())) {
       setLimit(true);
       setError("");
       return;

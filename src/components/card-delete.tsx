@@ -44,34 +44,80 @@ export function DeleteCardDialog({
   );
 }
 
-export function CardMenu({ onDelete, testId = "card-menu" }: { onDelete: () => void; testId?: string }) {
+export type CardMenuItem = { label: string; onClick: () => void; testId?: string };
+
+/** «…» menu. A bottom sheet on phones (centered on desktop), so a card with overflow-hidden never clips it. */
+export function CardMenu({
+  onDelete,
+  items = [],
+  testId = "card-menu",
+}: {
+  onDelete: () => void;
+  items?: CardMenuItem[];
+  testId?: string;
+}) {
   const { t } = useApp();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    pushOverlay("card-menu", close);
+    return () => removeOverlay("card-menu");
+  }, [open]);
+  const run = (fn: () => void) => {
+    setOpen(false);
+    fn();
+  };
   return (
-    <div className="relative shrink-0">
+    <div className="shrink-0">
       <button
         type="button"
         data-testid={testId}
         aria-label={t.cardMenu}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen(true)}
         className="flex h-9 w-9 items-center justify-center rounded-full text-[18px] font-bold leading-none text-ink"
       >
         …
       </button>
       {open ? (
-        <div className="absolute right-0 z-20 mt-1 min-w-[140px] overflow-hidden rounded-2xl border border-line bg-white shadow-btn">
-          <button
-            type="button"
-            data-testid="card-menu-delete"
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            className="block w-full px-4 py-3 text-left text-[14px] font-semibold text-accent"
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4"
+          onClick={() => setOpen(false)}
+          data-testid="card-menu-sheet"
+        >
+          <div
+            className="w-full max-w-[430px] rounded-t-[24px] bg-white px-3 pb-6 pt-3 desk:rounded-[24px]"
+            style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
+            onClick={(event) => event.stopPropagation()}
           >
-            {t.cardDelete}
-          </button>
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                data-testid={item.testId}
+                onClick={() => run(item.onClick)}
+                className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-ink active:bg-chip"
+              >
+                {item.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              data-testid="card-menu-delete"
+              onClick={() => run(onDelete)}
+              className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-accent active:bg-chip"
+            >
+              {t.cardDelete}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-1 block h-[48px] w-full text-center text-[15px] font-semibold text-muted"
+            >
+              {t.cardDeleteCancel}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

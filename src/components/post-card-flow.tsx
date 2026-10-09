@@ -783,7 +783,7 @@ export function CardPost({ card }: { card: string }) {
                   return;
                 }
                 setLimit(false);
-                if (await personalPostLimited()) {
+                if (!draft.editing && (await personalPostLimited())) {
                   setLimit(true);
                   setError("");
                   return;
