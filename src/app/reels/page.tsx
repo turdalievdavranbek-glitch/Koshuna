@@ -14,7 +14,7 @@ import { formatSom } from "@/lib/data";
 import { listingHasPrice } from "@/lib/deal";
 import { goBack } from "@/lib/go-back";
 import { listingTitle } from "@/lib/i18n";
-import { PINNED_REEL_ID, pinnedTitle, type PinnedCircle } from "@/lib/pinned-circle";
+import { PINNED_REEL_ID, pinnedMedia, pinnedTitle, type PinnedCircle } from "@/lib/pinned-circle";
 import { socialCounts } from "@/lib/reactions";
 import { listingsForSearch } from "@/lib/search-browse";
 import { listingPlace } from "@/lib/share";
@@ -185,14 +185,16 @@ function ReelSlide({
 }
 
 function PinnedReel({
-  pinned,
+  src,
+  poster,
   active,
   sound,
   videoRef,
   onToggleSound,
   onBlocked,
 }: {
-  pinned: PinnedCircle;
+  src: string;
+  poster: string | null;
   active: boolean;
   sound: boolean;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -216,13 +218,14 @@ function PinnedReel({
     return () => {
       cancelled = true;
     };
-  }, [active, sound, pinned.videoUrl, onBlocked, videoRef]);
+  }, [active, sound, src, onBlocked, videoRef]);
 
   return (
     <video
+      key={src}
       ref={videoRef}
-      src={pinned.videoUrl}
-      poster={pinned.posterUrl ?? undefined}
+      src={src}
+      poster={poster ?? undefined}
       muted={!sound}
       playsInline
       loop
@@ -242,6 +245,7 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [sound, setSound] = useState(true);
   const title = pinnedTitle(pinned, lang);
+  const clip = pinnedMedia(pinned, lang);
   const blockSound = useRef(() => setSound(false));
   const toggleSound = () => {
     if (!active) return;
@@ -270,7 +274,8 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
   return (
     <article ref={rootRef} data-testid="reel-pinned" className="relative h-full min-h-full w-full shrink-0 snap-start snap-always bg-ink">
       <PinnedReel
-        pinned={pinned}
+        src={clip.videoUrl}
+        poster={clip.posterUrl}
         active={active}
         sound={sound}
         videoRef={videoRef}

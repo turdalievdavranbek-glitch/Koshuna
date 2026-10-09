@@ -13,7 +13,7 @@ import {
 } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
-import { pinnedTitle } from "@/lib/pinned-circle";
+import { pinnedMedia, pinnedTitle } from "@/lib/pinned-circle";
 import { listingsForSearch } from "@/lib/search-browse";
 import { useApp } from "@/lib/store";
 import { usePinnedCircle } from "@/lib/use-pinned-circle";
@@ -80,6 +80,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
   const videos = useCircleList();
   const { pinned, ready: pinReady } = usePinnedCircle();
   const pinnedLabel = pinned ? pinnedTitle(pinned, lang) : "";
+  const pinnedClip = pinned ? pinnedMedia(pinned, lang) : null;
   const showEmpty = pinReady && !pinned && videos.length === 0;
 
   return (
@@ -99,10 +100,10 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
             >
               <div className="relative w-[60px] rounded-full p-[2.5px]" style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}>
                 <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
-                  {pinned.posterUrl ? (
-                    <Photo src={pinned.posterUrl} alt={pinnedLabel} />
+                  {pinnedClip?.posterUrl ? (
+                    <Photo src={pinnedClip.posterUrl} alt={pinnedLabel} />
                   ) : (
-                    <video src={pinned.videoUrl} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+                    <video src={pinnedClip?.videoUrl} muted playsInline loop autoPlay className="h-full w-full object-cover" />
                   )}
                   <PlayBadge compact />
                 </div>
