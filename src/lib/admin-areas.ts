@@ -77,7 +77,7 @@ export const ADMIN_AREAS: readonly AdminArea[] = [
   { id: "toguz-toro", oblast: "jalal-abad", kind: "district", name: "Тогуз-Тороуский район", nameKy: "Тогуз-Торо району", lat: 41.4, lng: 74.04, aliases: ["Тогуз-Тороуский"] },
   { id: "toktogul", oblast: "jalal-abad", kind: "district", name: "Токтогульский район", nameKy: "Токтогул району", lat: 41.87, lng: 72.94, aliases: ["Токтогульский"] },
   { id: "chatkal", oblast: "jalal-abad", kind: "district", name: "Чаткальский район", nameKy: "Чаткал району", lat: 41.75, lng: 71.05, aliases: ["Чаткальский"] },
-  { id: "jalal-abad", oblast: "jalal-abad", kind: "city", name: "Жалал-Абад", nameKy: "Жалал-Абад", lat: 40.933, lng: 73.002, cityId: "jalal-abad", aliases: ["Джалал-Абад", "Жалал-Абад"] },
+  { id: "jalal-abad", oblast: "jalal-abad", kind: "city", name: "Манас", nameKy: "Манас", lat: 40.933, lng: 73.002, cityId: "jalal-abad", aliases: ["Джалал-Абад", "Жалал-Абад", "Jalal-Abad"] },
   { id: "kara-kul", oblast: "jalal-abad", kind: "city", name: "Кара-Куль", nameKy: "Кара-Көл", lat: 41.62, lng: 72.67, aliases: ["Кара-Куль", "Кара-Көл"] },
   { id: "mailuu-suu", oblast: "jalal-abad", kind: "city", name: "Майлуу-Суу", nameKy: "Майлуу-Суу", lat: 41.26, lng: 72.45, aliases: ["Майлуу-Суу", "Майли-Сай"] },
   { id: "tash-komur", oblast: "jalal-abad", kind: "city", name: "Таш-Кумыр", nameKy: "Таш-Көмүр", lat: 41.35, lng: 72.22, aliases: ["Таш-Кумыр", "Таш-Көмүр"] },
