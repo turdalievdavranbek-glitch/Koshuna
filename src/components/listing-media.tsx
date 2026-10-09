@@ -84,16 +84,40 @@ export function ListingThumb({
   );
 }
 
-export function ListingHero({ listing, photo, title }: { listing: Listing; photo: number; title: string }) {
+export function ListingHero({
+  listing,
+  photo,
+  title,
+  onOpenVideo,
+  onAspect,
+}: {
+  listing: Listing;
+  photo: number;
+  title: string;
+  /** Tap on a video opens the full-screen reels player. */
+  onOpenVideo?: () => void;
+  /** true for a vertical (portrait) video, so the box is tall, not a letterboxed 16:9. */
+  onAspect?: (tall: boolean) => void;
+}) {
   if (isVideoListing(listing) && listing.videoUrl) {
     return (
-      <video
-        src={listing.videoUrl}
-        poster={listing.photos[0]}
-        controls
-        playsInline
-        className="h-full w-full object-cover"
-      />
+      <button type="button" data-testid="listing-video-open" aria-label={title} onClick={onOpenVideo} className="relative block h-full w-full">
+        <video
+          src={listing.videoUrl}
+          poster={listing.photos[0]}
+          muted
+          autoPlay
+          loop
+          playsInline
+          preload="metadata"
+          className="pointer-events-none h-full w-full object-cover"
+          onLoadedMetadata={(event) => {
+            const el = event.currentTarget;
+            if (el.videoWidth && el.videoHeight) onAspect?.(el.videoHeight >= el.videoWidth);
+          }}
+        />
+        <PlayBadge />
+      </button>
     );
   }
   return <Photo src={listing.photos[photo] ?? listing.photos[0]} alt={title} />;
