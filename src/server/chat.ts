@@ -159,6 +159,7 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
         select messages.text from messages
         where messages.thread_id = threads.id
           and messages.kind = 'text'
+          and messages.deleted_at is null
         order by messages.created_at desc
         limit 1
       )`,
@@ -246,6 +247,8 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
         kind: messages.kind,
         text: messages.text,
         createdAt: messages.createdAt,
+        editedAt: messages.editedAt,
+        deletedAt: messages.deletedAt,
       })
       .from(messages)
       .where(eq(messages.threadId, thread.id))
@@ -254,7 +257,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     db.select({ name: users.name }).from(users).where(eq(users.id, peerId)).limit(1),
     thread.listingId
       ? db
-          .select({ title: listings.title, coverUrl: listings.coverUrl, photos: listings.photos })
+          .select({ title: listings.title, coverUrl: listings.coverUrl, photos: listings.photos, section: listings.section })
           .from(listings)
           .where(eq(listings.id, thread.listingId))
           .limit(1)
@@ -274,12 +277,15 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     .where(and(eq(messages.threadId, thread.id), ne(messages.senderId, userId), isNull(messages.readAt)));
   const shown: ChatLine[] = lines
     .reverse()
-    .filter((row) => row.kind === "text" && (row.text ?? "").trim())
+    .filter((row) => row.kind === "text" && (row.deletedAt || (row.text ?? "").trim()))
     .map((row) => ({
       id: row.id,
       mine: row.senderId === userId,
-      text: (row.text ?? "").trim(),
+      // A deleted message keeps its place but never its text.
+      text: row.deletedAt ? "" : (row.text ?? "").trim(),
       createdAt: row.createdAt.toISOString(),
+      editedAt: row.deletedAt ? null : (row.editedAt?.toISOString() ?? null),
+      deleted: Boolean(row.deletedAt),
     }));
   const listing = card[0];
   const request = listing ? undefined : ask[0];
@@ -293,6 +299,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     peerId,
     peerName: holdPersonName(person[0]?.name),
     blocked,
+    section: listing?.section ?? null,
     messages: shown,
   };
 }
@@ -362,4 +369,64 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
       },
     };
   }));
+}
+
+/** Only the sender, any time. No notice and no push; unread counters stay as they are. */
+export async function editChatMessage(
+  userId: string,
+  threadId: string,
+  messageId: string,
+  raw: string,
+): Promise<{ message: ChatLine } | Fail> {
+  const text = raw.trim();
+  if (!text || text.length > TEXT_MAX) return { error: "text", status: 400 };
+  const thread = await loadParticipant(userId, threadId);
+  if (!thread) return { error: "not-found", status: 404 };
+  const rows = await getDb()
+    .update(messages)
+    .set({ text, editedAt: new Date() })
+    .where(
+      and(
+        eq(messages.id, messageId),
+        eq(messages.threadId, thread.id),
+        eq(messages.senderId, userId),
+        eq(messages.kind, "text"),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .returning({ id: messages.id, text: messages.text, createdAt: messages.createdAt, editedAt: messages.editedAt });
+  const row = rows[0];
+  if (!row) return { error: "forbidden", status: 403 };
+  return {
+    message: {
+      id: row.id,
+      mine: true,
+      text: (row.text ?? "").trim(),
+      createdAt: row.createdAt.toISOString(),
+      editedAt: row.editedAt?.toISOString() ?? null,
+      deleted: false,
+    },
+  };
+}
+
+/** Soft delete for both people. Only the sender. */
+export async function deleteChatMessage(userId: string, threadId: string, messageId: string): Promise<{ message: ChatLine } | Fail> {
+  const thread = await loadParticipant(userId, threadId);
+  if (!thread) return { error: "not-found", status: 404 };
+  const rows = await getDb()
+    .update(messages)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(messages.id, messageId),
+        eq(messages.threadId, thread.id),
+        eq(messages.senderId, userId),
+        eq(messages.kind, "text"),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .returning({ id: messages.id, createdAt: messages.createdAt });
+  const row = rows[0];
+  if (!row) return { error: "forbidden", status: 403 };
+  return { message: { id: row.id, mine: true, text: "", createdAt: row.createdAt.toISOString(), editedAt: null, deleted: true } };
 }
