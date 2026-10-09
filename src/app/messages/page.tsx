@@ -1,26 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ownerById } from "@/lib/data";
-import { listingTitle } from "@/lib/i18n";
-import { threadSide } from "@/lib/listing-owner";
+import { api } from "@/lib/api/client";
+import type { ChatRole, ChatThread } from "@/lib/chat";
+import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
-import type { AppSide } from "@/lib/types";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Photo, RoundBtn } from "@/components/ui";
 
-function threadOnTab(kind: AppSide, selected: "all" | AppSide) {
-  if (selected === "all") return true;
-  return kind === selected;
-}
-
 export default function MessagesPage() {
-  const { t, lang, user, threads, setPendingPath, allListings, extraListings } = useApp();
+  const { t, lang, user, ready, setPendingPath } = useApp();
   const router = useRouter();
-  const [tab, setTab] = useState<"all" | AppSide>("all");
+  const [tab, setTab] = useState<"all" | ChatRole>("all");
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await api<{ threads?: ChatThread[] }>("/api/me/threads");
+    if (!res.ok) return;
+    setThreads(res.data?.threads ?? []);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !user?.id) return;
+    void load();
+    const timer = window.setInterval(() => void load(), 8000);
+    return () => window.clearInterval(timer);
+  }, [ready, user?.id, load]);
+
+  if (!ready) return null;
 
   if (!user) {
     return (
@@ -46,10 +58,9 @@ export default function MessagesPage() {
     );
   }
 
-  const withSide = threads.map((th) => ({ th, side: threadSide(th, extraListings, user) }));
-  const visible = withSide.filter((row) => threadOnTab(row.side, tab));
-  const buyN = withSide.filter((row) => threadOnTab(row.side, "buy")).length;
-  const sellN = withSide.filter((row) => threadOnTab(row.side, "sell")).length;
+  const visible = threads.filter((row) => tab === "all" || row.role === tab);
+  const buyN = threads.filter((row) => row.role === "buy").length;
+  const sellN = threads.filter((row) => row.role === "sell").length;
 
   return (
     <PhoneShell>
@@ -89,47 +100,50 @@ export default function MessagesPage() {
         </div>
       </div>
       <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        {visible.length === 0 ? (
+        {!loaded ? null : visible.length === 0 ? (
           <p className="mt-8 text-center text-[15px] leading-[1.5] text-muted">
             {tab === "sell" ? t.emptyInboxSell : tab === "buy" ? t.emptyInboxBuy : t.emptyInbox}
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {visible.map(({ th, side: rowSide }) => {
-              const listing = allListings.find((item) => item.id === th.listingId);
-              const owner = ownerById(th.ownerId);
-              if (!listing) return null;
-              const peer = rowSide === "sell" ? t.peerBuyer : owner?.name ?? listing.sellerName ?? "";
+            {visible.map((row) => {
+              const peer = row.peerName || (row.role === "sell" ? t.peerBuyer : t.holdNoName);
               return (
                 <button
-                  key={th.id}
+                  key={row.id}
                   type="button"
-                  onClick={() => router.push(`/chat/${th.id}`)}
+                  onClick={() => router.push(`/chat/${row.id}`)}
                   className="flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-3 text-left"
                 >
-                  <div className="h-12 w-12 overflow-hidden rounded-[10px]">
-                    <Photo src={listing.photos[0]} alt="" />
+                  <div className="h-12 w-12 overflow-hidden rounded-[10px] bg-chip">
+                    {row.photo ? <Photo src={row.photo} alt="" /> : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-semibold text-ink">{listingTitle(listing, lang)}</span>
-                      <span className="shrink-0 text-xs text-muted-2">{th.time}</span>
+                      <span className="truncate font-semibold text-ink">{row.title || t.chatListingGone}</span>
+                      <span className="shrink-0 text-xs text-muted-2">
+                        {row.lastMessageAt ? formatWhen(row.lastMessageAt, lang) : ""}
+                      </span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-1.5">
                       <span
                         className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: rowSide === "sell" ? "#F3E0D9" : "#E4EFE9",
-                          color: rowSide === "sell" ? "#8E3423" : "#2A6B57",
+                          background: row.role === "sell" ? "#F3E0D9" : "#E4EFE9",
+                          color: row.role === "sell" ? "#8E3423" : "#2A6B57",
                         }}
                       >
-                        {rowSide === "sell" ? t.threadAsSell : t.threadAsBuy}
+                        {row.role === "sell" ? t.threadAsSell : t.threadAsBuy}
                       </span>
                       {peer ? <span className="truncate text-[12px] text-muted">{peer}</span> : null}
                     </div>
-                    <div className="truncate text-[13px] text-muted">{th.preview || listingTitle(listing, lang)}</div>
+                    <div className="truncate text-[13px] text-muted">{row.preview || row.title}</div>
                   </div>
-                  {th.unread ? <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent" /> : null}
+                  {row.unread > 0 ? (
+                    <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[12px] font-bold text-accent-on">
+                      {row.unread}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}

@@ -104,8 +104,10 @@ export default function LocationPage() {
     listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const drill = oblast && isOblastId(oblast) ? oblast : null;
+  const drill = oblast === "osh" ? "osh-oblast" : oblast && isOblastId(oblast) ? oblast : null;
   const areas = drill ? areasOfOblast(drill) : { districts: [], cities: [] };
+  const leadCity = drill === "osh-oblast" ? areas.cities.find((area) => area.cityId === "osh") : undefined;
+  const otherCities = leadCity ? areas.cities.filter((area) => area.id !== leadCity.id) : areas.cities;
   const citySettlementIds = new Set(areas.cities.map((area) => area.settlementId).filter(Boolean));
   const settlements = drill ? settlementsOfOblast(drill).filter((item) => !citySettlementIds.has(item.id)) : [];
 
@@ -182,6 +184,15 @@ export default function LocationPage() {
           <div className="flex flex-col gap-4">
             <Rows
               rows={[
+                ...(leadCity
+                  ? [
+                      {
+                        id: leadCity.id,
+                        label: adminAreaLabel(leadCity, lang),
+                        onClick: () => pick(placeAdminArea(leadCity, lang)),
+                      },
+                    ]
+                  : []),
                 {
                   id: "all-oblast",
                   label: t.oblasts[drill],
@@ -200,7 +211,7 @@ export default function LocationPage() {
             />
             <Rows
               title={t.city}
-              rows={areas.cities.map((area) => ({
+              rows={otherCities.map((area) => ({
                 id: area.id,
                 label: adminAreaLabel(area, lang),
                 onClick: () => pick(placeAdminArea(area, lang)),

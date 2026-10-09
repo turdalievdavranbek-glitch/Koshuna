@@ -8,7 +8,7 @@ export type AppNotice = {
   type: string;
   listingId: string | null;
   textKey: string;
-  params: { name?: string; title?: string };
+  params: { name?: string; title?: string; threadId?: string };
   createdAt: string;
   readAt: string | null;
 };
@@ -89,7 +89,13 @@ export function useNotices(userId: string | null): Snap {
       if (document.visibilityState === "visible") void refreshNotices(userId);
     };
     document.addEventListener("visibilitychange", onShow);
-    return () => document.removeEventListener("visibilitychange", onShow);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshNotices(userId);
+    }, 12000);
+    return () => {
+      document.removeEventListener("visibilitychange", onShow);
+      window.clearInterval(timer);
+    };
   }, [userId]);
   return value;
 }

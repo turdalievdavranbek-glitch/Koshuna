@@ -11,7 +11,6 @@ import type { Filters, Lang } from "./types";
 
 export const OBLASTS = [
   "bishkek",
-  "osh",
   "chuy",
   "issyk-kul",
   "naryn",
@@ -58,7 +57,7 @@ export const OBLAST_UZ: Record<string, string> = {
 
 const CITY_OBLAST: Record<string, OblastId> = {
   bishkek: "bishkek",
-  osh: "osh",
+  osh: "osh-oblast",
   "jalal-abad": "jalal-abad",
   karakol: "issyk-kul",
   "cholpon-ata": "issyk-kul",
@@ -97,7 +96,14 @@ export function isOblastId(id: string | null | undefined): id is OblastId {
 }
 
 export function isCityOblast(id: string) {
-  return id === "bishkek" || id === "osh";
+  return id === "bishkek";
+}
+
+/** Whole-oblast pick. An old top-level «Ош» (city id) is the Osh oblast, which still includes city Ош. */
+export function listingInOblast(item: { city: string; settlement?: string }, oblast: string): boolean {
+  if (!oblast || oblast === "any") return true;
+  const want = oblast === "osh" ? "osh-oblast" : oblast;
+  return oblastOfListing(item) === want;
 }
 
 export function oblastOfCity(city: string | null | undefined): OblastId | undefined {
@@ -139,6 +145,7 @@ export function clearPlace(): PlacePatch {
 }
 
 export function placeOblast(oblast: string): PlacePatch {
+  if (oblast === "osh") return placeOblast("osh-oblast");
   if (isCityOblast(oblast)) return placeCity(oblast);
   return {
     ...clearPlace(),
@@ -271,7 +278,7 @@ export function searchPlaces(
     }
   }
   for (const id of CITIES) {
-    if (id === "all") continue;
+    if (id === "all" || id === "osh") continue;
     const label = cities[id] ?? id;
     if (label.toLowerCase().includes(q)) {
       hits.push({ id: `city-${id}`, kind: "city", label, place: placeCity(id) });

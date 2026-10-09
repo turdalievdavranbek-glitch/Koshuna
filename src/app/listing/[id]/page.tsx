@@ -146,15 +146,15 @@ export default function ListingPage() {
     toggleFav(listing.id);
   };
 
-  const soonPath = `/chat/soon?listing=${encodeURIComponent(listing.id)}`;
   const onWrite = () => {
-    if (FEATURES.localChat) {
-      if (!gate(`/chat/${listing.id}`)) return;
-      router.push(`/chat/${listing.id}`);
+    const path = `/chat/open/${listing.id}`;
+    if (!gate(path)) return;
+    if (!isDbUserId(listing.ownerId)) {
+      setToast(t.chatNoSeller);
+      setTimeout(() => setToast(""), 1800);
       return;
     }
-    if (!gate(soonPath)) return;
-    router.push(soonPath);
+    router.push(path);
   };
 
   const similar = similarListings(listing, allListings);
