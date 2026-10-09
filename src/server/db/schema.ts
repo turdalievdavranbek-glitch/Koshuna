@@ -107,13 +107,18 @@ export const shops = pgTable(
     whatsapp: text("whatsapp"),
     telegram: text("telegram"),
     status: text("status").notNull().default("draft"),
+    /** Auto-hidden after 3 reports. Public feeds skip it; the owner still sees it. */
+    underReview: boolean("under_review").notNull().default(false),
     followersCount: integer("followers_count").notNull().default(0),
     lastPostedAt: ts("last_posted_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
     doc: jsonb("doc").notNull(),
   },
-  (t) => [check("shops_status", sql`${t.status} in ('draft','active','withdrawn','hidden')`)],
+  (t) => [
+    check("shops_status", sql`${t.status} in ('draft','active','withdrawn','hidden')`),
+    index("shops_under_review_idx").on(t.underReview),
+  ],
 );
 
 export const listings = pgTable(
@@ -138,6 +143,8 @@ export const listings = pgTable(
     oldPrice: bigint("old_price", { mode: "number" }),
     promoPercent: integer("promo_percent"),
     status: text("status").notNull().default("active"),
+    /** Auto-hidden after 3 reports. Not a status: «Оставить» restores without guessing the old status. */
+    underReview: boolean("under_review").notNull().default(false),
     soldAt: ts("sold_at"),
     expiresAt: ts("expires_at").notNull().default(sql`now() + interval '30 days'`),
     lastConfirmedAt: ts("last_confirmed_at"),
@@ -174,6 +181,7 @@ export const listings = pgTable(
     index("listings_owner_idx").on(t.ownerId),
     index("listings_shop_idx").on(t.shopId),
     index("listings_price_idx").on(t.price),
+    index("listings_under_review_idx").on(t.underReview),
   ],
 );
 
@@ -285,6 +293,8 @@ export const reports = pgTable(
       "reports_one_target",
       sql`((${t.listingId} is not null)::int + (${t.shopId} is not null)::int + (${t.targetUserId} is not null)::int) = 1`,
     ),
+    index("reports_listing_idx").on(t.listingId),
+    index("reports_shop_idx").on(t.shopId),
   ],
 );
 

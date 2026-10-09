@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { isDbUserId } from "@/lib/phone";
 import { buildPublicProfile } from "@/lib/public-name";
 import { getDb } from "@/server/db";
-import { listings, users } from "@/server/db/schema";
+import { listings, shops, users } from "@/server/db/schema";
 import { json } from "@/server/http";
 
 export const runtime = "nodejs";
@@ -26,6 +26,13 @@ export async function GET(_req: Request, ctx: Ctx) {
   const counts = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(listings)
-    .where(and(eq(listings.ownerId, id), inArray(listings.status, VISIBLE)));
+    .where(
+      and(
+        eq(listings.ownerId, id),
+        inArray(listings.status, VISIBLE),
+        eq(listings.underReview, false),
+        sql`(${listings.shopId} is null or not exists (select 1 from ${shops} where ${shops.id} = ${listings.shopId} and ${shops.underReview} = true))`,
+      ),
+    );
   return json(buildPublicProfile(row, Number(counts[0]?.n ?? 0)));
 }

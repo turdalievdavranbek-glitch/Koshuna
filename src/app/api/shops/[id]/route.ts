@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
 import type { Shop, ShopProduct } from "@/lib/types";
+import { getSessionUser } from "@/server/auth";
 import { getDb } from "@/server/db";
 import { shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { mediaUrlError, rowToShop, sessionAsUser, shopMediaUrls } from "@/server/mappers";
+import { shopsForViewer } from "@/server/moderation";
 import { hideShopForUser, saveShopForUser, validateShopAction, type ShopBody } from "@/server/shops";
 import { NextResponse } from "next/server";
 
@@ -12,17 +14,17 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const rows = await getDb().select().from(shops).where(eq(shops.id, id)).limit(1);
   if (!rows[0]) return json({ error: "not-found" }, 404);
   const shop = rowToShop(rows[0]);
   if (shop.status === "hidden") return json({ error: "not-found" }, 404);
-  if (shop.status !== "active") {
-    const user = await requireUser(_req);
-    if (user instanceof NextResponse || user.id !== rows[0].ownerId) return json({ error: "not-found" }, 404);
-  }
-  return json({ shop });
+  const viewer = await getSessionUser(req).catch(() => null);
+  if (rows[0].underReview && viewer?.id !== rows[0].ownerId) return json({ error: "not-found" }, 404);
+  if (shop.status !== "active" && viewer?.id !== rows[0].ownerId) return json({ error: "not-found" }, 404);
+  const [visible] = await shopsForViewer([shop], viewer?.id ?? null);
+  return json({ shop: visible });
 }
 
 export async function PUT(req: Request, ctx: Ctx) {

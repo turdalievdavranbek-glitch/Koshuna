@@ -53,9 +53,14 @@ async function change(req: Request, ctx: Ctx, mode: "add" | "remove") {
   if (user instanceof NextResponse) return user;
   const { id } = await ctx.params;
   const db = getDb();
-  const rows = await db.select({ id: shops.id, ownerId: shops.ownerId, status: shops.status }).from(shops).where(eq(shops.id, id)).limit(1);
+  const rows = await db
+    .select({ id: shops.id, ownerId: shops.ownerId, status: shops.status, underReview: shops.underReview })
+    .from(shops)
+    .where(eq(shops.id, id))
+    .limit(1);
   const shop = rows[0];
   if (!shop) return json({ error: "not-found" }, 404);
+  if (shop.underReview) return json({ error: "not-found" }, 404);
   if (shop.ownerId === user.id || shop.status === "hidden" || shop.status === "withdrawn") {
     return json({ error: "subscribe" }, 409);
   }

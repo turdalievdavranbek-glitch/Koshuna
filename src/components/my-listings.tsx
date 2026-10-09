@@ -12,9 +12,10 @@ import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { Photo } from "@/components/ui";
 
 function statusLabel(
-  item: { status: string; closedKind?: "sold" | "rented" },
+  item: { status: string; closedKind?: "sold" | "rented"; underReview?: boolean },
   t: ReturnType<typeof useApp>["t"],
 ) {
+  if (item.underReview) return t.underReview;
   if (item.status === "closed" && item.closedKind === "sold") return t.closedSold;
   if (item.status === "closed" && item.closedKind === "rented") return t.closedRented;
   return t.status[item.status as keyof typeof t.status] ?? item.status;
@@ -66,16 +67,18 @@ export function MyListings({ limit }: { limit?: number }) {
                 <span
                   className="rounded-md px-2 py-0.5 text-[10px] font-bold"
                   style={{
-                    background:
-                      item.status === "promoted" || item.status === "reserved"
+                    background: item.underReview
+                      ? "#F6E3D4"
+                      : item.status === "promoted" || item.status === "reserved"
                         ? "#F3E0D9"
                         : item.status === "closed"
                           ? "#E4EFE9"
                           : item.status === "draft" || item.status === "withdrawn"
                             ? "#EFE8DB"
                             : "#E4EFE9",
-                    color:
-                      item.status === "promoted" || item.status === "reserved"
+                    color: item.underReview
+                      ? "#17140F"
+                      : item.status === "promoted" || item.status === "reserved"
                         ? "#8E3423"
                         : item.status === "draft" || item.status === "withdrawn"
                           ? "#6E6558"

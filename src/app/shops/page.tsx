@@ -34,6 +34,7 @@ export default function ShopsPage() {
     const q = query.trim().toLowerCase();
     return allListings.filter((item) => {
       if (item.section !== "shops") return false;
+      if (item.underReview) return false;
       if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
       if (item.shopId && !shopIds.has(item.shopId)) return false;
       if (q && !`${item.title} ${item.description}`.toLowerCase().includes(q)) return false;

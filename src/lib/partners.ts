@@ -191,6 +191,11 @@ export function isAdminUser(user: User | null | undefined): boolean {
   return hasRole(user, "admin");
 }
 
+/** Admin bit returned by the server on the signed-in user. The screen only shows the link; actions are checked again in the database. */
+export function serverAdminFlag(user: { roles?: readonly string[] | null } | null | undefined): boolean {
+  return Boolean(user?.roles?.includes("admin"));
+}
+
 /** Built-in demo partners. A typed phone must not inherit these roles. */
 const SEEDED_PARTNER_IDS = new Set(["dev-azat", "dealer-bishkek-motors"]);
 

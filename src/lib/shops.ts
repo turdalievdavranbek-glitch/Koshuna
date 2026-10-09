@@ -123,7 +123,7 @@ export function hasShopContact(shop: Pick<Shop, "contacts">): boolean {
 }
 
 export function publicShop(shop: Shop): boolean {
-  return shop.status === "active";
+  return shop.status === "active" && shop.underReview !== true;
 }
 
 export function canSeeShop(shop: Shop, user: User | null): boolean {

@@ -115,7 +115,7 @@ export default function ListingPage() {
 
   if (!listing && !synced) return null;
 
-  if (!listing || listing.status === "hidden") {
+  if (!listing || listing.status === "hidden" || (listing.underReview && listing.ownerId !== user?.id)) {
     return (
       <PhoneShell>
         <div className="p-6">
@@ -263,6 +263,9 @@ export default function ListingPage() {
             {title}
           </h1>
           <ListingStageBanner listing={listing} />
+          {listing.underReview ? (
+            <p className="mt-3 rounded-xl bg-[#F6E3D4] px-3 py-2 text-center text-[13px] font-semibold text-ink">{t.underReview}</p>
+          ) : null}
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
@@ -320,7 +323,7 @@ export default function ListingPage() {
                 const shop = shops.find((item) => item.id === listing.shopId);
                 if (!shop) return null;
                 const others = allListings.filter(
-                  (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden",
+                  (item) => item.shopId === shop.id && item.id !== listing.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden",
                 );
                 return (
                   <div className="mt-3 rounded-[16px] border border-line bg-white p-4">

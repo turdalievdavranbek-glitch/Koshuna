@@ -1,5 +1,7 @@
+import { and, eq } from "drizzle-orm";
+import { maybeHideForReview } from "@/server/moderation";
 import { getDb } from "@/server/db";
-import { reports } from "@/server/db/schema";
+import { listings, reports, shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { NextResponse } from "next/server";
 
@@ -15,18 +17,55 @@ export async function POST(req: Request) {
   if (user instanceof NextResponse) return user;
   const body = await readJson<Body>(req);
   if (!body || typeof body.reason !== "string" || !body.reason.trim()) return json({ error: "reason" }, 400);
-  const targets = [body.listingId, body.shopId, body.targetUserId].filter(Boolean);
+  const listingId = body.listingId || null;
+  const shopId = body.shopId || null;
+  const targetUserId = body.targetUserId || null;
+  const targets = [listingId, shopId, targetUserId].filter(Boolean);
   if (targets.length !== 1) return json({ error: "target" }, 400);
-  const [row] = await getDb()
+
+  const db = getDb();
+  if (listingId) {
+    const rows = await db.select({ ownerId: listings.ownerId }).from(listings).where(eq(listings.id, listingId)).limit(1);
+    if (!rows[0]) return json({ error: "not-found" }, 404);
+    if (rows[0].ownerId === user.id) return json({ error: "own" }, 400);
+  }
+  if (shopId) {
+    const rows = await db.select({ ownerId: shops.ownerId }).from(shops).where(eq(shops.id, shopId)).limit(1);
+    if (!rows[0]) return json({ error: "not-found" }, 404);
+    if (rows[0].ownerId === user.id) return json({ error: "own" }, 400);
+  }
+  if (targetUserId && targetUserId === user.id) return json({ error: "own" }, 400);
+
+  const reason = body.reason.trim().slice(0, 200);
+  const comment = body.comment?.trim().slice(0, 2000) || null;
+  const existing = await db
+    .select({ id: reports.id })
+    .from(reports)
+    .where(
+      and(
+        eq(reports.reporterId, user.id),
+        eq(reports.status, "new"),
+        listingId ? eq(reports.listingId, listingId) : shopId ? eq(reports.shopId, shopId) : eq(reports.targetUserId, targetUserId ?? ""),
+      ),
+    )
+    .limit(1);
+  if (existing[0]) {
+    await db.update(reports).set({ reason, comment }).where(eq(reports.id, existing[0].id));
+    await maybeHideForReview({ listingId, shopId });
+    return json({ ok: true, id: existing[0].id }, 200);
+  }
+
+  const [row] = await db
     .insert(reports)
     .values({
       reporterId: user.id,
-      listingId: body.listingId || null,
-      shopId: body.shopId || null,
-      targetUserId: body.targetUserId || null,
-      reason: body.reason.trim().slice(0, 200),
-      comment: body.comment?.trim().slice(0, 2000) || null,
+      listingId,
+      shopId,
+      targetUserId,
+      reason,
+      comment,
     })
     .returning({ id: reports.id });
+  await maybeHideForReview({ listingId, shopId });
   return json({ ok: true, id: row.id }, 201);
 }

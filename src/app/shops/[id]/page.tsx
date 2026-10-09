@@ -40,7 +40,7 @@ export default function ShopDetailPage() {
   );
   const groups = useMemo(() => (shop ? groupShopProducts(shop, products) : []), [shop, products]);
   const linked = useMemo(
-    () => (shop ? allListings.filter((item) => item.shopId === shop.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden") : []),
+    () => (shop ? allListings.filter((item) => item.shopId === shop.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden") : []),
     [allListings, shop],
   );
 
@@ -104,6 +104,9 @@ export default function ShopDetailPage() {
               </div>
             ) : null}
             <div className="mt-1 text-[12px] text-muted-2">{t.shopCats[shop.category]}</div>
+            {shop.underReview ? (
+              <div className="mt-1.5 inline-block rounded-md bg-[#F6E3D4] px-2 py-0.5 text-[10px] font-bold text-ink">{t.underReview}</div>
+            ) : null}
           </div>
         </div>
 

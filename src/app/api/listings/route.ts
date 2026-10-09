@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { getSessionUser } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { blocks, listings } from "@/server/db/schema";
+import { blocks, listings, shops } from "@/server/db/schema";
 import { json } from "@/server/http";
 import { listingCounts, rowToListing } from "@/server/mappers";
 
@@ -18,7 +18,11 @@ export async function GET(req: Request) {
   const cursor = url.searchParams.get("cursor");
   const requested = Number(url.searchParams.get("limit") || 100);
   const limit = Math.min(1000, Math.max(1, Number.isFinite(requested) ? requested : 100));
-  const filters: SQL[] = [inArray(listings.status, PUBLIC_STATUS)];
+  const filters: SQL[] = [
+    inArray(listings.status, PUBLIC_STATUS),
+    eq(listings.underReview, false),
+    sql`(${listings.shopId} is null or not exists (select 1 from ${shops} where ${shops.id} = ${listings.shopId} and ${shops.underReview} = true))`,
+  ];
   const viewer = await getSessionUser(req).catch(() => null);
   if (viewer) {
     filters.push(

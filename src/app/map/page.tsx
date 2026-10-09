@@ -29,7 +29,7 @@ export default function MapPage() {
   const qLng = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : Number.NaN;
   const qCity = params.get("city");
   const filtered = useFiltered();
-  const pin = pinId ? allListings.find((l) => l.id === pinId && l.status !== "draft" && l.status !== "withdrawn" && l.status !== "closed" && l.status !== "hidden") : undefined;
+  const pin = pinId ? allListings.find((l) => l.id === pinId && !l.underReview && l.status !== "draft" && l.status !== "withdrawn" && l.status !== "closed" && l.status !== "hidden") : undefined;
   const listings = useMemo(() => {
     if (pin && !filtered.some((l) => l.id === pin.id)) return [pin, ...filtered];
     return filtered;
