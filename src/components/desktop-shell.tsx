@@ -9,6 +9,7 @@ import { PostChoices } from "@/components/post-choice";
 import { PLAY } from "@/components/play-banner";
 import { LangSwitch } from "@/components/ui";
 import { openLocationPicker, shownLocationLabel } from "@/components/location-line";
+import { useDesk } from "@/lib/desk";
 import { FEATURES } from "@/lib/features";
 import { searchRootPatch } from "@/lib/filter";
 import { helpWhatsAppUrl } from "@/lib/help";
@@ -18,7 +19,8 @@ import { useApp } from "@/lib/store";
 
 export function DesktopHeader() {
   const { t, lang, city, filters, setFilters, user, setPendingPath, askLeave } = useApp();
-  const { unread } = useNotices(user?.id ?? null);
+  const desk = useDesk();
+  const { unread } = useNotices(user?.id ?? null, { poll: desk });
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);

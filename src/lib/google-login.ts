@@ -16,7 +16,15 @@ type GoogleAccounts = {
     }) => void;
     renderButton: (
       parent: HTMLElement,
-      options: { theme: "outline"; size: "large"; width: number; locale: string; text: "signin_with" },
+      options: {
+        theme: "outline";
+        size: "large";
+        shape: "pill";
+        width: number;
+        locale: string;
+        text: "signin_with";
+        logo_alignment: "center";
+      },
     ) => void;
     disableAutoSelect: () => void;
   };
@@ -143,13 +151,16 @@ export async function startGoogleSignIn(opts: {
       auto_select: false,
       itp_support: true,
     });
-    const width = Math.max(container.clientWidth || 0, 240);
+    const measured = Math.floor(container.getBoundingClientRect().width);
+    const width = Math.min(400, Math.max(measured, 240));
     gis.renderButton(container, {
       theme: "outline",
       size: "large",
+      shape: "pill",
       width,
       locale: opts.locale,
       text: "signin_with",
+      logo_alignment: "center",
     });
   });
 }

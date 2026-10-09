@@ -38,9 +38,27 @@ export function mountTelegramWidget(container: HTMLElement, opts: { botUsername:
   script.src = "https://telegram.org/js/telegram-widget.js?22";
   script.setAttribute("data-telegram-login", opts.botUsername);
   script.setAttribute("data-size", "large");
+  script.setAttribute("data-radius", "20");
   script.setAttribute("data-auth-url", opts.authUrl);
   script.setAttribute("data-lang", "ru");
   container.appendChild(script);
+}
+
+/** Stretch the fixed iframe to the slot. The widget ignores width, so scale is the fit. */
+export function fitTelegramFrame(container: HTMLElement): void {
+  const iframe = container.querySelector("iframe");
+  if (!(iframe instanceof HTMLIFrameElement)) return;
+  iframe.style.transform = "none";
+  const naturalW = iframe.offsetWidth;
+  const naturalH = iframe.offsetHeight;
+  const boxW = container.clientWidth;
+  const boxH = container.clientHeight;
+  if (naturalW < 8 || naturalH < 8 || boxW < 8 || boxH < 8) return;
+  iframe.style.transformOrigin = "top left";
+  iframe.style.transform = `scale(${boxW / naturalW}, ${boxH / naturalH})`;
+  iframe.style.display = "block";
+  iframe.style.border = "0";
+  container.style.pointerEvents = "auto";
 }
 
 /** The widget iframe is cross-origin, so the click usually fails and the widget stays visible. */
@@ -49,6 +67,7 @@ export function tryClickTelegramWidget(container: HTMLElement): void {
   const tick = () => {
     const iframe = container.querySelector("iframe");
     if (iframe instanceof HTMLIFrameElement) {
+      fitTelegramFrame(container);
       try {
         const button = iframe.contentDocument?.querySelector("button, a");
         if (button instanceof HTMLElement) button.click();

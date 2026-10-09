@@ -12,6 +12,7 @@ import { LangSwitch } from "@/components/ui";
 import { fetchGoogleClientId, isInAppBrowser } from "@/lib/google-login";
 import {
   fetchTelegramConfig,
+  fitTelegramFrame,
   mountTelegramWidget,
   pollTelegramLogin,
   startTelegramAppLogin,
@@ -20,6 +21,9 @@ import {
   type TelegramClientConfig,
 } from "@/lib/telegram-login";
 import { useApp } from "@/lib/store";
+
+const authBtn =
+  "flex h-10 w-full items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-ink disabled:opacity-60";
 
 function LoginInner() {
   const { t, lang, user, ready, pendingPath, signInWithGoogle, acceptSignedInUser } = useApp();
@@ -145,6 +149,9 @@ function LoginInner() {
       authUrl: `${window.location.origin}/api/auth/telegram/callback`,
     });
     tryClickTelegramWidget(box);
+    const ro = new ResizeObserver(() => fitTelegramFrame(box));
+    ro.observe(box);
+    return () => ro.disconnect();
   }, [widgetOn, shell, telegram]);
 
   useEffect(() => {
@@ -278,71 +285,73 @@ function LoginInner() {
         <h1 className="mt-5 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.01em] text-ink">{t.slogan}</h1>
         <p className="mt-2.5 text-[15px] leading-[1.5] text-muted">{t.loginHint}</p>
 
-        <div className="mt-6" data-testid="google-login">
-          {error ? <p className="mb-2 text-[13px] leading-[1.45] text-accent">{error}</p> : null}
-          {phase === "soon" ? (
-            <button
-              type="button"
-              disabled
-              className="flex h-10 w-full items-center justify-center rounded-full border border-line bg-white text-[15px] font-semibold text-muted"
-            >
-              {t.loginSoon}
-            </button>
-          ) : null}
-          {phase === "webview" ? <p className="text-[13px] leading-[1.45] text-muted">{t.loginOpenInBrowser}</p> : null}
-          {native && phase !== "soon" && phase !== "webview" ? (
-            <button
-              type="button"
-              onClick={onNative}
-              disabled={busy || phase === "loading"}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-line bg-white text-[15px] font-semibold text-ink"
-            >
-              <BrandGoogle size={18} />
-              {t.loginGoogle}
-            </button>
-          ) : null}
-          {!native && phase !== "soon" && phase !== "webview" ? <div ref={boxRef} className="min-h-10 w-full" /> : null}
-        </div>
-
-        {telegramOn ? (
-          <div className="mt-4" data-testid="telegram-login">
-            <div className="flex items-center gap-3 text-[13px] text-muted">
-              <span className="h-px flex-1 bg-line" />
-              <span>{t.loginOr}</span>
-              <span className="h-px flex-1 bg-line" />
-            </div>
-            {tgError ? <p className="mt-3 text-[13px] leading-[1.45] text-accent">{tgError}</p> : null}
-            {tgWait ? (
-              <div className="mt-3">
-                <p className="flex items-center gap-2 text-[14px] leading-[1.45] text-ink">
-                  <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden />
-                  {t.loginTelegramWait}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => pollRef.current()}
-                  className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-line bg-white text-[15px] font-semibold text-ink"
-                >
-                  {t.loginTelegramConfirmed}
-                </button>
-              </div>
-            ) : (
+        <div className="mx-auto mt-6 flex w-full max-w-[360px] flex-col items-center gap-3">
+          <div className="w-full" data-testid="google-login">
+            {error ? <p className="mb-2 text-[13px] leading-[1.45] text-accent">{error}</p> : null}
+            {phase === "soon" ? (
               <button
                 type="button"
-                onClick={onTelegram}
-                disabled={tgBusy || shell === "unknown"}
-                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-line bg-white text-[15px] font-semibold text-ink"
+                disabled
+                className="flex h-10 w-full items-center justify-center rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-muted"
               >
-                <BrandTelegram size={18} />
-                {t.loginTelegram}
+                {t.loginSoon}
               </button>
-            )}
-            {widgetOn && shell === "web" ? <div ref={tgBoxRef} className="mt-3 min-h-10 w-full" /> : null}
-            <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.loginTelegramSeparate}</p>
+            ) : null}
+            {phase === "webview" ? <p className="text-[13px] leading-[1.45] text-muted">{t.loginOpenInBrowser}</p> : null}
+            {native && phase !== "soon" && phase !== "webview" ? (
+              <button type="button" onClick={onNative} disabled={busy || phase === "loading"} className={authBtn}>
+                <BrandGoogle size={18} />
+                {t.loginGoogle}
+              </button>
+            ) : null}
+            {!native && phase !== "soon" && phase !== "webview" ? (
+              <div ref={boxRef} className="h-10 w-full overflow-hidden rounded-full" />
+            ) : null}
           </div>
-        ) : tgError ? (
-          <p className="mt-4 text-[13px] leading-[1.45] text-accent">{tgError}</p>
-        ) : null}
+
+          {telegramOn ? (
+            <div className="flex w-full flex-col gap-3" data-testid="telegram-login">
+              <div className="flex items-center gap-3 text-[13px] text-muted">
+                <span className="h-px flex-1 bg-line" />
+                <span>{t.loginOr}</span>
+                <span className="h-px flex-1 bg-line" />
+              </div>
+              {tgError ? <p className="text-[13px] leading-[1.45] text-accent">{tgError}</p> : null}
+              {tgWait ? (
+                <div className="flex flex-col gap-3">
+                  <p className="flex items-center gap-2 text-[14px] leading-[1.45] text-ink">
+                    <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden />
+                    {t.loginTelegramWait}
+                  </p>
+                  <button type="button" onClick={() => pollRef.current()} className={authBtn}>
+                    {t.loginTelegramConfirmed}
+                  </button>
+                </div>
+              ) : (
+                <div className="relative h-10 w-full">
+                  <button
+                    type="button"
+                    onClick={onTelegram}
+                    disabled={tgBusy || shell === "unknown"}
+                    className={authBtn}
+                  >
+                    <BrandTelegram size={18} />
+                    {t.loginTelegram}
+                  </button>
+                  {widgetOn && shell === "web" ? (
+                    <div
+                      ref={tgBoxRef}
+                      className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-full opacity-0"
+                    />
+                  ) : null}
+                </div>
+              )}
+              <p className="text-[12px] leading-[1.45] text-muted">{t.loginTelegramSeparate}</p>
+            </div>
+          ) : tgError ? (
+            <p className="w-full text-[13px] leading-[1.45] text-accent">{tgError}</p>
+          ) : null}
+        </div>
 
         <Link
           href="/"
