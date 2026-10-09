@@ -6,6 +6,7 @@ import { formatSom } from "@/lib/data";
 import { stageOf } from "@/lib/listing-owner";
 import { offerWhen } from "@/lib/meet";
 import { parseDraftPrice } from "@/lib/market";
+import { listingEditHref } from "@/lib/listing-edit";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { DeleteCardDialog } from "./card-delete";
@@ -76,7 +77,7 @@ function listingAsDraft(listing: Listing): DraftListing {
 }
 
 export function OwnerListingTools({ listing }: { listing: Listing }) {
-  const { t, updateListing, clearMeetDeal, deleteListing } = useApp();
+  const { t, updateListing, clearMeetDeal, deleteListing, editListingToDraft } = useApp();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -146,6 +147,17 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
   return (
     <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.ownerTools}</div>
+      <button
+        type="button"
+        data-testid="listing-edit-full"
+        onClick={() => {
+          if (!listing.shopId) editListingToDraft(listing);
+          router.push(listingEditHref(listing));
+        }}
+        className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+      >
+        {t.edit}
+      </button>
       <div className="mt-3 flex flex-wrap gap-2">
         <Chip active={editing} accent={editing} onClick={() => setEditing((value) => !value)}>
           {t.ownerEdit}

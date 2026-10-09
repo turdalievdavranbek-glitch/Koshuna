@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ScreenBack } from "@/components/back-button";
 import { draftUnfinished } from "@/lib/draft-media";
@@ -68,6 +68,13 @@ export function PostChoices({
 }) {
   const { t, draft, discardDraft } = useApp();
   const [askNew, setAskNew] = useState(false);
+  const editing = Boolean(draft.editing);
+  useEffect(() => {
+    // An edit of an existing listing must never become a new post.
+    if (editing) discardDraft();
+    // discardDraft changes identity every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
   const unfinished = draftUnfinished(draft);
   const startPersonal = () => {
     if (unfinished) {

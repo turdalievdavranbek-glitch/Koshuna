@@ -448,6 +448,9 @@ export type DraftListing = {
   draftMedia?: { video?: string; voice?: string; photos?: string[] };
   photos?: string[];
   voiceSec?: number;
+  /** Editing an existing listing: publish updates `id` and keeps `editStatus`. */
+  editing?: boolean;
+  editStatus?: Listing["status"];
 };
 
 export const SHOP_CATEGORIES = [
