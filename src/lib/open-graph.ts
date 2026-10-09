@@ -1,7 +1,7 @@
 import { formatSom } from "./data";
 
 export const SITE_ORIGIN = "https://koshuna.ru";
-export const SITE_TITLE = "Koshuna — маркетплейс Кыргызстана";
+export const SITE_TITLE = "Коңшу — маркетплейс Кыргызстана";
 export const SITE_DESCRIPTION =
   "Жильё, секонд-хенд, авто, услуги и вакансии по всему Кыргызстану. Местные находки. Новые начала.";
 export const OG_FALLBACK = "/brand/og-default.png";

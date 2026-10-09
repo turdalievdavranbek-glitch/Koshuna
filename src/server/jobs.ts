@@ -1,8 +1,10 @@
-import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
+import { CIRCLE_MAX } from "@/lib/circles";
 import { getDb } from "./db";
 import {
   accountDeletions,
   cartItems,
+  circlePicks,
   devices,
   listings,
   media,
@@ -20,10 +22,7 @@ import { rowToShop } from "./mappers";
 import { closeExpiredPurchaseRequests } from "./purchase-requests";
 import { partPath, removeFile } from "./media";
 
-/**
- * Circles and price-stats jobs are Шаг 23 / Шаг 24.
- * Owner decision 2026-10-08 09:41: do not build them here. Tables stay in the schema.
- */
+/** Price-stats job is Шаг 24. The table stays; this step does not fill it. */
 
 export async function listingReminders(): Promise<{ ok: true; counts: Record<string, number> }> {
   const db = getDb();
@@ -176,8 +175,70 @@ export async function cleanupJob(): Promise<{ ok: true; counts: Record<string, n
   return { ok: true, counts: { uploading: stale.length, orphans: orphans.length, sessions: gone.length, requests } };
 }
 
+/**
+ * Top public videos per city, by like reactions only.
+ * One transaction deletes and inserts that city's rows.
+ * Hidden, under review, and banned authors never get a row.
+ */
+export async function circlesJob(): Promise<{ ok: true; counts: Record<string, number> }> {
+  const db = getDb();
+  const result = await db.execute(sql`
+    select ${listings.id} as id, ${listings.city} as city, count(${reactions.userId})::int as likes
+    from ${listings}
+    inner join ${users} on ${users.id} = ${listings.ownerId}
+    left join ${shops} on ${shops.id} = ${listings.shopId}
+    left join ${reactions} on ${reactions.listingId} = ${listings.id} and ${reactions.value} = 'like'
+    where ${listings.status} in ('active', 'promoted', 'reserved')
+      and ${listings.underReview} = false
+      and (${listings.hasVideo} = true or (${listings.videoUrl} is not null and ${listings.videoUrl} <> ''))
+      and (${listings.shopId} is null or (${shops.status} = 'active' and ${shops.underReview} = false))
+      and ${users.bannedAt} is null
+      and ${users.deletedAt} is null
+      and ${listings.city} <> ''
+    group by ${listings.id}, ${listings.city}, ${listings.createdAt}
+    order by count(${reactions.userId}) desc, ${listings.createdAt} desc
+  `);
+  if (!Array.isArray(result)) throw new Error("circles job: unexpected query result");
+  const byCity = new Map<string, string[]>();
+  for (const raw of result) {
+    const row = raw as { id?: unknown; city?: unknown };
+    const city = typeof row.city === "string" ? row.city : "";
+    const id = typeof row.id === "string" ? row.id : "";
+    if (!city || !id) continue;
+    const list = byCity.get(city) ?? [];
+    if (list.length >= CIRCLE_MAX) continue;
+    list.push(id);
+    byCity.set(city, list);
+  }
+
+  const now = new Date();
+  let picks = 0;
+  for (const [city, ids] of byCity) {
+    await db.transaction(async (tx) => {
+      await tx.delete(circlePicks).where(eq(circlePicks.city, city));
+      if (!ids.length) return;
+      await tx.insert(circlePicks).values(
+        ids.map((listingId, index) => ({
+          city,
+          listingId,
+          rank: index + 1,
+          computedAt: now,
+        })),
+      );
+    });
+    picks += ids.length;
+  }
+
+  const cities = [...byCity.keys()];
+  if (cities.length) await db.delete(circlePicks).where(notInArray(circlePicks.city, cities));
+  else await db.delete(circlePicks);
+
+  return { ok: true, counts: { cities: cities.length, picks } };
+}
+
 export const JOBS = {
   "listing-reminders": listingReminders,
   "account-deletions": accountDeletionsJob,
   cleanup: cleanupJob,
+  circles: circlesJob,
 } as const;

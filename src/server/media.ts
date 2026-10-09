@@ -179,6 +179,28 @@ export async function writeChunk(uploadId: string, offset: number, bytes: Uint8A
   return { received: offset + bytes.byteLength };
 }
 
+/**
+ * Remux mp4/mov so playback can start before the whole file downloads.
+ * Copy only — no re-encode. A failure leaves the original file in place.
+ */
+export async function remuxFaststart(relative: string, mime: string): Promise<void> {
+  if (mime !== "video/mp4" && mime !== "video/quicktime") return;
+  const bin = process.env.FFMPEG_PATH || "ffmpeg";
+  const full = path.join(mediaRoot(), relative);
+  const tmp = `${full}.faststart.tmp`;
+  try {
+    await execFileAsync(bin, ["-y", "-i", full, "-c", "copy", "-movflags", "+faststart", tmp], {
+      timeout: 30_000,
+      maxBuffer: 1024 * 1024,
+    });
+    await rename(tmp, full);
+    const { chmod } = await import("fs/promises");
+    await chmod(full, 0o644);
+  } catch {
+    await unlink(tmp).catch(() => undefined);
+  }
+}
+
 export async function movePart(uploadId: string, relative: string) {
   const dest = path.join(mediaRoot(), relative);
   await ensureDir(path.dirname(dest));

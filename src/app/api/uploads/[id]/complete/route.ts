@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/server/db";
 import { media } from "@/server/db/schema";
 import { guardCsrf, json, requireUser } from "@/server/http";
-import { durationLimit, finalRelative, movePart, partPath, probeDuration, removeFile } from "@/server/media";
+import { durationLimit, finalRelative, movePart, partPath, probeDuration, remuxFaststart, removeFile } from "@/server/media";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -38,6 +38,7 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const { relative, url } = finalRelative(row.kind, row.mime, row.id);
   await movePart(id, relative);
+  if (row.kind === "video") await remuxFaststart(relative, row.mime);
   await db
     .update(media)
     .set({ uploadStatus: "ready", path: relative, url, durationSec: duration })

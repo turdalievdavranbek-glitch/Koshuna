@@ -348,7 +348,7 @@ export const appConfig = pgTable("app_config", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
-/** Table only. The hourly job and the client switch are Шаг 23 (owner decision 2026-10-08). */
+/** Hourly `circles` job writes the top 10 public videos per city. The client reads them from /api/circles. */
 export const circlePicks = pgTable(
   "circle_picks",
   {

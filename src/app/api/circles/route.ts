@@ -6,7 +6,7 @@ import { json } from "@/server/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Read-only. Picks are filled in Шаг 23. This step does not run the circles job. */
+/** Ids written by the hourly circles job, best first. Empty until that job has run for the city. */
 export async function GET(req: Request) {
   const city = new URL(req.url).searchParams.get("city") || "";
   if (!city) return json({ ids: [] });

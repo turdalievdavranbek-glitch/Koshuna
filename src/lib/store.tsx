@@ -2374,7 +2374,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const chatId = developer?.telegramChatId || realtor?.telegramChatId || dealer?.telegramChatId;
       const unit = input.unitId ? state.complexUnits.find((row) => row.id === input.unitId) : undefined;
       const text = [
-        "Заявка Koshuna",
+        "Заявка Коңшу",
         complex ? `ЖК: ${complex.name}` : "",
         unit ? `Юнит: корп. ${unit.buildingLabel}, эт. ${unit.floor}, ${unit.rooms || "ст."} комн.` : "",
         input.listingId ? `Объявление: ${listing?.title ?? input.listingId}` : "",

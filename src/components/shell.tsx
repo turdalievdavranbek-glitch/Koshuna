@@ -135,6 +135,7 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
   const path = usePathname();
   const [hidden, setHidden] = useState(false);
   const phoneRef = useRef<HTMLDivElement>(null);
+  const reels = path === "/reels";
 
   useEffect(() => {
     setHidden(false);
@@ -174,11 +175,15 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
         {!online ? (
           <div className="flex h-7 shrink-0 items-center justify-center bg-ink text-[12px] text-screen">{t.offlineTitle}</div>
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
-        <div className="z-30 shrink-0 bg-surface">
-          <UploadStatus />
-          <TabBar hidden={hidden} />
+        <div className={reels ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"}>
+          {children}
         </div>
+        {reels ? null : (
+          <div className="z-30 shrink-0 bg-surface">
+            <UploadStatus />
+            <TabBar hidden={hidden} />
+          </div>
+        )}
       </div>
     </div>
   );
