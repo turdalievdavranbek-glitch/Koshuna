@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CIRCLE_TTL_MS, pickNeighborCircles, resetCircleCache } from "@/lib/circles";
+import { api } from "@/lib/api/client";
+import {
+  CIRCLE_TTL_MS,
+  circleScopeFrom,
+  circlesFromIds,
+  listingInCircleScope,
+  pickNeighborCircles,
+  resetCircleCache,
+} from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { listingsForSearch } from "@/lib/search-browse";
@@ -10,14 +18,16 @@ import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { ListingThumb } from "./listing-media";
 
-export function NeighborCircles({ listings }: { listings: Listing[] }) {
-  void listings;
-  const { t, lang, city, filters, allListings, comments, reactions, shops } = useApp();
-  const router = useRouter();
+/** Videos for the home strip. Server picks when the hourly job has written this city; otherwise the local likes ranking. */
+export function useCircleList(): Listing[] {
+  const { city, filters, allListings, comments, reactions, shops } = useApp();
+  const scope = useMemo(
+    () => circleScopeFrom(city, filters.city, filters.oblast),
+    [city, filters.city, filters.oblast],
+  );
+  const scopeKey = `${scope.city}|${scope.oblast}`;
   const [tick, setTick] = useState(0);
-  const scopeCity = filters.city && filters.city !== "all" ? filters.city : city;
-  const scopeOblast = filters.oblast;
-  const scopeKey = `${scopeCity}|${scopeOblast}`;
+  const [serverIds, setServerIds] = useState<string[] | null>(null);
   const prevScope = useRef<string | null>(null);
 
   useEffect(() => {
@@ -33,11 +43,38 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
     return () => window.clearInterval(id);
   }, []);
 
-  const videos = useMemo(() => {
-    void tick; // hourly timer: recompute so a cached circle can expire
-    const picked = pickNeighborCircles(allListings, { city: scopeCity, oblast: scopeOblast }, reactions, comments, Date.now(), false).listings;
+  useEffect(() => {
+    if (!scope.city || scope.city === "all") {
+      setServerIds(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ ids?: string[] }>(`/api/circles?city=${encodeURIComponent(scope.city)}`).then((res) => {
+      if (cancel) return;
+      const ids = res.ok && Array.isArray(res.data?.ids) ? res.data.ids.filter((id) => typeof id === "string") : [];
+      setServerIds(ids.length ? ids : null);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [scope.city, tick]);
+
+  return useMemo(() => {
+    const publicList = listingsForSearch(allListings, shops).filter((item) => listingInCircleScope(item, scope));
+    if (serverIds?.length) {
+      const fromServer = circlesFromIds(serverIds, publicList, scope);
+      if (fromServer.length) return listingsForSearch(fromServer, shops);
+    }
+    const picked = pickNeighborCircles(publicList, scope, reactions, comments, Date.now(), false).listings;
     return listingsForSearch(picked, shops);
-  }, [allListings, scopeCity, scopeOblast, comments, reactions, shops, tick]);
+  }, [allListings, comments, reactions, scope, serverIds, shops]);
+}
+
+export function NeighborCircles({ listings }: { listings: Listing[] }) {
+  void listings;
+  const { t, lang } = useApp();
+  const router = useRouter();
+  const videos = useCircleList();
 
   return (
     <div data-testid="neighbor-circles">
@@ -53,7 +90,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => router.push(`/listing/${item.id}`)}
+                onClick={() => router.push(`/reels?id=${encodeURIComponent(item.id)}`)}
                 className="flex w-[76px] shrink-0 flex-col items-center text-center"
               >
                 <ListingThumb listing={item} alt={title} compact playInline circle className="w-[60px]" />

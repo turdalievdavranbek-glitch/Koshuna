@@ -274,7 +274,7 @@ async function main() {
     csrf: false,
     headers: { "x-jobs-secret": process.env.JOBS_SECRET || "" },
   });
-  assert(circlesSecret.status === 404, "circles with secret 404 (step 23)", circlesSecret);
+  assert(circlesSecret.status === 200 && circlesSecret.data?.ok === true, "circles job 200", circlesSecret);
 
   const deleted = await call(B, "POST", "/api/me/delete", { json: { source: "app" } });
   assert(deleted.status === 200, "B delete request", deleted);
