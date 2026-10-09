@@ -9,6 +9,8 @@ import { DesktopFooter, DesktopHeader } from "./desktop-shell";
 import { PostChoices } from "./post-choice";
 import { IconBag, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
 import { UploadStatus } from "./upload-status";
+import { UnreadBadge } from "./unread-badge";
+import { useChatUnread } from "@/lib/chat-unread";
 
 type TabIcon = (p: { size?: number; color?: string }) => ReactNode;
 
@@ -16,6 +18,7 @@ const TAB_H = 78;
 
 export function TabBar({ hidden }: { hidden?: boolean }) {
   const { t, user, setPendingPath, askLeave, setFilters } = useApp();
+  const chatUnread = useChatUnread(user?.id ?? null);
   const path = usePathname();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -56,14 +59,17 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
     run();
   };
 
-  const item = (href: string, testId: string, label: string, Icon: TabIcon, active: boolean) => (
+  const item = (href: string, testId: string, label: string, Icon: TabIcon, active: boolean, badge = 0) => (
     <button
       type="button"
       onClick={() => go(href)}
       data-testid={testId}
       className="flex flex-1 flex-col items-center gap-1 pt-2"
     >
-      <Icon size={21} color={active ? "#B8452F" : "#A79C8C"} />
+      <span className="relative flex">
+        <Icon size={21} color={active ? "#B8452F" : "#A79C8C"} />
+        <UnreadBadge count={badge} testId={`${testId}-badge`} className="-top-2 -right-3" />
+      </span>
       <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#B8452F" : "#A79C8C" }}>
         {label}
       </span>
@@ -100,7 +106,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
         </button>
       </div>
       {item("/favorites", "tab-favorites", t.fav, IconBag, favOn)}
-      {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn)}
+      {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn, chatUnread)}
       {sheet ? (
         <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
           <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>

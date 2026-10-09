@@ -10,6 +10,8 @@ import { PLAY } from "@/components/play-banner";
 import { LangSwitch } from "@/components/ui";
 import { openLocationPicker, shownLocationLabel } from "@/components/location-line";
 import { useDesk } from "@/lib/desk";
+import { useChatUnread } from "@/lib/chat-unread";
+import { UnreadBadge, RingOnRise } from "@/components/unread-badge";
 import { FEATURES } from "@/lib/features";
 import { searchRootPatch } from "@/lib/filter";
 import { helpWhatsAppUrl } from "@/lib/help";
@@ -24,7 +26,7 @@ export function DesktopHeader() {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const hasUnread = unread > 0;
+  const chatUnread = useChatUnread(user?.id ?? null);
 
   useEffect(() => {
     if (!open) return;
@@ -78,7 +80,7 @@ export function DesktopHeader() {
       title={label}
       data-testid={testId}
       onClick={() => go(href)}
-      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
     >
       {node}
     </button>
@@ -125,16 +127,24 @@ export function DesktopHeader() {
           href="/notifications"
           data-testid="desk-bell"
           aria-label={t.notifications}
-          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
         >
-          <IconBell size={18} color="#17140F" />
-          {hasUnread ? (
-            <span className="absolute top-1.5 right-1.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent" />
-          ) : null}
+          <RingOnRise count={unread}>
+            <IconBell size={26} color="#17140F" />
+          </RingOnRise>
+          <UnreadBadge count={unread} testId="desk-notif-badge" className="-top-1 -right-1" />
         </Link>
-        {icon("/messages", t.inbox, <IconChat size={18} color="#17140F" />, "desk-messages")}
-        {icon("/favorites", t.fav, <IconBag size={18} color="#17140F" />, "desk-cart")}
-        {icon("/profile", t.sideDesk, <IconUser size={18} color="#17140F" />, "desk-profile")}
+        {icon(
+          "/messages",
+          t.inbox,
+          <>
+            <IconChat size={24} color="#17140F" />
+            <UnreadBadge count={chatUnread} testId="desk-chat-badge" className="-top-1 -right-1" />
+          </>,
+          "desk-messages",
+        )}
+        {icon("/favorites", t.fav, <IconBag size={24} color="#17140F" />, "desk-cart")}
+        {icon("/profile", t.sideDesk, <IconUser size={24} color="#17140F" />, "desk-profile")}
         <button
           type="button"
           data-testid="desk-post"
