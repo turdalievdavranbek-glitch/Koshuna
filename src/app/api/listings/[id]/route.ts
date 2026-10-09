@@ -64,8 +64,14 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   const existing = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
   if (existing[0] && existing[0].ownerId !== user.id) return json({ error: "forbidden" }, 403);
 
+  // A listing hidden by moderation cannot be revived or edited by its owner.
+  if (existing[0]?.status === "hidden") return json({ error: "hidden" }, 403);
   const base = existing[0] ? rowToListing(existing[0]) : null;
   if (mode === "patch" && !base) return json({ error: "not-found" }, 404);
+  // Hiding is moderation-only: an owner edit keeps the stored status instead.
+  if (existing[0] && patch.status === "hidden") {
+    patch = { ...patch, status: existing[0].status as Listing["status"] };
+  }
   const merged = sanitizeServiceListing({ ...(base ?? {}), ...patch, id } as Listing);
   if (!merged.section || !merged.title) return json({ error: "bad-listing" }, 400);
   let shopKinds: readonly string[] | null = null;

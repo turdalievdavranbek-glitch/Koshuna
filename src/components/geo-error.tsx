@@ -20,7 +20,15 @@ export function GeoError({
   const router = useRouter();
   const path = usePathname();
   const text =
-    error === "denied" ? t.geoDenied : error === "off" ? t.geoOff : error === "timeout" ? t.geoTimeout : t.geoInsecure;
+    error === "denied"
+      ? t.geoDenied
+      : error === "off"
+        ? t.geoOff
+        : error === "timeout"
+          ? t.geoTimeout
+          : error === "outside"
+            ? t.geoOutside
+            : t.geoInsecure;
   const retry = error === "off" || error === "timeout";
   const manual = () => (onManual ? onManual() : openLocationPicker(router, path || "/"));
 

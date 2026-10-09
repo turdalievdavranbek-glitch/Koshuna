@@ -428,6 +428,10 @@ export const messages = pgTable(
     mediaUrl: text("media_url"),
     createdAt: ts("created_at").notNull().defaultNow(),
     readAt: ts("read_at"),
+    /** Sender changed the text. No push, unread unchanged. */
+    editedAt: ts("edited_at"),
+    /** Soft delete for both people: shown as «Сообщение удалено». */
+    deletedAt: ts("deleted_at"),
   },
   (t) => [check("messages_kind", sql`${t.kind} in ('text','voice','system')`)],
 );

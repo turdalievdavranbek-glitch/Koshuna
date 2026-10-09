@@ -1,5 +1,5 @@
 {
-  "id": "af04f073-4475-462f-98a8-1aa7486c5627",
+  "id": "5ad07fa4-fdc0-4bdc-8c62-914790e14981",
   "prevId": "471a9594-c471-4274-8a83-6067aba4b57e",
   "version": "7",
   "dialect": "postgresql",
@@ -1053,6 +1053,18 @@
         },
         "read_at": {
           "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "edited_at": {
+          "name": "edited_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

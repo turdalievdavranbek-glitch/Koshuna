@@ -88,7 +88,7 @@ export function ShopItemCapture({
   const [placeLat, setPlaceLat] = useState<number | undefined>();
   const [placeLng, setPlaceLng] = useState<number | undefined>();
   const [geoBusy, setGeoBusy] = useState(false);
-  const [geoFail, setGeoFail] = useState(false);
+  const [geoFail, setGeoFail] = useState<boolean | "outside">(false);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
   const pointMode = Boolean(card) && !shopId;
   const shop = shopId
@@ -953,7 +953,7 @@ export function ShopItemCapture({
                   void locate().then((res) => {
                     setGeoBusy(false);
                     if (!res.ok) {
-                      setGeoFail(true);
+                      setGeoFail(res.error === "outside" ? "outside" : true);
                       return;
                     }
                     setPlaceLat(res.lat);
@@ -964,7 +964,7 @@ export function ShopItemCapture({
               >
                 {geoBusy ? t.locationGeoBusy : t.locationGeo}
               </button>
-              {geoFail ? <p className="text-[12px] leading-[1.4] text-muted">{t.geoShopFail}</p> : null}
+              {geoFail ? <p className="text-[12px] leading-[1.4] text-muted">{geoFail === "outside" ? t.geoOutside : t.geoShopFail}</p> : null}
               <div className="flex flex-wrap gap-2">
                 {SHOP_CATEGORIES.map((id) => (
                   <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>

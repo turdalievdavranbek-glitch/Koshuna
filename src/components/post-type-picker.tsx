@@ -19,7 +19,8 @@ export function PostTypePicker({
   exclude,
   startOpen,
 }: {
-  value: SectionId;
+  /** Undefined: nothing chosen yet (fresh personal post). */
+  value?: SectionId;
   onPick: (id: SectionId) => void;
   exclude?: SectionId[];
   startOpen?: boolean;
@@ -32,7 +33,7 @@ export function PostTypePicker({
 
   return (
     <div>
-      <SelectRow label={t.listingType} value={sectionLabel(visual, t)} onClick={() => setOpen((v) => !v)} />
+      <SelectRow label={t.listingType} value={visual ? sectionLabel(visual, t) : t.catPickHint} onClick={() => setOpen((v) => !v)} />
       {open ? (
         <div className="mt-2 overflow-hidden rounded-[16px] border border-line bg-white">
           {tiles.map((s, i) => {

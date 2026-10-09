@@ -445,9 +445,14 @@ export type DraftListing = {
   savedAt?: string;
   flow?: "personal" | `card:${string}`;
   categoryLocked?: boolean;
+  /** Personal post: the section was tapped by the person or matched with high confidence. Needed to publish. */
+  sectionPicked?: boolean;
   draftMedia?: { video?: string; voice?: string; photos?: string[] };
   photos?: string[];
   voiceSec?: number;
+  /** Editing an existing listing: publish updates `id` and keeps `editStatus`. */
+  editing?: boolean;
+  editStatus?: Listing["status"];
 };
 
 export const SHOP_CATEGORIES = [

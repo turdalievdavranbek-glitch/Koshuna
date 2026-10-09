@@ -532,6 +532,8 @@ type Store = State & {
   setLeadStatus: (id: string, status: PartnerLead["status"]) => void;
   setUnitStatus: (id: string, status: ComplexUnit["status"]) => void;
   duplicateListingToDraft: (listing: Listing) => void;
+  /** Loads an own listing into the post form; publishing updates it (same id). */
+  editListingToDraft: (listing: Listing) => void;
   toggleRealtorVerified: (id: string) => void;
   toggleDeveloperVerified: (id: string) => void;
   toggleDealerVerified: (id: string) => void;
@@ -1469,6 +1471,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     },
     saveDraft: () => {
+      if (state.draft.editing) {
+        // A live listing being edited is never saved back as a draft.
+        return userListingFromDraft(state.draft, {
+          user: state.user,
+          dealerProfiles: state.dealerProfiles,
+          untitled: t.draft,
+          status: state.draft.editStatus ?? "active",
+        });
+      }
       const listing = userListingFromDraft(state.draft, {
         user: state.user,
         dealerProfiles: state.dealerProfiles,
@@ -1499,12 +1510,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         d.section === "services" ||
         Boolean(d.price.trim());
       if (!d.title.trim() || !priced) return null;
-      const listing = userListingFromDraft(d, {
+      const built = userListingFromDraft(d, {
         user: liveUser,
         dealerProfiles: state.dealerProfiles,
         untitled: t.draft,
-        status: d.promote ? "promoted" : "active",
+        status: d.editing && d.editStatus && d.editStatus !== "draft" ? d.editStatus : d.promote ? "promoted" : "active",
       });
+      // Editing keeps counters, dates and moderation flags of the original listing.
+      const original = d.editing
+        ? state.extraListings.find((item) => item.id === built.id) ?? state.feed.find((item) => item.id === built.id)
+        : undefined;
+      const listing: Listing = original
+        ? ({
+            ...original,
+            ...Object.fromEntries(Object.entries(built).filter(([, value]) => value !== undefined)),
+            postedAgo: original.postedAgo,
+          } as Listing)
+        : built;
       update((s) => ({
         ...s,
         extraListings: upsertExtraListing(s.extraListings, listing),
@@ -2430,11 +2452,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
         complexUnits: s.complexUnits.map((row) => (row.id === id ? { ...row, status, updatedAt: new Date().toISOString() } : row)),
       }));
     },
+    editListingToDraft: (listing) => {
+      const photos = listing.photos.filter((url) => !url.startsWith("/sections/"));
+      update((s) => ({
+        ...s,
+        draft: {
+          ...defaultDraft(),
+          name: s.user?.name ?? "",
+          phone: s.user?.phone ?? "",
+          id: listing.id,
+          editing: true,
+          editStatus: listing.status,
+          // The edit keeps the listing's section; the guesser must not move it.
+          categoryLocked: true,
+          sectionPicked: true,
+          section: listing.section,
+          kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
+          title: listing.title,
+          city: listing.city,
+          price: listing.price ? String(listing.price) : "",
+          priceNegotiable: !listing.price && listing.section !== "vacancies" && listing.section !== "services" && listing.section !== "restaurants" ? true : undefined,
+          rooms: listing.rooms != null ? String(listing.rooms) : "",
+          area: listing.area != null ? String(listing.area) : "",
+          description: listing.description,
+          promote: listing.status === "promoted",
+          photo: photos[0],
+          photos: photos.length ? photos : undefined,
+          videoUrl: listing.videoUrl,
+          voiceUrl: listing.voiceUrl,
+          transcript: listing.transcript,
+          mediaKind: listing.mediaKind ?? (listing.videoUrl ? "video" : "photos"),
+          category: listing.category,
+          goodsKind: listing.goodsKind,
+          housingKind: listing.housingKind,
+          dealKind: listing.dealKind,
+          realtyGroup: listing.realtyGroup,
+          realtySub: listing.realtySub,
+          realtyKind: listing.realtyKind,
+          sellerType: listing.sellerType,
+          animalGroup: listing.animalGroup,
+          animalKind: listing.animalKind,
+          vehicleGroup: listing.vehicleGroup,
+          vehicleType: listing.bodyKind,
+          carMake: listing.carMake,
+          carModel: listing.carModel,
+          year: listing.year,
+          mileage: listing.mileage,
+          gearKind: listing.gearKind,
+          techBrand: listing.techBrand,
+          techModel: listing.techModel,
+          serviceMode: listing.serviceMode,
+          serviceArea: listing.serviceArea,
+          priceFrom: listing.priceFrom,
+          hours: listing.hours,
+          address: listing.address,
+          aiConfirmed: true,
+          lat: listing.lat,
+          lng: listing.lng,
+          district: listing.district,
+          meetupSpot: listing.meetupSpot,
+          neighborPledge: listing.noAgent,
+        },
+        side: "sell",
+      }));
+    },
     duplicateListingToDraft: (listing) => {
       update((s) => ({
         ...s,
         draft: {
           ...s.draft,
+          id: undefined,
+          editing: false,
+          editStatus: undefined,
           section: listing.section,
           kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
           title: `${listing.title}`,

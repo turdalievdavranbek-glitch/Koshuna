@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { listingEditHref } from "@/lib/listing-edit";
 import { mineListings } from "@/lib/listing-owner";
 import { useApp } from "@/lib/store";
 import { CardMenu, DeleteCardDialog } from "@/components/card-delete";
@@ -22,7 +23,7 @@ function statusLabel(
 }
 
 export function MyListings({ limit }: { limit?: number }) {
-  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft, deleteListing } = useApp();
+  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft, editListingToDraft, deleteListing } = useApp();
   const router = useRouter();
   const [pendingId, setPendingId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,16 +109,38 @@ export function MyListings({ limit }: { limit?: number }) {
           <div className="flex items-center gap-2 border-t border-line px-3.5 py-2">
             <button
               type="button"
+              data-testid="listing-edit"
               onClick={() => {
-                duplicateListingToDraft(item);
-                router.push("/post");
+                if (!item.shopId) editListingToDraft(item);
+                router.push(listingEditHref(item));
               }}
-              className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold"
+              className="h-9 rounded-full bg-ink px-4 text-[13px] font-bold text-screen"
             >
-              {t.duplicateListing}
+              {t.edit}
             </button>
             <span className="ml-auto">
-              <CardMenu onDelete={() => setPendingId(item.id)} testId="listing-menu" />
+              <CardMenu
+                onDelete={() => setPendingId(item.id)}
+                testId="listing-menu"
+                items={[
+                  {
+                    label: t.edit,
+                    testId: "listing-menu-edit",
+                    onClick: () => {
+                      if (!item.shopId) editListingToDraft(item);
+                      router.push(listingEditHref(item));
+                    },
+                  },
+                  {
+                    label: t.duplicateListing,
+                    testId: "listing-menu-duplicate",
+                    onClick: () => {
+                      duplicateListingToDraft(item);
+                      router.push("/post");
+                    },
+                  },
+                ]}
+              />
             </span>
           </div>
         </div>

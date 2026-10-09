@@ -7,7 +7,7 @@ import { GeoError } from "@/components/geo-error";
 import { HoursPicker } from "@/components/hours-picker";
 import { Chip, Field, Input } from "@/components/ui";
 import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
-import { districtLabel, gisCity, nearestDistrict } from "@/lib/geo";
+import { districtLabel, gisCity, nearestDistrict, spotForFix } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { DraftListing } from "@/lib/types";
@@ -40,8 +40,8 @@ export function ServiceCardFields({
         setGeoError(res.error);
         return;
       }
-      const area = nearestDistrict(res.lat, res.lng, draft.city);
-      onPatch({ lat: res.lat, lng: res.lng, district: area?.name });
+      const spot = spotForFix(res.lat, res.lng);
+      onPatch({ lat: res.lat, lng: res.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.name });
     });
   };
 
