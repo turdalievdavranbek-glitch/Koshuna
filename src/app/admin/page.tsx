@@ -10,10 +10,11 @@ import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 
 type ModerationItem = {
-  kind: "listing" | "shop";
+  kind: "listing" | "shop" | "comment";
   id: string;
   title: string;
-  label: "listing" | "point" | "service";
+  label: "listing" | "point" | "service" | "comment";
+  listingId?: string;
   underReview: boolean;
   reportCount: number;
   reasons: string[];
@@ -88,12 +89,24 @@ export default function AdminPage() {
           {items === null ? null : items.length === 0 ? (
             <p className="text-[13px] text-muted">{t.moderationEmpty}</p>
           ) : items.map((item) => {
-            const kind = item.label === "service" ? t.moderationKindService : item.label === "point" ? t.moderationKindPoint : t.moderationKindListing;
+            const kind =
+              item.label === "comment"
+                ? t.moderationKindComment
+                : item.label === "service"
+                  ? t.moderationKindService
+                  : item.label === "point"
+                    ? t.moderationKindPoint
+                    : t.moderationKindListing;
             const reasons = item.reasons.map((reason) => t.reportReasons[reason] || reason).join(" · ");
             return (
               <div key={`${item.kind}:${item.id}`} className="rounded-[16px] border border-line bg-white p-3.5">
                 <div className="text-[11px] font-bold uppercase text-accent-dark">{kind}</div>
-                <div className="mt-1 text-[15px] font-semibold text-ink">{item.title}</div>
+                <div className="mt-1 whitespace-pre-wrap break-words text-[15px] font-semibold text-ink">{item.title}</div>
+                {item.kind === "comment" && item.listingId ? (
+                  <a href={`/listing/${item.listingId}`} className="text-[12px] font-semibold text-accent">
+                    {t.open}
+                  </a>
+                ) : null}
                 {item.ownerName ? <div className="text-[13px] text-muted">{item.ownerName}</div> : null}
                 <div className="mt-1 text-[13px] text-muted">
                   {t.moderationCount(item.reportCount)}

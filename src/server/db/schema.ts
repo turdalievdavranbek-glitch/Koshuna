@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -291,6 +292,44 @@ export const blocks = pgTable(
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedUserId] })],
 );
 
+/** Listing comments (Instagram-style, one reply level). Soft delete; 3 reporters hide for review. */
+export const listingComments = pgTable(
+  "listing_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    listingId: text("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => listingComments.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    editedAt: ts("edited_at"),
+    deletedAt: ts("deleted_at"),
+    underReview: boolean("under_review").notNull().default(false),
+  },
+  (t) => [
+    index("listing_comments_listing_idx").on(t.listingId, t.createdAt),
+    index("listing_comments_author_idx").on(t.authorId, t.createdAt),
+  ],
+);
+
+export const listingCommentLikes = pgTable(
+  "listing_comment_likes",
+  {
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => listingComments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId] })],
+);
+
 export const reports = pgTable(
   "reports",
   {
@@ -299,6 +338,7 @@ export const reports = pgTable(
     listingId: text("listing_id").references(() => listings.id, { onDelete: "cascade" }),
     shopId: text("shop_id").references(() => shops.id, { onDelete: "cascade" }),
     targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "set null" }),
+    commentId: uuid("comment_id").references(() => listingComments.id, { onDelete: "cascade" }),
     reason: text("reason").notNull(),
     comment: text("comment"),
     status: text("status").notNull().default("new"),
@@ -309,9 +349,10 @@ export const reports = pgTable(
     check("reports_status", sql`${t.status} in ('new','hidden','dismissed')`),
     check(
       "reports_one_target",
-      sql`((${t.listingId} is not null)::int + (${t.shopId} is not null)::int + (${t.targetUserId} is not null)::int) = 1`,
+      sql`((${t.listingId} is not null)::int + (${t.shopId} is not null)::int + (${t.targetUserId} is not null)::int + (${t.commentId} is not null)::int) = 1`,
     ),
     index("reports_listing_idx").on(t.listingId),
+    index("reports_comment_idx").on(t.commentId),
     index("reports_shop_idx").on(t.shopId),
   ],
 );

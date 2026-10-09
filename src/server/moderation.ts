@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Shop } from "@/lib/types";
 import { getDb, type Db } from "./db";
-import { listings, reports, sessions, shops, users } from "./db/schema";
+import { listingComments, listings, reports, sessions, shops, users } from "./db/schema";
 import { rowToShop } from "./mappers";
 
 /** Personal listings without a point, per rolling 24 hours. */
@@ -14,10 +14,12 @@ const POINT_LISTING = ["active", "promoted", "reserved"] as const;
 type Executor = Pick<Db, "select">;
 
 export type ModerationItem = {
-  kind: "listing" | "shop";
+  kind: "listing" | "shop" | "comment";
   id: string;
   title: string;
-  label: "listing" | "point" | "service";
+  label: "listing" | "point" | "service" | "comment";
+  /** Comment: the listing it was written under. */
+  listingId?: string;
   underReview: boolean;
   reportCount: number;
   reasons: string[];
@@ -67,11 +69,13 @@ export async function insertPersonalListing(
 
 async function distinctReporters(
   tx: Pick<Db, "select">,
-  target: { listingId?: string; shopId?: string },
+  target: { listingId?: string; shopId?: string; commentId?: string },
 ): Promise<number> {
   const where = target.listingId
     ? and(eq(reports.listingId, target.listingId), eq(reports.status, "new"), isNotNull(reports.reporterId))
-    : and(eq(reports.shopId, target.shopId ?? ""), eq(reports.status, "new"), isNotNull(reports.reporterId));
+    : target.commentId
+      ? and(eq(reports.commentId, target.commentId), eq(reports.status, "new"), isNotNull(reports.reporterId))
+      : and(eq(reports.shopId, target.shopId ?? ""), eq(reports.status, "new"), isNotNull(reports.reporterId));
   const rows = await tx
     .select({ n: sql<number>`count(distinct ${reports.reporterId})::int` })
     .from(reports)
@@ -80,8 +84,21 @@ async function distinctReporters(
 }
 
 /** After a new report: hide the card once 3 different signed-in people have open reports. */
-export async function maybeHideForReview(target: { listingId?: string | null; shopId?: string | null }): Promise<void> {
+export async function maybeHideForReview(target: {
+  listingId?: string | null;
+  shopId?: string | null;
+  commentId?: string | null;
+}): Promise<void> {
   const db = getDb();
+  if (target.commentId) {
+    const n = await distinctReporters(db, { commentId: target.commentId });
+    if (n >= REVIEW_REPORTS) {
+      await db
+        .update(listingComments)
+        .set({ underReview: true })
+        .where(and(eq(listingComments.id, target.commentId), isNull(listingComments.deletedAt)));
+    }
+  }
   if (target.listingId) {
     const n = await distinctReporters(db, { listingId: target.listingId });
     if (n >= REVIEW_REPORTS) {
@@ -208,6 +225,7 @@ export async function moderationQueue(): Promise<ModerationItem[]> {
       latestAt: (grouped.latestAt ?? row.updatedAt).toISOString(),
     });
   }
+  items.push(...(await commentQueue()));
   items.sort((a, b) => (a.latestAt < b.latestAt ? 1 : a.latestAt > b.latestAt ? -1 : 0));
   return items;
 }
@@ -322,4 +340,60 @@ export async function shopsForViewer<T extends Shop>(list: T[], viewerId: string
     if (!drop?.size) return shop;
     return { ...shop, products: shop.products.filter((product) => !drop.has(product.id)) };
   });
+}
+
+/** Reported or auto-hidden comments, same 3-reporter rule as listings. */
+async function commentQueue(): Promise<ModerationItem[]> {
+  const db = getDb();
+  const open = await db
+    .select({ commentId: reports.commentId, reason: reports.reason, reporterId: reports.reporterId, createdAt: reports.createdAt })
+    .from(reports)
+    .where(and(eq(reports.status, "new"), isNotNull(reports.commentId)));
+  const byComment = new Map<string, ReportRow[]>();
+  for (const row of open) {
+    if (!row.commentId) continue;
+    const list = byComment.get(row.commentId) ?? [];
+    list.push({ reason: row.reason, reporterId: row.reporterId, createdAt: row.createdAt });
+    byComment.set(row.commentId, list);
+  }
+  const reviewed = await db
+    .select({ id: listingComments.id })
+    .from(listingComments)
+    .where(and(eq(listingComments.underReview, true), isNull(listingComments.deletedAt)));
+  const ids = [...new Set([...byComment.keys(), ...reviewed.map((row) => row.id)])];
+  if (!ids.length) return [];
+  const rows = await db
+    .select({
+      id: listingComments.id,
+      listingId: listingComments.listingId,
+      authorId: listingComments.authorId,
+      text: listingComments.text,
+      underReview: listingComments.underReview,
+      deletedAt: listingComments.deletedAt,
+      createdAt: listingComments.createdAt,
+      name: users.name,
+    })
+    .from(listingComments)
+    .innerJoin(users, eq(users.id, listingComments.authorId))
+    .where(inArray(listingComments.id, ids));
+  const items: ModerationItem[] = [];
+  for (const row of rows) {
+    if (row.deletedAt) continue;
+    const grouped = groupReports(byComment.get(row.id) ?? []);
+    if (!row.underReview && grouped.count === 0) continue;
+    items.push({
+      kind: "comment",
+      id: row.id,
+      title: row.text.slice(0, 200),
+      label: "comment",
+      listingId: row.listingId,
+      underReview: row.underReview,
+      reportCount: grouped.count,
+      reasons: grouped.reasons,
+      ownerId: row.authorId,
+      ownerName: row.name || "",
+      latestAt: (grouped.latestAt ?? row.createdAt).toISOString(),
+    });
+  }
+  return items;
 }

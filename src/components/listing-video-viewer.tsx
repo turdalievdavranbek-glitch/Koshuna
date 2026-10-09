@@ -8,6 +8,8 @@ import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconBack } from "./icons";
 import { ReelVideo } from "./reel-video";
+import { FEATURES } from "@/lib/features";
+import { CommentsButton, CommentsSheet } from "./listing-comments";
 
 const CLOSE_DRAG_PX = 110;
 
@@ -29,6 +31,7 @@ export function ListingVideoViewer({
 }) {
   const { t } = useApp();
   const [sound, setSound] = useState(false);
+  const [comments, setComments] = useState(false);
   const [drag, setDrag] = useState(0);
   const startY = useRef<number | null>(null);
   const price = listingHasPrice(listing) ? formatSom(listing.price) : t.priceNegotiable;
@@ -62,6 +65,8 @@ export function ListingVideoViewer({
       data-testid="listing-video-viewer"
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black"
       onTouchStart={(event) => {
+        // Scrolling the comments sheet must not drag the player closed.
+        if (comments) return;
         startY.current = event.touches[0]?.clientY ?? null;
       }}
       onTouchMove={(event) => {
@@ -101,6 +106,11 @@ export function ListingVideoViewer({
             {sound ? t.reelSoundOn : t.reelSoundOff}
           </button>
         </div>
+        {FEATURES.comments ? (
+          <div className="absolute right-3 bottom-40 z-10">
+            <CommentsButton listingId={listing.id} variant="reel" onOpen={() => setComments(true)} />
+          </div>
+        ) : null}
         <div className="absolute right-0 bottom-0 left-0 z-10 px-4" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}>
           <div className="text-[20px] font-bold text-white">{price}</div>
           <div className="mt-0.5 line-clamp-2 font-display text-[17px] font-semibold text-white">{title}</div>
@@ -116,6 +126,7 @@ export function ListingVideoViewer({
           ) : null}
         </div>
       </div>
+      {comments ? <CommentsSheet listingId={listing.id} title={title} onClose={() => setComments(false)} /> : null}
     </div>
   );
 }

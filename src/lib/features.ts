@@ -15,7 +15,7 @@ export const FEATURES = {
   goLookMeet: false,      // «Еду смотреть / Встретимся» (GoLookCard + MeetDealBlock)
   honesty: false,         // звёзды честности (HonestyCard «Честность», 1–5 ★)
   aiyl: false,            // «Айылы» (AiylRoad card + aiylOnly toggle in /filters)
-  comments: false,        // комментарии (likes/dislikes stay — circles rank by likes)
+  comments: true,         // комментарии: back on (owner 2026-10-09 22:20), server-side with reports/moderation
   shareFacebookVk: false, // Facebook / VK cells in share block (№85, №52)
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
   ownerVoice: false,     // Голос хозяина: hidden until speech-to-text works (owner 08.10). Code stays.
