@@ -6,8 +6,9 @@ import { FEATURES } from "@/lib/features";
 import { socialCounts } from "@/lib/reactions";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
+import { useCommentCount } from "@/lib/comment-counts";
 import { IconChat, IconDislike, IconLike } from "@/components/icons";
-import { Eyebrow } from "@/components/ui";
+import { CommentsButton, CommentsSheet } from "@/components/listing-comments";
 
 export function ListingSocialMeta({
   listingId,
@@ -18,8 +19,9 @@ export function ListingSocialMeta({
   size?: "sm" | "md" | "lg";
   align?: "start" | "center";
 }) {
-  const { commentsOf, reactions } = useApp();
-  const { likes, dislikes, comments } = socialCounts(listingId, reactions, commentsOf(listingId).length);
+  const { reactions } = useApp();
+  const commentCount = useCommentCount(listingId);
+  const { likes, dislikes, comments } = socialCounts(listingId, reactions, FEATURES.comments ? commentCount : 0);
   const icon = size === "sm" ? 11 : size === "lg" ? 14 : 12;
   const text = size === "sm" ? "text-[9px]" : size === "lg" ? "text-[12px]" : "text-[11px]";
   const gap = size === "sm" ? "gap-1.5" : "gap-2.5";
@@ -50,13 +52,12 @@ export function ListingSocialMeta({
 }
 
 export function ListingSocial({ listing }: { listing: Listing }) {
-  const { t, user, setPendingPath, reactionOf, setReaction, commentsOf, addComment, reactions } = useApp();
+  const { t, user, setPendingPath, reactionOf, setReaction, reactions, lang } = useApp();
   const router = useRouter();
-  const [text, setText] = useState("");
+  const [sheet, setSheet] = useState(false);
 
   const reaction = reactionOf(listing.id);
-  const comments = commentsOf(listing.id);
-  const { likes, dislikes } = socialCounts(listing.id, reactions, comments.length);
+  const { likes, dislikes } = socialCounts(listing.id, reactions, 0);
 
   const gate = () => {
     if (!user) {
@@ -70,11 +71,6 @@ export function ListingSocial({ listing }: { listing: Listing }) {
   const react = (value: "like" | "dislike") => {
     if (!gate()) return;
     setReaction(listing.id, value);
-  };
-
-  const submit = () => {
-    if (!gate()) return;
-    if (addComment(listing.id, text)) setText("");
   };
 
   return (
@@ -108,56 +104,11 @@ export function ListingSocial({ listing }: { listing: Listing }) {
           <IconDislike size={18} color={reaction === "dislike" ? "#B8452F" : "#17140F"} filled={reaction === "dislike"} />
           {dislikes}
         </button>
-        {FEATURES.comments ? (
-          <div className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border border-line bg-white text-[14px] font-semibold text-ink">
-            <IconChat size={17} color="#17140F" />
-            {comments.length}
-          </div>
-        ) : null}
+        {FEATURES.comments ? <CommentsButton listingId={listing.id} onOpen={() => setSheet(true)} /> : null}
       </div>
-
-      {FEATURES.comments ? <div className="mt-5">
-        <Eyebrow>{t.comments}</Eyebrow>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-            }}
-            placeholder={t.commentPlaceholder}
-            className="h-11 flex-1 rounded-[14px] border border-line bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-muted-2"
-          />
-          <button
-            type="button"
-            onClick={submit}
-            className="h-11 shrink-0 rounded-[14px] bg-accent px-4 text-[14px] font-semibold text-accent-on"
-          >
-            {t.commentSend}
-          </button>
-        </div>
-
-        {comments.length ? (
-          <div className="mt-4 flex flex-col gap-3">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink font-display text-[15px] font-bold text-screen">
-                  {comment.author.slice(0, 1)}
-                </div>
-                <div className="flex-1 rounded-[14px] border border-line bg-white px-3.5 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-semibold text-ink">{comment.author}</span>
-                    <span className="shrink-0 text-[11px] text-muted-2">{comment.time}</span>
-                  </div>
-                  <p className="mt-1 text-[14px] leading-[1.45] text-ink-2">{comment.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-[13px] text-muted">{t.commentsEmpty}</p>
-        )}
-      </div> : null}
+      {FEATURES.comments && sheet ? (
+        <CommentsSheet listingId={listing.id} title={lang === "ky" ? listing.titleKy || listing.title : listing.title} onClose={() => setSheet(false)} />
+      ) : null}
     </div>
   );
 }

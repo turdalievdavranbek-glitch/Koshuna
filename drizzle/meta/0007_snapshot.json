@@ -1,5 +1,5 @@
 {
-  "id": "5ad07fa4-fdc0-4bdc-8c62-914790e14981",
+  "id": "078e2f2d-7873-45f5-a451-6240ad0f17ce",
   "prevId": "471a9594-c471-4274-8a83-6067aba4b57e",
   "version": "7",
   "dialect": "postgresql",
@@ -408,6 +408,226 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_comment_likes": {
+      "name": "listing_comment_likes",
+      "schema": "",
+      "columns": {
+        "comment_id": {
+          "name": "comment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "listing_comment_likes_comment_id_listing_comments_id_fk": {
+          "name": "listing_comment_likes_comment_id_listing_comments_id_fk",
+          "tableFrom": "listing_comment_likes",
+          "tableTo": "listing_comments",
+          "columnsFrom": [
+            "comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_comment_likes_user_id_users_id_fk": {
+          "name": "listing_comment_likes_user_id_users_id_fk",
+          "tableFrom": "listing_comment_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "listing_comment_likes_comment_id_user_id_pk": {
+          "name": "listing_comment_likes_comment_id_user_id_pk",
+          "columns": [
+            "comment_id",
+            "user_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_comments": {
+      "name": "listing_comments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "edited_at": {
+          "name": "edited_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "under_review": {
+          "name": "under_review",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "listing_comments_listing_idx": {
+          "name": "listing_comments_listing_idx",
+          "columns": [
+            {
+              "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listing_comments_author_idx": {
+          "name": "listing_comments_author_idx",
+          "columns": [
+            {
+              "expression": "author_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_comments_listing_id_listings_id_fk": {
+          "name": "listing_comments_listing_id_listings_id_fk",
+          "tableFrom": "listing_comments",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_comments_author_id_users_id_fk": {
+          "name": "listing_comments_author_id_users_id_fk",
+          "tableFrom": "listing_comments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "listing_comments_parent_id_listing_comments_id_fk": {
+          "name": "listing_comments_parent_id_listing_comments_id_fk",
+          "tableFrom": "listing_comments",
+          "tableTo": "listing_comments",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1667,6 +1887,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "comment_id": {
+          "name": "comment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "reason": {
           "name": "reason",
           "type": "text",
@@ -1706,6 +1932,21 @@
           "columns": [
             {
               "expression": "listing_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reports_comment_idx": {
+          "name": "reports_comment_idx",
+          "columns": [
+            {
+              "expression": "comment_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1784,6 +2025,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "reports_comment_id_listing_comments_id_fk": {
+          "name": "reports_comment_id_listing_comments_id_fk",
+          "tableFrom": "reports",
+          "tableTo": "listing_comments",
+          "columnsFrom": [
+            "comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1796,7 +2050,7 @@
         },
         "reports_one_target": {
           "name": "reports_one_target",
-          "value": "((\"reports\".\"listing_id\" is not null)::int + (\"reports\".\"shop_id\" is not null)::int + (\"reports\".\"target_user_id\" is not null)::int) = 1"
+          "value": "((\"reports\".\"listing_id\" is not null)::int + (\"reports\".\"shop_id\" is not null)::int + (\"reports\".\"target_user_id\" is not null)::int + (\"reports\".\"comment_id\" is not null)::int) = 1"
         }
       },
       "isRLSEnabled": false

@@ -4,6 +4,7 @@ import { getDb } from "@/server/db";
 import { listings, shops } from "@/server/db/schema";
 import { hideShopForUser } from "@/server/shops";
 import { banAuthor, hideListingById, keepTarget, moderationQueue } from "@/server/moderation";
+import { commentAuthor, hideCommentById, keepComment } from "@/server/comments";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { NextResponse } from "next/server";
 
@@ -36,8 +37,23 @@ export async function POST(req: Request) {
   const action = body?.action;
   const kind = body?.kind;
   const id = typeof body?.id === "string" ? body.id : "";
-  if ((action !== "delete" && action !== "keep" && action !== "ban") || (kind !== "listing" && kind !== "shop") || !id) {
+  if ((action !== "delete" && action !== "keep" && action !== "ban") || (kind !== "listing" && kind !== "shop" && kind !== "comment") || !id) {
     return json({ error: "bad-json" }, 400);
+  }
+  if (kind === "comment") {
+    if (action === "keep") {
+      const saved = await keepComment(id);
+      if ("error" in saved) return json({ error: saved.error }, saved.status);
+      return json({ ok: true });
+    }
+    const authorId = await commentAuthor(id);
+    if (!authorId) return json({ error: "not-found" }, 404);
+    if (action === "ban") {
+      const saved = await banAuthor(user.id, authorId);
+      if ("error" in saved) return json({ error: saved.error }, saved.status);
+    }
+    await hideCommentById(id);
+    return json({ ok: true });
   }
   if (action === "keep") {
     const saved = await keepTarget(kind, id);
