@@ -26,6 +26,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const rows = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
   const row = rows[0];
   if (!row || (!VISIBLE.has(row.status) && row.ownerId !== user.id)) return json({ error: "not-found" }, 404);
+  if (row.underReview && row.ownerId !== user.id) return json({ error: "not-found" }, 404);
   if (row.ownerId) {
     const blockedRows = await db
       .select({ blockerId: blocks.blockerId, blockedUserId: blocks.blockedUserId })
@@ -36,7 +37,14 @@ export async function GET(req: Request, ctx: Ctx) {
   }
   let raw: string | null = null;
   if (row.shopId) {
-    const shopRows = await db.select({ phone: shops.phone }).from(shops).where(eq(shops.id, row.shopId)).limit(1);
+    const shopRows = await db
+      .select({ phone: shops.phone, underReview: shops.underReview, status: shops.status })
+      .from(shops)
+      .where(eq(shops.id, row.shopId))
+      .limit(1);
+    if ((shopRows[0]?.underReview || shopRows[0]?.status === "hidden") && row.ownerId !== user.id) {
+      return json({ error: "not-found" }, 404);
+    }
     raw = shopRows[0]?.phone ?? null;
   }
   if (!raw && row.ownerId) {

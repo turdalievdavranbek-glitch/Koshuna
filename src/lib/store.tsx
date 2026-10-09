@@ -40,6 +40,7 @@ import {
   createOrUpdateUnits,
   hasRole,
   isAdminUser,
+  serverAdminFlag,
   kyrgyzPhoneOk,
   phoneDigitsMatch,
   rolesForPhone,
@@ -737,12 +738,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
               email: serverUser.email,
               method: serverUser.method ?? s.user.method,
               joinedYear: serverUser.joinedYear || s.user.joinedYear,
-              roles: rolesForPhone(serverUser.phone || s.user.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+              roles: rolesForPhone(serverUser.phone || s.user.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
             }
           : {
               ...serverUser,
               phone: serverUser.phone || "",
-              roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+              roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
             },
       }));
       return serverUser;
@@ -939,7 +940,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return startOutbox((op, data) => {
-      const payload = data as { listing?: Listing; shop?: Shop; discarded?: boolean };
+      const payload = data as { listing?: Listing; shop?: Shop; discarded?: boolean; limit?: boolean };
+      if (payload?.limit && (op.kind === "putListing" || op.kind === "patchListing")) {
+        setState((s) => ({ ...s, extraListings: s.extraListings.filter((item) => item.id !== op.listingId) }));
+        return;
+      }
       if (payload?.discarded) {
         if (op.kind === "putListing" || op.kind === "patchListing") {
           setState((s) => ({ ...s, extraListings: s.extraListings.filter((item) => item.id !== op.listingId) }));
@@ -1016,6 +1021,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .filter((item) => {
         if (!isSectionVisible(item.section)) return false;
         const status = item.status as string;
+        if (item.underReview && item.ownerId !== uid) return false;
         if ((status === "expired" || status === "hidden") && item.ownerId !== uid) return false;
         return true;
       });
@@ -1112,7 +1118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           verified: false,
           rating: 0,
           views: 0,
-          roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+          roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
         };
         return {
           ...s,
@@ -1180,7 +1186,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           verified: false,
           rating: 0,
           views: 0,
-          roles: rolesForPhone(serverUser.phone || "", false, s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+          roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
         };
         return {
           ...s,
@@ -1428,7 +1434,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...state.user,
             name: serverUser.name || state.user.name,
             phone: serverUser.phone || "",
-            roles: rolesForPhone(serverUser.phone || "", false, state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
+            roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
           }
         : null;
       if (nextUser) userRef.current = nextUser;

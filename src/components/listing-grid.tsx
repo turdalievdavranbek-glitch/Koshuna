@@ -180,7 +180,7 @@ export function RecentlyViewed() {
   const router = useRouter();
   const items = viewedIds
     .map((id) => allListings.find((l) => l.id === id))
-    .filter((item): item is Listing => Boolean(item));
+    .filter((item): item is Listing => Boolean(item && !item.underReview));
   if (items.length < 1) return null;
   return (
     <div className="mt-[22px]">

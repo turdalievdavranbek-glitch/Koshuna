@@ -75,6 +75,9 @@ export function PointList({
               <PointAvatar shop={shop} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-semibold text-ink">{shop.name}</span>
+                {shop.underReview ? (
+                  <span className="mt-0.5 inline-block rounded-md bg-[#F6E3D4] px-1.5 py-0.5 text-[10px] font-bold text-ink">{t.underReview}</span>
+                ) : null}
                 <span className="mt-0.5 block truncate text-[12px] text-muted">{subtitle}</span>
                 {delivery ? <span className="mt-0.5 block truncate text-[12px] text-muted">{delivery}</span> : null}
               </span>

@@ -152,6 +152,12 @@ export async function flushOutbox() {
         listener?.(resolved, res.data);
         continue;
       }
+      if (res.error === "daily-limit") {
+        listener?.(resolved, { limit: true });
+        keep.push({ ...resolved, failed: true, error: "daily-limit" });
+        blocked.add(target);
+        continue;
+      }
       if (res.status === 0 || !fatalStatus(res.status)) {
         if (res.status >= 500) {
           const attempts = op.attempts + 1;

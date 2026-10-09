@@ -98,7 +98,7 @@ export default function OwnerPage() {
 
   if (!profile) return null;
 
-  const listings = allListings.filter((item) => item.ownerId === id && VISIBLE.has(item.status));
+  const listings = allListings.filter((item) => item.ownerId === id && !item.underReview && VISIBLE.has(item.status));
   const mine = user?.id === id;
   const blocked = isBlocked(id);
 

@@ -30,7 +30,7 @@ export async function listingReminders(): Promise<{ ok: true; counts: Record<str
   const due = await db
     .select()
     .from(listings)
-    .where(and(inArray(listings.status, ["active", "promoted"]), lt(listings.expiresAt, new Date()), isNull(listings.reminderSentAt)));
+    .where(and(inArray(listings.status, ["active", "promoted"]), eq(listings.underReview, false), lt(listings.expiresAt, new Date()), isNull(listings.reminderSentAt)));
   let reminders = 0;
   for (const row of due) {
     const wrote = await db.transaction(async (tx) => {

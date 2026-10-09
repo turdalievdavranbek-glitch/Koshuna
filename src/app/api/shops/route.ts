@@ -4,6 +4,7 @@ import { getDb } from "@/server/db";
 import { shops } from "@/server/db/schema";
 import { json } from "@/server/http";
 import { rowToShop } from "@/server/mappers";
+import { shopsForViewer } from "@/server/moderation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,13 @@ export async function GET(req: Request) {
     ? await db
         .select()
         .from(shops)
-        .where(or(eq(shops.status, "active"), and(eq(shops.ownerId, user.id), ne(shops.status, "hidden"))))
-    : await db.select().from(shops).where(eq(shops.status, "active"));
-  return json({ shops: rows.map(rowToShop) });
+        .where(
+          or(
+            and(eq(shops.status, "active"), eq(shops.underReview, false)),
+            and(eq(shops.ownerId, user.id), ne(shops.status, "hidden")),
+          ),
+        )
+    : await db.select().from(shops).where(and(eq(shops.status, "active"), eq(shops.underReview, false)));
+  const visible = await shopsForViewer(rows.map(rowToShop), user?.id ?? null);
+  return json({ shops: visible });
 }

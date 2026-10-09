@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { sessionIsAdmin, type SessionUser } from "./auth";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
@@ -6,7 +6,7 @@ import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type 
 import { listingSectionForShop, sanitizeShopHours, sanitizeShopPointFields } from "@/lib/shops";
 import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/types";
 import { getDb } from "./db";
-import { listings, shops } from "./db/schema";
+import { listings, reports, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
@@ -117,8 +117,19 @@ export async function hideShopForUser(user: SessionUser, shopId: string): Promis
   const admin = await sessionIsAdmin(user.id);
   if (row.ownerId !== user.id && !admin) return { error: "forbidden", status: 403 };
   const now = new Date();
-  const shop = { ...rowToShop(row), status: "hidden" as const, updatedAt: now.toISOString() };
-  await db.update(shops).set({ status: "hidden", updatedAt: now, doc: shop }).where(eq(shops.id, shopId));
-  await db.update(listings).set({ status: "hidden", updatedAt: now }).where(eq(listings.shopId, shopId));
+  const linked = await db.select({ id: listings.id }).from(listings).where(eq(listings.shopId, shopId));
+  const shop = { ...rowToShop(row), status: "hidden" as const, underReview: false, updatedAt: now.toISOString() };
+  await db.update(shops).set({ status: "hidden", underReview: false, updatedAt: now, doc: shop }).where(eq(shops.id, shopId));
+  await db.update(listings).set({ status: "hidden", underReview: false, updatedAt: now }).where(eq(listings.shopId, shopId));
+  await db
+    .update(reports)
+    .set({ status: "hidden", handledAt: now })
+    .where(and(eq(reports.shopId, shopId), eq(reports.status, "new")));
+  if (linked.length) {
+    await db
+      .update(reports)
+      .set({ status: "hidden", handledAt: now })
+      .where(and(eq(reports.status, "new"), inArray(reports.listingId, linked.map((item) => item.id))));
+  }
   return { shop };
 }

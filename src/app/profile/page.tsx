@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
-import { hasRole } from "@/lib/partners";
+import { hasRole, isAdminUser } from "@/lib/partners";
 import { FEATURES } from "@/lib/features";
 import { helpWhatsAppUrl } from "@/lib/help";
 import { LANG_LABEL } from "@/lib/i18n";
@@ -169,6 +169,17 @@ export default function ProfilePage() {
             <span className="text-[18px] text-muted-2">›</span>
           </span>
         </button>
+
+        {isAdminUser(user) ? (
+          <button
+            type="button"
+            onClick={() => router.push("/admin")}
+            className="mt-2.5 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.adminTitle}</span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        ) : null}
 
         {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">

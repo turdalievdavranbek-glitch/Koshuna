@@ -10,6 +10,8 @@ import { locate, type LocateError } from "@/lib/locate";
 import { listingChipLabel } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
 import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
+import { personalPostLimited } from "@/lib/post-limit";
+import { DailyLimitNotice } from "@/components/daily-limit";
 import { useApp } from "@/lib/store";
 import { classifyListingSpeech, aiToDraftPatch } from "@/lib/video-ai";
 import { MarketRangeCard } from "@/components/market-range";
@@ -40,6 +42,7 @@ export function CardPost({ card }: { card: string }) {
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
   const [taxonomyReady, setTaxonomyReady] = useState(true);
   const [error, setError] = useState("");
+  const [limit, setLimit] = useState(false);
   const [publishedId, setPublishedId] = useState<string | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
@@ -748,7 +751,7 @@ export function CardPost({ card }: { card: string }) {
             {error ? <p className="mt-3 text-[13px] text-accent">{error}</p> : null}
           </div>
           <div className="relative z-20 flex shrink-0 flex-col gap-2 border-t border-line bg-screen px-5 pb-[26px] pt-3.5">
-            {error ? <p className="text-[13px] text-accent">{error}</p> : null}
+            {limit ? <DailyLimitNotice /> : error ? <p className="text-[13px] text-accent">{error}</p> : null}
             <div className="flex gap-2.5">
             <button type="button" data-testid="post-back-step" onClick={() => router.back()} className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold">
               {t.edit}
@@ -777,6 +780,12 @@ export function CardPost({ card }: { card: string }) {
                   }
                 } else if (serviceCard && !user.phone) {
                   setError(t.phoneRequired);
+                  return;
+                }
+                setLimit(false);
+                if (await personalPostLimited()) {
+                  setLimit(true);
+                  setError("");
                   return;
                 }
                 const item = publishDraft();

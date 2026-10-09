@@ -38,12 +38,22 @@ export async function listingPageMetadata(id: string): Promise<Metadata> {
       district: listings.district,
       coverUrl: listings.coverUrl,
       photos: listings.photos,
+      underReview: listings.underReview,
+      shopId: listings.shopId,
     })
     .from(listings)
     .where(eq(listings.id, id))
     .limit(1);
   const row = rows[0];
-  if (!row) return toMetadata(listingOgCard(null));
+  if (!row || row.underReview) return toMetadata(listingOgCard(null));
+  if (row.shopId) {
+    const shopRows = await getDb()
+      .select({ underReview: shops.underReview, status: shops.status })
+      .from(shops)
+      .where(eq(shops.id, row.shopId))
+      .limit(1);
+    if (shopRows[0]?.underReview || shopRows[0]?.status === "hidden") return toMetadata(listingOgCard(null));
+  }
   const city = DICT.ru.cities[row.city] || row.city;
   const place = row.district ? `${city}, ${row.district}` : city;
   return toMetadata(
@@ -61,7 +71,7 @@ export async function listingPageMetadata(id: string): Promise<Metadata> {
 export async function shopPageMetadata(id: string): Promise<Metadata> {
   const rows = await getDb().select().from(shops).where(eq(shops.id, id)).limit(1);
   const row = rows[0];
-  if (!row) return toMetadata(shopOgCard(null));
+  if (!row || row.underReview) return toMetadata(shopOgCard(null));
   const shop = rowToShop(row);
   const city = DICT.ru.cities[shop.city] || shop.city || row.city;
   const place = shopHasPointPlace(shop) ? shopPlaceHeadline(shop, city, "ru") : [city, shop.address].filter(Boolean).join(", ");

@@ -36,6 +36,8 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.pharmacyOnly;
     case "bad-category":
       return t.badCategory;
+    case "daily-limit":
+      return `${t.dailyLimitLead} ${t.dailyLimitLink}`;
     default:
       return t.shopError;
   }

@@ -29,7 +29,7 @@ export default function FeedPage() {
   const { unread } = useNotices(user?.id ?? null);
   const router = useRouter();
   const listings = applyFilters(allListings, homeFeedFilters(filters), city);
-  const promoted = allListings.filter((item) => item.status === "promoted");
+  const promoted = allListings.filter((item) => item.status === "promoted" && !item.underReview);
   const tiles = homeTiles();
   const hero = tiles.slice(0, HOME_HERO_COUNT);
   const rest = tiles.slice(HOME_HERO_COUNT);

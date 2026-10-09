@@ -21,6 +21,7 @@ export type SessionUser = {
   city: string | null;
   district: string | null;
   method: string;
+  isAdmin: boolean;
 };
 
 export function assertSessionSecret(): string {
@@ -157,6 +158,7 @@ export async function signInWithIdentity(input: {
       city: row.city,
       district: row.district,
       method: input.provider,
+      isAdmin: row.isAdmin === true,
     },
     cookie,
     isNew: signed.isNew,
@@ -202,6 +204,7 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
     city: hit.user.city,
     district: hit.user.district,
     method,
+    isAdmin: hit.user.isAdmin === true,
   };
 }
 

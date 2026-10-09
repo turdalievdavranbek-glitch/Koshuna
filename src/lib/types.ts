@@ -270,6 +270,8 @@ export type Listing = {
   hasPhoto: boolean;
   noAgent: boolean;
   status: ListingStatus;
+  /** Hidden from feed, search, map and share previews. The owner still sees «На проверке». */
+  underReview?: boolean;
   specs?: SpecRow[];
   utilitiesNote?: string;
   safetyKind: "home" | "goods";
@@ -583,6 +585,8 @@ export type Shop = {
   transcript?: string;
   venueKind?: "shop" | "stall";
   status: ShopStatus;
+  /** Hidden from public lists. The owner still sees «На проверке». */
+  underReview?: boolean;
   products: ShopProduct[];
   createdAt: string;
   updatedAt: string;

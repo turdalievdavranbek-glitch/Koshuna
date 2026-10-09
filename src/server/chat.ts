@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { holdPersonName } from "@/lib/public-name";
 import type { ChatDetail, ChatLine, ChatThread } from "@/lib/chat";
 import { getDb } from "./db";
-import { blocks, listings, messages, notifications, purchaseRequests, threads, users } from "./db/schema";
+import { blocks, listings, messages, notifications, purchaseRequests, shops, threads, users } from "./db/schema";
 
 const TEXT_MAX = 2000;
 const OPEN = new Set(["active", "promoted", "reserved"]);
@@ -39,6 +39,7 @@ export async function openListingChat(buyerId: string, listingId: string): Promi
       ownerId: listings.ownerId,
       shopId: listings.shopId,
       status: listings.status,
+      underReview: listings.underReview,
     })
     .from(listings)
     .where(eq(listings.id, listingId))
@@ -56,6 +57,15 @@ export async function openListingChat(buyerId: string, listingId: string): Promi
   const blocked = await pairBlocked(buyerId, sellerId);
   if (blocked && !existing[0]) return { error: "blocked", status: 403 };
   if (existing[0]) return { id: existing[0].id };
+  if (listing.underReview) return { error: "not-found", status: 404 };
+  if (listing.shopId) {
+    const shop = await db
+      .select({ underReview: shops.underReview })
+      .from(shops)
+      .where(eq(shops.id, listing.shopId))
+      .limit(1);
+    if (shop[0]?.underReview) return { error: "not-found", status: 404 };
+  }
   if (!OPEN.has(listing.status)) return { error: "closed", status: 409 };
 
   const seller = await db

@@ -93,6 +93,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     mediaKind: product.videoUrl ? "video" : "photos",
     videoUrl: product.videoUrl,
     reservedBy: prev?.reservedBy,
+    underReview: shop.underReview === true || prev?.underReview === true,
   };
 }
 

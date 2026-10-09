@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { holdPersonName } from "@/lib/public-name";
 import { getDb } from "./db";
-import { blocks, listings, notifications, reservations, users } from "./db/schema";
+import { blocks, listings, notifications, reservations, shops, users } from "./db/schema";
 
 const OPEN = ["requested", "confirmed"] as const;
 
@@ -52,13 +52,23 @@ export async function askHold(buyerId: string, listingId: string): Promise<{ hol
         ownerId: listings.ownerId,
         status: listings.status,
         title: listings.title,
+        underReview: listings.underReview,
+        shopId: listings.shopId,
       })
       .from(listings)
       .where(eq(listings.id, listingId))
       .for("update")
       .limit(1);
     const listing = locked[0];
-    if (!listing || listing.status === "hidden") return { error: "not-found", status: 404 };
+    if (!listing || listing.status === "hidden" || listing.underReview) return { error: "not-found", status: 404 };
+    if (listing.shopId) {
+      const shop = await tx
+        .select({ underReview: shops.underReview })
+        .from(shops)
+        .where(eq(shops.id, listing.shopId))
+        .limit(1);
+      if (shop[0]?.underReview) return { error: "not-found", status: 404 };
+    }
     if (listing.ownerId === buyerId) return { error: "own", status: 403 };
     if (listing.status !== "active" && listing.status !== "promoted") return { error: "closed", status: 409 };
 

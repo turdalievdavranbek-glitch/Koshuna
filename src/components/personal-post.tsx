@@ -23,6 +23,8 @@ import { IconBack } from "@/components/icons";
 import { CategoryChips } from "@/components/category-chips";
 import { LeaveDialog } from "@/components/leave-dialog";
 import { useDraftHistoryGuard } from "@/components/draft-guard";
+import { DailyLimitNotice } from "@/components/daily-limit";
+import { personalPostLimited } from "@/lib/post-limit";
 
 const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap), { ssr: false });
 
@@ -32,6 +34,7 @@ export function PersonalPost() {
   const { t, user, draft, setDraft, publishDraft, clearPostedDraft, city, setLeaveGuard, discardDraft, updateProfile } = useApp();
   const router = useRouter();
   const [error, setError] = useState("");
+  const [limit, setLimit] = useState(false);
   const [more, setMore] = useState(false);
   const [oldOpen, setOldOpen] = useState(Boolean(draft.oldPrice));
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
@@ -126,6 +129,12 @@ export function PersonalPost() {
       }
     } else if (!user.phone) {
       setError(t.phoneRequired);
+      return;
+    }
+    setLimit(false);
+    if (await personalPostLimited()) {
+      setLimit(true);
+      setError("");
       return;
     }
     const item = publishDraft();
@@ -368,7 +377,11 @@ export function PersonalPost() {
         ) : null}
       </div>
       <div className="relative z-20 border-t border-line bg-screen px-5 pb-6 pt-3">
-        {error ? (
+        {limit ? (
+          <div className="mb-2">
+            <DailyLimitNotice />
+          </div>
+        ) : error ? (
           <p data-testid="post-error" className="mb-2 text-[13px] text-accent">
             {error}
           </p>

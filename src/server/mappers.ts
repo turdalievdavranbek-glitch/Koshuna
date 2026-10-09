@@ -23,6 +23,7 @@ export function publicUser(user: SessionUser): User {
     views: 0,
     linkedChannels: [],
     cardLinked: false,
+    roles: user.isAdmin ? ["admin"] : undefined,
   };
 }
 
@@ -83,6 +84,7 @@ export function rowToListing(row: ListingRow): Listing {
     shopId: row.shopId ?? rest.shopId,
     shopProductId: row.shopProductId ?? rest.shopProductId,
     status: (LISTING_STATUSES.has(row.status) ? row.status : "active") as Listing["status"],
+    underReview: row.underReview === true,
     views: row.views ?? 0,
     postedAt: created ?? rest.postedAt,
     confirmedAt: row.lastConfirmedAt instanceof Date ? row.lastConfirmedAt.toISOString() : rest.confirmedAt,
@@ -181,6 +183,7 @@ export function rowToShop(row: ShopRow): Shop {
     ownerId: row.ownerId,
     telegramUsername: handle ?? undefined,
     status: (row.status as Shop["status"]) || doc.status,
+    underReview: row.underReview === true,
     name: doc.name ?? row.name,
     city: doc.city || row.city,
     district: doc.district || row.district || undefined,
