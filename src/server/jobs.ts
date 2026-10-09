@@ -22,6 +22,7 @@ import {
 import { rowToShop } from "./mappers";
 import { closeExpiredPurchaseRequests } from "./purchase-requests";
 import { partPath, removeFile } from "./media";
+import { revokeAppleRefreshToken } from "./apple-auth";
 
 /**
  * Daily price bands per (category, city, unit).
@@ -145,6 +146,7 @@ export async function listingReminders(): Promise<{ ok: true; counts: Record<str
 
 /** Owner account removal. Listings and points are hidden (not hard-deleted). Session, login, and profile fields are cleared. */
 export async function wipeUser(userId: string) {
+  await revokeAppleRefreshToken(userId);
   const db = getDb();
   await db.execute(sql`
     UPDATE listings SET likes = GREATEST(likes - sub.n, 0)

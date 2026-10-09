@@ -28,6 +28,9 @@
 .DS_Store
 *.pem
 
+# Apple signing keys. CI writes these from secrets and must not commit them.
+*.p8
+
 # debug
 npm-debug.log*
 yarn-debug.log*

@@ -1,9 +1,13 @@
 /**
- * Native Google sign-in. The Web client id and nonce come from the server
- * at click time (`/api/auth/config` and `/api/auth/google/nonce`), not from
- * a build-time NEXT_PUBLIC value.
+ * Native Google sign-in. The web client id and nonce come from the server
+ * at click time (`/api/auth/config` and `/api/auth/google/nonce`).
  *
- * Apple stays a stub until iOS (after Android). The login screen does not call it.
+ * On iOS the same web client id is the Google SDK server client id.
+ * The iOS client id itself is `GIDClientID` in Info.plist, written by CI
+ * from GoogleService-Info.plist. See docs/ios.md.
+ *
+ * Sign in with Apple is native on iOS only (AuthenticationServices, bundle id
+ * com.koshuna.app). Android does not call it.
  */
 
 export const nativeAuthConfig = {
@@ -18,7 +22,7 @@ export async function nativeGoogleSignIn(input: { clientId: string; nonce: strin
   }
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) {
-    throw new Error("Native Google sign-in runs inside the Android app.");
+    throw new Error("Native Google sign-in runs inside the app.");
   }
   const { GoogleSignIn } = await import("@capawesome/capacitor-google-sign-in");
   await GoogleSignIn.initialize({
@@ -35,17 +39,12 @@ export async function nativeGoogleSignOut(): Promise<void> {
 }
 
 export async function nativeAppleSignIn() {
-  if (!nativeAuthConfig.appleServiceId) {
-    throw new Error("NEXT_PUBLIC_APPLE_SERVICE_ID is empty. See android/OWNER-SETUP.md.");
-  }
   const { Capacitor } = await import("@capacitor/core");
-  if (!Capacitor.isNativePlatform()) {
-    throw new Error("Native Apple sign-in runs inside the Android app.");
+  if (Capacitor.getPlatform() !== "ios") {
+    throw new Error("Sign in with Apple runs inside the iOS app.");
   }
   const { AppleSignIn, SignInScope } = await import("@capawesome/capacitor-apple-sign-in");
-  await AppleSignIn.initialize({ clientId: nativeAuthConfig.appleServiceId });
   return AppleSignIn.signIn({
-    redirectUrl: nativeAuthConfig.appleRedirectUrl,
     scopes: [SignInScope.Email, SignInScope.FullName],
   });
 }

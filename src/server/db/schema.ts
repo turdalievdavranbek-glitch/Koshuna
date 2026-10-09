@@ -56,6 +56,15 @@ export const userAuth = pgTable(
   ],
 );
 
+/** Refresh token from Sign in with Apple, used only to revoke on account deletion. */
+export const appleRefreshTokens = pgTable("apple_refresh_tokens", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  refreshToken: text("refresh_token").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const sessions = pgTable(
   "sessions",
   {

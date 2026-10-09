@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
-/* Wide site only: ≥1024px and not the Android app (html.native). Phones and the app stay on the existing layout. */
+/* Wide site only: ≥1024px and not the native app (html.native). Phones and the app stay on the existing layout. */
+/* App Store 2.3.10: the iOS shell must not show Google Play. */
+html.ios .play-store {
+  display: none !important;
+}
+
 @custom-variant desk {
   @media (min-width: 1024px) {
     html:not(.native) & {

@@ -21,19 +21,49 @@ export function googleWebClientId(): string {
   return (process.env.GOOGLE_WEB_CLIENT_ID || "").trim();
 }
 
+/** iOS OAuth client id. Optional. Absent means only the web client id is accepted. */
+export function googleIosClientId(): string {
+  return (process.env.GOOGLE_IOS_CLIENT_ID || "").trim();
+}
+
+/**
+ * Audiences for `POST /api/auth/google`. The web client id is required.
+ * When `GOOGLE_IOS_CLIENT_ID` is set, an iOS ID token is accepted too.
+ */
+export function googleAudiences(): string[] {
+  const web = googleWebClientId();
+  if (!web) return [];
+  const ios = googleIosClientId();
+  return ios && ios !== web ? [web, ios] : [web];
+}
+
+function isIosGoogleToken(payload: { aud?: unknown; azp?: unknown }): boolean {
+  const ios = googleIosClientId();
+  if (!ios) return false;
+  const aud = payload.aud;
+  const auds = typeof aud === "string" ? [aud] : Array.isArray(aud) ? aud.filter((item) => typeof item === "string") : [];
+  if (auds.includes(ios)) return true;
+  return payload.azp === ios;
+}
+
 /**
  * Verify a Google ID token. `keySet` is for tests only and is never read from
  * the request or from env — the route always uses Google's published certs.
+ *
+ * Web and Android tokens must match the nonce cookie. The iOS Google SDK used
+ * by `@capawesome/capacitor-google-sign-in` does not attach that nonce, so a
+ * token whose `aud` or `azp` is `GOOGLE_IOS_CLIENT_ID` skips the nonce check.
  */
 export async function verifyGoogleIdToken(
   token: string,
-  opts: { audience: string; nonce: string | null; keySet?: JWTVerifyGetKey },
+  opts: { audience: string | string[]; nonce: string | null; keySet?: JWTVerifyGetKey },
 ): Promise<GoogleIdClaims> {
+  const audience = (Array.isArray(opts.audience) ? opts.audience : [opts.audience]).map((id) => id.trim()).filter(Boolean);
   let payload: Awaited<ReturnType<typeof jwtVerify>>["payload"];
   try {
     const verified = await jwtVerify(token, opts.keySet ?? GOOGLE_CERTS, {
       issuer: ISSUERS,
-      audience: opts.audience,
+      audience,
       clockTolerance: 60,
     });
     payload = verified.payload;
@@ -43,8 +73,10 @@ export async function verifyGoogleIdToken(
   const sub = payload.sub;
   if (typeof sub !== "string" || !sub) throw new GoogleAuthError("invalid-token");
   if (payload.email != null && payload.email_verified !== true) throw new GoogleAuthError("invalid-token");
-  const nonce = payload.nonce;
-  if (!opts.nonce || typeof nonce !== "string" || nonce !== opts.nonce) throw new GoogleAuthError("bad-nonce");
+  if (!isIosGoogleToken(payload)) {
+    const nonce = payload.nonce;
+    if (!opts.nonce || typeof nonce !== "string" || nonce !== opts.nonce) throw new GoogleAuthError("bad-nonce");
+  }
   return {
     sub,
     email: typeof payload.email === "string" ? payload.email : undefined,

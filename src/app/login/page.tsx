@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
+import { BrandApple, BrandGoogle, BrandTelegram } from "@/components/auth-brands";
 import { Flag } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
+import { startAppleSignIn } from "@/lib/apple-login";
 import { fetchGoogleClientId, isInAppBrowser } from "@/lib/google-login";
+import { openExternal } from "@/lib/native-links";
 import {
   fetchTelegramConfig,
   fitTelegramFrame,
@@ -36,6 +38,7 @@ function LoginInner() {
   const destRef = useRef("/");
   destRef.current = pendingPath || params.get("next") || "/";
   const [native, setNative] = useState(false);
+  const [ios, setIos] = useState(false);
   const [phase, setPhase] = useState<"loading" | "soon" | "button" | "webview">("loading");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,6 +49,8 @@ function LoginInner() {
   const [tgBusy, setTgBusy] = useState(false);
   const [tgLocalError, setTgLocalError] = useState("");
   const [widgetOn, setWidgetOn] = useState(false);
+  const [appleBusy, setAppleBusy] = useState(false);
+  const [appleError, setAppleError] = useState("");
   const tgBoxRef = useRef<HTMLDivElement>(null);
   const tgMounted = useRef(false);
   const pollRef = useRef<() => void>(() => undefined);
@@ -62,7 +67,10 @@ function LoginInner() {
     let dead = false;
     void import("@capacitor/core")
       .then(({ Capacitor }) => {
-        if (!dead) setShell(Capacitor.isNativePlatform() ? "app" : "web");
+        if (!dead) {
+          setShell(Capacitor.isNativePlatform() ? "app" : "web");
+          setIos(Capacitor.getPlatform() === "ios");
+        }
       })
       .catch(() => {
         if (!dead) setShell("web");
@@ -241,6 +249,22 @@ function LoginInner() {
     })();
   };
 
+  const onApple = () => {
+    if (appleBusy) return;
+    setAppleBusy(true);
+    setAppleError("");
+    void (async () => {
+      const result = await startAppleSignIn();
+      setAppleBusy(false);
+      if (!result.ok) {
+        if (result.status === "blocked") setAppleError(t.loginAccountUnavailable);
+        else if (result.status === "error") setAppleError(t.loginAppleError);
+        return;
+      }
+      acceptRef.current(result.user, result.isNew, (href) => router.replace(href), destRef.current);
+    })();
+  };
+
   const tgFlag = params.get("tg");
   const queryError = tgFlag === "blocked" ? t.loginAccountUnavailable : tgFlag === "error" ? t.loginTelegramError : "";
   const tgError = tgLocalError || queryError;
@@ -259,7 +283,8 @@ function LoginInner() {
           return;
         }
         setTgWait(true);
-        window.location.href = started.link;
+        if (ios) openExternal(started.link);
+        else window.location.href = started.link;
       })();
       return;
     }
@@ -308,6 +333,16 @@ function LoginInner() {
               <div ref={boxRef} className="h-10 w-full overflow-hidden rounded-full" />
             ) : null}
           </div>
+
+          {ios ? (
+            <div className="w-full" data-testid="apple-login">
+              {appleError ? <p className="mb-2 text-[13px] leading-[1.45] text-accent">{appleError}</p> : null}
+              <button type="button" onClick={onApple} disabled={appleBusy} className={authBtn}>
+                <BrandApple size={18} />
+                {t.loginApple}
+              </button>
+            </div>
+          ) : null}
 
           {telegramOn ? (
             <div className="flex w-full flex-col gap-3" data-testid="telegram-login">
