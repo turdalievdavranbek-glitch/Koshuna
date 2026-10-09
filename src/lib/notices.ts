@@ -80,9 +80,11 @@ export async function markNoticesRead(userId: string): Promise<void> {
   });
 }
 
-export function useNotices(userId: string | null): Snap {
+export function useNotices(userId: string | null, opts?: { poll?: boolean }): Snap {
+  const poll = opts?.poll !== false;
   const value = useSyncExternalStore(subscribeNotices, getNoticesSnapshot, () => empty);
   useEffect(() => {
+    if (!poll) return;
     void refreshNotices(userId);
     if (!userId) return;
     const onShow = () => {
@@ -96,6 +98,6 @@ export function useNotices(userId: string | null): Snap {
       document.removeEventListener("visibilitychange", onShow);
       window.clearInterval(timer);
     };
-  }, [userId]);
+  }, [userId, poll]);
   return value;
 }
