@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { takeChatDraft } from "@/lib/chat-draft";
 import { buyRequestChatTitle } from "@/lib/buy-request";
 import type { ChatDetail, ChatLine } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
@@ -22,7 +23,8 @@ export default function ChatPage() {
   const desk = useDesk();
   const [detail, setDetail] = useState<ChatDetail | null>(null);
   const [missing, setMissing] = useState(false);
-  const [text, setText] = useState("");
+  // «Записаться» on a service listing leaves a one-time draft for this thread.
+  const [text, setText] = useState(() => (typeof window === "undefined" || !id ? "" : takeChatDraft(id)));
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
   const end = useRef<HTMLDivElement>(null);

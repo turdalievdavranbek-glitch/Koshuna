@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { isServiceListing, saveChatDraft } from "@/lib/chat-draft";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 
@@ -10,7 +11,7 @@ type HoldStatus = "requested" | "confirmed" | "cancelled" | "released" | "expire
 
 const LIVE = new Set(["active", "promoted"]);
 
-export function HoldRequest({ listing }: { listing: Listing }) {
+export function HoldRequest({ listing, onSignUp }: { listing: Listing; onSignUp?: () => void }) {
   const { t, user, setPendingPath } = useApp();
   const router = useRouter();
   const userId = user?.id ?? null;
@@ -18,8 +19,10 @@ export function HoldRequest({ listing }: { listing: Listing }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const service = isServiceListing(listing);
+
   useEffect(() => {
-    if (!userId || !LIVE.has(listing.status) || listing.ownerId === userId) {
+    if (service || !userId || !LIVE.has(listing.status) || listing.ownerId === userId) {
       setStatus(null);
       return;
     }
@@ -32,10 +35,29 @@ export function HoldRequest({ listing }: { listing: Listing }) {
     return () => {
       cancel = true;
     };
-  }, [userId, listing.id, listing.ownerId, listing.status]);
+  }, [service, userId, listing.id, listing.ownerId, listing.status]);
 
   if (!LIVE.has(listing.status)) return null;
   if (userId && listing.ownerId === userId) return null;
+
+  if (service) {
+    if (!onSignUp) return null;
+    return (
+      <div className="mt-3">
+        <button
+          type="button"
+          data-testid="service-signup"
+          onClick={() => {
+            saveChatDraft(`open:${listing.id}`, t.serviceSignUpText(listing.title));
+            onSignUp();
+          }}
+          className="h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+        >
+          {t.serviceSignUp}
+        </button>
+      </div>
+    );
+  }
 
   const ask = () => {
     if (!user) {
