@@ -47,27 +47,50 @@ function tokensOf(text: string): string[] {
     .filter((part) => part.length >= 2);
 }
 
+/** Below this a match is a guess; we leave the category to the person. */
+export const MIN_CATEGORY_SCORE = 3;
+
+const WORD_CHAR = "0-9a-zа-яөүң";
+const SHORT_ENDINGS = ["а", "у", "ы", "и", "е", "ом", "ов", "ам", "ка"];
+
+function escapeRe(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Key found at the start of a word: «шина» in «шина 16», never in «машина». */
+function atWordStart(text: string, key: string): boolean {
+  return new RegExp(`(^|[^${WORD_CHAR}])${escapeRe(key)}`, "i").test(text);
+}
+
 function hit(text: string, tokens: string[], keyRaw: string): number {
   const key = normCategoryText(keyRaw);
   if (key.length < 2) return 0;
   // Whole words. A 3-letter prefix would also mark «турмуш» and «гидравлика».
   if (key === "тур") return tokens.includes("тур") ? key.length : 0;
   if (key === "гид") return tokens.some((tok) => tok === "гид" || tok === "гиды") ? key.length : 0;
-  if (text.includes(key)) return key.length;
   const head = key.split(" ")[0] ?? key;
-  for (const tok of tokens) {
-    if (head.length <= 2) {
-      if (tok === head || (tok.startsWith(head) && tok.length >= head.length + 2 && tok.length <= head.length + 4)) return head.length;
-      continue;
+  // Three letters and less: whole word or a short case ending only. «сто» is not «стоит», «просто», «место».
+  if (key.length <= 3) {
+    for (const tok of tokens) {
+      if (tok === key) return Math.max(key.length, MIN_CATEGORY_SCORE);
+      if (key.length === 3 && SHORT_ENDINGS.some((end) => tok === key + end)) return MIN_CATEGORY_SCORE;
+      if (head.length <= 2 && tok.startsWith(head) && tok.length >= head.length + 2 && tok.length <= head.length + 4) return head.length;
     }
+    return 0;
+  }
+  if (atWordStart(text, key)) return key.length;
+  // Word forms: «ноутбука» for «ноутбук». At least 4 shared letters, so «пад» or «think» alone never count.
+  for (const tok of tokens) {
+    if (tok.length < 4) continue;
     const n = Math.min(tok.length, head.length, 5);
-    if (n >= 3 && tok.slice(0, n) === head.slice(0, n)) return Math.min(head.length, Math.max(n, 3));
+    if (n >= 4 && tok.slice(0, n) === head.slice(0, n)) return n;
   }
   return 0;
 }
 
 function pushEntry(into: CategoryIndexEntry[], partial: Omit<CategoryIndexEntry, "keys">, keys: Array<string | undefined>) {
-  const clean = keys.map((key) => (key ? normCategoryText(key) : "")).filter((key) => key.length >= 2);
+  // ru and ky labels are often the same («Lenovo»); count such a word once.
+  const clean = [...new Set(keys.map((key) => (key ? normCategoryText(key) : "")).filter((key) => key.length >= 2))];
   if (!clean.length) return;
   into.push({ ...partial, keys: clean });
 }
@@ -130,13 +153,13 @@ export function buildCategoryIndex(): CategoryIndexEntry[] {
         animalGroup: rule.animalGroup,
         animalKind: rule.animalKind,
         vehicleGroup: rule.vehicleGroup,
-        carMake: rule.carMake,
+        // Rules lump many makes under one id («машина», «honda» → toyota); the make labels below name the real one.
         techBrand: rule.techBrand,
       },
       rule.keys,
     );
   }
-  for (const word of CATEGORY_WORDS) pushEntry(entries, wordFields(word), word.keys);
+  for (const word of CATEGORY_WORDS) pushEntry(entries, { ...wordFields(word), carMake: undefined }, word.keys);
   cached = entries;
   return entries;
 }
@@ -202,7 +225,7 @@ export function suggestCategories(
         matched += 1;
       }
     }
-    if (score <= 0) continue;
+    if (score < MIN_CATEGORY_SCORE) continue;
     const pick: CategoryPick = {
       section: entry.section,
       category: entry.category,
@@ -219,6 +242,10 @@ export function suggestCategories(
   }
   scored.sort((a, b) => {
     if (b.pick.score !== a.pick.score) return b.pick.score - a.pick.score;
+    // Same strength: a real category («Барахолка › Ноутбуки») beats a bare brand chip.
+    const ac = a.pick.category ? 1 : 0;
+    const bc = b.pick.category ? 1 : 0;
+    if (bc !== ac) return bc - ac;
     if (b.specificity !== a.specificity) return b.specificity - a.specificity;
     if (b.depth !== a.depth) return b.depth - a.depth;
     const last = opts?.last;
@@ -241,8 +268,7 @@ export function suggestCategories(
   if (out.length) return out;
   // Service card: no keyword means the person picks a group. Do not reuse the last one.
   if (only === "services") return [];
-  const last = opts?.last;
-  if (last && (!only || last.section === only) && allowed({ ...last, score: 0 }, personal)) return [{ ...last, score: 0 }];
+  // No confident word: «не уточнено», the person picks. Never a past or random section for a typed title.
   if (only) return [{ section: only, score: 0 }];
   return [{ section: "secondhand", score: 0 }];
 }

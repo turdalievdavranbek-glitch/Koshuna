@@ -104,7 +104,7 @@ export const RULES: Rule[] = [
     title: "Телефон",
   },
   {
-    keys: ["ноутбук", "macbook", "макбук", "lenovo", "леново", "asus"],
+    keys: ["ноутбук", "ноут", "laptop", "notebook", "macbook", "макбук", "thinkpad", "think pad", "lenovo", "леново", "asus", "acer", "dell", "ультрабук"],
     section: "secondhand",
     kind: "goods",
     category: "laptops",

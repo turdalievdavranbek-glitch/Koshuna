@@ -2463,6 +2463,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: listing.id,
           editing: true,
           editStatus: listing.status,
+          // The edit keeps the listing's section; the guesser must not move it.
+          categoryLocked: true,
+          sectionPicked: true,
           section: listing.section,
           kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
           title: listing.title,
