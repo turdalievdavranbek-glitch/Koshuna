@@ -45,7 +45,7 @@ export function MyListings({ limit }: { limit?: number }) {
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
       {rows.map((item) => (
         <div key={item.id} className="overflow-hidden rounded-[18px] border border-line bg-white">
           <button

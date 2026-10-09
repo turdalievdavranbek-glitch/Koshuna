@@ -127,9 +127,9 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
     <>
       {control}
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(23,20,15,.45)]" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5"
+            className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:rounded-[24px]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="font-display text-[20px] font-bold text-ink">{t.share}</div>

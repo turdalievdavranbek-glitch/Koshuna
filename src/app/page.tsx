@@ -67,7 +67,7 @@ export default function FeedPage() {
         style={{ paddingTop: "max(6px, env(safe-area-inset-top, 0px))" }}
         data-testid="home-sticky"
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 desk:hidden">
           <BrandMark
             size={26}
             className="shrink-0"
@@ -118,7 +118,7 @@ export default function FeedPage() {
           <NeighborCircles listings={listings} />
         </div>
         <div
-          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4"
+          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 desk:hidden"
           data-testid="home-search"
         >
           <IconSearch size={17} color="#A79C8C" />

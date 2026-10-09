@@ -5,7 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { FEATURES } from "@/lib/features";
 import { useApp } from "@/lib/store";
 
-const PLAY = "https://play.google.com/store/apps/details?id=com.koshuna.app";
+export const PLAY = "https://play.google.com/store/apps/details?id=com.koshuna.app";
 
 /** Off until Step 26 (FEATURES.playBanner). Mobile browser only, never inside the app. */
 export function PlayBanner() {

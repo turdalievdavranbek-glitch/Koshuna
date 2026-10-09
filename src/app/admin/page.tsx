@@ -84,7 +84,7 @@ export default function AdminPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {items === null ? null : items.length === 0 ? (
             <p className="text-[13px] text-muted">{t.moderationEmpty}</p>
           ) : items.map((item) => {
@@ -111,7 +111,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 font-display text-[19px] font-bold text-ink">{t.partnerApplyTitle}</div>
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="mt-3 flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {pending.length ? pending.map((row) => (
             <div key={row.id} className="rounded-[16px] border border-line bg-white p-3.5">
               <div className="text-[11px] font-bold uppercase text-accent-dark">
@@ -128,7 +128,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 font-display text-[19px] font-bold text-ink">{t.complexesTitle}</div>
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="mt-3 flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {unpublished.map((row) => (
             <div key={row.id} className="rounded-[16px] border border-line bg-white p-3.5">
               <div className="text-[15px] font-semibold text-ink">{row.name}</div>

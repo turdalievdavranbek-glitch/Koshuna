@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import { EmptyState } from "@/components/empty-state";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { ShopRows } from "@/components/shop-rows";
 import { ListingGrid } from "@/components/listing-grid";
@@ -56,6 +57,7 @@ export default function ShopsPage() {
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
@@ -108,6 +110,7 @@ export default function ShopsPage() {
             <h2 className="font-display text-[19px] font-bold text-ink">{t.shopFeedTitle}</h2>
             <div className="mt-3">
               <ListingGrid
+                columns="browse"
                 listings={cards}
                 onFav={(id) => {
                   const ok = toggleFav(id);
@@ -121,6 +124,7 @@ export default function ShopsPage() {
           </div>
         ) : null}
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }

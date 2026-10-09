@@ -179,9 +179,29 @@ export default function ListingPage() {
 
   return (
     <PhoneShell>
-      <div className="sc relative min-h-0 flex-1 overflow-y-auto">
-        <div className="relative bg-ink" style={{ height: isVideoListing(listing) ? 360 : listing.section === "secondhand" ? 300 : 320 }}>
+      <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
+        <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? 360 : listing.section === "secondhand" ? 300 : 320 }}>
           <ListingHero listing={listing} photo={photo} title={title} />
+          {!isVideoListing(listing) && listing.photos.length > 1 ? (
+            <>
+              <button
+                type="button"
+                aria-label={t.backLeave}
+                onClick={() => setPhoto((index) => (index - 1 + listing.photos.length) % listing.photos.length)}
+                className="absolute top-1/2 left-3 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/94 text-[20px] text-ink desk:flex"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label={t.open}
+                onClick={() => setPhoto((index) => (index + 1) % listing.photos.length)}
+                className="absolute top-1/2 right-3 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/94 text-[20px] text-ink desk:flex"
+              >
+                ›
+              </button>
+            </>
+          ) : null}
           <div className="absolute left-[18px] right-[18px] top-[12px] z-10 flex items-center justify-between">
             <button
               type="button"
@@ -218,7 +238,7 @@ export default function ListingPage() {
         </div>
 
         {listing.photos.length > 1 && !isVideoListing(listing) ? (
-          <div className="flex gap-2 px-5 pt-3">
+          <div className="flex gap-2 px-5 pt-3 desk:hidden">
             {listing.photos.slice(0, 3).map((src, i) => (
               <button
                 key={src}
@@ -237,8 +257,24 @@ export default function ListingPage() {
             ) : null}
           </div>
         ) : null}
+        {listing.photos.length > 1 && !isVideoListing(listing) ? (
+          <div className="hidden gap-2 px-5 pt-3 desk:col-start-1 desk:row-start-2 desk:flex desk:px-0">
+            {listing.photos.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => setPhoto(i)}
+                className="h-[72px] w-[72px] overflow-hidden rounded-xl"
+                style={{ border: i === photo ? "2px solid #B8452F" : "1px solid #E4DCCE" }}
+              >
+                <Photo src={src} alt="" />
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="px-5 pt-5">
+        <div className="px-5 pt-5 desk:contents">
+          <div className="desk:sticky desk:top-4 desk:z-10 desk:col-start-2 desk:row-start-1 desk:row-end-[-1] desk:self-start desk:rounded-[20px] desk:border desk:border-line desk:bg-surface desk:p-5">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
               {listingChipLabel(listing, t)}
@@ -312,6 +348,8 @@ export default function ListingPage() {
             <ShareButton listing={listing} />
           </div>
           <PlayBanner />
+          </div>
+          <div className="desk:col-start-1 desk:row-start-3 desk:min-w-0">
           <ServiceFacts listing={listing} />
           {listing.lng != null && listing.lat != null && listing.serviceMode !== "mobile" ? (
             <div className="mt-3">
@@ -608,13 +646,14 @@ export default function ListingPage() {
           {!mine && isDbUserId(listing.ownerId) ? (
             <BlockAuthorButton userId={listing.ownerId} returnPath={`/listing/${listing.id}`} />
           ) : null}
-          <div className="h-[132px]" />
+          <div className="h-[132px] desk:hidden" />
+          </div>
         </div>
       </div>
 
       <div
         data-testid="listing-contact"
-        className="absolute inset-x-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5"
+        className="absolute inset-x-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5 desk:hidden"
         style={{ bottom: "var(--tabbar-h, 78px)" }}
       >
         {mine ? (

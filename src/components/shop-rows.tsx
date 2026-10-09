@@ -10,7 +10,7 @@ export function ShopRows({ shops }: { shops: Shop[] }) {
   const { t, lang } = useApp();
   const router = useRouter();
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2 min-[1280px]:desk:grid-cols-3">
       {shops.map((shop) => (
         <button
           key={shop.id}

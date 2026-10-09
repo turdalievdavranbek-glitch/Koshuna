@@ -364,9 +364,47 @@ export default function ReelsPage() {
 
   const visible = feed.slice(0, shown);
 
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    const wide = () => window.matchMedia("(min-width: 1024px)").matches && !document.documentElement.classList.contains("native");
+    let lock = false;
+    const step = (dir: number) => {
+      if (!wide() || lock || !feed.length) return;
+      const height = root.clientHeight || 1;
+      const index = Math.round(root.scrollTop / height);
+      const next = Math.min(feed.length - 1, Math.max(0, index + dir));
+      lock = true;
+      root.scrollTo({ top: next * height, behavior: "smooth" });
+      window.setTimeout(() => {
+        lock = false;
+      }, 450);
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (!wide() || Math.abs(event.deltaY) < 8) return;
+      event.preventDefault();
+      step(event.deltaY > 0 ? 1 : -1);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (!wide()) return;
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      step(event.key === "ArrowDown" ? 1 : -1);
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      root.removeEventListener("wheel", onWheel);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [feed.length]);
+
   return (
     <PhoneShell>
-      <div ref={scrollerRef} data-testid="reels" className="h-full min-h-0 snap-y snap-mandatory overflow-y-auto overscroll-y-contain">
+      <div className="contents desk:flex desk:h-full desk:items-center desk:justify-center desk:bg-ink">
+      <div ref={scrollerRef} data-testid="reels" className="h-full min-h-0 snap-y snap-mandatory overflow-y-auto overscroll-y-contain desk:aspect-[9/16] desk:h-full desk:max-h-full desk:w-auto desk:max-w-[420px] desk:shrink-0 desk:overflow-x-hidden">
         {visible.length === 0 ? (
           <div className="flex h-full flex-col bg-ink px-5 text-white" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
             <button
@@ -396,6 +434,7 @@ export default function ReelsPage() {
           )
         )}
         {shown < feed.length ? <div data-reel-more className="h-px w-full shrink-0" /> : null}
+      </div>
       </div>
     </PhoneShell>
   );
