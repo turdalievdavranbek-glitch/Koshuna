@@ -14,7 +14,8 @@ import type { Filters, Listing, SectionId, Shop } from "./types";
 export type SearchTile = {
   id: string;
   label: (t: Dict) => string;
-  art: string;
+  /** Own photo only on root and first-level tiles; deeper tiles are text only. */
+  art: string | null;
   section: SectionId;
   path: string[];
   href?: string;
@@ -23,6 +24,28 @@ export type SearchTile = {
 export function sectionCover(id: SectionId): string {
   if (id === "shops") return SHOP_ART;
   return SECTIONS.find((item) => item.id === id)?.art ?? SHOP_ART;
+}
+
+/** First-level tiles that have their own photo: public/sections/<section>-<id>.jpg. */
+const LEVEL1_ART = new Set([
+  "shops-food", "shops-farm", "shops-construction", "shops-furniture", "shops-electronics", "shops-apparel",
+  "shops-home", "shops-health", "shops-beauty", "shops-repair", "shops-travel", "shops-books", "shops-pets",
+  "shops-other",
+  "restaurants-national", "restaurants-asian", "restaurants-european",
+  "rent-apartments", "rent-houses", "rent-rooms", "rent-land", "rent-commercial", "rent-garages",
+  "cars-passenger", "cars-special",
+  "services-svc-transport", "services-svc-tech", "services-svc-home", "services-svc-leisure", "services-svc-clothes",
+  "services-svc-events", "services-svc-tourism", "services-svc-health", "services-education", "services-svc-farm",
+  "services-other",
+  "secondhand-furniture", "secondhand-sport", "secondhand-phones", "secondhand-laptops", "secondhand-pcs",
+  "secondhand-appliances", "secondhand-kids", "secondhand-home", "secondhand-clothes",
+  "animals-farm", "animals-plants", "animals-pets",
+]);
+
+function level1Art(section: SectionId, id: string | undefined): string | null {
+  if (!id) return null;
+  const key = `${section}-${id}`;
+  return LEVEL1_ART.has(key) ? `/sections/${key}.jpg` : null;
 }
 
 /** Visible sections only. Vacancies, stays and «Айылы» stay hidden (Р-036, Р-130). */
@@ -73,8 +96,7 @@ export function searchLevel(filters: Filters): SearchLevel | null {
   const section = filters.section;
   if (!section || !isSectionVisible(section)) return null;
   const path = searchPath(filters);
-  const art = sectionCover(section);
-  if (section === "shops") return shopLevel(path, art);
+  if (section === "shops") return shopLevel(path);
   const id: SectionId = section === "car-rental" ? "cars" : section;
   const branch = resolveBranch(id, path);
   if (!branch) return null;
@@ -82,11 +104,11 @@ export function searchLevel(filters: Filters): SearchLevel | null {
     section: id,
     path,
     title: branch.title,
-    art,
+    art: level1Art(id, path[0]) ?? sectionCover(section),
     tiles: branch.options.map((option) => ({
       id: option.id,
       label: option.label,
-      art,
+      art: path.length ? null : level1Art(id, option.id),
       section: id,
       path: [...path, option.id],
       href: option.href,
@@ -94,17 +116,18 @@ export function searchLevel(filters: Filters): SearchLevel | null {
   };
 }
 
-function shopLevel(path: string[], art: string): SearchLevel | null {
+function shopLevel(path: string[]): SearchLevel | null {
+  const cover = sectionCover("shops");
   if (!path.length) {
     return {
       section: "shops",
       path,
       title: (t) => t.shopNav,
-      art,
+      art: cover,
       tiles: SHOP_CATEGORIES.map((id) => ({
         id,
         label: (t) => t.shopCats[id] ?? id,
-        art,
+        art: level1Art("shops", id),
         section: "shops",
         path: [id],
       })),
@@ -112,16 +135,17 @@ function shopLevel(path: string[], art: string): SearchLevel | null {
   }
   const cat = path[0];
   if (!isShopCategory(cat)) return null;
+  const catArt = level1Art("shops", cat) ?? cover;
   if (path.length === 1) {
     return {
       section: "shops",
       path,
       title: (t) => t.shopCats[cat] ?? cat,
-      art,
+      art: catArt,
       tiles: shopKindsOf(cat).map((id) => ({
         id,
         label: (t) => t.shopKinds[id] ?? id,
-        art,
+        art: null,
         section: "shops",
         path: [cat, id],
       })),
@@ -133,7 +157,7 @@ function shopLevel(path: string[], art: string): SearchLevel | null {
     section: "shops",
     path,
     title: (t) => t.shopKinds[kind] ?? kind,
-    art,
+    art: catArt,
     tiles: [],
   };
 }

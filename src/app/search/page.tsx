@@ -24,6 +24,18 @@ import { IconSearch, IconSliders } from "@/components/icons";
 
 function PhotoTile({ tile, testId, onClick }: { tile: SearchTile; testId: string; onClick: () => void }) {
   const { t } = useApp();
+  if (!tile.art) {
+    return (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={onClick}
+        className="section-tile flex h-[64px] items-center justify-center overflow-hidden rounded-[16px] bg-[#fffdf8] px-2 text-center"
+      >
+        <span className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-ink">{tile.label(t)}</span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"
