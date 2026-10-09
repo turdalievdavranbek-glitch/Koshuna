@@ -3,7 +3,6 @@ package com.koshuna.app;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.ApplicationInfo;
-import android.os.Build;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
@@ -59,9 +58,7 @@ public class MainActivity extends BridgeActivity {
         permissions.add(Manifest.permission.CAMERA);
         permissions.add(Manifest.permission.RECORD_AUDIO);
         permissions.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
-        }
+        // POST_NOTIFICATIONS is asked from the site after login or when Messages opens.
         ActivityCompat.requestPermissions(
             this,
             permissions.toArray(new String[0]),

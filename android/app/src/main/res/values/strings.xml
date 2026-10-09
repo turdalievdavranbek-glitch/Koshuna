@@ -5,7 +5,7 @@
     <string name="app_name_latin">Konshu</string>
     <string name="package_name">com.koshuna.app</string>
     <string name="custom_url_scheme">com.koshuna.app</string>
-    <string name="default_notification_channel_id">koshuna_default</string>
-    <string name="default_notification_channel_name">Коңшу</string>
-    <string name="default_notification_channel_description">Сообщения Коңшу</string>
+    <string name="default_notification_channel_id">messages</string>
+    <string name="default_notification_channel_name">Сообщения</string>
+    <string name="default_notification_channel_description">Новые сообщения и уведомления Коңшу</string>
 </resources>

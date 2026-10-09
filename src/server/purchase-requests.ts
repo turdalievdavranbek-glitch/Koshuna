@@ -4,7 +4,9 @@ import { BUY_CATEGORIES, formatBuyQuantity, isBuyUnit, pointMatchesRequest, toda
 import { holdPersonName } from "@/lib/public-name";
 import { openRequestThread } from "./chat";
 import { getDb } from "./db";
-import { notifications, purchaseRequests, shops, users } from "./db/schema";
+import { purchaseRequests, shops, users } from "./db/schema";
+import { saveNotices } from "./notices";
+import { blockedCounterparts } from "./push";
 
 const TEXT_MAX = 500;
 const QTY_MAX = 1_000_000;
@@ -155,14 +157,18 @@ export async function createPurchaseRequest(
 
   const hits = (await matchingShops(category, area.oblast)).filter((shop) => shop.ownerId !== buyerId);
   const owners = [...new Set(hits.map((shop) => shop.ownerId))];
-  if (owners.length) {
+  const blocked = await blockedCounterparts(buyerId, owners);
+  const recipients = owners.filter((userId) => !blocked.has(userId));
+  if (recipients.length) {
     const title = text.slice(0, 120);
-    await db.insert(notifications).values(
-      owners.map((userId) => ({
+    await saveNotices(
+      db,
+      recipients.map((userId) => ({
         userId,
         type: "purchase_request",
         textKey: "notifBuyRequest",
         params: { title, requestId: row.id },
+        actorId: buyerId,
       })),
     );
   }
