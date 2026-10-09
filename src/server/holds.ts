@@ -54,6 +54,7 @@ export async function askHold(buyerId: string, listingId: string): Promise<{ hol
         title: listings.title,
         underReview: listings.underReview,
         shopId: listings.shopId,
+        section: listings.section,
       })
       .from(listings)
       .where(eq(listings.id, listingId))
@@ -69,6 +70,8 @@ export async function askHold(buyerId: string, listingId: string): Promise<{ hol
         .limit(1);
       if (shop[0]?.underReview) return { error: "not-found", status: 404 };
     }
+    // Services are booked through the chat («Записаться»), never held.
+    if (listing.section === "services") return { error: "service", status: 409 };
     if (listing.ownerId === buyerId) return { error: "own", status: 403 };
     if (listing.status !== "active" && listing.status !== "promoted") return { error: "closed", status: 409 };
 
