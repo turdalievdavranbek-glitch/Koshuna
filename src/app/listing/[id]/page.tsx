@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
 import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
@@ -38,6 +38,7 @@ import { HonestyCard } from "@/components/honesty-card";
 import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
+import { ListingVideoViewer } from "@/components/listing-video-viewer";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
 import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
@@ -49,7 +50,18 @@ export default function ListingPage() {
   const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
+  // Opening a video listing starts the full-screen reels player once; closing it shows the details.
+  const autoVideo = useRef<string | null>(null);
+  const videoId = listing && isVideoListing(listing) && listing.videoUrl ? listing.id : null;
+  useEffect(() => {
+    if (!videoId || autoVideo.current === videoId) return;
+    autoVideo.current = videoId;
+    setVideoOpen(true);
+  }, [videoId]);
   const [photo, setPhoto] = useState(0);
+  const [videoOpen, setVideoOpen] = useState(false);
+  // Phone videos are mostly vertical; a landscape clip switches the box back to a short one.
+  const [videoTall, setVideoTall] = useState(true);
   const [toast, setToast] = useState("");
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
   const [remoteBlocked, setRemoteBlocked] = useState<string | null>(null);
@@ -180,8 +192,8 @@ export default function ListingPage() {
   return (
     <PhoneShell>
       <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
-        <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? 360 : listing.section === "secondhand" ? 300 : 320 }}>
-          <ListingHero listing={listing} photo={photo} title={title} />
+        <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? (videoTall ? "min(72vh, 620px)" : 240) : listing.section === "secondhand" ? 300 : 320 }}>
+          <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
           {!isVideoListing(listing) && listing.photos.length > 1 ? (
             <>
               <button
@@ -709,6 +721,21 @@ export default function ListingPage() {
         <div className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-screen">
           {toast}
         </div>
+      ) : null}
+      {videoOpen && isVideoListing(listing) && listing.videoUrl ? (
+        <ListingVideoViewer
+          listing={listing}
+          title={title}
+          onClose={() => setVideoOpen(false)}
+          onWrite={
+            mine
+              ? undefined
+              : () => {
+                  setVideoOpen(false);
+                  onWrite();
+                }
+          }
+        />
       ) : null}
     </PhoneShell>
   );
