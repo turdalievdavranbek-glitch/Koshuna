@@ -35,6 +35,7 @@ import { BlockAuthorButton, BlockedAuthorNotice } from "@/components/block-autho
 import { PlayBanner } from "@/components/play-banner";
 import { ServiceFacts } from "@/components/service-facts";
 import { HonestyCard } from "@/components/honesty-card";
+import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { RestaurantMenu } from "@/components/restaurant-menu";
@@ -269,8 +270,7 @@ export default function ListingPage() {
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
-          {/* Step 24 (Р-112): magnets */}
-          <div data-slot="magnets" className="h-0 overflow-hidden" />
+          <PriceHonest listing={listing} />
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}

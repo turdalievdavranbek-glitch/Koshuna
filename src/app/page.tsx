@@ -19,6 +19,7 @@ import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborCircles } from "@/components/neighbor-circles";
+import { NeighborNearby, TodayOnPoints } from "@/components/magnets";
 import { HomeFreshFilters } from "@/components/home-fresh-filters";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
@@ -142,6 +143,8 @@ export default function FeedPage() {
       </header>
 
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
+        <NeighborNearby />
+        <TodayOnPoints />
         <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
           {feedQuick.filter((item) => isSectionVisible(item.id)).map((item) => (
             <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>

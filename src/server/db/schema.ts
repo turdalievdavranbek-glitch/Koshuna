@@ -326,7 +326,7 @@ export const accountDeletions = pgTable(
   (t) => [check("account_deletions_source", sql`${t.source} in ('app','web')`)],
 );
 
-/** Table only. The daily job is Шаг 24 (owner decision 2026-10-08). */
+/** Filled by the daily `price-stats` job (Шаг 24). Lookup key is category + city + unit. */
 export const priceStats = pgTable(
   "price_stats",
   {

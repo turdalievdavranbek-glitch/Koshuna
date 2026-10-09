@@ -15,6 +15,7 @@ import { Chip, Eyebrow } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { FEATURES } from "@/lib/features";
 import { GisOnMapCard } from "@/components/gis-on-map";
+import { TodayOnPoint } from "@/components/magnets";
 import { starsForUser } from "@/lib/trust";
 import { ScreenBack } from "@/components/back-button";
 import { BlockedAuthorNotice } from "@/components/block-author";
@@ -153,8 +154,7 @@ export default function ShopDetailPage() {
             </a>
           ) : null}
         </div>
-        {/* Later: «Сегодня на точке» */}
-        <div data-slot="today-on-point" className="h-0 overflow-hidden" />
+        <TodayOnPoint shopId={shop.id} />
 
         <div className="mt-4 rounded-[16px] border border-line bg-white p-4">
           <div className="text-[13px] font-semibold text-ink">

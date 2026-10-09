@@ -9,6 +9,7 @@ import {
   listings,
   media,
   notifications,
+  priceStats,
   purchaseRequests,
   reactions,
   reservations,
@@ -22,7 +23,76 @@ import { rowToShop } from "./mappers";
 import { closeExpiredPurchaseRequests } from "./purchase-requests";
 import { partPath, removeFile } from "./media";
 
-/** Price-stats job is Шаг 24. The table stays; this step does not fill it. */
+/**
+ * Daily price bands per (category, city, unit).
+ * Public listings only, same visibility as the circles job, and only a real price (price > 0, not «договорная»).
+ * One transaction replaces every row.
+ */
+export async function priceStatsJob(): Promise<{ ok: true; counts: Record<string, number> }> {
+  const db = getDb();
+  const groups = await db.transaction(async (tx) => {
+    const result = await tx.execute(sql`
+      select
+        btrim(${listings.category}) as category,
+        ${listings.city} as city,
+        coalesce(nullif(btrim(${listings.unit}), ''), '') as unit,
+        count(*)::int as n,
+        percentile_cont(0.25) within group (order by cast(${listings.price} as double precision)) as p25,
+        percentile_cont(0.5) within group (order by cast(${listings.price} as double precision)) as median,
+        percentile_cont(0.75) within group (order by cast(${listings.price} as double precision)) as p75
+      from ${listings}
+      inner join ${users} on ${users.id} = ${listings.ownerId}
+      left join ${shops} on ${shops.id} = ${listings.shopId}
+      where ${listings.status} in ('active', 'promoted', 'reserved')
+        and ${listings.underReview} = false
+        and ${listings.price} > 0
+        and ${listings.priceType} = 'fixed'
+        and ${listings.category} is not null
+        and btrim(${listings.category}) <> ''
+        and ${listings.city} <> ''
+        and (${listings.shopId} is null or (${shops.status} = 'active' and ${shops.underReview} = false))
+        and ${users.bannedAt} is null
+        and ${users.deletedAt} is null
+      group by 1, 2, 3
+    `);
+    if (!Array.isArray(result)) throw new Error("price-stats job: unexpected query result");
+    const now = new Date();
+    const values: (typeof priceStats.$inferInsert)[] = [];
+    for (const raw of result) {
+      const row = raw as Record<string, unknown>;
+      const category = typeof row.category === "string" ? row.category.trim() : "";
+      const city = typeof row.city === "string" ? row.city.trim() : "";
+      const unit = typeof row.unit === "string" ? row.unit : "";
+      const n = typeof row.n === "number" ? row.n : Number(row.n);
+      const p25 = statNumber(row.p25);
+      const median = statNumber(row.median);
+      const p75 = statNumber(row.p75);
+      if (!category || !city || !Number.isFinite(n) || n < 1 || p25 == null || median == null || p75 == null) continue;
+      values.push({
+        category,
+        city,
+        unit,
+        n,
+        p25: String(p25),
+        median: String(median),
+        p75: String(p75),
+        updatedAt: now,
+      });
+    }
+    await tx.delete(priceStats);
+    for (let i = 0; i < values.length; i += 400) {
+      await tx.insert(priceStats).values(values.slice(i, i + 400));
+    }
+    return values.length;
+  });
+  return { ok: true, counts: { groups } };
+}
+
+function statNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
 
 export async function listingReminders(): Promise<{ ok: true; counts: Record<string, number> }> {
   const db = getDb();
@@ -241,4 +311,5 @@ export const JOBS = {
   "account-deletions": accountDeletionsJob,
   cleanup: cleanupJob,
   circles: circlesJob,
+  "price-stats": priceStatsJob,
 } as const;
