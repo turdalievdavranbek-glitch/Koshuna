@@ -91,6 +91,24 @@ export const devices = pgTable("devices", {
   lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
 });
 
+/** FCM registration tokens for the native app. One row per token; logout deletes that row. */
+export const pushTokens = pgTable(
+  "push_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    platform: text("platform").notNull(),
+    lastSeen: ts("last_seen").notNull().defaultNow(),
+  },
+  (t) => [
+    check("push_tokens_platform", sql`${t.platform} in ('android','ios')`),
+    index("push_tokens_user_idx").on(t.userId),
+  ],
+);
+
 export const shops = pgTable(
   "shops",
   {

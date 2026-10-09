@@ -1,9 +1,8 @@
 /**
  * Native shell hooks for the Android APK (Шаг 1) and the iOS shell (Шаг 30).
  * No UI. Login buttons are Шаг 8. The home bell lists in-app notices (Шаг 18).
- * A phone push is not sent: the device-token table exists, but there is no server send path.
- * Crashlytics and FCM stay quiet until google-services.json is in the APK.
- * iOS does not ask for push permission. No pushes are sent.
+ * Push permission is not asked here. The native app asks after login or when
+ * Messages is opened. Crashlytics stays quiet until google-services.json is in the APK.
  */
 
 let wired = false;
@@ -23,7 +22,8 @@ export async function wireNativeShell(): Promise<void> {
   void wireAppLinks();
   if (Capacitor.getPlatform() === "ios") wireIosExternalLinks();
   wireJsErrors();
-  await wirePushPermission();
+  const { wirePushOpen } = await import("./native-push");
+  await wirePushOpen();
 }
 
 function wireJsErrors(): void {
@@ -52,32 +52,4 @@ function wireJsErrors(): void {
     }
     report(typeof reason === "string" ? reason : "unhandledrejection");
   });
-}
-
-async function wirePushPermission(): Promise<void> {
-  const { Capacitor } = await import("@capacitor/core");
-  if (Capacitor.getPlatform() === "ios") return;
-  try {
-    const { PushNotifications } = await import("@capacitor/push-notifications");
-    let status = await PushNotifications.checkPermissions();
-    if (status.receive === "prompt" || status.receive === "prompt-with-rationale") {
-      status = await PushNotifications.requestPermissions();
-    }
-    if (status.receive !== "granted") return;
-    try {
-      await PushNotifications.addListener("registration", ({ value }) => {
-        void fetch("/api/devices", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ token: value, platform: "android" }),
-        }).catch(() => undefined);
-      });
-    } catch {
-      /* FCM token needs a real google-services.json. */
-    }
-    await PushNotifications.register();
-  } catch {
-    /* FCM token needs a real google-services.json. The permission request still ran. */
-  }
 }

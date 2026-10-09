@@ -3,7 +3,8 @@ import { formatBuyQuantity } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
 import type { ChatDetail, ChatLine, ChatThread } from "@/lib/chat";
 import { getDb } from "./db";
-import { blocks, listings, messages, notifications, purchaseRequests, shops, threads, users } from "./db/schema";
+import { blocks, listings, messages, purchaseRequests, shops, threads, users } from "./db/schema";
+import { bindNoticePushes, saveNotice } from "./notices";
 
 const TEXT_MAX = 2000;
 const OPEN = new Set(["active", "promoted", "reserved"]);
@@ -13,7 +14,7 @@ type Fail = { error: string; status: number };
 /**
  * Text chat stored on the server. One thread per buyer and listing.
  * The seller's phone is never selected or returned. A new message is an in-app
- * notice only: nothing is sent to the phone.
+ * notice and, when FCM is configured, a phone push to the other person.
  */
 function photoOf(cover: string | null, photos: string[] | null): string | null {
   if (cover) return cover;
@@ -300,7 +301,7 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
   const text = raw.trim();
   if (!text || text.length > TEXT_MAX) return { error: "text", status: 400 };
   const db = getDb();
-  return db.transaction(async (tx) => {
+  return bindNoticePushes(() => db.transaction(async (tx) => {
     const locked = await tx.select().from(threads).where(eq(threads.id, threadId)).limit(1);
     const thread = locked[0];
     if (!thread || (thread.buyerId !== userId && thread.sellerId !== userId)) return { error: "not-found", status: 404 };
@@ -339,7 +340,7 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
             .limit(1)
         : Promise.resolve([]),
     ]);
-    await tx.insert(notifications).values({
+    await saveNotice(tx, {
       userId: peerId,
       type: "chat_message",
       listingId: thread.listingId,
@@ -349,6 +350,8 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
         title: (card[0]?.title || ask[0]?.text || "").slice(0, 120),
         threadId: thread.id,
       },
+      actorId: userId,
+      chat: { preview: text },
     });
     return {
       message: {
@@ -358,5 +361,5 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
         createdAt: row.createdAt.toISOString(),
       },
     };
-  });
+  }));
 }

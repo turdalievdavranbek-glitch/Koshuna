@@ -1,6 +1,7 @@
 package com.koshuna.app;
 
 import android.app.Application;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
@@ -16,7 +17,6 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics;
  */
 public class KoshunaApp extends Application {
     private static final String TAG = "Koshuna";
-    static final String DEFAULT_CHANNEL_ID = "koshuna_default";
 
     @Override
     public void onCreate() {
@@ -34,11 +34,13 @@ public class KoshunaApp extends Application {
             return;
         }
         NotificationChannel channel = new NotificationChannel(
-            DEFAULT_CHANNEL_ID,
+            getString(R.string.default_notification_channel_id),
             getString(R.string.default_notification_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         );
         channel.setDescription(getString(R.string.default_notification_channel_description));
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        channel.enableVibration(true);
         manager.createNotificationChannel(channel);
     }
 

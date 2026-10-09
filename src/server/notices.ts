@@ -1,7 +1,95 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import type { ExtractTablesWithRelations } from "drizzle-orm";
+import type { PgTransaction } from "drizzle-orm/pg-core";
+import type { PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js";
 import { isDbUserId } from "@/lib/phone";
-import { getDb } from "./db";
-import { notifications } from "./db/schema";
+import { getDb, type Db } from "./db";
+import * as schema from "./db/schema";
+
+const { notifications } = schema;
+import { deliverPush, type NoticePush } from "./push";
+
+type Tx = PgTransaction<PostgresJsQueryResultHKT, typeof schema, ExtractTablesWithRelations<typeof schema>>;
+type NoticeDb = Db | Tx;
+
+export type NoticeWrite = {
+  userId: string;
+  type: string;
+  listingId?: string | null;
+  textKey: string;
+  params?: { name?: string; title?: string; threadId?: string; requestId?: string };
+  /** The other person. Push is skipped when either side has blocked the other. */
+  actorId?: string | null;
+  /** Chat only: message preview, or a photo/video label chosen from the recipient's language. */
+  chat?: { preview?: string; media?: "photo" | "video" };
+};
+
+const pendingPushes = new AsyncLocalStorage<NoticePush[]>();
+
+/**
+ * Runs `fn` (usually a DB transaction). Pushes are sent only after `fn` resolves,
+ * so a rolled-back notice is not delivered.
+ */
+export async function bindNoticePushes<T>(fn: () => Promise<T>): Promise<T> {
+  const jobs: NoticePush[] = [];
+  const result = await pendingPushes.run(jobs, fn);
+  for (const job of jobs) {
+    void deliverPush(job).catch((err) => {
+      console.error("push", err instanceof Error ? err.message : "failed");
+    });
+  }
+  return result;
+}
+
+function queuePush(job: NoticePush): void {
+  const bucket = pendingPushes.getStore();
+  if (bucket) {
+    bucket.push(job);
+    return;
+  }
+  void deliverPush(job).catch((err) => {
+    console.error("push", err instanceof Error ? err.message : "failed");
+  });
+}
+
+/** Inserts in-app notices and queues a phone push for each. Every notice goes through here. */
+export async function saveNotices(db: NoticeDb, inputs: NoticeWrite[]): Promise<void> {
+  if (!inputs.length) return;
+  const inserted = await db
+    .insert(notifications)
+    .values(
+      inputs.map((input) => ({
+        userId: input.userId,
+        type: input.type,
+        listingId: input.listingId ?? null,
+        textKey: input.textKey,
+        params: input.params ?? {},
+      })),
+    )
+    .returning({ id: notifications.id });
+  inserted.forEach((row, index) => {
+    const input = inputs[index];
+    if (!row?.id || !input) return;
+    queuePush({
+      noticeId: row.id,
+      userId: input.userId,
+      type: input.type,
+      textKey: input.textKey,
+      listingId: input.listingId,
+      threadId: input.params?.threadId,
+      requestId: input.params?.requestId,
+      actorId: input.actorId,
+      name: input.params?.name,
+      title: input.params?.title,
+      chat: input.chat,
+    });
+  });
+}
+
+export async function saveNotice(db: NoticeDb, input: NoticeWrite): Promise<void> {
+  await saveNotices(db, [input]);
+}
 
 type NoticeParams = { name?: string; title?: string; threadId?: string; requestId?: string };
 

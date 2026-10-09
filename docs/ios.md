@@ -34,7 +34,7 @@ Push при запуске iOS не запрашивается. Android не м�
 
 Имя Apple сохраняется только когда у пользователя ещё нет имени (первый вход). Повторный вход имя не затирает.
 
-Перед revoke на сервере: `npm run db:migrate` (таблица `apple_refresh_tokens`, `drizzle/0004_apple_refresh.sql`). Без миграции вход и удаление аккаунта всё равно проходят, revoke просто пропускается.
+Перед revoke на сервере: `npm run db:migrate` (таблица `apple_refresh_tokens`, `drizzle/0005_apple_refresh.sql`). Без миграции вход и удаление аккаунта всё равно проходят, revoke просто пропускается.
 
 Nginx не должен редиректить `/.well-known/apple-app-site-association`. Ответ — `application/json`, как у `assetlinks.json`.
 
