@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminAreaById, adminAreaLabel } from "@/lib/admin-areas";
 import { api } from "@/lib/api/client";
-import type { BuyRequestRow } from "@/lib/buy-request";
+import { buyRequestAmount, type BuyRequestRow } from "@/lib/buy-request";
 import { useApp } from "@/lib/store";
 
 function placeLabel(row: BuyRequestRow, lang: string, oblasts: Record<string, string>): string {
@@ -27,19 +27,22 @@ function dayLabel(iso: string, lang: string): string {
 function RequestCard({
   row,
   action,
+  remove,
 }: {
   row: BuyRequestRow;
   action?: { label: string; busy: boolean; onClick: () => void };
+  remove?: { ask: boolean; busy: boolean; onAsk: () => void; onYes: () => void; onNo: () => void };
 }) {
   const { t, lang } = useApp();
   const place = placeLabel(row, lang, t.oblasts);
   const closed = row.status !== "open";
+  const amount = buyRequestAmount(row.quantity, row.unit, t.buyUnits);
   return (
     <div className="rounded-[16px] border border-line bg-white px-3.5 py-3">
       <div className="text-[15px] font-semibold leading-[1.35] text-ink">{row.buyerName?.trim() || row.text}</div>
       {row.buyerName ? <div className="mt-0.5 text-[14px] leading-[1.35] text-ink">{row.text}</div> : null}
       <div className="mt-1 text-[12px] leading-[1.4] text-muted">
-        {[t.shopCats[row.category] ?? row.category, row.quantity, place, dayLabel(row.deadline, lang), row.needsDelivery ? t.buyRequestWithDelivery : t.buyRequestNoDelivery]
+        {[t.shopCats[row.category] ?? row.category, amount, place, dayLabel(row.deadline, lang), row.needsDelivery ? t.buyRequestWithDelivery : t.buyRequestNoDelivery]
           .filter(Boolean)
           .join(" · ")}
       </div>
@@ -49,6 +52,25 @@ function RequestCard({
         <button type="button" disabled={action.busy} onClick={action.onClick} className="mt-2 text-[14px] font-bold text-accent disabled:opacity-60">
           {action.label}
         </button>
+      ) : null}
+      {remove ? (
+        remove.ask ? (
+          <div className="mt-2 rounded-[12px] bg-chip p-3">
+            <p className="text-[13px] text-ink">{t.buyRequestDeleteAsk}</p>
+            <div className="mt-2 flex gap-4">
+              <button type="button" disabled={remove.busy} onClick={remove.onYes} className="text-[13px] font-bold text-accent disabled:opacity-60">
+                {t.buyRequestDelete}
+              </button>
+              <button type="button" onClick={remove.onNo} className="text-[13px] font-semibold text-muted">
+                {t.cardDeleteCancel}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" data-testid="buy-request-delete" onClick={remove.onAsk} className="mt-2 text-[14px] font-bold text-accent">
+            {t.buyRequestDelete}
+          </button>
+        )
       ) : null}
     </div>
   );
@@ -61,6 +83,7 @@ export function MyBuyRequests() {
   const [rows, setRows] = useState<BuyRequestRow[]>([]);
   const [ready, setReady] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [askId, setAskId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -92,6 +115,20 @@ export function MyBuyRequests() {
     });
   };
 
+  const remove = (row: BuyRequestRow) => {
+    setBusyId(row.id);
+    setError("");
+    void api(`/api/me/purchase-requests/${encodeURIComponent(row.id)}/delete`, { method: "POST" }).then((res) => {
+      setBusyId("");
+      if (!res.ok) {
+        setError(t.buyRequestFail);
+        return;
+      }
+      setAskId("");
+      setRows((list) => list.filter((item) => item.id !== row.id));
+    });
+  };
+
   return (
     <section data-testid="my-buy-requests">
       <h2 className="font-display text-[19px] font-bold text-ink">{t.buyRequestMine}</h2>
@@ -116,6 +153,13 @@ export function MyBuyRequests() {
                   ? { label: t.buyRequestFound, busy: busyId === row.id, onClick: () => close(row) }
                   : undefined
               }
+              remove={{
+                ask: askId === row.id,
+                busy: busyId === row.id,
+                onAsk: () => setAskId(row.id),
+                onYes: () => remove(row),
+                onNo: () => setAskId(""),
+              }}
             />
           ))}
         </div>

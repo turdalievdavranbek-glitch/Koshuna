@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { formatBuyQuantity } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
 import type { ChatDetail, ChatLine, ChatThread } from "@/lib/chat";
 import { getDb } from "./db";
@@ -185,25 +186,33 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
       : Promise.resolve([]),
     requestIds.length
       ? db
-          .select({ id: purchaseRequests.id, text: purchaseRequests.text })
+          .select({
+            id: purchaseRequests.id,
+            text: purchaseRequests.text,
+            quantity: purchaseRequests.quantity,
+            unit: purchaseRequests.unit,
+          })
           .from(purchaseRequests)
           .where(inArray(purchaseRequests.id, requestIds))
       : Promise.resolve([]),
   ]);
   const names = new Map(people.map((row) => [row.id, holdPersonName(row.name)]));
   const cardsById = new Map(cards.map((row) => [row.id, row]));
-  const askById = new Map(asks.map((row) => [row.id, row.text]));
+  const askById = new Map(asks.map((row) => [row.id, row]));
   let unread = 0;
   const list: ChatThread[] = rows.map((row) => {
     const n = Number(row.unread) || 0;
     unread += n;
     const card = row.listingId ? cardsById.get(row.listingId) : undefined;
     const ask = row.requestId ? askById.get(row.requestId) : undefined;
+    const request = card ? undefined : ask;
     const peerId = row.buyerId === userId ? row.sellerId : row.buyerId;
     return {
       id: row.id,
       listingId: row.listingId,
-      title: card?.title || ask || "",
+      title: card?.title || ask?.text || "",
+      requestQuantity: request ? formatBuyQuantity(request.quantity) : null,
+      requestUnit: request ? request.unit ?? null : null,
       photo: card ? photoOf(card.coverUrl, card.photos) : null,
       peerId,
       peerName: names.get(peerId) ?? "",
@@ -250,7 +259,11 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
           .limit(1)
       : Promise.resolve([]),
     thread.requestId
-      ? db.select({ text: purchaseRequests.text }).from(purchaseRequests).where(eq(purchaseRequests.id, thread.requestId)).limit(1)
+      ? db
+          .select({ text: purchaseRequests.text, quantity: purchaseRequests.quantity, unit: purchaseRequests.unit })
+          .from(purchaseRequests)
+          .where(eq(purchaseRequests.id, thread.requestId))
+          .limit(1)
       : Promise.resolve([]),
     pairBlocked(userId, peerId),
   ]);
@@ -268,10 +281,13 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
       createdAt: row.createdAt.toISOString(),
     }));
   const listing = card[0];
+  const request = listing ? undefined : ask[0];
   return {
     id: thread.id,
     listingId: thread.listingId,
-    title: listing?.title || ask[0]?.text || "",
+    title: listing?.title || request?.text || "",
+    requestQuantity: request ? formatBuyQuantity(request.quantity) : null,
+    requestUnit: request?.unit ?? null,
     photo: listing ? photoOf(listing.coverUrl, listing.photos) : null,
     peerId,
     peerName: holdPersonName(person[0]?.name),
@@ -316,7 +332,11 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
         ? tx.select({ title: listings.title }).from(listings).where(eq(listings.id, thread.listingId)).limit(1)
         : Promise.resolve([]),
       thread.requestId
-        ? tx.select({ text: purchaseRequests.text }).from(purchaseRequests).where(eq(purchaseRequests.id, thread.requestId)).limit(1)
+        ? tx
+            .select({ text: purchaseRequests.text, quantity: purchaseRequests.quantity, unit: purchaseRequests.unit })
+            .from(purchaseRequests)
+            .where(eq(purchaseRequests.id, thread.requestId))
+            .limit(1)
         : Promise.resolve([]),
     ]);
     await tx.insert(notifications).values({

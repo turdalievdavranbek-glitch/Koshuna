@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { buyRequestChatTitle } from "@/lib/buy-request";
 import type { ChatRole, ChatThread } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
@@ -108,6 +109,7 @@ export default function MessagesPage() {
           <div className="flex flex-col gap-2">
             {visible.map((row) => {
               const peer = row.peerName || (row.role === "sell" ? t.peerBuyer : t.holdNoName);
+              const title = buyRequestChatTitle(row.title, row.requestQuantity, row.requestUnit, t.buyUnits);
               return (
                 <button
                   key={row.id}
@@ -120,7 +122,7 @@ export default function MessagesPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-semibold text-ink">{row.title || t.chatListingGone}</span>
+                      <span className="truncate font-semibold text-ink">{title || t.chatListingGone}</span>
                       <span className="shrink-0 text-xs text-muted-2">
                         {row.lastMessageAt ? formatWhen(row.lastMessageAt, lang) : ""}
                       </span>
@@ -137,7 +139,7 @@ export default function MessagesPage() {
                       </span>
                       {peer ? <span className="truncate text-[12px] text-muted">{peer}</span> : null}
                     </div>
-                    <div className="truncate text-[13px] text-muted">{row.preview || row.title}</div>
+                    <div className="truncate text-[13px] text-muted">{row.preview || title}</div>
                   </div>
                   {row.unread > 0 ? (
                     <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[12px] font-bold text-accent-on">

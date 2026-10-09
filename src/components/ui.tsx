@@ -339,6 +339,7 @@ export function Input({
   type = "text",
   disabled,
   testId,
+  inputMode,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -346,10 +347,12 @@ export function Input({
   type?: string;
   disabled?: boolean;
   testId?: string;
+  inputMode?: "numeric" | "decimal" | "text" | "tel";
 }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value}
       placeholder={placeholder}
       disabled={disabled}

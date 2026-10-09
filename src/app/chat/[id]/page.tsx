@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { buyRequestChatTitle } from "@/lib/buy-request";
 import type { ChatDetail, ChatLine } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
@@ -107,7 +108,7 @@ export default function ChatPage() {
     });
   };
 
-  const title = detail.title || t.chatListingGone;
+  const title = buyRequestChatTitle(detail.title, detail.requestQuantity, detail.requestUnit, t.buyUnits) || t.chatListingGone;
   const peer = detail.peerName || t.holdNoName;
 
   return (
