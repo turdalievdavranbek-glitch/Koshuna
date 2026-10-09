@@ -43,12 +43,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- App Links for https://koshuna.ru. Fingerprints live in public/.well-known/assetlinks.json. -->
+            <!-- App Links: every https://koshuna.ru path. SHA-256 list is ANDROID_SHA256_FINGERPRINTS, served at /.well-known/assetlinks.json. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="koshuna.ru" />
+                <data android:scheme="https" android:host="koshuna.ru" android:pathPrefix="/" />
             </intent-filter>
 
         </activity>
