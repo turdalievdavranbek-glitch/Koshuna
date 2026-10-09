@@ -13,6 +13,8 @@ export type ChatThread = {
   preview: string;
   lastMessageAt: string | null;
   unread: number;
+  requestQuantity?: string | null;
+  requestUnit?: string | null;
 };
 
 export type ChatLine = {
@@ -31,6 +33,8 @@ export type ChatDetail = {
   peerName: string;
   blocked: boolean;
   messages: ChatLine[];
+  requestQuantity?: string | null;
+  requestUnit?: string | null;
 };
 
 const SECRET_KEYS = new Set(["phone", "whatsapp", "email", "sellerPhone", "mediaUrl", "media_url"]);

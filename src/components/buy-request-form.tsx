@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminAreaById, adminAreaLabel, areasOfOblast } from "@/lib/admin-areas";
 import { api } from "@/lib/api/client";
-import { BUY_CATEGORIES, buyRequestTextWithUnit, parseBuyQuantity, todayBishkek } from "@/lib/buy-request";
+import { BUY_CATEGORIES, BUY_UNIT_DEFAULT, BUY_UNITS, parseBuyQuantity, readBuyQuantityInput, todayBishkek, type BuyUnit } from "@/lib/buy-request";
 import { OBLASTS } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import { ScreenBack } from "@/components/back-button";
@@ -17,6 +17,7 @@ export function BuyRequestForm() {
   const [category, setCategory] = useState("");
   const [text, setText] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState<BuyUnit>(BUY_UNIT_DEFAULT);
   const [oblast, setOblast] = useState("");
   const [district, setDistrict] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -42,7 +43,6 @@ export function BuyRequestForm() {
       setError(t.buyRequestQtyErr);
       return;
     }
-    const need = buyRequestTextWithUnit(text, parsed.unit);
     if (!adminAreaById(district)) {
       setError(t.buyRequestPlaceErr);
       return;
@@ -55,7 +55,7 @@ export function BuyRequestForm() {
     setError("");
     void api("/api/purchase-requests", {
       method: "POST",
-      json: { category, text: need, quantity: parsed.quantity, district, deadline, needsDelivery: delivery },
+      json: { category, text: text.trim(), quantity: parsed.quantity, unit, district, deadline, needsDelivery: delivery },
     }).then((res) => {
       setBusy(false);
       if (!res.ok) {
@@ -98,9 +98,28 @@ export function BuyRequestForm() {
             <Field label={t.buyRequestNeed}>
               <Input value={text} onChange={setText} placeholder={t.buyRequestNeedPh} />
             </Field>
-            <Field label={t.buyRequestQty}>
-              <Input value={quantity} onChange={setQuantity} placeholder="10 т" />
-            </Field>
+            <div>
+              <div className="text-[13px] font-semibold text-ink">{t.buyRequestQty}</div>
+              <div className="mt-[7px]">
+                <Input
+                  value={quantity}
+                  inputMode="numeric"
+                  placeholder="10"
+                  onChange={(raw) => {
+                    const read = readBuyQuantityInput(raw);
+                    setQuantity(read.quantity);
+                    if (read.unit) setUnit(read.unit);
+                  }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {BUY_UNITS.map((id) => (
+                  <Chip key={id} size="sm" active={unit === id} onClick={() => setUnit(id)}>
+                    {t.buyUnits[id] ?? id}
+                  </Chip>
+                ))}
+              </div>
+            </div>
             <div>
               <div className="text-[13px] font-semibold text-ink">{t.buyRequestDistrict}</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -148,6 +167,7 @@ export function BuyRequestForm() {
               </div>
             </div>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
+            <p className="text-[13px] leading-[1.45] text-muted">{t.buyRequestNotice}</p>
             <button
               type="button"
               disabled={busy}

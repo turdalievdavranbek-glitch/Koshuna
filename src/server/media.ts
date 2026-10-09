@@ -181,7 +181,8 @@ export async function writeChunk(uploadId: string, offset: number, bytes: Uint8A
 
 /**
  * Remux mp4/mov so playback can start before the whole file downloads.
- * Copy only — no re-encode. A failure leaves the original file in place.
+ * Copy only — no re-encode. The temp path has no video extension, so the
+ * format is set explicitly. A failure leaves the original file in place.
  */
 export async function remuxFaststart(relative: string, mime: string): Promise<void> {
   if (mime !== "video/mp4" && mime !== "video/quicktime") return;
@@ -189,7 +190,7 @@ export async function remuxFaststart(relative: string, mime: string): Promise<vo
   const full = path.join(mediaRoot(), relative);
   const tmp = `${full}.faststart.tmp`;
   try {
-    await execFileAsync(bin, ["-y", "-i", full, "-c", "copy", "-movflags", "+faststart", tmp], {
+    await execFileAsync(bin, ["-y", "-i", full, "-c", "copy", "-movflags", "+faststart", "-f", "mp4", tmp], {
       timeout: 30_000,
       maxBuffer: 1024 * 1024,
     });

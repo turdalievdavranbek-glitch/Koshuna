@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     category?: string;
     text?: string;
     quantity?: number;
+    unit?: string;
     district?: string;
     deadline?: string;
     needsDelivery?: boolean;

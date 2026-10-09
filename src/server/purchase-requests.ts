@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { adminAreaById } from "@/lib/admin-areas";
-import { BUY_CATEGORIES, pointMatchesRequest, todayBishkek, type BuyRequestRow, type BuyRequestStatus } from "@/lib/buy-request";
+import { BUY_CATEGORIES, formatBuyQuantity, isBuyUnit, pointMatchesRequest, todayBishkek, type BuyRequestRow, type BuyRequestStatus } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
 import { openRequestThread } from "./chat";
 import { getDb } from "./db";
@@ -9,6 +9,7 @@ import { notifications, purchaseRequests, shops, users } from "./db/schema";
 const TEXT_MAX = 500;
 const QTY_MAX = 1_000_000;
 const OPEN = "open";
+const DELETED = "deleted";
 
 type Fail = { error: string; status: number };
 
@@ -26,15 +27,9 @@ function deadlineFromDate(isoDate: string): Date | null {
   return Number.isNaN(end.getTime()) ? null : end;
 }
 
-function qtyLabel(value: string | null): string {
-  if (!value) return "";
-  const n = Number(value);
-  if (!Number.isFinite(n)) return value;
-  return Number.isInteger(n) ? String(n) : String(n);
-}
-
 function statusOf(value: string): BuyRequestStatus {
   if (value === "found" || value === "closed") return value;
+  if (value === DELETED) return "closed";
   return "open";
 }
 
@@ -93,6 +88,7 @@ function toRow(
     category: string;
     text: string;
     quantity: string | null;
+    unit: string | null;
     city: string;
     district: string | null;
     deadline: Date | null;
@@ -106,7 +102,8 @@ function toRow(
     id: row.id,
     category: row.category,
     text: row.text,
-    quantity: qtyLabel(row.quantity),
+    quantity: formatBuyQuantity(row.quantity),
+    unit: row.unit ?? "",
     oblast: row.city,
     district: row.district ?? "",
     deadline: row.deadline ? row.deadline.toISOString() : "",
@@ -120,7 +117,7 @@ function toRow(
 
 export async function createPurchaseRequest(
   buyerId: string,
-  input: { category?: string; text?: string; quantity?: unknown; district?: string; deadline?: string; needsDelivery?: unknown },
+  input: { category?: string; text?: string; quantity?: unknown; unit?: unknown; district?: string; deadline?: string; needsDelivery?: unknown },
 ): Promise<{ request: BuyRequestRow } | Fail> {
   const category = (input.category ?? "").trim();
   if (!(BUY_CATEGORIES as readonly string[]).includes(category)) return { error: "category", status: 400 };
@@ -128,6 +125,8 @@ export async function createPurchaseRequest(
   if (!text || text.length > TEXT_MAX) return { error: "text", status: 400 };
   const quantity = typeof input.quantity === "number" ? input.quantity : Number(String(input.quantity ?? "").trim());
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > QTY_MAX) return { error: "quantity", status: 400 };
+  const unit = typeof input.unit === "string" ? input.unit.trim() : "";
+  if (!isBuyUnit(unit)) return { error: "unit", status: 400 };
   const district = (input.district ?? "").trim();
   const area = adminAreaById(district);
   if (!area) return { error: "district", status: 400 };
@@ -143,6 +142,7 @@ export async function createPurchaseRequest(
       category,
       text,
       quantity: String(quantity),
+      unit,
       city: area.oblast,
       district: area.id,
       deadline,
@@ -174,7 +174,7 @@ export async function listMyPurchaseRequests(buyerId: string): Promise<BuyReques
   const rows = await getDb()
     .select()
     .from(purchaseRequests)
-    .where(eq(purchaseRequests.buyerId, buyerId))
+    .where(and(eq(purchaseRequests.buyerId, buyerId), ne(purchaseRequests.status, DELETED)))
     .orderBy(desc(purchaseRequests.createdAt))
     .limit(50);
   return rows.map((row) => toRow(row));
@@ -184,7 +184,7 @@ export async function closePurchaseRequest(buyerId: string, requestId: string): 
   const db = getDb();
   const found = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   const row = found[0];
-  if (!row || row.buyerId !== buyerId) return { error: "not-found", status: 404 };
+  if (!row || row.buyerId !== buyerId || row.status === DELETED) return { error: "not-found", status: 404 };
   if (row.status !== OPEN) return { request: toRow(row) };
   const updated = await db
     .update(purchaseRequests)
@@ -192,6 +192,25 @@ export async function closePurchaseRequest(buyerId: string, requestId: string): 
     .where(and(eq(purchaseRequests.id, requestId), eq(purchaseRequests.buyerId, buyerId), eq(purchaseRequests.status, OPEN)))
     .returning();
   return { request: toRow(updated[0] ?? { ...row, status: "found" }) };
+}
+
+/** Author only. The row stays so an existing chat still has its request. Sellers stop seeing it. */
+export async function deletePurchaseRequest(buyerId: string, requestId: string): Promise<{ ok: true } | Fail> {
+  const db = getDb();
+  const found = await db
+    .select({ buyerId: purchaseRequests.buyerId, status: purchaseRequests.status })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.id, requestId))
+    .limit(1);
+  const row = found[0];
+  if (!row || row.buyerId !== buyerId) return { error: "not-found", status: 404 };
+  if (row.status !== DELETED) {
+    await db
+      .update(purchaseRequests)
+      .set({ status: DELETED })
+      .where(and(eq(purchaseRequests.id, requestId), eq(purchaseRequests.buyerId, buyerId)));
+  }
+  return { ok: true };
 }
 
 export async function listIncomingPurchaseRequests(userId: string): Promise<BuyRequestRow[]> {
@@ -223,6 +242,7 @@ export async function listIncomingPurchaseRequests(userId: string): Promise<BuyR
       category: purchaseRequests.category,
       text: purchaseRequests.text,
       quantity: purchaseRequests.quantity,
+      unit: purchaseRequests.unit,
       city: purchaseRequests.city,
       district: purchaseRequests.district,
       deadline: purchaseRequests.deadline,
