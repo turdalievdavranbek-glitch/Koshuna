@@ -332,7 +332,7 @@ export default function ListingPage() {
                 callLabel={t.callNow}
                 writeLabel={t.write}
               />
-              <HoldRequest listing={listing} />
+              <HoldRequest listing={listing} onSignUp={onWrite} />
             </div>
           )}
           <div className="mt-3 flex gap-2">

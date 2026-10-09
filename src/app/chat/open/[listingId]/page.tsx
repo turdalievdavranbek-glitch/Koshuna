@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { saveChatDraft, takeChatDraft } from "@/lib/chat-draft";
 import { useApp } from "@/lib/store";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
@@ -24,6 +25,8 @@ export default function OpenChatPage() {
     void api<{ id?: string }>(`/api/listings/${encodeURIComponent(listingId)}/chat`, { method: "POST", json: {} }).then((res) => {
       if (cancel) return;
       if (res.ok && res.data?.id) {
+        const draft = takeChatDraft(`open:${listingId}`);
+        if (draft) saveChatDraft(res.data.id, draft);
         router.replace(`/chat/${res.data.id}`);
         return;
       }
