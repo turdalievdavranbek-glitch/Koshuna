@@ -21,6 +21,7 @@ import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborCircles } from "@/components/neighbor-circles";
 import { NeighborNearby, TodayOnPoints } from "@/components/magnets";
 import { HomeFreshFilters } from "@/components/home-fresh-filters";
+import { RingOnRise, UnreadBadge } from "@/components/unread-badge";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { useNotices } from "@/lib/notices";
@@ -48,8 +49,6 @@ export default function FeedPage() {
     if (id !== "shops") setFilters(patchForSection(id, filters));
     router.push(href);
   };
-
-  const hasUnread = unread > 0;
 
   const feedQuick = [
     { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
@@ -80,15 +79,13 @@ export default function FeedPage() {
             <Link
               href="/notifications"
               data-testid="home-bell"
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+              aria-label={t.notifications}
+              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
             >
-              <IconBell size={16} color="#17140F" />
-              {hasUnread ? (
-                <span
-                  data-testid="notif-dot"
-                  className="absolute top-1.5 right-[7px] h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent"
-                />
-              ) : null}
+              <RingOnRise count={unread}>
+                <IconBell size={26} color="#17140F" />
+              </RingOnRise>
+              <UnreadBadge count={unread} testId="notif-dot" className="-top-1 -right-1" />
             </Link>
           </div>
         </div>

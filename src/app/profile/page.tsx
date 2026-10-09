@@ -162,8 +162,8 @@ export default function ProfilePage() {
           <span className="text-[15px] font-semibold text-ink">{t.inbox}</span>
           <span className="flex items-center gap-2">
             {chatUnread > 0 ? (
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-accent px-1.5 text-[12px] font-bold text-accent-on">
-                {chatUnread}
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#E0242B] px-1.5 text-[12px] font-bold text-white">
+                {chatUnread > 9 ? "9+" : chatUnread}
               </span>
             ) : null}
             <span className="text-[18px] text-muted-2">›</span>

@@ -7,6 +7,7 @@ import { buyRequestChatTitle } from "@/lib/buy-request";
 import type { ChatRole, ChatThread } from "@/lib/chat";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
+import { setChatUnread } from "@/lib/chat-unread";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { Photo, RoundBtn } from "@/components/ui";
@@ -23,9 +24,11 @@ export function MessageInbox() {
   const load = useCallback(async () => {
     const res = await api<{ threads?: ChatThread[] }>("/api/me/threads");
     if (!res.ok) return;
-    setThreads(res.data?.threads ?? []);
+    const list = res.data?.threads ?? [];
+    setThreads(list);
     setLoaded(true);
-  }, []);
+    setChatUnread(user?.id ?? null, list.reduce((sum, row) => sum + (row.unread || 0), 0));
+  }, [user?.id]);
 
   useEffect(() => {
     if (!ready || !user?.id) return;
@@ -122,7 +125,7 @@ export function MessageInbox() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-semibold text-ink">{title || t.chatListingGone}</span>
+                      <span className={`truncate text-ink ${row.unread > 0 ? "font-extrabold" : "font-semibold"}`}>{title || t.chatListingGone}</span>
                       <span className="shrink-0 text-xs text-muted-2">
                         {row.lastMessageAt ? formatWhen(row.lastMessageAt, lang) : ""}
                       </span>
@@ -139,11 +142,11 @@ export function MessageInbox() {
                       </span>
                       {peer ? <span className="truncate text-[12px] text-muted">{peer}</span> : null}
                     </div>
-                    <div className="truncate text-[13px] text-muted">{row.preview || title}</div>
+                    <div className={`truncate text-[13px] ${row.unread > 0 ? "font-bold text-ink" : "text-muted"}`}>{row.preview || title}</div>
                   </div>
                   {row.unread > 0 ? (
-                    <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[12px] font-bold text-accent-on">
-                      {row.unread}
+                    <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#E0242B] px-1.5 text-[12px] font-bold text-white">
+                      {row.unread > 9 ? "9+" : row.unread}
                     </span>
                   ) : null}
                 </button>
