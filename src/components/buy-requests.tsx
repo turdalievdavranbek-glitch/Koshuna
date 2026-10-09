@@ -56,6 +56,7 @@ function RequestCard({
 
 export function MyBuyRequests() {
   const { t, user } = useApp();
+  const router = useRouter();
   const userId = user?.id ?? null;
   const [rows, setRows] = useState<BuyRequestRow[]>([]);
   const [ready, setReady] = useState(false);
@@ -94,6 +95,14 @@ export function MyBuyRequests() {
   return (
     <section data-testid="my-buy-requests">
       <h2 className="font-display text-[19px] font-bold text-ink">{t.buyRequestMine}</h2>
+      <button
+        type="button"
+        data-testid="buy-request-new"
+        onClick={() => router.push("/post?type=request")}
+        className="mt-3 h-[52px] w-full rounded-2xl border border-accent text-[15px] font-semibold text-accent"
+      >
+        {t.buyRequestNew}
+      </button>
       {!ready ? null : rows.length === 0 ? (
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.buyRequestMineEmpty}</p>
       ) : (

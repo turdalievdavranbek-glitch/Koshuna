@@ -18,6 +18,27 @@ export function todayBishkek(now = new Date()): string {
   }).format(now);
 }
 
+/** «10», «10 т», «10 мешков» → the integer, plus any words after it. */
+export function parseBuyQuantity(raw: string): { quantity: number; unit: string } | null {
+  const trimmed = raw.trim().replace(/\s+/g, " ");
+  const match = /^(\d+)(.*)$/.exec(trimmed);
+  if (!match) return null;
+  const quantity = Number(match[1]);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1_000_000) return null;
+  let unit = match[2].trim();
+  if (/^[.,]\d/.test(unit)) return null;
+  unit = unit.replace(/^[,:;]\s*/, "").trim();
+  return { quantity, unit };
+}
+
+/** No unit column on a purchase request: keep those words on «Что нужно». */
+export function buyRequestTextWithUnit(text: string, unit: string): string {
+  const need = text.trim().replace(/[,;\s]+$/, "");
+  const extra = unit.trim();
+  if (!need || !extra) return need;
+  return `${need}, ${extra}`;
+}
+
 export type BuyRequestRow = {
   id: string;
   category: string;
