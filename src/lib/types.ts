@@ -341,6 +341,8 @@ export type Filters = {
   settlement: string;
   aiylOnly: boolean;
   priceDroppedOnly: boolean;
+  /** How long ago the listing was created. «any» means no limit. */
+  postedWithin: "any" | "today" | "3d" | "week" | "month";
   scope: "near" | "area" | "all";
 };
 

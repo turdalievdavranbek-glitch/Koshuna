@@ -987,6 +987,7 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     vehicleGroup: "any",
     jobType: "any",
     priceDroppedOnly: false,
+    postedWithin: "any",
     videoOnly: false,
   };
 }

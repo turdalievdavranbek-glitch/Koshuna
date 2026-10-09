@@ -27,6 +27,13 @@ export function hasPriceDrop(listing: Listing): boolean {
   return listingHasPrice(listing) && listing.previousPrice != null && listing.previousPrice > listing.price;
 }
 
+/** Акции: a percent badge, an old price, or a real price drop. */
+export function isPromoListing(listing: Listing): boolean {
+  if (hasPriceDrop(listing)) return true;
+  if (listing.promoPercent != null && listing.promoPercent > 0) return true;
+  return listing.previousPrice != null && listing.previousPrice > 0;
+}
+
 export function dropAmount(listing: Listing): number {
   if (!hasPriceDrop(listing) || listing.previousPrice == null) return 0;
   return listing.previousPrice - listing.price;

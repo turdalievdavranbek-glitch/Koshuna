@@ -176,6 +176,7 @@ const defaultFilters = (): Filters => ({
   settlement: "any",
   aiylOnly: false,
   priceDroppedOnly: false,
+  postedWithin: "any",
   scope: "all",
 });
 
@@ -580,6 +581,10 @@ export function normalizeFilters(filters: Filters, savedScope?: unknown): Filter
     neighborOnly: Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
+    postedWithin:
+      next.postedWithin === "today" || next.postedWithin === "3d" || next.postedWithin === "week" || next.postedWithin === "month"
+        ? next.postedWithin
+        : "any",
     videoOnly: Boolean(next.videoOnly),
     sellerKind:
       next.sellerKind === "neighbor" ||

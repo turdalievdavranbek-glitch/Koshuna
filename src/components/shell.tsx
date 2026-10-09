@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { pushOverlay, removeOverlay } from "@/lib/native-back";
+import { searchRootPatch } from "@/lib/filter";
 import { useApp } from "@/lib/store";
 import { PostChoices } from "./post-choice";
 import { IconBag, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
@@ -13,7 +14,7 @@ type TabIcon = (p: { size?: number; color?: string }) => ReactNode;
 const TAB_H = 78;
 
 export function TabBar({ hidden }: { hidden?: boolean }) {
-  const { t, user, setPendingPath, askLeave } = useApp();
+  const { t, user, setPendingPath, askLeave, setFilters } = useApp();
   const path = usePathname();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -31,6 +32,9 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
         setPendingPath(href);
         router.push("/login");
         return;
+      }
+      if (href === "/search" && path !== "/search" && path !== "/filters") {
+        setFilters(searchRootPatch());
       }
       router.push(href);
     };
