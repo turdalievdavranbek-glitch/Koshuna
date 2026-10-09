@@ -22,7 +22,7 @@ export function LayoutSwitch() {
     { id: "small", count: 3, label: t.layoutSmall },
   ];
   return (
-    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5">
+    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5 desk:hidden">
       {opts.map((o) => {
         const on = listingLayout === o.id;
         return (
@@ -160,15 +160,22 @@ function ListingCard({
 export function ListingGrid({
   listings,
   onFav,
+  columns = "feed",
 }: {
   listings: Listing[];
   onFav?: (id: string) => void;
+  /** feed: 4 then 5 columns. browse: 3 then 4 beside the filter sidebar. */
+  columns?: "feed" | "browse";
 }) {
   const { listingLayout } = useApp();
   const cols = listingLayout === "large" ? "grid-cols-1" : listingLayout === "small" ? "grid-cols-3" : "grid-cols-2";
   const gap = listingLayout === "small" ? "gap-1.5" : "gap-2.5";
+  const deskCols =
+    columns === "browse"
+      ? "desk:grid-cols-3 min-[1280px]:desk:grid-cols-4"
+      : "desk:grid-cols-4 min-[1280px]:desk:grid-cols-5";
   return (
-    <div className={`mt-3 grid ${cols} ${gap}`}>
+    <div className={`mt-3 grid ${cols} ${gap} ${deskCols}`}>
       {listings.map((item) => (
         <ListingCard key={item.id} listing={item} layout={listingLayout} onFav={onFav} />
       ))}

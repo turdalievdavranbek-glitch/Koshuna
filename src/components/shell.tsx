@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { searchRootPatch } from "@/lib/filter";
 import { useApp } from "@/lib/store";
+import { DesktopFooter, DesktopHeader } from "./desktop-shell";
 import { PostChoices } from "./post-choice";
 import { IconBag, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
 import { UploadStatus } from "./upload-status";
@@ -101,8 +102,8 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
       {item("/favorites", "tab-favorites", t.fav, IconBag, favOn)}
       {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn)}
       {sheet ? (
-        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)]" data-testid="post-sheet" onClick={() => setSheet(false)}>
-          <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
+          <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
             <div className="font-display text-[20px] font-bold text-ink">{t.postChoiceTitle}</div>
             <div className="mt-3">
               <PostChoices
@@ -136,6 +137,14 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
   const [hidden, setHidden] = useState(false);
   const phoneRef = useRef<HTMLDivElement>(null);
   const reels = path === "/reels";
+  const narrow =
+    path === "/login" ||
+    path === "/post" ||
+    path === "/help" ||
+    path === "/profile" ||
+    path === "/profile/edit" ||
+    path === "/shops/new" ||
+    /^\/shops\/[^/]+\/edit$/.test(path);
 
   useEffect(() => {
     setHidden(false);
@@ -165,23 +174,41 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
   }, []);
 
   return (
-    <div className="flex h-[100%] max-h-[100dvh] min-h-0 justify-center overflow-hidden bg-canvas md:h-[100dvh] md:items-center md:py-6">
+    <div className="flex h-[100%] max-h-[100dvh] min-h-0 justify-center overflow-hidden bg-canvas md:h-[100dvh] md:items-center md:py-6 desk:h-[100dvh] desk:items-stretch desk:bg-screen desk:py-0">
       <div
         ref={phoneRef}
         id="konshu-phone"
-        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)]"
+        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)] desk:h-full desk:max-h-[100dvh] desk:w-full desk:max-w-none desk:rounded-none desk:border-0 desk:shadow-none"
         style={{ "--tabbar-h": hidden ? "0px" : "78px" } as CSSProperties}
       >
+        <DesktopHeader />
         {!online ? (
           <div className="flex h-7 shrink-0 items-center justify-center bg-ink text-[12px] text-screen">{t.offlineTitle}</div>
         ) : null}
-        <div className={reels ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"}>
-          {children}
+        <div className={reels ? "flex min-h-0 flex-1 flex-col overflow-hidden desk:bg-ink" : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"}>
+          <div
+            className={
+              reels
+                ? "contents"
+                : `contents desk:mx-auto desk:flex desk:min-h-0 desk:w-full desk:flex-1 desk:flex-col ${
+                    narrow
+                      ? "desk:my-6 desk:max-w-[720px] desk:rounded-[28px] desk:border desk:border-line desk:bg-surface"
+                      : "desk:max-w-[1280px] desk:px-6"
+                  }`
+            }
+          >
+            {children}
+          </div>
+          {reels ? null : <DesktopFooter />}
         </div>
         {reels ? null : (
-          <div className="z-30 shrink-0 bg-surface">
-            <UploadStatus />
-            <TabBar hidden={hidden} />
+          <div className="z-30 shrink-0 bg-surface desk:contents">
+            <div className="desk:pointer-events-auto desk:fixed desk:right-6 desk:bottom-4 desk:z-50 desk:w-[min(100%-2rem,360px)]">
+              <UploadStatus />
+            </div>
+            <div className="desk:hidden">
+              <TabBar hidden={hidden} />
+            </div>
           </div>
         )}
       </div>

@@ -175,7 +175,7 @@ export default function MapPage() {
                 </button>
               </div>
             </div>
-            <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-[18px] bg-screen/90 p-2">
+            <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-[18px] bg-screen/90 p-2 desk:grid desk:grid-cols-2 desk:content-start">
               {listings.map((item) => (
                 <ListingRow key={item.id} listing={item} />
               ))}

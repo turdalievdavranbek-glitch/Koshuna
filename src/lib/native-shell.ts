@@ -8,9 +8,10 @@
 let wired = false;
 
 export async function wireNativeShell(): Promise<void> {
-  if (wired || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
   const { Capacitor } = await import("@capacitor/core");
-  if (!Capacitor.isNativePlatform()) return;
+  if (Capacitor.isNativePlatform()) document.documentElement.classList.add("native");
+  if (wired || !Capacitor.isNativePlatform()) return;
   wired = true;
   const { wireNativeBack } = await import("./native-back");
   const { wireAppLinks } = await import("./native-links");

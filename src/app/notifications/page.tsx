@@ -37,7 +37,7 @@ export default function NotificationsPage() {
         </RoundBtn>
         <h1 className="font-display text-[22px] font-bold text-ink">{t.notifTitle}</h1>
       </div>
-      <div className="mt-5 flex flex-col gap-2 px-5">
+      <div className="mt-5 flex flex-col gap-2 px-5 desk:grid desk:grid-cols-2">
         {!userId ? (
           <div className="rounded-[18px] border border-line bg-white px-4 py-5">
             <p className="text-[15px] leading-[1.45] text-muted">{t.notifSignIn}</p>

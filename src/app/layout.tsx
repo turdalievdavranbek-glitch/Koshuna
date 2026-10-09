@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Bricolage_Grotesque, Familjen_Grotesk, Manrope } from "next/font/google";
 import { OG_FALLBACK, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/open-graph";
 import { Providers } from "./providers";
@@ -44,8 +45,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <body className={`${bricolage.variable} ${familjen.variable} ${manrope.variable} antialiased`}>
+        <Script id="konshu-native-desk" strategy="beforeInteractive">
+          {`try{var c=window.Capacitor;if(c&&typeof c.isNativePlatform==="function"&&c.isNativePlatform()){document.documentElement.classList.add("native")}}catch(e){}`}
+        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>

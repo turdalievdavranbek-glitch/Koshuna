@@ -23,8 +23,8 @@ export function DeleteCardDialog({
   }, [open, onCancel]);
   if (!open) return null;
   return (
-    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)]" onClick={onCancel} data-testid="card-delete-dialog">
-      <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5" onClick={(event) => event.stopPropagation()}>
+    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="card-delete-dialog">
+      <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
         <div className="font-display text-[20px] font-bold text-ink">{t.cardDeleteTitle}</div>
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.cardDeleteText}</p>
         <button

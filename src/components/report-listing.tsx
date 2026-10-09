@@ -78,8 +78,8 @@ export function ReportListing({ listing, returnTo, sheet }: { listing: Listing; 
         {t.report}
       </button>
       {open && sheet ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(23,20,15,.45)]" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
             {reasons}
             <button type="button" onClick={() => setOpen(false)} className="mt-2 h-12 w-full text-[15px] font-semibold text-muted">
               {t.cardDeleteCancel}

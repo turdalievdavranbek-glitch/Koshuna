@@ -36,7 +36,7 @@ export default function FavoritesPage() {
             {groups.map((group) => (
               <section key={group.id} data-testid="cart-group" data-point={group.id}>
                 <h2 className="px-1 text-[13px] font-bold text-ink">{group.title}</h2>
-                <div className="mt-2 flex flex-col gap-2">
+                <div className="mt-2 flex flex-col gap-2 desk:grid desk:grid-cols-2">
                   {group.listings.map((listing) => (
                     <CartRow
                       key={listing.id}

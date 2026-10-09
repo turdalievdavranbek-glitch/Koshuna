@@ -89,7 +89,8 @@ export default function ShopDetailPage() {
           <span className="w-9" />
         </div>
 
-        <div className="mt-3 flex items-center gap-3">
+        <div className="contents desk:mt-3 desk:grid desk:grid-cols-12 desk:items-start desk:gap-4">
+        <div className="mt-3 flex items-center gap-3 desk:col-span-5 desk:row-start-1 desk:mt-0">
           <button type="button" onClick={() => shop.videoUrl && setPlaying(true)}>
             <ShopThumb cover={shop.coverUrl} video={shop.videoUrl} />
           </button>
@@ -112,16 +113,16 @@ export default function ShopDetailPage() {
         </div>
 
         {playing && shop.videoUrl ? (
-          <div className="mt-3 overflow-hidden rounded-[18px] bg-ink">
+          <div className="mt-3 overflow-hidden rounded-[18px] bg-ink desk:col-span-12">
             <ShopVideo src={shop.videoUrl} poster={shop.coverUrl} />
           </div>
         ) : shop.videoUrl ? (
-          <button type="button" onClick={() => setPlaying(true)} className="mt-3 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold">
+          <button type="button" onClick={() => setPlaying(true)} className="mt-3 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold desk:col-span-12">
             {t.shopPlay}
           </button>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap gap-1.5 desk:col-span-12">
           <Chip active>{t.shopCats[shop.category]}</Chip>
           {(shop.kinds ?? []).map((id) => (
             <Chip key={id}>{shopKindLabel(t, id)}</Chip>
@@ -131,12 +132,16 @@ export default function ShopDetailPage() {
           ))}
         </div>
 
-        {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2">{shop.description}</p> : null}
+        {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2 desk:col-span-12">{shop.description}</p> : null}
 
-        <ShopSubscribe shopId={shop.id} mine={mine} />
-        <PlayBanner />
+        <div className="desk:col-span-12">
+          <ShopSubscribe shopId={shop.id} mine={mine} />
+        </div>
+        <div className="desk:col-span-12">
+          <PlayBanner />
+        </div>
 
-        <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden">
+        <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden desk:col-span-3 desk:col-start-10 desk:row-start-1 desk:mt-0 desk:flex-col">
           {shop.contacts.phone ? (
             <a href={`tel:${shop.contacts.phone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
               <IconPhone size={18} color="#FFF7F0" />
@@ -154,9 +159,11 @@ export default function ShopDetailPage() {
             </a>
           ) : null}
         </div>
-        <TodayOnPoint shopId={shop.id} />
+        <div className="desk:col-span-12">
+          <TodayOnPoint shopId={shop.id} />
+        </div>
 
-        <div className="mt-4 rounded-[16px] border border-line bg-white p-4">
+        <div className="mt-4 rounded-[16px] border border-line bg-white p-4 desk:col-span-4 desk:col-start-6 desk:row-start-1 desk:mt-0">
           <div className="text-[13px] font-semibold text-ink">
             {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : `${cityLabel}, ${shop.address}`}
           </div>
@@ -165,6 +172,7 @@ export default function ShopDetailPage() {
           {open === false ? <div className="mt-1 text-[12px] font-bold text-muted">{t.shopClosedNow}</div> : null}
           {shop.hoursNote ? <div className="mt-1 text-[12px] text-muted">{shop.hoursNote}</div> : null}
           {hoursLine ? <div className="mt-1 text-[12px] text-muted">{hoursLine}</div> : null}
+        </div>
         </div>
         {shop.lat != null && shop.lng != null ? (
           <div className="mt-3">
@@ -200,7 +208,7 @@ export default function ShopDetailPage() {
                     {group.id === "none" ? t.shopCatalog : shopKindLabel(t, group.id)}
                   </div>
                 ) : null}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 desk:grid desk:grid-cols-4">
                   {group.items.map((item) => (
                     <div key={item.id} className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

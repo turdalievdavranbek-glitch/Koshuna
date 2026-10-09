@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Wide site only: ≥1024px and not the Android app (html.native). Phones and the app stay on the existing layout. */
+@custom-variant desk {
+  @media (min-width: 1024px) {
+    html:not(.native) & {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --color-ink: #17140f;
   --color-ink-2: #4a4238;

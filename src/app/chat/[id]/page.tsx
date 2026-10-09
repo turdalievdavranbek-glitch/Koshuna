@@ -10,13 +10,16 @@ import { goBack } from "@/lib/go-back";
 import { isDbUserId } from "@/lib/phone";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
+import { MessageInbox } from "@/components/message-inbox";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
+import { useDesk } from "@/lib/desk";
 
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { t, lang, user, ready, setPendingPath } = useApp();
+  const desk = useDesk();
   const [detail, setDetail] = useState<ChatDetail | null>(null);
   const [missing, setMissing] = useState(false);
   const [text, setText] = useState("");
@@ -113,6 +116,13 @@ export default function ChatPage() {
 
   return (
     <PhoneShell>
+      <div className="contents desk:grid desk:min-h-0 desk:flex-1 desk:grid-cols-[360px_minmax(0,1fr)]">
+      {desk ? (
+        <div className="hidden min-h-0 overflow-y-auto border-line desk:block desk:border-r">
+          <MessageInbox />
+        </div>
+      ) : null}
+      <div className="contents desk:flex desk:min-h-0 desk:min-w-0 desk:flex-col">
       <div className="shrink-0 border-b border-line bg-white">
         <div className="flex items-center gap-3 px-4 pb-3 pt-1.5">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
@@ -205,6 +215,8 @@ export default function ChatPage() {
           </div>
         </>
       )}
+      </div>
+      </div>
     </PhoneShell>
   );
 }

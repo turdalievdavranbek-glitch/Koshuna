@@ -22,6 +22,7 @@ import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
 import { EmptyState } from "@/components/empty-state";
 import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
@@ -313,6 +314,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   if (state.isPicker) {
     return (
       <PhoneShell tab>
+        <BrowseColumns>
         <div className="flex min-h-0 flex-1 flex-col bg-screen">
           <div className="flex items-center justify-between px-5 pb-2 pt-1">
             <button
@@ -366,12 +368,14 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             />
           </div>
         </div>
+        </BrowseColumns>
       </PhoneShell>
     );
   }
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <header className="shrink-0 bg-screen px-5 pb-3.5 pt-1.5">
         <div className="flex items-center justify-between">
           <button
@@ -383,7 +387,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             <IconBack size={16} color="#17140F" />
           </button>
           <h1 className="max-w-[240px] truncate font-display text-lg font-bold text-ink">{state.title(t)}</h1>
-          <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters}>
+          <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters} className="desk:hidden">
             <IconSliders size={17} color="#17140F" />
           </button>
         </div>
@@ -442,9 +446,10 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             <EmptyState variant="nothing" onReset={reset} />
           )
         ) : (
-          <ListingGrid listings={listings} onFav={onFav} />
+          <ListingGrid listings={listings} onFav={onFav} columns="browse" />
         )}
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }

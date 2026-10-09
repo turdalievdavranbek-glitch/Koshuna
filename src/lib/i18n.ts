@@ -2021,6 +2021,12 @@ const ru = {
   buyRequestCatErr: "Выберите категорию",
   buyRequestFail: "Не получилось. Попробуйте ещё раз.",
   notifSignIn: "Войдите, чтобы видеть просьбы и ответы.",
+  deskPost: "Разместить объявление",
+  deskDownload: "Скачать приложение",
+  deskPlaySoon: "Скоро в Google Play",
+  deskHelp: "Помощь",
+  deskTerms: "Условия",
+  deskPickChat: "Выберите переписку",
 };
 
 const ky: typeof ru = {
@@ -3884,6 +3890,12 @@ const ky: typeof ru = {
   buyRequestCatErr: "Категорияны тандаңыз",
   buyRequestFail: "Болгон жок. Дагы бир жолу аракет кылыңыз.",
   notifSignIn: "Суранычтарды жана жоопторду көрүү үчүн кириңиз.",
+  deskPost: "Жарнама жайгаштыруу",
+  deskDownload: "Тиркемени жүктөө",
+  deskPlaySoon: "Жакында Google Play'де",
+  deskHelp: "Жардам",
+  deskTerms: "Шарттар",
+  deskPickChat: "Жазышууну тандаңыз",
 };
 
 

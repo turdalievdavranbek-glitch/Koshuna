@@ -17,6 +17,7 @@ import { useApp } from "@/lib/store";
 import type { Shop } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { ScopeChips } from "@/components/scope-chips";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { ListingGrid } from "@/components/listing-grid";
 import { IconSearch, IconSliders } from "@/components/icons";
@@ -104,6 +105,7 @@ export default function SearchPage() {
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <div className="shrink-0 px-5 pt-2">
         <div className="flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
@@ -122,7 +124,7 @@ export default function SearchPage() {
             onClick={() => router.push("/filters")}
             aria-label={t.filters}
             data-testid="search-filters"
-            className="flex h-9 w-9 shrink-0 items-center justify-center"
+            className="flex h-9 w-9 shrink-0 items-center justify-center desk:hidden"
           >
             <IconSliders size={17} color="#17140F" />
           </button>
@@ -142,7 +144,7 @@ export default function SearchPage() {
               <h2 className="mt-5 font-display text-[19px] font-bold text-ink">{t.searchGoods}</h2>
               {goods.length ? (
                 <div className="mt-3" data-testid="search-goods">
-                  <ListingGrid listings={goods} />
+                  <ListingGrid listings={goods} columns="browse" />
                 </div>
               ) : (
                 <p className="mt-2 text-[14px] text-muted">{t.empty}</p>
@@ -171,7 +173,7 @@ export default function SearchPage() {
               </div>
             </div>
             {level.tiles.length ? (
-              <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <div className="mt-3 grid grid-cols-2 gap-2.5 desk:grid-cols-3">
                 {level.tiles.map((tile) => (
                   <PhotoTile key={tile.id} tile={tile} testId={`search-tile-${tile.id}`} onClick={() => openTile(tile)} />
                 ))}
@@ -186,7 +188,7 @@ export default function SearchPage() {
             <h2 className="mt-5 font-display text-[19px] font-bold text-ink">{t.searchListings}</h2>
             {goods.length ? (
               <div className="mt-3" data-testid="search-results">
-                <ListingGrid listings={goods} />
+                <ListingGrid listings={goods} columns="browse" />
               </div>
             ) : (
               <p className="mt-2 text-[14px] text-muted">{t.empty}</p>
@@ -195,7 +197,7 @@ export default function SearchPage() {
         ) : (
           <>
             <h2 className="font-display text-[19px] font-bold text-ink">{t.searchSections}</h2>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <div className="mt-3 grid grid-cols-2 gap-2.5 desk:grid-cols-3">
               {rootSearchTiles().map((tile) => (
                 <PhotoTile key={tile.id} tile={tile} testId={`search-section-${tile.id}`} onClick={() => openTile(tile)} />
               ))}
@@ -203,6 +205,7 @@ export default function SearchPage() {
           </>
         )}
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }
