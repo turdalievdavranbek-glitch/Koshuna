@@ -1,14 +1,14 @@
 import type { Filters, Listing } from "./types";
 import { isAiylListing, serviceCategoryMatches } from "./data";
 import { listingTextHit } from "./catalog-words";
-import { hasPriceDrop } from "./deal";
+import { isPromoListing } from "./deal";
 import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
 import { adminAreaById, adminAreaMatchesListing } from "./admin-areas";
 import { listingInOblast } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
-import { isSpokenListing } from "./video-ai";
+import { isVideoListing } from "./video-ai";
 
 /** Home «Свежее» list: apply section/category chips, keep place, drop leftover map-pin / price-range. */
 export function homeFeedFilters(filters: Filters): Filters {
@@ -50,6 +50,7 @@ export function homeFeedFilters(filters: Filters): Filters {
     jobRole: section === "vacancies" ? filters.jobRole : "any",
     jobType: section === "vacancies" ? filters.jobType : "any",
     sellerKind: section === "rent" || section === "cars" ? filters.sellerKind : "any",
+    postedWithin: "any",
   };
 }
 
@@ -93,6 +94,7 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
     areaMin: null,
     areaMax: null,
     priceDroppedOnly: false,
+    postedWithin: "any",
     city: filters.city,
     oblast: filters.oblast,
     settlement: filters.settlement,
@@ -107,6 +109,65 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
         ? "area"
         : "all",
   };
+}
+
+/** Search tab root: drop the open section, keep the query, place and price sheet. */
+export function searchRootPatch(): Partial<Filters> {
+  return {
+    section: null,
+    category: null,
+    goodsKind: "any",
+    techBrand: "any",
+    techModel: "any",
+    housingType: "any",
+    realtyGroup: "any",
+    realtySub: "any",
+    realtyKind: "any",
+    rooms: [],
+    areaMin: null,
+    areaMax: null,
+    bodyType: "any",
+    gear: "any",
+    autoType: "sale",
+    vehicleGroup: "any",
+    carMake: "any",
+    carModel: "any",
+    animalGroup: "any",
+    animalKind: "any",
+    jobSphere: "any",
+    jobSub: "any",
+    jobRole: "any",
+    jobType: "any",
+    sellerKind: "any",
+    dealType: "any",
+    stockType: "any",
+    neighborOnly: false,
+    checkIn: null,
+    checkOut: null,
+  };
+}
+
+const AGO_MS: Record<string, number> = { h: 3_600_000, d: 86_400_000, w: 604_800_000, m: 2_592_000_000 };
+
+/** Server rows store createdAt in postedAt. Demo rows only have postedAgo («2h», «3d»). */
+export function listingCreatedMs(item: { postedAt?: string; postedAgo?: string }, now = Date.now()): number | null {
+  if (item.postedAt) {
+    const stamp = Date.parse(item.postedAt);
+    if (!Number.isNaN(stamp)) return stamp;
+  }
+  const match = item.postedAgo?.trim().match(/^(\d+)(h|d|w|m)$/i);
+  if (!match) return null;
+  return now - Number(match[1]) * AGO_MS[match[2].toLowerCase()];
+}
+
+function postedSince(within: Exclude<Filters["postedWithin"], "any">, now = Date.now()): number {
+  if (within === "today") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+  }
+  const days = within === "3d" ? 3 : within === "week" ? 7 : 30;
+  return now - days * 86_400_000;
 }
 
 export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel" | "rayon">): boolean {
@@ -253,8 +314,12 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
     if (filters.sellerKind === "private" && item.sellerType === "dealer") return false;
     if (filters.sellerKind === "dealer" && item.sellerType !== "dealer") return false;
-    if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
-    if (filters.videoOnly && !isSpokenListing(item)) return false;
+    if (filters.priceDroppedOnly && !isPromoListing(item)) return false;
+    if (filters.postedWithin && filters.postedWithin !== "any") {
+      const at = listingCreatedMs(item);
+      if (at == null || at < postedSince(filters.postedWithin)) return false;
+    }
+    if (filters.videoOnly && !isVideoListing(item)) return false;
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }

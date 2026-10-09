@@ -79,8 +79,8 @@ export default function FiltersPage() {
           <IconBack size={16} color="#17140F" />
         </button>
         <span className="min-w-0 truncate font-display text-lg font-bold text-ink">{t.filters}</span>
-        <button type="button" onClick={resetFilters} className="shrink-0 text-sm font-semibold text-accent">
-          {t.resetFilters}
+        <button type="button" onClick={resetFilters} className="shrink-0 text-sm font-semibold text-accent" data-testid="filters-reset">
+          {t.filterReset}
         </button>
       </div>
 
@@ -153,20 +153,6 @@ export default function FiltersPage() {
 
         {isRent ? <SellerKindChips labeled /> : null}
         {isAuto ? <SellerKindChips labeled variant="auto" /> : null}
-
-        <div>
-          <Eyebrow>{t.location}</Eyebrow>
-          <button
-            type="button"
-            onClick={() => openLocationPicker(router, "/filters")}
-            className="mt-2.5 flex w-full min-w-0 items-center justify-between gap-2 rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
-          >
-            <span className="min-w-0 flex-1 text-[15px] font-semibold text-ink">
-              {shownLocationLabel(lang, city, filters, t)}
-            </span>
-            <span className="text-[18px] text-muted-2">›</span>
-          </button>
-        </div>
 
         {isRent || isRestaurants ? (
           <div>
@@ -293,33 +279,6 @@ export default function FiltersPage() {
         {isShops ? <ShopCategoryChips labeled list /> : null}
 
         <div>
-          <Eyebrow>{t.sort}</Eyebrow>
-          <div data-testid="filters-sort" className="mt-2.5 flex min-w-0 flex-wrap gap-2">
-            {(
-              [
-                ["new", t.newest],
-                ["price-asc", t.priceAsc],
-                ["price-desc", t.priceDesc],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setFilters({ sort: id })}
-                className="box-border max-w-full min-w-0 rounded-xl px-3.5 py-[11px] text-center text-sm font-semibold"
-                style={{
-                  background: filters.sort === id ? "#17140F" : "#FFFFFF",
-                  color: filters.sort === id ? "#F7F3EC" : "#17140F",
-                  border: filters.sort === id ? "none" : "1px solid #E4DCCE",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
           <div className="flex min-w-0 items-baseline justify-between gap-2">
             <Eyebrow>{priceLabel}</Eyebrow>
             <span className="shrink-0 text-[13px] font-semibold text-ink">
@@ -342,17 +301,107 @@ export default function FiltersPage() {
               className="box-border h-[46px] w-full min-w-0 flex-1 rounded-xl border border-line bg-white px-3.5 text-[15px] outline-none"
             />
           </div>
+          <div data-testid="filters-price-chips" className="mt-2.5 flex flex-wrap gap-2">
+            {(
+              [
+                { id: "to-1000", min: null, max: 1000, label: t.priceUpTo(1000) },
+                { id: "to-5000", min: null, max: 5000, label: t.priceUpTo(5000) },
+                { id: "to-20000", min: null, max: 20000, label: t.priceUpTo(20000) },
+                { id: "to-50000", min: null, max: 50000, label: t.priceUpTo(50000) },
+                { id: "from-50000", min: 50000, max: null, label: t.priceChipFrom(50000) },
+              ] as const
+            ).map((chip) => {
+              const on = filters.priceMin === chip.min && filters.priceMax === chip.max;
+              return (
+                <Chip
+                  key={chip.id}
+                  active={on}
+                  onClick={() => setFilters(on ? { priceMin: null, priceMax: null } : { priceMin: chip.min, priceMax: chip.max })}
+                >
+                  {chip.label}
+                </Chip>
+              );
+            })}
+          </div>
+          <div className="mt-3" data-testid="filters-promo">
+            <Chip active={filters.priceDroppedOnly} onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}>
+              {t.filterPromo}
+            </Chip>
+          </div>
+        </div>
+
+        <div>
+          <Eyebrow>{t.filterDistrict}</Eyebrow>
+          <button
+            type="button"
+            data-testid="filters-district"
+            onClick={() => openLocationPicker(router, "/filters")}
+            className="mt-2.5 flex w-full min-w-0 items-center justify-between gap-2 rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+          >
+            <span className="min-w-0 flex-1 text-[15px] font-semibold text-ink">
+              {shownLocationLabel(lang, city, filters, t)}
+            </span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        </div>
+
+        <div>
+          <Eyebrow>{t.sort}</Eyebrow>
+          <div data-testid="filters-sort" className="mt-2.5 flex min-w-0 flex-wrap gap-2">
+            {(
+              [
+                ["new", t.newestShort],
+                ["price-asc", t.sortCheaper],
+                ["price-desc", t.sortDearer],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFilters({ sort: id })}
+                className="box-border max-w-full min-w-0 rounded-xl px-3.5 py-[11px] text-center text-sm font-semibold"
+                style={{
+                  background: filters.sort === id ? "#17140F" : "#FFFFFF",
+                  color: filters.sort === id ? "#F7F3EC" : "#17140F",
+                  border: filters.sort === id ? "none" : "1px solid #E4DCCE",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Eyebrow>{t.postedAge}</Eyebrow>
+          <div data-testid="filters-age" className="mt-2.5 flex flex-wrap gap-2">
+            {(
+              [
+                ["today", t.postedToday],
+                ["3d", t.posted3d],
+                ["week", t.postedWeek],
+                ["month", t.postedMonth],
+              ] as const
+            ).map(([id, label]) => (
+              <Chip
+                key={id}
+                active={filters.postedWithin === id}
+                onClick={() => setFilters({ postedWithin: filters.postedWithin === id ? "any" : id })}
+              >
+                {label}
+              </Chip>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col">
           {(
             [
-              ["photosOnly", t.photosOnly],
+              ["photosOnly", t.withPhoto],
+              ["videoOnly", t.withVideo],
               ["verifiedOnly", t.verifiedOwners],
               ["noAgents", t.noAgents],
               ...(isRent ? [] : ([["neighborOnly", t.neighborOnly]] as const)),
-              ["priceDroppedOnly", t.priceDropped],
-              ["videoOnly", t.videoOnly],
               ...(FEATURES.aiyl ? ([["aiylOnly", t.bridgeAiyl]] as const) : []),
             ] as const
           ).map(([key, label]) => (
@@ -384,6 +433,7 @@ export default function FiltersPage() {
         <button
           type="button"
           onClick={() => router.push(feedHrefFromFilters(filters))}
+          data-testid="filters-show"
           className="shadow-btn box-border flex h-[54px] min-w-0 flex-1 items-center justify-center rounded-2xl bg-accent px-3 text-center text-base font-semibold text-accent-on"
         >
           {t.showN(count)}

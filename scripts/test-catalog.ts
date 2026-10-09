@@ -95,6 +95,7 @@ function filters(patch: Partial<Filters> = {}): Filters {
     settlement: "any",
     aiylOnly: false,
     priceDroppedOnly: false,
+    postedWithin: "any",
     scope: "all",
     ...patch,
   };
