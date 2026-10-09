@@ -10,6 +10,7 @@ import {
   draftAfterServiceTap,
   goodsKindsOf,
   isServiceGroup,
+  serviceGroupOf,
   PRIVATE_POST_SHOP_CATEGORIES,
   isTechCategory,
   RESTAURANT_CATEGORIES,
@@ -78,6 +79,16 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
   useEffect(() => {
     setOpenGroup(null);
   }, [draft.section]);
+
+  useEffect(() => {
+    if (draft.section !== "services" || !draft.category) return;
+    if (isServiceGroup(draft.category)) {
+      setOpenGroup(draft.category);
+      return;
+    }
+    const group = serviceGroupOf(draft.category);
+    if (group) setOpenGroup(group);
+  }, [draft.section, draft.category]);
 
   useEffect(() => {
     setMakesOpen(false);

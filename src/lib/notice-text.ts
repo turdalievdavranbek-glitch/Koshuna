@@ -9,5 +9,6 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifHoldNo") return t.notifHoldNo(title);
   if (row.textKey === "notifStillActual") return t.notifStillActual;
   if (row.textKey === "notifChat") return t.notifChat(name, title);
+  if (row.textKey === "notifBuyRequest") return t.notifBuyRequest(title);
   return t.notifGeneric;
 }

@@ -14,6 +14,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -363,10 +364,16 @@ export const threads = pgTable(
     sellerId: uuid("seller_id")
       .notNull()
       .references(() => users.id),
+    requestId: uuid("request_id"),
     lastMessageAt: ts("last_message_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [unique("threads_listing_buyer").on(t.listingId, t.buyerId)],
+  (t) => [
+    unique("threads_listing_buyer").on(t.listingId, t.buyerId),
+    uniqueIndex("threads_request_shop")
+      .on(t.requestId, t.shopId)
+      .where(sql`${t.requestId} is not null and ${t.shopId} is not null`),
+  ],
 );
 
 export const messages = pgTable(

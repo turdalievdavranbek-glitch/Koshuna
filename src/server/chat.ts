@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { holdPersonName } from "@/lib/public-name";
 import type { ChatDetail, ChatLine, ChatThread } from "@/lib/chat";
 import { getDb } from "./db";
-import { blocks, listings, messages, notifications, threads, users } from "./db/schema";
+import { blocks, listings, messages, notifications, purchaseRequests, threads, users } from "./db/schema";
 
 const TEXT_MAX = 2000;
 const OPEN = new Set(["active", "promoted", "reserved"]);
@@ -87,12 +87,52 @@ export async function openListingChat(buyerId: string, listingId: string): Promi
   return { id: again[0].id };
 }
 
+/** One thread per point and purchase request. The buyer's phone is never read. */
+export async function openRequestThread(
+  sellerId: string,
+  row: { requestId: string; shopId: string; buyerId: string },
+): Promise<{ id: string } | Fail> {
+  if (sellerId === row.buyerId) return { error: "own", status: 403 };
+  const blocked = await pairBlocked(sellerId, row.buyerId);
+  if (blocked) return { error: "blocked", status: 403 };
+  const db = getDb();
+  const existing = await db
+    .select({ id: threads.id })
+    .from(threads)
+    .where(and(eq(threads.requestId, row.requestId), eq(threads.shopId, row.shopId)))
+    .limit(1);
+  if (existing[0]) return { id: existing[0].id };
+  try {
+    const inserted = await db
+      .insert(threads)
+      .values({
+        listingId: null,
+        shopId: row.shopId,
+        buyerId: row.buyerId,
+        sellerId,
+        requestId: row.requestId,
+        lastMessageAt: new Date(),
+      })
+      .returning({ id: threads.id });
+    if (inserted[0]) return { id: inserted[0].id };
+  } catch {
+    const again = await db
+      .select({ id: threads.id })
+      .from(threads)
+      .where(and(eq(threads.requestId, row.requestId), eq(threads.shopId, row.shopId)))
+      .limit(1);
+    if (again[0]) return { id: again[0].id };
+  }
+  return { error: "save", status: 500 };
+}
+
 export async function listChats(userId: string): Promise<{ threads: ChatThread[]; unread: number }> {
   const db = getDb();
   const rows = await db
     .select({
       id: threads.id,
       listingId: threads.listingId,
+      requestId: threads.requestId,
       buyerId: threads.buyerId,
       sellerId: threads.sellerId,
       lastMessageAt: threads.lastMessageAt,
@@ -118,8 +158,9 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
   if (!rows.length) return { threads: [], unread: 0 };
 
   const listingIds = [...new Set(rows.map((row) => row.listingId).filter((id): id is string => Boolean(id)))];
+  const requestIds = [...new Set(rows.map((row) => row.requestId).filter((id): id is string => Boolean(id)))];
   const personIds = [...new Set(rows.flatMap((row) => [row.buyerId, row.sellerId]))];
-  const [people, cards] = await Promise.all([
+  const [people, cards, asks] = await Promise.all([
     db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, personIds)),
     listingIds.length
       ? db
@@ -132,19 +173,27 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
           .from(listings)
           .where(inArray(listings.id, listingIds))
       : Promise.resolve([]),
+    requestIds.length
+      ? db
+          .select({ id: purchaseRequests.id, text: purchaseRequests.text })
+          .from(purchaseRequests)
+          .where(inArray(purchaseRequests.id, requestIds))
+      : Promise.resolve([]),
   ]);
   const names = new Map(people.map((row) => [row.id, holdPersonName(row.name)]));
   const cardsById = new Map(cards.map((row) => [row.id, row]));
+  const askById = new Map(asks.map((row) => [row.id, row.text]));
   let unread = 0;
   const list: ChatThread[] = rows.map((row) => {
     const n = Number(row.unread) || 0;
     unread += n;
     const card = row.listingId ? cardsById.get(row.listingId) : undefined;
+    const ask = row.requestId ? askById.get(row.requestId) : undefined;
     const peerId = row.buyerId === userId ? row.sellerId : row.buyerId;
     return {
       id: row.id,
       listingId: row.listingId,
-      title: card?.title ?? "",
+      title: card?.title || ask || "",
       photo: card ? photoOf(card.coverUrl, card.photos) : null,
       peerId,
       peerName: names.get(peerId) ?? "",
@@ -169,7 +218,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
   const thread = await loadParticipant(userId, threadId);
   if (!thread) return { error: "not-found", status: 404 };
   const peerId = thread.buyerId === userId ? thread.sellerId : thread.buyerId;
-  const [lines, person, card, blocked] = await Promise.all([
+  const [lines, person, card, ask, blocked] = await Promise.all([
     db
       .select({
         id: messages.id,
@@ -190,6 +239,9 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
           .where(eq(listings.id, thread.listingId))
           .limit(1)
       : Promise.resolve([]),
+    thread.requestId
+      ? db.select({ text: purchaseRequests.text }).from(purchaseRequests).where(eq(purchaseRequests.id, thread.requestId)).limit(1)
+      : Promise.resolve([]),
     pairBlocked(userId, peerId),
   ]);
   await db
@@ -209,7 +261,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
   return {
     id: thread.id,
     listingId: thread.listingId,
-    title: listing?.title ?? "",
+    title: listing?.title || ask[0]?.text || "",
     photo: listing ? photoOf(listing.coverUrl, listing.photos) : null,
     peerId,
     peerName: holdPersonName(person[0]?.name),
@@ -248,10 +300,13 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
     if (!row) return { error: "save", status: 500 };
     await tx.update(threads).set({ lastMessageAt: now }).where(eq(threads.id, thread.id));
 
-    const [sender, card] = await Promise.all([
+    const [sender, card, ask] = await Promise.all([
       tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1),
       thread.listingId
         ? tx.select({ title: listings.title }).from(listings).where(eq(listings.id, thread.listingId)).limit(1)
+        : Promise.resolve([]),
+      thread.requestId
+        ? tx.select({ text: purchaseRequests.text }).from(purchaseRequests).where(eq(purchaseRequests.id, thread.requestId)).limit(1)
         : Promise.resolve([]),
     ]);
     await tx.insert(notifications).values({
@@ -261,7 +316,7 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
       textKey: "notifChat",
       params: {
         name: holdPersonName(sender[0]?.name),
-        title: (card[0]?.title ?? "").slice(0, 120),
+        title: (card[0]?.title || ask[0]?.text || "").slice(0, 120),
         threadId: thread.id,
       },
     });

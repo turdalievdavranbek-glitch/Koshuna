@@ -110,6 +110,10 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
                   setSheet(false);
                   router.push("/post?type=business");
                 }}
+                onRequest={() => {
+                  setSheet(false);
+                  router.push("/post?type=request");
+                }}
               />
             </div>
             <button type="button" className="mt-3 h-11 w-full text-[15px] font-semibold text-muted" onClick={() => setSheet(false)}>
