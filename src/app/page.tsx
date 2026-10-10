@@ -3,18 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { isSectionVisible } from "@/lib/features";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
 import { listingsForSearch } from "@/lib/search-browse";
-import { patchForSection } from "@/lib/section";
 import { useApp } from "@/lib/store";
-import type { SectionId } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
 import { openLocationPicker, shownLocationLabel } from "@/components/location-line";
 import { PhoneShell } from "@/components/shell";
-import { Chip, LangSwitch } from "@/components/ui";
+import { LangSwitch } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
@@ -44,20 +41,6 @@ export default function FeedPage() {
   const openFilters = () => {
     router.push("/filters");
   };
-
-  const openSection = (id: SectionId, href: string) => {
-    if (id !== "shops") setFilters(patchForSection(id, filters));
-    router.push(href);
-  };
-
-  const feedQuick = [
-    { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
-    { id: "restaurants" as const, label: t.homeQuickFood, href: "/section/restaurants" },
-    { id: "services" as const, label: t.sectionNames.services, href: "/section/services" },
-    { id: "rent" as const, label: t.homeQuickRent, href: "/section/rent" },
-    { id: "cars" as const, label: t.homeQuickCars, href: "/section/cars" },
-    { id: "vacancies" as const, label: t.homeQuickJobs, href: "/section/vacancies" },
-  ];
 
   return (
     <PhoneShell tab>
@@ -139,16 +122,9 @@ export default function FeedPage() {
         </div>
       </header>
 
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
+      <div className="sc min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pb-4" data-testid="home-feed-scroll">
         <NeighborNearby />
         <TodayOnPoints />
-        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
-          {feedQuick.filter((item) => isSectionVisible(item.id)).map((item) => (
-            <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
-              {item.label}
-            </Chip>
-          ))}
-        </div>
 
         {promoted.length > 0 ? <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
