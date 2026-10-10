@@ -22,6 +22,11 @@ export const POINT_GROUP_ICON: Record<string, string> = {
   beauty: "services",
   repair: "construction",
   travel: "car-rental",
+  auto: "car-rental",
+  household: "construction",
+  tailor: "secondhand",
+  events: "services",
+  education: "services",
   other: "bag",
 };
 

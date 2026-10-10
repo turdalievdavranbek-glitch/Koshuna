@@ -32,12 +32,11 @@ import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory, ShopKind } from "@/lib/types";
 import { useDraftHistoryGuard } from "./draft-guard";
 import { GeoError } from "./geo-error";
-import { sectionIcon } from "./icons";
 import { HoursPicker } from "./hours-picker";
 import { LeaveDialog } from "./leave-dialog";
 import { DeleteCardDialog } from "./card-delete";
 import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
-import { POINT_GROUP_ICON, PointAvatar } from "./point-rows";
+import { PointAvatar } from "./point-rows";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
@@ -413,11 +412,8 @@ export function PointForm({
                 type="button"
                 data-testid={`point-group-${id}`}
                 onClick={() => chooseGroup(id)}
-                className={`flex min-w-0 flex-col items-start gap-2 rounded-2xl border p-3 text-left ${active ? "border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
+                className={`flex min-h-[56px] min-w-0 items-center rounded-2xl border p-3 text-left ${active ? "border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-chip">
-                  {sectionIcon(POINT_GROUP_ICON[id] || "bag", "#B8452F", 18)}
-                </span>
                 <span className="text-[14px] font-semibold leading-tight text-ink">{t.shopCats[id]}</span>
               </button>
             );
@@ -630,7 +626,7 @@ export function PointForm({
           <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-chip text-accent">
             {d.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={d.coverUrl} alt="" className="h-full w-full object-cover" />
+              <img src={d.coverUrl} alt="" className="h-full w-full bg-chip object-contain" />
             ) : (
               <span className="text-[28px] leading-none">+</span>
             )}

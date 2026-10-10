@@ -543,7 +543,7 @@ export const NEW_POINT_GROUPS: ShopCategory[] = [
   "other",
 ];
 
-export const POINT_HIDDEN_GROUPS: ShopCategory[] = ["beauty", "repair", "travel"];
+export const POINT_HIDDEN_GROUPS: ShopCategory[] = ["beauty", "repair", "travel", "auto", "household", "tailor", "events", "education"];
 
 export const POINT_HIDDEN_KINDS: ShopKind[] = ["health-clinic", "health-dentist"];
 
