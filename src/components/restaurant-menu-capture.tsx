@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { recorderMime, recorderOptions, sampleVideoStills, startSpeech } from "@/lib/blob-media";
+import { recorderMime, recorderOptions, sampleVideoStills, startSpeech, videoFileDuration } from "@/lib/blob-media";
+import { stashMedia } from "@/lib/media-queue";
 import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { listingTitle } from "@/lib/i18n";
-import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
+import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { mineRestaurants, parentOfMenuKind } from "@/lib/menu";
 import { menuKindLabel } from "@/lib/menu-copy";
 import { draftsFromMenuSpeech, pairMenuDraftsWithStills, type MenuItemDraft } from "@/lib/menu-media";
@@ -13,7 +14,7 @@ import { validPrice } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { MediaKind, RestaurantDish } from "@/lib/types";
 import { IconCamera } from "./icons";
-import { NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function RestaurantMenuCapture() {
@@ -22,6 +23,7 @@ export function RestaurantMenuCapture() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const recStreamRef = useRef<MediaStream | null>(null);
@@ -38,6 +40,7 @@ export function RestaurantMenuCapture() {
   const [price, setPrice] = useState("");
   const [ai, setAi] = useState("");
   const [error, setError] = useState("");
+  const [videoBusy, setVideoBusy] = useState(false);
   const [note, setNote] = useState("");
   const [drafts, setDrafts] = useState<MenuItemDraft[]>([]);
   const venues = mineRestaurants(allListings, extraListings, user, shops);
@@ -223,6 +226,47 @@ export function RestaurantMenuCapture() {
       setError(t.shopAiNeedSpeech);
     } finally {
       URL.revokeObjectURL(url);
+    }
+  };
+
+  // A gallery video becomes the cafe's own video (dishes are photo-only); it uploads through the same queue as posts.
+  const onCafeVideo = async (file: File | undefined) => {
+    setError("");
+    setNote("");
+    if (!file) return;
+    if (!user) {
+      setPendingPath(here);
+      router.push("/login");
+      return;
+    }
+    if (!venue) {
+      goNeedPlace();
+      return;
+    }
+    if (!isGalleryVideo(file)) {
+      setError(t.videoBadFormat);
+      return;
+    }
+    if (file.size > videoMaxBytes()) {
+      setError(t.videoTooBig(Math.round(videoMaxBytes() / (1024 * 1024))));
+      return;
+    }
+    setVideoBusy(true);
+    const url = URL.createObjectURL(file);
+    try {
+      const duration = await videoFileDuration(file);
+      if (duration > videoMaxSeconds()) {
+        setError(t.videoTooLong(Math.round(videoMaxSeconds() / 60)));
+        return;
+      }
+      const ref = await stashMedia(url, "video", duration || undefined);
+      updateListing(venue.id, { videoUrl: ref, mediaKind: "video", videoSec: duration || undefined });
+      setNote(t.cafeVideoSaved);
+    } catch {
+      setError(t.videoReadFail);
+    } finally {
+      URL.revokeObjectURL(url);
+      setVideoBusy(false);
     }
   };
 
@@ -475,6 +519,29 @@ export function RestaurantMenuCapture() {
           ) : null}
 
           {spoken && mode !== "photos" ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{spoken}</p> : null}
+
+          {!recording ? (
+            <button
+              type="button"
+              data-testid="menu-gallery-video"
+              disabled={videoBusy}
+              onClick={() => videoFileRef.current?.click()}
+              className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
+            >
+              {videoBusy ? t.videoPreparing : t.videoFromGallery}
+            </button>
+          ) : null}
+          <input
+            ref={videoFileRef}
+            type="file"
+            accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.mkv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              void onCafeVideo(file);
+            }}
+          />
 
           <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onFile(file)} />
 
