@@ -18,7 +18,7 @@ import { materializeShop, stashListing } from "./api/upload";
 import { persistableUrl } from "./blob-media";
 import { absorbMediaPatch, durableDraft, presentDraft } from "./draft-media";
 import { isAnimalGroup, isKnownAnimalKind } from "./data";
-import { hasPlaceFilter, scopeForSaved } from "./filter";
+import { clearFreshListPatch, hasPlaceFilter, scopeForSaved } from "./filter";
 import { disableGoogleAutoSelect, GoogleLoginError, startGoogleSignIn } from "./google-login";
 import { nativeGoogleSignOut } from "./native-auth";
 import { collectRefKeys, displayUrl, hydrateRefs, releaseRefs, sweepOrphans, UploadFatal } from "./media-queue";
@@ -556,6 +556,10 @@ function migrateElectronicsCategory(filters: Filters): Filters {
   return { ...filters, category: "phones", goodsKind: "any" };
 }
 
+function freshOnOpen(filters: Filters): Filters {
+  return { ...filters, ...clearFreshListPatch(filters) };
+}
+
 export function normalizeFilters(filters: Filters, savedScope?: unknown): Filters {
   if (filters.section === "car-rental") {
     return { ...filters, section: "cars", autoType: "rent" };
@@ -680,9 +684,12 @@ function load(): State {
       threads: Array.isArray(saved.threads) ? saved.threads : [],
       savedSearches: Array.isArray(saved.savedSearches) ? saved.savedSearches : [],
       shopDraft: saved.shopDraft && typeof saved.shopDraft === "object" ? hydrateShop(saved.shopDraft as ShopDraft) : null,
-      filters: normalizeFilters(
-        { ...defaultFilters(), ...saved.filters },
-        saved.filters && "scope" in saved.filters ? saved.filters.scope : undefined,
+      // Place and scope are remembered; the «Свежее» chips (section, category, sort…) start at «Все» on every open.
+      filters: freshOnOpen(
+        normalizeFilters(
+          { ...defaultFilters(), ...saved.filters },
+          saved.filters && "scope" in saved.filters ? saved.filters.scope : undefined,
+        ),
       ),
       side: isAppSide(saved.side) ? saved.side : "buy",
       lang: isLang(saved.lang) ? saved.lang : "ru",

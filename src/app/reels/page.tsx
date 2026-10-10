@@ -25,6 +25,7 @@ import { isVideoListing } from "@/lib/video-ai";
 import { ReelVideo } from "@/components/reel-video";
 import { CommentsButton, CommentsSheet } from "@/components/listing-comments";
 import { FEATURES } from "@/lib/features";
+import { reportListingView } from "@/lib/listing-view";
 
 const BATCH = 4;
 
@@ -54,6 +55,10 @@ function ReelSlide({
   useEffect(() => {
     if (!active) setSound(false);
   }, [active]);
+
+  useEffect(() => {
+    if (active && listing.id !== PINNED_REEL_ID) void reportListingView(listing.id);
+  }, [active, listing.id]);
 
   useEffect(() => {
     const node = rootRef.current;
