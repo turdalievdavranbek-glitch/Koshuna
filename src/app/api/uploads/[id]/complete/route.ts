@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/server/db";
 import { media } from "@/server/db/schema";
 import { guardCsrf, json, requireUser } from "@/server/http";
-import { durationLimit, finalRelative, movePart, partPath, probeDuration, remuxFaststart, removeFile } from "@/server/media";
+import { durationLimit, finalRelative, mediaPrefix, movePart, normalizeVideo, partPath, probeDuration, removeFile } from "@/server/media";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -36,12 +36,22 @@ export async function POST(req: Request, ctx: Ctx) {
     if (probed !== "missing") duration = probed;
   }
 
-  const { relative, url } = finalRelative(row.kind, row.mime, row.id);
+  const final = finalRelative(row.kind, row.mime, row.id);
+  let { relative, url } = final;
+  let mime = row.mime;
   await movePart(id, relative);
-  if (row.kind === "video") await remuxFaststart(relative, row.mime);
+  if (row.kind === "video") {
+    // Phones only reliably play H.264/AAC mp4: re-encode WebM/HEVC, remux the rest.
+    const normalized = await normalizeVideo(relative);
+    if (normalized) {
+      relative = normalized.relative;
+      mime = normalized.mime;
+      url = `${mediaPrefix()}/${relative}`;
+    }
+  }
   await db
     .update(media)
-    .set({ uploadStatus: "ready", path: relative, url, durationSec: duration })
+    .set({ uploadStatus: "ready", path: relative, url, mime, durationSec: duration })
     .where(eq(media.id, id));
   return json({ mediaId: row.id, url });
 }
