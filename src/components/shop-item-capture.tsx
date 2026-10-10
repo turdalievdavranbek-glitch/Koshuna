@@ -83,6 +83,10 @@ export function ShopItemCapture({
   const [hoursNote, setHoursNote] = useState("");
   const [hoursState, setHoursState] = useState<HoursPickerState>({ days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false });
   const [pointVideo, setPointVideo] = useState("");
+  // A gallery video for a product: kept as the listing video (it used to be cut down to one still).
+  const [itemVideo, setItemVideo] = useState("");
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [doneId, setDoneId] = useState(createdQuery);
   const [hoursAsk, setHoursAsk] = useState(false);
   const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
@@ -210,6 +214,7 @@ export function ShopItemCapture({
     const still = stillFromVideo(videoRef.current);
     if (!still) return;
     stopCam();
+    setItemVideo("");
     await applyPhoto(still);
   };
 
@@ -220,29 +225,46 @@ export function ShopItemCapture({
   };
 
   const onGallery = async (files: File[]) => {
+    setError("");
+    setNote("");
     const video = files.find((file) => isGalleryVideo(file));
     if (video) {
       if (video.size > videoMaxBytes()) {
-        setError(t.shopVideoSize);
+        setError(t.videoTooBig(Math.round(videoMaxBytes() / (1024 * 1024))));
         return;
       }
-      const duration = await videoFileDuration(video);
-      const limit = pointMode ? videoMaxSeconds() : shopVideoMaxSeconds();
-      if (duration > limit) {
-        setError(t.shopVideoTime);
-        return;
-      }
-      const url = keepBlob("video", video);
-      const poster = (await captureVideoPoster(url)) ?? "";
-      if (pointMode) setPointVideo(url);
-      if (poster) {
-        if (pointMode) setPhoto(poster);
-        else await applyPhoto(poster);
+      setMediaBusy(true);
+      setNote(t.videoPreparing);
+      try {
+        const duration = await videoFileDuration(video);
+        if (duration > videoMaxSeconds()) {
+          setNote("");
+          setError(t.videoTooLong(Math.round(videoMaxSeconds() / 60)));
+          return;
+        }
+        const url = keepBlob("video", video);
+        const poster = (await captureVideoPoster(url)) ?? "";
+        setNote("");
+        if (pointMode) {
+          setPointVideo(url);
+          if (poster) setPhoto(poster);
+          return;
+        }
+        setItemVideo(url);
+        if (poster) await applyPhoto(poster);
+      } catch {
+        setNote("");
+        setError(t.videoReadFail);
+      } finally {
+        setMediaBusy(false);
       }
       return;
     }
     const image = files.find((file) => !isGalleryVideo(file));
-    if (image) await onFile(image);
+    if (image) {
+      setItemVideo("");
+      await onFile(image);
+    }
   };
 
   const applyTranscript = async (text: string, stills: string[], source: ShopItemDraft["source"]) => {
@@ -490,10 +512,23 @@ export function ShopItemCapture({
   };
 
   const publish = async () => {
-    if (pointMode) {
-      await registerPoint();
+    if (saving) return;
+    if (mediaBusy) {
+      setError(t.videoPreparing);
       return;
     }
+    setSaving(true);
+    try {
+      if (pointMode) await registerPoint();
+      else await publishItem();
+    } catch {
+      setError(t.postFailed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishItem = async () => {
     setError("");
     setNote("");
     setMapPin(null);
@@ -508,7 +543,7 @@ export function ShopItemCapture({
       router.push("/shops/new");
       return;
     }
-    if (!photo && mode !== "text") {
+    if (!photo && !itemVideo && mode !== "text") {
       setError(t.shopItemNeedPhoto);
       return;
     }
@@ -531,6 +566,7 @@ export function ShopItemCapture({
       price: n,
       quantity,
       photo: photo || undefined,
+      videoUrl: itemVideo || undefined,
       category: parent ?? cardCat,
       kind,
       priceFromPhoto: fromPhoto,
@@ -549,6 +585,7 @@ export function ShopItemCapture({
       });
     }
     setPhoto("");
+    setItemVideo("");
     setTitle("");
     setPrice("");
     setQty("");
@@ -768,11 +805,14 @@ export function ShopItemCapture({
           {mode !== "text" ? (
           <div className="mt-3 overflow-hidden rounded-[18px] bg-ink">
             <video ref={videoRef} muted playsInline className={live ? "aspect-[4/5] w-full object-cover" : "hidden"} />
-            {!live && photo && mode !== "video" ? (
+            {!live && itemVideo && mode === "photos" ? (
+              <video src={itemVideo} poster={photo || undefined} controls playsInline className="aspect-[4/5] w-full bg-ink object-contain" />
+            ) : null}
+            {!live && photo && mode !== "video" && !(itemVideo && mode === "photos") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photo} alt="" className="aspect-[4/5] w-full bg-[#f4efe6] object-contain" />
             ) : null}
-            {!live && (mode === "video" || !photo) ? (
+            {!live && (mode === "video" || (!photo && !itemVideo)) ? (
               <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 px-6 text-center">
                 <IconCamera size={28} color="#FFF7F0" />
                 <div className="text-[14px] font-semibold text-screen">{pointMode ? t.pointLive : mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
@@ -1045,8 +1085,14 @@ export function ShopItemCapture({
           {t.shopPublishSelected(selectedCount)}
         </button>
       ) : pointMode || mode === "photos" || mode === "text" ? (
-        <button type="button" data-testid="point-publish" onClick={() => void publish()} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
-          {t.shopItemPublish}
+        <button
+          type="button"
+          data-testid="point-publish"
+          disabled={saving}
+          onClick={() => void publish()}
+          className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on disabled:opacity-60"
+        >
+          {saving ? (itemVideo || pointVideo ? t.videoUploading : t.postPublishing) : t.shopItemPublish}
         </button>
       ) : null}
       {!user ? (
