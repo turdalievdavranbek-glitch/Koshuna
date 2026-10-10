@@ -51,6 +51,7 @@ function ReelSlide({
   const price = listingHasPrice(listing) ? formatSom(listing.price) : t.priceNegotiable;
   const reaction = reactionOf(listing.id);
   const likes = socialCounts(listing.id, reactions, 0).likes;
+  const openHref = `/listing/${listing.id}?from=reels`;
 
   useEffect(() => {
     if (!active) setSound(false);
@@ -98,6 +99,8 @@ function ReelSlide({
         <Photo src={listing.photos[0]} alt={title} className="absolute inset-0" />
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
+      {/* Tap anywhere on the photo or video opens the listing details (sound has its own button). */}
+      <Link href={openHref} aria-label={t.reelOpen} data-testid="reel-open-area" className="absolute inset-0" />
       <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <button
           type="button"
@@ -142,7 +145,7 @@ function ReelSlide({
         <div className="truncate font-display text-[22px] font-bold text-white">{title}</div>
         <div className="mt-1 text-[16px] font-semibold text-white">{price}</div>
         <div className="mt-0.5 truncate text-[13px] text-white/85">{place}</div>
-        <Link href={`/listing/${listing.id}`} className="mt-3 inline-flex h-11 items-center rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-on">
+        <Link href={openHref} data-testid="reel-open" className="mt-3 inline-flex h-11 items-center rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-on">
           {t.reelOpen}
         </Link>
         <div className="mt-2">

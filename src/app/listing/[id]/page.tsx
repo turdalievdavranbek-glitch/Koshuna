@@ -69,6 +69,8 @@ export default function ListingPage() {
   useEffect(() => {
     if (!videoId || autoVideo.current === videoId) return;
     autoVideo.current = videoId;
+    // Coming from /reels the person already watched it and asked for the details.
+    if (new URLSearchParams(window.location.search).get("from") === "reels") return;
     setVideoOpen(true);
   }, [videoId]);
   const [photo, setPhoto] = useState(0);
