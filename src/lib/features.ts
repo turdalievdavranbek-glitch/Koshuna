@@ -15,10 +15,17 @@ export const FEATURES = {
   goLookMeet: false,      // «Еду смотреть / Встретимся» (GoLookCard + MeetDealBlock)
   honesty: false,         // звёзды честности (HonestyCard «Честность», 1–5 ★)
   aiyl: false,            // «Айылы» (AiylRoad card + aiylOnly toggle in /filters)
-  comments: true,         // комментарии: back on (owner 2026-10-09 22:20), server-side with reports/moderation
+  comments: false,        // комментарии: hidden again (owner 2026-10-10 simplify). Data, API, moderation stay; no new comment pushes.
   shareFacebookVk: false, // Facebook / VK cells in share block (№85, №52)
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
   ownerVoice: false,     // Голос хозяина: hidden until speech-to-text works (owner 08.10). Code stays.
+  /** Owner 2026-10-10 «упростить»: hidden, not deleted. Server APIs and data stay. */
+  purchaseRequests: false, // «Заявки на закупку»: «+» choice, Кабинет «Мои заявки» / incoming, /post?type=request
+  holds: false,           // «Отложи мне» / «Записаться» on listings + Кабинет holds inbox
+  cart: false,            // «Корзина» tab, header icon and add-to-cart buttons/hearts (tab slot → «Сообщения»)
+  pointSetupHints: false, // owner checklist on the point page + «Мои точки» hint line
+  reelsStrip: false,      // Reels/circles strip at the top of home (video listings still open full-screen from the listing)
+  magnets: false,         // «Цена честная?», «Сегодня на точке(ах)», «Сосед рядом» (overrides admin magnet config)
   playBanner: false,     // Google Play banner stays off until the app is in Play (Step 26)
   /** D1 / Р-019: hide «Пример для проверки» in production. NEXT_PUBLIC_DEMO_MEDIA=1 forces it on, =0 forces it off. */
   demoMedia:

@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "./features";
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api/client";
 
@@ -29,6 +30,7 @@ function flush() {
 }
 
 function want(id: string) {
+  if (!FEATURES.comments) return;
   if (counts.has(id) || pending.has(id)) return;
   pending.add(id);
   if (!timer) timer = setTimeout(flush, 60);

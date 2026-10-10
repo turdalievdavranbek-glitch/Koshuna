@@ -151,7 +151,7 @@ export default function ShopDetailPage() {
           ))}
         </div>
 
-        {mine ? <PointChecklist shop={shop} /> : null}
+        {mine && FEATURES.pointSetupHints ? <PointChecklist shop={shop} /> : null}
 
         {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2 desk:col-span-12">{shop.description}</p> : null}
 

@@ -7,7 +7,8 @@ import { searchRootPatch } from "@/lib/filter";
 import { useApp } from "@/lib/store";
 import { DesktopFooter, DesktopHeader } from "./desktop-shell";
 import { PostChoices } from "./post-choice";
-import { IconBag, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
+import { IconBag, IconChat, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
+import { FEATURES } from "@/lib/features";
 import { UploadStatus } from "./upload-status";
 import { UnreadBadge } from "./unread-badge";
 import { useChatUnread } from "@/lib/chat-unread";
@@ -32,7 +33,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
   const go = (href: string) => {
     const run = () => {
       setSheet(false);
-      if (href === "/profile" && !user) {
+      if ((href === "/profile" || href === "/messages") && !user) {
         setPendingPath(href);
         router.push("/login");
         return;
@@ -79,6 +80,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
   const homeOn = path === "/" || path.startsWith("/section");
   const searchOn = path === "/search" || path.startsWith("/search/");
   const favOn = path === "/favorites" || path.startsWith("/favorites/");
+  const chatOn = path === "/messages" || path.startsWith("/chat/");
   const profileOn =
     path === "/profile" || path.startsWith("/profile/") || path === "/selling" || path.startsWith("/selling/");
 
@@ -105,8 +107,10 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
           <IconPlus size={26} color="#FFF7F0" />
         </button>
       </div>
-      {item("/favorites", "tab-favorites", t.fav, IconBag, favOn)}
-      {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn, chatUnread)}
+      {FEATURES.cart
+        ? item("/favorites", "tab-favorites", t.fav, IconBag, favOn)
+        : item("/messages", "tab-messages", t.inbox, IconChat, chatOn, chatUnread)}
+      {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn, FEATURES.cart ? chatUnread : 0)}
       {sheet ? (
         <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
           <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>

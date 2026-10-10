@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FEATURES } from "./features";
 import { MAGNET_DEFAULTS, parseMagnetSettings, type MagnetSettings } from "./magnet-config";
 
 let cached: MagnetSettings | undefined;
@@ -13,11 +14,13 @@ function loadMagnetSettings(): Promise<MagnetSettings> {
       .then((res) => (res.ok ? res.json() : null))
       .then((body) => {
         const config = body && typeof body === "object" ? (body as { config?: unknown }).config : undefined;
-        cached = parseMagnetSettings(config);
+        const parsed = parseMagnetSettings(config);
+        // FEATURES.magnets=false hides every magnet, whatever the admin config says.
+        cached = FEATURES.magnets ? parsed : { ...parsed, enabled: false };
         return cached;
       })
       .catch(() => {
-        cached = { ...MAGNET_DEFAULTS };
+        cached = { ...MAGNET_DEFAULTS, ...(FEATURES.magnets ? {} : { enabled: false }) };
         return cached;
       });
   }

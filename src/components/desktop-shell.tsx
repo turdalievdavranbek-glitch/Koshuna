@@ -143,7 +143,7 @@ export function DesktopHeader() {
           </>,
           "desk-messages",
         )}
-        {icon("/favorites", t.fav, <IconBag size={18} color="#17140F" />, "desk-cart")}
+        {FEATURES.cart ? icon("/favorites", t.fav, <IconBag size={18} color="#17140F" />, "desk-cart") : null}
         {icon("/profile", t.sideDesk, <IconUser size={18} color="#17140F" />, "desk-profile")}
         <button
           type="button"

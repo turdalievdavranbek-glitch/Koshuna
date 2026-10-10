@@ -212,7 +212,7 @@ export default function ProfilePage() {
           <span className="font-display text-[19px] font-bold text-ink">{t.myPoints}</span>
           <span className="text-[13px] font-semibold text-muted">{points.length}</span>
         </div>
-        <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
+        {FEATURES.pointSetupHints ? <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p> : null}
         {points.length ? (
           <div className="mt-3">
             <PointList shops={points} actions open="point" />
@@ -228,19 +228,23 @@ export default function ProfilePage() {
           {t.shopNew}
         </button>
 
-        <div className="mt-6">
-          <MyBuyRequests />
-        </div>
+        {FEATURES.purchaseRequests ? (
+          <div className="mt-6">
+            <MyBuyRequests />
+          </div>
+        ) : null}
 
-        {points.length ? (
+        {FEATURES.purchaseRequests && points.length ? (
           <div className="mt-6">
             <IncomingBuyRequests />
           </div>
         ) : null}
 
-        <div className="mt-6">
-          <HoldInbox />
-        </div>
+        {FEATURES.holds ? (
+          <div className="mt-6">
+            <HoldInbox />
+          </div>
+        ) : null}
 
         <div className="mt-6 flex items-baseline justify-between">
           <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>

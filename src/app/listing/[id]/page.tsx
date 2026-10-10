@@ -248,7 +248,7 @@ export default function ListingPage() {
             </button>
             <div className="flex gap-2">
               <ShareButton listing={listing} variant="icon" />
-              {mine ? null : (
+              {mine || !FEATURES.cart ? null : (
                 <button
                   type="button"
                   onClick={onFav}
@@ -374,11 +374,11 @@ export default function ListingPage() {
                 writeLabel={t.write}
               />
               </div>
-              <HoldRequest listing={listing} onSignUp={onWrite} />
+              {FEATURES.holds ? <HoldRequest listing={listing} onSignUp={onWrite} /> : null}
             </div>
           )}
           <div className="mt-3 flex gap-2">
-            {mine ? null : (
+            {mine || !FEATURES.cart ? null : (
               <button
                 type="button"
                 onClick={onFav}

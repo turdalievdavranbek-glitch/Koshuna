@@ -1,4 +1,5 @@
 import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { FEATURES } from "@/lib/features";
 import { COMMENT_HOURLY_MAX, COMMENT_MAX, type CommentRow } from "@/lib/comments";
 import { holdPersonName } from "@/lib/public-name";
 import { sessionIsAdmin } from "./auth";
@@ -158,7 +159,8 @@ export async function addComment(
     if (!row) return { error: "save", status: 500 };
     const me = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
     const author = holdPersonName(me[0]?.name);
-    if (listing.ownerId !== userId) {
+    // Comments hidden in the UI (FEATURES.comments=false): store, but do not notify/push.
+    if (FEATURES.comments && listing.ownerId !== userId) {
       await saveNotice(db, {
         userId: listing.ownerId,
         type: "listing_comment",
