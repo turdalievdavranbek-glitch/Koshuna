@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { sessionIsAdmin, getSessionUser } from "@/server/auth";
+import { spotForFix } from "@/lib/geo";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { sanitizeServiceListing } from "@/lib/service-listing";
 import type { Listing } from "@/lib/types";
@@ -74,6 +75,11 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   }
   const merged = sanitizeServiceListing({ ...(base ?? {}), ...patch, id } as Listing);
   if (!merged.section || !merged.title) return json({ error: "bad-listing" }, 400);
+  // No city but a map pin inside Kyrgyzstan: take the city from the pin, otherwise city feeds never show the post.
+  if ((!merged.city || merged.city === "all") && typeof merged.lat === "number" && typeof merged.lng === "number") {
+    const spotCity = spotForFix(merged.lat, merged.lng).city;
+    if (spotCity) merged.city = spotCity;
+  }
   let shopKinds: readonly string[] | null = null;
   if (merged.shopId) {
     const shopRows = await db.select().from(shops).where(eq(shops.id, merged.shopId)).limit(1);
