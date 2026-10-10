@@ -1118,7 +1118,7 @@ const ru = {
     "house-build": "Строительство домов",
     "appliance-repair": "Бытовая техника",
     beauty: "Парикмахерская и салон",
-    education: "Обучение",
+    education: "Образование",
     cleaning: "Уборка",
     other: "Другое",
     "svc-transport": "Авто и перевозки",
