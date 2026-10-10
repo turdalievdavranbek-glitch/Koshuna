@@ -118,7 +118,7 @@ export default function ProfilePage() {
               </div>
             ) : null}
             <div className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[13px] text-muted">
-              <span>{[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}</span>
+              <span className="min-w-0 break-all">{[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}</span>
               {user.method ? (
                 <span className="inline-flex items-center gap-1">
                   <MethodIcon method={user.method} />
@@ -127,7 +127,11 @@ export default function ProfilePage() {
               ) : null}
             </div>
           </div>
-          <button type="button" onClick={() => router.push("/profile/edit")} className="text-[13px] font-semibold text-accent">
+          <button
+            type="button"
+            onClick={() => router.push("/profile/edit")}
+            className="shrink-0 self-start whitespace-nowrap rounded-xl border border-line bg-white px-3 py-1.5 text-[13px] font-semibold text-accent"
+          >
             {t.edit}
           </button>
         </div>

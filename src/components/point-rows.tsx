@@ -90,12 +90,12 @@ export function PointList({
             {actions ? <CardMenu onDelete={() => setPendingId(shop.id)} testId="point-menu" /> : null}
             </div>
             {actions ? (
-              <div className="mt-2 flex gap-2 pl-14">
+              <div className="mt-2 flex flex-wrap gap-2 pl-14">
                 <button
                   type="button"
                   data-testid="point-edit"
                   onClick={() => router.push(`/shops/${shop.id}/edit`)}
-                  className="h-9 rounded-xl border border-line px-3 text-[13px] font-semibold text-ink"
+                  className="h-9 shrink-0 whitespace-nowrap rounded-xl border border-line px-3 text-[13px] font-semibold text-ink"
                 >
                   {t.pointEdit}
                 </button>
@@ -103,7 +103,7 @@ export function PointList({
                   type="button"
                   data-testid="point-add-goods"
                   onClick={() => router.push(`/shops/quick?shop=${shop.id}`)}
-                  className="h-9 rounded-xl border border-line px-3 text-[13px] font-semibold text-accent"
+                  className="h-9 shrink-0 whitespace-nowrap rounded-xl border border-line px-3 text-[13px] font-semibold text-accent"
                 >
                   {t.pointAddGoods}
                 </button>
