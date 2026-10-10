@@ -1,3 +1,4 @@
+import { adminAreaById } from "./admin-areas";
 import { DISTRICTS, GIS_CITIES } from "./data";
 import { displayPhotoForProduct } from "./shop-photos";
 import {
@@ -619,8 +620,10 @@ export function shopDistrictName(id: string | undefined | null, lang: Lang): str
   const raw = id?.trim() ?? "";
   if (!raw) return "";
   const row = DISTRICTS.find((item) => item.id === raw);
-  if (!row) return raw;
-  return lang === "ky" ? row.nameKy : row.name;
+  if (row) return lang === "ky" ? row.nameKy : row.name;
+  const area = adminAreaById(raw);
+  if (area) return lang === "ky" ? area.nameKy : area.name;
+  return raw;
 }
 
 export function shopLandmarkLine(shop: { landmarks?: string[] | null; address?: string | null }): string {
