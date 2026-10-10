@@ -27,6 +27,14 @@ const config: CapacitorConfig = {
       insetsHandling: "css",
       style: "LIGHT",
     },
+    // Splash stays until the web app reports the first paint of the home feed (SplashScreen.hide from
+    // src/lib/native-splash.ts), but never longer than 3 s: auto-hide is the 3 s cap, not the normal path.
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 3000,
+      launchFadeOutDuration: 150,
+      showSpinner: false,
+    },
     PushNotifications: {
       presentationOptions: ["alert", "sound", "badge"],
     },
