@@ -733,6 +733,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!cancelled) setSynced(true);
     }, 8000);
     const epochAtBoot = sessionEpoch;
+    // Public feed/points/config don't wait for /api/me and the local draft restore: on a slow mobile link
+    // (Kyrgyzstan → server) that saved one or two round trips before the first listings show.
+    const fetchPublic = () =>
+      Promise.all([
+        api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
+        api<{ shops: Shop[] }>("/api/shops"),
+        api("/api/config"),
+      ]);
+    let bootPublic: ReturnType<typeof fetchPublic> | null = fetchPublic();
     const authTask = (async () => {
       const me = await api<{ user: User | null }>("/api/me");
       if (cancelled || epochAtBoot !== sessionEpoch) return null;
@@ -827,11 +836,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     syncRef.current = async (serverUser) => {
       const epoch = sessionEpoch;
-      const [feedRes, shopsRes] = await Promise.all([
-        api<{ listings: Listing[]; counts?: Record<string, { likes: number; dislikes: number }> }>("/api/listings?limit=1000"),
-        api<{ shops: Shop[] }>("/api/shops"),
-        api("/api/config"),
-      ]);
+      const first = bootPublic;
+      bootPublic = null;
+      const [feedRes, shopsRes] = await (first ?? fetchPublic());
       let extra = [] as Listing[];
       let serverCart: string[] | null = null;
       let reactions: ReactionsByVoter = {};

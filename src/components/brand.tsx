@@ -3,7 +3,8 @@ export const BRAND_NAME = "Коңшу";
 export function BrandLogo({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <img
-      src="/brand/logo.png"
+      // 128px copy (11 KB) for the small header mark; the 512px original (308 KB) is only for share cards.
+      src="/brand/logo-128.png"
       alt=""
       width={size}
       height={size}

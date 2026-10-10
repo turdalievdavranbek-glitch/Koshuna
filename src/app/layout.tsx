@@ -9,12 +9,16 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
   weight: ["700", "800"],
   variable: "--font-bricolage",
+  // Latin-only display face; Russian/Kyrgyz text never uses it, so don't preload it before first paint.
+  preload: false,
 });
 
 const familjen = Familjen_Grotesk({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-familjen",
+  // Latin-only display face; Russian/Kyrgyz text never uses it, so don't preload it before first paint.
+  preload: false,
 });
 
 const manrope = Manrope({
