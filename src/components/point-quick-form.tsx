@@ -7,9 +7,9 @@ import { districtLabel, spotForFix } from "@/lib/geo";
 import { locate, type LocateError } from "@/lib/locate";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText } from "@/lib/shop-copy";
-import { landmarksFromText, normalizePhone, pointGroupsFor } from "@/lib/shops";
+import { landmarksFromText, NEW_POINT_GROUPS, normalizePhone } from "@/lib/shops";
 import { useApp } from "@/lib/store";
-import type { Shop } from "@/lib/types";
+import type { Shop, ShopCategory } from "@/lib/types";
 import { GeoError } from "./geo-error";
 import { sectionIcon } from "./icons";
 import { NativePhotoInputs } from "./native-photo";
@@ -19,6 +19,16 @@ import { Chip } from "./ui";
 export const POINT_NEW_KEY = "konshu-point-new";
 const STEP_KEY = "konshu-point-wizard";
 const STEPS = 5;
+
+export type PointKind = "shop" | "stall" | "service" | "cafe";
+
+export function pointKindOf(raw: string | null | undefined): PointKind | undefined {
+  return raw === "shop" || raw === "stall" || raw === "service" || raw === "cafe" ? raw : undefined;
+}
+
+const SERVICE_GROUPS: ShopCategory[] = ["beauty", "repair", "health", "travel", "home", "other"];
+export const CAFE_TYPES = ["cafe", "canteen", "coffee", "fastfood", "restaurant", "chaikhana"] as const;
+type CafeType = (typeof CAFE_TYPES)[number];
 
 function readFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -57,7 +67,8 @@ function writeStep(id: string, step: number | null) {
  * 1 name · 2 phone · 3 facade photo (skippable) · 4 place + landmark · 5 type → «Открыть точку».
  * Progress is kept in the persisted shop draft, so the owner can come back later.
  */
-export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
+/** One wizard for every business card: shop, stall, service/master and cafe. */
+export function PointWizard({ kind }: { kind: PointKind }) {
   const { t, lang, user, city, filters, shopDraft, startShopDraft, setShopDraft, lockShopField, publishShop } = useApp();
   const router = useRouter();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -78,7 +89,7 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
   useEffect(() => {
     if (booted.current || !user) return;
     booted.current = true;
-    const prev = shopDraft && shopDraft.status !== "active" ? shopDraft : null;
+    const prev = shopDraft && shopDraft.status !== "active" && (shopDraft.venueKind ?? "shop") === kind ? shopDraft : null;
     const draft = startShopDraft(undefined, prev ? undefined : { fresh: true });
     if (!draft) return;
     if (draft === prev || draft.id === prev?.id) {
@@ -90,7 +101,8 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
     const chosen = knownCity(city) ?? knownCity(filters.city);
     const gis = chosen ? GIS_CITIES[chosen] : null;
     setShopDraft({
-      venueKind: venue ?? "shop",
+      venueKind: kind,
+      category: kind === "cafe" ? "food" : draft.category,
       city: chosen ?? "all",
       lat: gis?.lat,
       lng: gis?.lng,
@@ -118,8 +130,9 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
 
   if (!user || !shopDraft) return <p className="text-[14px] text-muted">{t.shopLoad}</p>;
   const d = shopDraft;
-  const groups = pointGroupsFor(d, true);
-  const group = d.locked?.category ? d.category : null;
+  const groups: ShopCategory[] = kind === "service" ? SERVICE_GROUPS : [...NEW_POINT_GROUPS];
+  const cafeType = CAFE_TYPES.find((id) => d.locked?.category && d.kindOther === t.cafeTypes[id]) ?? null;
+  const group = kind === "cafe" ? (cafeType ? ("food" as ShopCategory) : null) : d.locked?.category ? d.category : null;
   const placed = Boolean(knownCity(d.city));
   const cityDistricts = DISTRICTS.filter((item) => item.city === d.city);
   const district = cityDistricts.find((item) => item.id === d.district);
@@ -190,7 +203,8 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
       name: d.name.trim().slice(0, 80),
       category: group ?? d.category,
       kinds: [],
-      venueKind: d.venueKind ?? venue ?? "shop",
+      kindOther: kind === "cafe" && cafeType ? t.cafeTypes[cafeType] : undefined,
+      venueKind: kind,
       landmarks: marks,
       address: marks.join(" · "),
       district: d.district || undefined,
@@ -226,8 +240,26 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
     go(step + 1);
   };
 
-  const titles = [t.pointQuickName, t.pointQuickPhone, t.pointQuickPhoto, t.pointQuickPlace, t.pointQuickType];
-  const hints = [t.pointQuickNameHint, t.pointQuickPhoneHint, t.pointQuickPhotoHint, t.pointQuickPlaceHint, t.pointQuickTypeHint];
+  const goods = kind === "shop" || kind === "stall";
+  const titles = [
+    t.pointQuickName,
+    t.pointQuickPhone,
+    goods ? t.pointQuickPhoto : t.pointQuickCover,
+    t.pointQuickPlace,
+    kind === "service" ? t.pointQuickTypeService : kind === "cafe" ? t.pointQuickTypeCafe : t.pointQuickType,
+  ];
+  const hints = [
+    kind === "service" ? t.pointQuickNameHintService : kind === "cafe" ? t.pointQuickNameHintCafe : t.pointQuickNameHint,
+    t.pointQuickPhoneHint,
+    goods ? t.pointQuickPhotoHint : t.pointQuickCoverHint,
+    t.pointQuickPlaceHint,
+    t.pointQuickTypeHint,
+  ];
+  const pickCafe = (id: CafeType) => {
+    setError("");
+    lockShopField("category");
+    setShopDraft({ category: "food", kinds: [], kindOther: t.cafeTypes[id] });
+  };
   const last = step === STEPS - 1;
   const bigInput =
     "h-[56px] w-full rounded-[16px] border border-line bg-surface px-4 text-[17px] text-ink outline-none placeholder:text-muted-2 focus:border-accent";
@@ -387,7 +419,25 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
         ) : null}
 
         {step === 4 ? (
-          <div>
+          kind === "cafe" ? (
+            <div data-testid="point-groups" className="grid grid-cols-2 gap-2 desk:grid-cols-3">
+              {CAFE_TYPES.map((id) => {
+                const active = cafeType === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    data-testid={`point-cafe-${id}`}
+                    aria-pressed={active}
+                    onClick={() => pickCafe(id)}
+                    className={`flex min-h-[64px] min-w-0 items-center justify-center rounded-2xl border px-2 text-center text-[15px] font-semibold text-ink touch-manipulation ${active ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
+                  >
+                    {t.cafeTypes[id]}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
             <div data-testid="point-groups" className="grid grid-cols-3 gap-2 desk:grid-cols-4">
               {groups.map((id) => {
                 const active = group === id;
@@ -400,7 +450,7 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
                     onClick={() => {
                       setError("");
                       lockShopField("category");
-                      setShopDraft({ category: id, kinds: [], extraCategories: d.extraCategories.filter((item) => item !== id) });
+                      setShopDraft({ category: id, kinds: [], kindOther: undefined, extraCategories: d.extraCategories.filter((item) => item !== id) });
                     }}
                     className={`flex min-h-[80px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl border px-1.5 py-2 text-center touch-manipulation ${active ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
                   >
@@ -410,10 +460,7 @@ export function PointQuickForm({ venue }: { venue?: "shop" | "stall" }) {
                 );
               })}
             </div>
-            <button type="button" onClick={() => router.push("/post?card=service")} className="mt-3 text-left text-[12px] font-semibold text-muted">
-              {t.pointServiceLink}
-            </button>
-          </div>
+          )
         ) : null}
 
         {error ? (
