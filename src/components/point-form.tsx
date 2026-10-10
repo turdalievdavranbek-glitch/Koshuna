@@ -9,6 +9,7 @@ import { districtLabel } from "@/lib/geo";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
+import { telegramUsername } from "@/lib/telegram-username";
 import {
   applyNameChip,
   formatShopHours,
@@ -85,6 +86,7 @@ export function PointForm({
   const seenId = useRef("");
   const booted = useRef(false);
   const leaveBack = useRef<() => void>(() => undefined);
+  const [tgText, setTgText] = useState("");
   const [landmarkText, setLandmarkText] = useState("");
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
@@ -108,6 +110,7 @@ export function PointForm({
     if (!shopDraft || seenId.current === shopDraft.id) return;
     seenId.current = shopDraft.id;
     setLandmarkText(initialLandmark(shopDraft));
+    setTgText(shopDraft.telegramUsername ? `@${shopDraft.telegramUsername}` : "");
     if (mode === "edit" && (shopDraft.description || shopDraft.extraCategories.length || (shopDraft.kinds ?? []).length > 1)) {
       setMore(true);
     }
@@ -297,6 +300,11 @@ export function PointForm({
       return;
     }
     setHoursAsk(false);
+    const tgHandle = tgText.trim() ? telegramUsername(tgText) : "";
+    if (tgHandle === null) {
+      setError(t.tgContactBad);
+      return;
+    }
     const marks = landmarksFromText(landmarkText);
     const shopToSave: Shop = {
       ...d,
@@ -308,7 +316,8 @@ export function PointForm({
       kindOther: d.category === "other" ? (d.kindOther ?? "").trim().slice(0, 40) : undefined,
       deliveryFree: d.delivery && typeof d.deliveryFree === "boolean" ? d.deliveryFree : undefined,
       deliveryDistricts: d.delivery ? (d.deliveryDistricts ?? []).slice(0, 10) : [],
-      contacts: { ...d.contacts, phone: (d.contacts.phone ?? "").trim() },
+      contacts: { ...d.contacts, phone: (d.contacts.phone ?? "").trim(), telegram: Boolean(tgHandle) },
+      telegramUsername: tgHandle || undefined,
     };
     setBusy(true);
     const result = await publishShop(shopToSave);
@@ -628,6 +637,14 @@ export function PointForm({
         <div className="mt-2">
           <Input testId="point-phone" value={d.contacts.phone ?? ""} onChange={(value) => patch({ contacts: { ...d.contacts, phone: value } })} />
         </div>
+      </div>
+
+      <div>
+        <span className="text-[13px] font-semibold text-ink">{t.tgContactField}</span>
+        <div className="mt-2">
+          <Input testId="point-telegram" value={tgText} onChange={setTgText} placeholder="@username" />
+        </div>
+        <p className="mt-1.5 text-[12px] leading-[1.4] text-muted">{t.tgContactHint}</p>
       </div>
 
       <div>

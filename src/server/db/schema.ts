@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   oblast: text("oblast"),
   city: text("city"),
   district: text("district"),
+  /** Optional public Telegram username (no @), shown as a «Telegram» contact button. */
+  telegram: text("telegram"),
   lastLat: doublePrecision("last_lat"),
   lastLng: doublePrecision("last_lng"),
   isAdmin: boolean("is_admin").notNull().default(false),

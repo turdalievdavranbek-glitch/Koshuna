@@ -1,6 +1,7 @@
 /**
  * Identity plug-in: a provider route verifies its token and calls `signInWithIdentity`. Шаг 8 ships Google only. `AUTH_DEMO_ENABLED` must be `"true"` for the demo route and for demo sessions to count; otherwise that route is 404 and `getSessionUser` ignores a session whose latest method is `demo`. Rows stay in the database.
  */
+import { telegramUsername } from "@/lib/telegram-username";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import { getDb } from "./db";
@@ -20,6 +21,7 @@ export type SessionUser = {
   lang: string;
   city: string | null;
   district: string | null;
+  telegram?: string | null;
   method: string;
   isAdmin: boolean;
 };
@@ -103,7 +105,7 @@ export async function createSession(userId: string, userAgent: string | null): P
 export async function signInWithIdentity(input: {
   provider: AuthProvider;
   providerUserId: string;
-  profile: { name?: string; phone?: string; email?: string };
+  profile: { name?: string; phone?: string; email?: string; telegram?: string };
   userAgent?: string | null;
 }): Promise<{ user: SessionUser; cookie: string; isNew: boolean }> {
   assertSessionSecret();
@@ -121,6 +123,7 @@ export async function signInWithIdentity(input: {
           name: input.profile.name?.trim() || "",
           phone: input.profile.phone?.trim() || null,
           email: input.profile.email?.trim() || null,
+          telegram: telegramUsername(input.profile.telegram),
         })
         .returning();
       await tx.insert(userAuth).values({
@@ -138,6 +141,9 @@ export async function signInWithIdentity(input: {
     if (!current.name && input.profile.name?.trim()) patch.name = input.profile.name.trim();
     if (!current.phone && input.profile.phone?.trim()) patch.phone = input.profile.phone.trim();
     if (!current.email && input.profile.email?.trim()) patch.email = input.profile.email.trim();
+    // Signed in with Telegram: prefill the public Telegram contact once, never overwrite the owner's own choice.
+    const tg = telegramUsername(input.profile.telegram);
+    if (!current.telegram && tg) patch.telegram = tg;
     if (Object.keys(patch).length) {
       patch.updatedAt = new Date();
       const [updated] = await tx.update(users).set(patch).where(eq(users.id, current.id)).returning();
@@ -157,6 +163,7 @@ export async function signInWithIdentity(input: {
       lang: row.lang,
       city: row.city,
       district: row.district,
+      telegram: row.telegram,
       method: input.provider,
       isAdmin: row.isAdmin === true,
     },
@@ -203,6 +210,7 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
     lang: hit.user.lang,
     city: hit.user.city,
     district: hit.user.district,
+    telegram: hit.user.telegram,
     method,
     isAdmin: hit.user.isAdmin === true,
   };

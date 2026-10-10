@@ -53,7 +53,7 @@ type LoginRow = {
   status: "pending" | "confirmed";
   createdAt: number;
   ip: string;
-  user?: { id: string; firstName: string };
+  user?: { id: string; firstName: string; username?: string };
   consumed?: boolean;
 };
 
@@ -197,7 +197,7 @@ export function verifyTelegramLogin(
   params: Record<string, string>,
   botToken: string,
   nowSec = Math.floor(Date.now() / 1000),
-): { id: string; firstName: string } | null {
+): { id: string; firstName: string; username?: string } | null {
   const hash = params.hash || "";
   if (!botToken || !hash) return null;
   const id = params.id || "";
@@ -209,7 +209,8 @@ export function verifyTelegramLogin(
   const expected = telegramLoginHash(telegramDataCheckString(params), botToken);
   if (!safeEqual(expected, hash.toLowerCase())) return null;
   const firstName = (params.first_name || "").trim().slice(0, 80);
-  return { id, firstName };
+  const username = (params.username || "").trim().slice(0, 64) || undefined;
+  return { id, firstName, username };
 }
 
 export type StartResult =
@@ -274,12 +275,13 @@ function confirmKeyboard(id: string): { inline_keyboard: Array<Array<{ text: str
   };
 }
 
-type TgFrom = { id?: number; first_name?: string; is_bot?: boolean };
+type TgFrom = { id?: number; first_name?: string; username?: string; is_bot?: boolean };
 
-function person(from: TgFrom | undefined): { id: string; firstName: string } | null {
+function person(from: TgFrom | undefined): { id: string; firstName: string; username?: string } | null {
   if (!from || from.is_bot === true) return null;
   if (typeof from.id !== "number" || !Number.isFinite(from.id)) return null;
-  return { id: String(from.id), firstName: (from.first_name || "").trim().slice(0, 80) };
+  const username = typeof from.username === "string" ? from.username.trim().slice(0, 64) || undefined : undefined;
+  return { id: String(from.id), firstName: (from.first_name || "").trim().slice(0, 80), username };
 }
 
 export async function handleTelegramUpdate(update: unknown): Promise<void> {
@@ -396,7 +398,7 @@ export async function pollTelegramLogin(
     const signed = await signIn({
       provider: "telegram",
       providerUserId: row.user.id,
-      profile: { name: row.user.firstName },
+      profile: { name: row.user.firstName, telegram: row.user.username },
       userAgent,
     });
     logins.delete(id);

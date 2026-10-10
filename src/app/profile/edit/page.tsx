@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { formatPhoneDisplay, normalizePhoneInput } from "@/lib/phone";
+import { telegramUsername } from "@/lib/telegram-username";
 import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
 
@@ -15,6 +16,7 @@ export default function ProfileEditPage() {
   const back = params.get("back") || "/profile";
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ? formatPhoneDisplay(user.phone) : "");
+  const [telegram, setTelegram] = useState(user?.telegram ? `@${user.telegram}` : "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -32,6 +34,7 @@ export default function ProfileEditPage() {
     if (!user) return;
     setName(user.name || "");
     setPhone(user.phone ? formatPhoneDisplay(user.phone) : "");
+    setTelegram(user.telegram ? `@${user.telegram}` : "");
   }, [user]);
 
   if (!ready || !user) return null;
@@ -47,11 +50,16 @@ export default function ProfileEditPage() {
       setError(t.phoneBad);
       return;
     }
+    const tg = telegram.trim() ? telegramUsername(telegram) : "";
+    if (tg === null) {
+      setError(t.tgContactBad);
+      return;
+    }
     setBusy(true);
-    const res = await updateProfile({ name: trimmed, phone: normalized || "" });
+    const res = await updateProfile({ name: trimmed, phone: normalized || "", telegram: tg });
     setBusy(false);
     if (!res.ok) {
-      setError(res.error === "network" ? t.noNetSave : res.error === "phone" ? t.phoneBad : res.error === "name" ? t.phoneRequired : t.noNetSave);
+      setError(res.error === "network" ? t.noNetSave : res.error === "phone" ? t.phoneBad : res.error === "telegram" ? t.tgContactBad : res.error === "name" ? t.phoneRequired : t.noNetSave);
       return;
     }
     router.push(back);
@@ -79,6 +87,20 @@ export default function ProfileEditPage() {
         </label>
         <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.phoneNoSms}</p>
         <p className="mt-1 text-[12px] leading-[1.45] text-muted">{t.phoneClearedNote}</p>
+        <label className="mt-4 block">
+          <span className="text-[13px] font-semibold">{t.tgContactField}</span>
+          <input
+            data-testid="profile-telegram"
+            value={telegram}
+            onChange={(e) => setTelegram(e.target.value)}
+            placeholder="@username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="mt-1.5 h-[50px] w-full rounded-[14px] border border-line bg-white px-3 text-[15px] outline-none"
+          />
+        </label>
+        <p className="mt-2 text-[12px] leading-[1.45] text-muted">{t.tgContactHint}</p>
         {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
         <button type="button" data-testid="profile-save" disabled={busy} onClick={() => void save()} className="shadow-btn mt-4 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-semibold text-accent-on">
           {t.save}
