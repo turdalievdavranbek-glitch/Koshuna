@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PointForm } from "@/components/point-form";
+import { PointQuickForm } from "@/components/point-quick-form";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
@@ -46,7 +46,7 @@ export default function NewShopPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <PointForm mode="create" />
+        <PointQuickForm />
       </div>
     </PhoneShell>
   );
