@@ -1019,8 +1019,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const t = DICT[state.lang];
   const catalog = useMemo(() => {
+    // Server rows of point products (owner, views, status) seed the client-built ones so they aren't replaced by stubs.
+    const extraShopItems = state.extraListings.filter((item) => item.shopProductId);
+    const extraShopIds = new Set(extraShopItems.map((item) => item.id));
     const fromShops = syncShopListings(
-      state.extraListings.filter((item) => item.shopProductId),
+      [...extraShopItems, ...state.feed.filter((item) => item.shopProductId && !extraShopIds.has(item.id))],
       state.shops,
       state.user,
     );

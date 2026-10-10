@@ -341,6 +341,8 @@ export default function ListingPage() {
           </div>
           {mine ? null : (
             <div className="mt-4">
+              {/* Phones use the sticky bar at the bottom; a second copy here showed two «Написать» buttons. */}
+              <div className="hidden desk:block">
               <ListingContactRow
                 callHref={callHref}
                 showCall={showCall}
@@ -360,6 +362,7 @@ export default function ListingPage() {
                 callLabel={t.callNow}
                 writeLabel={t.write}
               />
+              </div>
               <HoldRequest listing={listing} onSignUp={onWrite} />
             </div>
           )}
