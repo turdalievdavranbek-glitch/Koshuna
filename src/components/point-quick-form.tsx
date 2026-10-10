@@ -2,17 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
-import { districtLabel, spotForFix } from "@/lib/geo";
-import { locate, type LocateError } from "@/lib/locate";
+import { GIS_CITIES } from "@/lib/data";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText } from "@/lib/shop-copy";
 import { landmarksFromText, NEW_POINT_GROUPS, normalizePhone } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory } from "@/lib/types";
-import { GeoError } from "./geo-error";
+import { PlaceCascade } from "./place-cascade";
 import { NativePhotoInputs } from "./native-photo";
-import { Chip } from "./ui";
 
 export const POINT_NEW_KEY = "konshu-point-new";
 const STEP_KEY = "konshu-point-wizard";
@@ -80,21 +77,17 @@ function writeStep(id: string, step: number | null) {
  */
 /** One wizard for every business card: shop, stall, service/master and cafe. */
 export function PointWizard({ kind }: { kind: PointKind }) {
-  const { t, lang, user, city, filters, shopDraft, startShopDraft, setShopDraft, lockShopField, publishShop } = useApp();
+  const { t, user, city, filters, shopDraft, startShopDraft, setShopDraft, lockShopField, publishShop } = useApp();
   const router = useRouter();
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const landmarkRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const booted = useRef(false);
   const [step, setStep] = useState(0);
-  const [placeOpen, setPlaceOpen] = useState(false);
   const [landmark, setLandmark] = useState("");
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [geoBusy, setGeoBusy] = useState(false);
-  const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -106,7 +99,6 @@ export function PointWizard({ kind }: { kind: PointKind }) {
     if (draft === prev || draft.id === prev?.id) {
       setStep(readStep(draft.id));
       setLandmark((draft.landmarks ?? []).join(" · ") || draft.address || "");
-      if (!knownCity(draft.city)) setPlaceOpen(true);
       return;
     }
     const chosen = knownCity(city) ?? knownCity(filters.city);
@@ -120,7 +112,6 @@ export function PointWizard({ kind }: { kind: PointKind }) {
       district: undefined,
       contacts: { ...draft.contacts, phone: draft.contacts.phone || user.phone || "" },
     });
-    if (!chosen) setPlaceOpen(true);
     writeStep(draft.id, 0);
     // Store setters are new on every render; this runs once per screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,11 +139,6 @@ export function PointWizard({ kind }: { kind: PointKind }) {
   const cafeType = CAFE_TYPES.find((id) => d.locked?.category && d.kindOther === t.cafeTypes[id]) ?? null;
   const group = kind === "cafe" ? (cafeType ? ("food" as ShopCategory) : null) : d.locked?.category ? d.category : null;
   const placed = Boolean(knownCity(d.city));
-  const cityDistricts = DISTRICTS.filter((item) => item.city === d.city);
-  const district = cityDistricts.find((item) => item.id === d.district);
-  const placeLine = placed
-    ? [t.cities[d.city] || d.city, district ? districtLabel(district, lang) : ""].filter(Boolean).join(" · ")
-    : t.pointQuickPlacePick;
   const phone = d.contacts.phone ?? "";
 
   const go = (next: number) => {
@@ -167,19 +153,6 @@ export function PointWizard({ kind }: { kind: PointKind }) {
     if (at === 3 && !placed) return t.shopNeedCity;
     if (at === 4 && !group) return t.pointNeedGroup;
     return "";
-  };
-
-  const locatePin = async () => {
-    setGeoBusy(true);
-    setGeoError(null);
-    const fix = await locate();
-    setGeoBusy(false);
-    if (!fix.ok) {
-      setGeoError(fix.error);
-      return;
-    }
-    const spot = spotForFix(fix.lat, fix.lng);
-    setShopDraft({ lat: fix.lat, lng: fix.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.id });
   };
 
   const onPhoto = async (file: File | undefined) => {
@@ -362,74 +335,15 @@ export function PointWizard({ kind }: { kind: PointKind }) {
         ) : null}
 
         {step === 3 ? (
-          <div>
-            <div className="flex items-center justify-between gap-2 rounded-[16px] border border-line bg-white px-4 py-3.5">
-              <span data-testid="point-place" className={`min-w-0 truncate text-[16px] font-semibold ${placed ? "text-ink" : "text-muted"}`}>
-                {placeLine}
-              </span>
-              <button type="button" onClick={() => setPlaceOpen((open) => !open)} className="shrink-0 text-[14px] font-semibold text-accent">
-                {t.pointQuickPlaceChange}
-              </button>
-            </div>
-            {placeOpen ? (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  data-testid="point-locate"
-                  disabled={geoBusy}
-                  onClick={() => void locatePin()}
-                  className="h-11 rounded-xl border border-line bg-white px-3 text-[14px] font-semibold disabled:opacity-60"
-                >
-                  {t.pointQuickGeo}
-                </button>
-                {geoError ? (
-                  <div className="mt-2">
-                    <GeoError error={geoError} compact onRetry={() => void locatePin()} />
-                  </div>
-                ) : null}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {CITIES.filter((id) => id !== "all").map((id) => (
-                    <Chip
-                      key={id}
-                      active={d.city === id}
-                      onClick={() => {
-                        const gis = GIS_CITIES[id];
-                        setShopDraft({ city: id, lat: gis?.lat, lng: gis?.lng, district: undefined });
-                      }}
-                    >
-                      {t.cities[id]}
-                    </Chip>
-                  ))}
-                </div>
-                {cityDistricts.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {cityDistricts.map((item) => (
-                      <Chip
-                        key={item.id}
-                        active={d.district === item.id}
-                        onClick={() => setShopDraft({ district: d.district === item.id ? undefined : item.id })}
-                      >
-                        {districtLabel(item, lang)}
-                      </Chip>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <label className="mt-4 block">
-              <span className="block text-[14px] font-semibold text-ink">{t.pointQuickStreet}</span>
-              <input
-                ref={landmarkRef}
-                data-testid="point-landmark"
-                value={landmark}
-                maxLength={120}
-                enterKeyHint="next"
-                placeholder={t.pointQuickStreetHint}
-                onChange={(event) => changeLandmark(event.target.value)}
-                className={`mt-2 ${bigInput}`}
-              />
-            </label>
-          </div>
+          <PlaceCascade
+            place={{ city: d.city, district: d.district, lat: d.lat, lng: d.lng }}
+            onPlace={(next) => {
+              setError("");
+              setShopDraft({ city: next.city, district: next.district, lat: next.lat, lng: next.lng });
+            }}
+            landmark={landmark}
+            onLandmark={changeLandmark}
+          />
         ) : null}
 
         {step === 4 ? (

@@ -3,20 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
+import { GIS_CITIES } from "@/lib/data";
 import { goBack } from "@/lib/go-back";
-import { districtLabel, nearestDistrict, spotForFix } from "@/lib/geo";
-import { locate, type LocateError } from "@/lib/locate";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText } from "@/lib/shop-copy";
 import { isOwnShop, landmarksFromText } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { Shop, ShopHours } from "@/lib/types";
-import { GeoError } from "./geo-error";
 import { HoursPicker } from "./hours-picker";
 import { IconBack } from "./icons";
 import { NativePhotoInputs } from "./native-photo";
-import { Chip } from "./ui";
+import { PlaceCascade } from "./place-cascade";
 
 const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
 
@@ -40,7 +37,7 @@ const bigInput =
 
 /** One question per screen for a point that already exists: photo, hours, description, place or one service/menu item. */
 export function PointFieldScreen({ shopId, field }: { shopId: string; field: PointField }) {
-  const { t, lang, user, shops, synced, publishShop, upsertShopProduct } = useApp();
+  const { t, user, shops, synced, publishShop, upsertShopProduct } = useApp();
   const router = useRouter();
   const shop = shops.find((item) => item.id === shopId);
   const seeded = useRef(false);
@@ -55,8 +52,6 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [geoBusy, setGeoBusy] = useState(false);
-  const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -87,7 +82,6 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
     place: { title: t.pointTodoPlace, hint: t.fieldPlaceHint },
     item: { title: itemTitle, hint: itemHint },
   };
-  const cityDistricts = DISTRICTS.filter((item) => item.city === place.city);
 
   const onPhoto = async (file: File | undefined) => {
     if (!file) return;
@@ -100,19 +94,6 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
     } finally {
       setPhotoBusy(false);
     }
-  };
-
-  const locatePin = async () => {
-    setGeoBusy(true);
-    setGeoError(null);
-    const fix = await locate();
-    setGeoBusy(false);
-    if (!fix.ok) {
-      setGeoError(fix.error);
-      return;
-    }
-    const spot = spotForFix(fix.lat, fix.lng);
-    setPlace((cur) => ({ ...cur, lat: fix.lat, lng: fix.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.id }));
   };
 
   const save = async () => {
@@ -149,6 +130,10 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
     if (field === "hours") patch = { hours };
     if (field === "desc") patch = { description: desc.trim().slice(0, 1000) };
     if (field === "place") {
+      if (!place.city || place.city === "all") {
+        setError(t.shopNeedCity);
+        return;
+      }
       const marks = landmarksFromText(landmark);
       patch = { ...place, landmarks: marks, address: marks.join(" · ") || shop.address };
     }
@@ -239,64 +224,21 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
                   lng: place.lng ?? GIS_CITIES[place.city]?.lng ?? GIS_CITIES.bishkek.lng,
                 }}
                 pick={place.lat != null && place.lng != null ? { lat: place.lat, lng: place.lng } : null}
-                onPick={(lat, lng) => {
-                  const near = nearestDistrict(lat, lng, place.city);
-                  setPlace((cur) => ({ ...cur, lat, lng, district: near?.id ?? cur.district }));
-                }}
+                onPick={(lat, lng) => setPlace((cur) => ({ ...cur, lat, lng }))}
               />
             </div>
             <p className="mt-1 text-[12px] text-muted">{t.pointOnMap}</p>
-            <button
-              type="button"
-              disabled={geoBusy}
-              onClick={() => void locatePin()}
-              className="mt-2 h-11 rounded-xl border border-line bg-white px-3 text-[14px] font-semibold disabled:opacity-60"
-            >
-              {t.pointQuickGeo}
-            </button>
-            {geoError ? (
-              <div className="mt-2">
-                <GeoError error={geoError} compact onRetry={() => void locatePin()} />
-              </div>
-            ) : null}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {CITIES.filter((id) => id !== "all").map((id) => (
-                <Chip
-                  key={id}
-                  active={place.city === id}
-                  onClick={() => {
-                    const gis = GIS_CITIES[id];
-                    setPlace({ city: id, lat: gis?.lat, lng: gis?.lng, district: undefined });
-                  }}
-                >
-                  {t.cities[id]}
-                </Chip>
-              ))}
-            </div>
-            {cityDistricts.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {cityDistricts.map((item) => (
-                  <Chip
-                    key={item.id}
-                    active={place.district === item.id}
-                    onClick={() => setPlace((cur) => ({ ...cur, district: cur.district === item.id ? undefined : item.id }))}
-                  >
-                    {districtLabel(item, lang)}
-                  </Chip>
-                ))}
-              </div>
-            ) : null}
-            <label className="mt-4 block">
-              <span className="block text-[14px] font-semibold text-ink">{t.pointQuickStreet}</span>
-              <input
-                data-testid="point-field-landmark"
-                value={landmark}
-                maxLength={120}
-                placeholder={t.pointQuickStreetHint}
-                onChange={(event) => setLandmark(event.target.value)}
-                className={`mt-2 ${bigInput}`}
+            <div className="mt-4">
+              <PlaceCascade
+                place={place}
+                onPlace={(next) => {
+                  setError("");
+                  setPlace({ city: next.city, district: next.district, lat: next.lat, lng: next.lng });
+                }}
+                landmark={landmark}
+                onLandmark={setLandmark}
               />
-            </label>
+            </div>
           </div>
         ) : null}
 

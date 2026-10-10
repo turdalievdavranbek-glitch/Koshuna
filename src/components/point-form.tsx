@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { CITIES, DISTRICTS, GIS_CITIES } from "@/lib/data";
+import { DISTRICTS, GIS_CITIES } from "@/lib/data";
 import { captureVideoPoster, keepBlob, videoFileDuration } from "@/lib/blob-media";
-import { districtLabel, nearestDistrict, spotForFix } from "@/lib/geo";
-import { locate, type LocateError } from "@/lib/locate";
+import { districtLabel } from "@/lib/geo";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
@@ -31,13 +30,13 @@ import {
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory, ShopKind } from "@/lib/types";
 import { useDraftHistoryGuard } from "./draft-guard";
-import { GeoError } from "./geo-error";
 import { HoursPicker } from "./hours-picker";
 import { LeaveDialog } from "./leave-dialog";
 import { DeleteCardDialog } from "./card-delete";
 import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
 import { PointAvatar } from "./point-rows";
 import { Chip, Field, Input, Toggle } from "./ui";
+import { PlaceCascade } from "./place-cascade";
 
 const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
 
@@ -93,8 +92,6 @@ export function PointForm({
   const [busy, setBusy] = useState(false);
   const [hoursAsk, setHoursAsk] = useState(false);
   const [more, setMore] = useState(false);
-  const [geoBusy, setGeoBusy] = useState(false);
-  const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [doneId, setDoneId] = useState(createdId ?? "");
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -240,19 +237,6 @@ export function PointForm({
     setLeaveGuard(null);
     setTouched(false);
     router.push("/post?card=service");
-  };
-
-  const locatePin = async () => {
-    setGeoBusy(true);
-    setGeoError(null);
-    const fix = await locate();
-    setGeoBusy(false);
-    if (!fix.ok) {
-      setGeoError(fix.error);
-      return;
-    }
-    const spot = spotForFix(fix.lat, fix.lng);
-    patch({ lat: fix.lat, lng: fix.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.id });
   };
 
   const onPhoto = async (file: File) => {
@@ -468,59 +452,17 @@ export function PointForm({
           <GisMap
             center={{ lat: d.lat ?? GIS_CITIES.bishkek.lat, lng: d.lng ?? GIS_CITIES.bishkek.lng }}
             pick={d.lat != null && d.lng != null ? { lat: d.lat, lng: d.lng } : null}
-            onPick={(lat, lng) => {
-              const district = nearestDistrict(lat, lng, d.city);
-              patch({ lat, lng, district: district?.id ?? d.district });
-            }}
+            onPick={(lat, lng) => patch({ lat, lng })}
           />
         </div>
         <p className="mt-1 text-[12px] text-muted">{t.pointOnMap}</p>
-        <button
-          type="button"
-          data-testid="point-locate"
-          disabled={geoBusy}
-          onClick={() => void locatePin()}
-          className="mt-2 h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold"
-        >
-          {t.pointLocate}
-        </button>
-        {geoError ? (
-          <div className="mt-2">
-            <GeoError error={geoError} compact onRetry={() => void locatePin()} />
-          </div>
-        ) : null}
-        <div className="mt-3 text-[13px] font-semibold text-ink">{t.shopCity}</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {CITIES.filter((id) => id !== "all").map((id) => (
-            <Chip
-              key={id}
-              active={d.city === id}
-              onClick={() => {
-                const gis = GIS_CITIES[id];
-                const keep = DISTRICTS.some((item) => item.city === id && item.id === d.district);
-                patch({ city: id, lat: gis?.lat, lng: gis?.lng, district: keep ? d.district : undefined });
-              }}
-            >
-              {t.cities[id]}
-            </Chip>
-          ))}
-        </div>
-        {cityDistricts.length ? (
-          <div className="mt-3">
-            <div className="text-[13px] font-semibold text-ink">{t.pointDistrict}</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {cityDistricts.map((item) => (
-                <Chip key={item.id} testId={`point-district-${item.id}`} active={d.district === item.id} onClick={() => patch({ district: d.district === item.id ? undefined : item.id })}>
-                  {districtLabel(item, lang)}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        <div className="mt-3">
-          <Field label={t.pointLandmark}>
-            <Input testId="point-landmark" value={landmarkText} onChange={setLandmark} />
-          </Field>
+        <div className="mt-4">
+          <PlaceCascade
+            place={{ city: d.city, district: d.district, lat: d.lat, lng: d.lng }}
+            onPlace={(next) => patch({ city: next.city, district: next.district, lat: next.lat, lng: next.lng })}
+            landmark={landmarkText}
+            onLandmark={setLandmark}
+          />
           <div className="mt-2 flex flex-wrap gap-2">
             {landmarkChips.map((chip) => (
               <Chip key={chip.id} active={liveMarks.some((part) => part === chip.stem || part.startsWith(chip.stem))} onClick={() => toggleLandmark(chip.stem)}>
