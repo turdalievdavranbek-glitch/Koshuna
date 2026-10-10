@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PointForm } from "@/components/point-form";
-import { PointQuickForm } from "@/components/point-quick-form";
+import { pointKindOf, PointWizard } from "@/components/point-quick-form";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
@@ -15,7 +15,7 @@ export default function ShopQuickPage() {
   const router = useRouter();
   const params = useSearchParams();
   const raw = params.get("card");
-  const card = raw === "stall" || raw === "shop" ? raw : undefined;
+  const card = pointKindOf(raw);
   const shopId = params.get("shop") || undefined;
   const created = params.get("created") || undefined;
   const pointCreate = Boolean(card) && !shopId;
@@ -50,7 +50,17 @@ export default function ShopQuickPage() {
             <IconBack size={16} color="#17140F" />
           </button>
           <span className="font-display text-[16px] font-bold">
-            {pointCreate ? t.pointFormTitle : card === "stall" ? t.sellCardStall : card === "shop" ? t.sellCardShop : t.shopQuickCta}
+            {pointCreate
+              ? card === "service"
+                ? t.sellCardService
+                : card === "cafe"
+                  ? t.sellCardCafe
+                  : t.pointFormTitle
+              : card === "stall"
+                ? t.sellCardStall
+                : card === "shop"
+                  ? t.sellCardShop
+                  : t.shopQuickCta}
           </span>
           <span className="w-9" />
         </div>
@@ -60,7 +70,7 @@ export default function ShopQuickPage() {
           created ? (
             <PointForm mode="create" venue={card === "stall" ? "stall" : "shop"} createdId={created} />
           ) : (
-            <PointQuickForm venue={card === "stall" ? "stall" : "shop"} />
+            <PointWizard kind={card ?? "shop"} />
           )
         ) : (
           <ShopItemCapture shopId={shopId} />

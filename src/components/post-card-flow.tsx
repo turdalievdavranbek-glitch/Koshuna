@@ -70,7 +70,7 @@ export function CardPost({ card }: { card: string }) {
   useEffect(() => {
     setEntryCard(card);
     let carry: Partial<typeof draft> = {};
-    if (card === "service") {
+    if (card === "service" || card === "cafe") {
       try {
         const raw = sessionStorage.getItem("konshu-service-carry");
         if (raw) {
@@ -99,7 +99,8 @@ export function CardPost({ card }: { card: string }) {
     }
     if (card === "cafe") {
       setDraft({
-        ...pickSection(draft, "restaurants"),
+        ...pickSection({ ...draft, ...carry }, "restaurants"),
+        ...carry,
         neighborPledge: false,
       });
     }

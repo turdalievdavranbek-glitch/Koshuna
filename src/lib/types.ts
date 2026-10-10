@@ -590,7 +590,8 @@ export type Shop = {
   videoUrl?: string;
   coverUrl?: string;
   transcript?: string;
-  venueKind?: "shop" | "stall";
+  /** shop/stall sell goods; service and cafe are points for masters and food places. */
+  venueKind?: "shop" | "stall" | "service" | "cafe";
   status: ShopStatus;
   /** Hidden from public lists. The owner still sees «На проверке». */
   underReview?: boolean;

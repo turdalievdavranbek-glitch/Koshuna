@@ -125,6 +125,7 @@ export default function ShopDetailPage() {
 
         <div className="mt-3 flex flex-wrap gap-1.5 desk:col-span-12">
           <Chip active>{t.shopCats[shop.category]}</Chip>
+          {shop.kindOther?.trim() ? <Chip>{shop.kindOther}</Chip> : null}
           {(shop.kinds ?? []).map((id) => (
             <Chip key={id}>{shopKindLabel(t, id)}</Chip>
           ))}
