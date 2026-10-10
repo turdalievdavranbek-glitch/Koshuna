@@ -80,7 +80,7 @@ export function DesktopHeader() {
       title={label}
       data-testid={testId}
       onClick={() => go(href)}
-      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
     >
       {node}
     </button>
@@ -127,24 +127,24 @@ export function DesktopHeader() {
           href="/notifications"
           data-testid="desk-bell"
           aria-label={t.notifications}
-          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
         >
           <RingOnRise count={unread}>
-            <IconBell size={26} color="#17140F" />
+            <IconBell size={18} color="#17140F" />
           </RingOnRise>
-          <UnreadBadge count={unread} testId="desk-notif-badge" className="-top-1 -right-1" />
+          <UnreadBadge small count={unread} testId="desk-notif-badge" className="-top-0.5 -right-0.5" />
         </Link>
         {icon(
           "/messages",
           t.inbox,
           <>
-            <IconChat size={24} color="#17140F" />
-            <UnreadBadge count={chatUnread} testId="desk-chat-badge" className="-top-1 -right-1" />
+            <IconChat size={18} color="#17140F" />
+            <UnreadBadge small count={chatUnread} testId="desk-chat-badge" className="-top-0.5 -right-0.5" />
           </>,
           "desk-messages",
         )}
-        {icon("/favorites", t.fav, <IconBag size={24} color="#17140F" />, "desk-cart")}
-        {icon("/profile", t.sideDesk, <IconUser size={24} color="#17140F" />, "desk-profile")}
+        {icon("/favorites", t.fav, <IconBag size={18} color="#17140F" />, "desk-cart")}
+        {icon("/profile", t.sideDesk, <IconUser size={18} color="#17140F" />, "desk-profile")}
         <button
           type="button"
           data-testid="desk-post"
