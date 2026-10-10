@@ -89,7 +89,7 @@ export default function ChatPage() {
 
   if (missing || !detail) {
     return (
-      <PhoneShell>
+      <PhoneShell focus>
         <div className="p-6">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
             <IconBack size={18} color="#17140F" />
@@ -192,7 +192,7 @@ export default function ChatPage() {
   const peer = detail.peerName || t.holdNoName;
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="contents desk:grid desk:min-h-0 desk:flex-1 desk:grid-cols-[360px_minmax(0,1fr)]">
       {desk ? (
         <div className="hidden min-h-0 overflow-y-auto border-line desk:block desk:border-r">

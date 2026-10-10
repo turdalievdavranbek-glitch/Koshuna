@@ -184,7 +184,7 @@ export function PersonalPost() {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="px-5 pb-3 pt-1">
         <div className="flex items-center justify-between">
           <button

@@ -186,7 +186,7 @@ export function CardPost({ card }: { card: string }) {
   const bars = [step >= 1, step >= 2, step >= 3];
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="px-5 pb-3.5 pt-1">
         <div className="flex items-center justify-between">
           <button
