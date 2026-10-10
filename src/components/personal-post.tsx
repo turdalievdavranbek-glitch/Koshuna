@@ -112,7 +112,23 @@ export function PersonalPost() {
     });
   };
 
+  const withTimeout = <T,>(job: Promise<T>, ms: number, fallback: T) =>
+    Promise.race([job, new Promise<T>((resolve) => window.setTimeout(() => resolve(fallback), ms))]);
+
   const publish = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await publishNow();
+    } catch {
+      setError(t.postFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const publishNow = async () => {
     const media = Boolean(draft.videoUrl || draft.photo || (draft.photos && draft.photos.length));
     if (!media) {
       setError(t.postMediaNeed);
@@ -125,7 +141,8 @@ export function PersonalPost() {
     // The section is the person's choice (or a sure match); never a silent default.
     if (!draft.editing && !draft.sectionPicked) {
       setSectionHint(true);
-      setError("");
+      // Visible next to the button too: the chips can be off-screen (desktop, long form).
+      setError(t.catPickHint);
       document.querySelector('[data-testid="cat-other"]')?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
@@ -148,9 +165,7 @@ export function PersonalPost() {
         setError(draft.phone.trim() ? t.phoneBad : t.phoneRequired);
         return;
       }
-      setBusy(true);
       const saved = await updateProfile({ name, phone: normalized });
-      setBusy(false);
       if (!saved.ok) {
         setError(saved.error === "network" ? t.noNetSave : saved.error === "phone" ? t.phoneBad : t.noNetSave);
         return;
@@ -160,7 +175,8 @@ export function PersonalPost() {
       return;
     }
     setLimit(false);
-    if (!draft.editing && (await personalPostLimited())) {
+    // The server enforces the limit on insert as well; a hung check must not freeze the button.
+    if (!draft.editing && (await withTimeout(personalPostLimited(), 8000, false))) {
       setLimit(true);
       setError("");
       return;
@@ -423,7 +439,7 @@ export function PersonalPost() {
           onClick={() => void publish()}
           className="shadow-btn h-[54px] w-full rounded-2xl bg-accent text-base font-semibold text-accent-on disabled:opacity-60"
         >
-          {t.publish}
+          {busy ? t.postPublishing : t.publish}
         </button>
         <p className="mt-2 text-center text-[12px] text-muted">{t.publishHint}</p>
       </div>

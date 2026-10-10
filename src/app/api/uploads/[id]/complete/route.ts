@@ -10,14 +10,30 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+// A long video can take minutes to convert; a retried «complete» (client or proxy timeout) must wait for the same job, not start a second one.
+const running = new Map<string, Promise<Response>>();
+
 export async function POST(req: Request, ctx: Ctx) {
   const blocked = guardCsrf(req);
   if (blocked) return blocked;
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   const { id } = await ctx.params;
+  const key = `${user.id}:${id}`;
+  const busy = running.get(key);
+  if (busy) return (await busy).clone();
+  const job = finish(user.id, id);
+  running.set(key, job);
+  try {
+    return (await job).clone();
+  } finally {
+    running.delete(key);
+  }
+}
+
+async function finish(ownerId: string, id: string): Promise<Response> {
   const db = getDb();
-  const rows = await db.select().from(media).where(and(eq(media.id, id), eq(media.ownerId, user.id))).limit(1);
+  const rows = await db.select().from(media).where(and(eq(media.id, id), eq(media.ownerId, ownerId))).limit(1);
   const row = rows[0];
   if (!row) return json({ error: "not-found" }, 404);
   if (row.uploadStatus === "ready" && row.url) return json({ mediaId: row.id, url: row.url });

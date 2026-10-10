@@ -189,10 +189,12 @@ function retryAfterSeconds(header: string | null): number | undefined {
 async function request(url: string, init: RequestInit): Promise<HttpResult> {
   const ctrl = new AbortController();
   let timedOut = false;
+  // «complete» converts the video on the server (up to a few minutes for a long phone video).
+  const finishing = url.endsWith("/complete");
   const timer = window.setTimeout(() => {
     timedOut = true;
     ctrl.abort();
-  }, 60_000);
+  }, finishing ? 480_000 : 60_000);
   try {
     const res = await fetch(url, { ...init, credentials: "same-origin", signal: ctrl.signal });
     const data = (await res.json().catch(() => ({}))) as HttpResult["data"];
@@ -200,7 +202,7 @@ async function request(url: string, init: RequestInit): Promise<HttpResult> {
     if (!res.ok) return { ok: false, status: res.status, data, error: data?.error || String(res.status), retryAfter };
     return { ok: true, status: res.status, data, retryAfter };
   } catch {
-    if (timedOut) smallChunks = true;
+    if (timedOut && !finishing) smallChunks = true;
     return { ok: false, status: 0, data: {}, error: timedOut ? "timeout" : "network" };
   } finally {
     window.clearTimeout(timer);
