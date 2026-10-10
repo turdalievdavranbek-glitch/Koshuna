@@ -86,6 +86,45 @@ import { showsNeighborPledge } from "./neighbor";
 import { BrandMark } from "@/components/brand";
 
 const STORAGE = "konshu-state-v1";
+/** Last public feed + points, shown instantly on the next open while the fresh copy loads. */
+const FEED_CACHE = "konshu-feed-cache-v1";
+const FEED_CACHE_MAX_AGE = 7 * 24 * 3600 * 1000;
+
+function readFeedCache(): { feed: Listing[]; shops: Shop[] } | null {
+  try {
+    const raw = localStorage.getItem(FEED_CACHE);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as { at?: number; feed?: Listing[]; shops?: Shop[] };
+    if (!data.at || Date.now() - data.at > FEED_CACHE_MAX_AGE) return null;
+    return {
+      feed: Array.isArray(data.feed) ? data.feed : [],
+      shops: Array.isArray(data.shops) ? data.shops : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeFeedCache(feed: Listing[], shops: Shop[]) {
+  try {
+    const visible = feed.filter((item) => item.status !== "hidden" && !item.underReview).slice(0, 400);
+    localStorage.setItem(FEED_CACHE, JSON.stringify({ at: Date.now(), feed: visible, shops: shops.slice(0, 200) }));
+  } catch {
+    try {
+      localStorage.removeItem(FEED_CACHE);
+    } catch {
+      /* storage full or blocked */
+    }
+  }
+}
+
+function dropFeedCache() {
+  try {
+    localStorage.removeItem(FEED_CACHE);
+  } catch {
+    /* ignore */
+  }
+}
 
 let authReady: Promise<void> = Promise.resolve();
 let authSerial = 0;
@@ -661,7 +700,8 @@ function load(): State {
   if (typeof window === "undefined") return initial;
   try {
     const raw = localStorage.getItem(STORAGE);
-    if (!raw) return initial;
+    const cached = readFeedCache();
+    if (!raw) return cached ? { ...initial, feed: cached.feed, shops: cached.shops } : initial;
     const saved = JSON.parse(raw) as Partial<State>;
     const { viewerPlace: _viewerPlace, extraListings: _extra, shops: _shops, favouriteIds: _favs, reactions: _reactions, feed: _feed, listingEdits: _edits, ...rest } =
       saved as Partial<State> & { viewerPlace?: unknown };
@@ -677,9 +717,9 @@ function load(): State {
       reactions: {},
       comments: saved.comments && typeof saved.comments === "object" && !Array.isArray(saved.comments) ? saved.comments : {},
       honesty: saved.honesty && typeof saved.honesty === "object" ? saved.honesty : {},
-      shops: [],
+      shops: cached?.shops ?? [],
       extraListings: [],
-      feed: [],
+      feed: cached?.feed ?? [],
       favouriteIds: savedCartIds(saved.favouriteIds),
       threads: Array.isArray(saved.threads) ? saved.threads : [],
       savedSearches: Array.isArray(saved.savedSearches) ? saved.savedSearches : [],
@@ -877,6 +917,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       if (epoch !== sessionEpoch) return;
       setSyncError(feedRes.status === 0 || feedRes.status >= 500);
+      if (feedRes.ok && shopsRes.ok) writeFeedCache(feedRes.data?.listings ?? [], shopsRes.data?.shops ?? []);
       applyCounts(counts, reactions, reactionUser);
       const ops = pendingOps();
       const pendingListingIds = new Set(ops.filter((op) => op.kind !== "putShop").map((op) => op.listingId));
@@ -1270,6 +1311,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       void nativeGoogleSignOut().catch(() => undefined);
       disableGoogleAutoSelect();
       update({ user: null, extraListings: [], favouriteIds: [], reactions: {}, blockedUserIds: [] });
+      dropFeedCache();
       void (async () => {
         await forgetNativePush();
         await api("/api/auth/logout", { method: "POST", json: {} });

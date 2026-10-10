@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { hideNativeSplash } from "@/lib/native-splash";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
@@ -29,6 +31,12 @@ export default function FeedPage() {
   const router = useRouter();
   const listings = listingsForSearch(applyFilters(allListings, homeFeedFilters(filters), city), shops);
   const promoted = listingsForSearch(allListings, shops).filter((item) => item.status === "promoted");
+
+  // Native splash goes away as soon as the feed (cached or fresh) or its empty state is on screen.
+  const painted = listings.length > 0 || synced;
+  useEffect(() => {
+    if (painted) hideNativeSplash();
+  }, [painted]);
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
