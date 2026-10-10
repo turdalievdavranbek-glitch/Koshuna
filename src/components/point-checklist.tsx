@@ -24,41 +24,21 @@ export function PointChecklist({ shop }: { shop: Shop }) {
     }
   }, [shop.id]);
 
-  const edit = `/shops/${shop.id}/edit`;
+  const set = (field: string) => `/shops/${shop.id}/set/${field}`;
   const kind = shop.venueKind ?? "shop";
   const hasCard = (section: string) =>
     allListings.some((item) => item.ownerId === shop.ownerId && item.section === section && item.status !== "hidden" && item.status !== "withdrawn");
-  const openCard = (card: "service" | "cafe") => {
-    const carry = {
-      title: shop.name || undefined,
-      phone: shop.contacts.phone || undefined,
-      photo: shop.coverUrl || undefined,
-      photos: shop.coverUrl ? [shop.coverUrl] : undefined,
-      address: shop.address || undefined,
-      hours: shop.hours,
-      city: shop.city && shop.city !== "all" ? shop.city : undefined,
-      lat: shop.lat,
-      lng: shop.lng,
-      mediaKind: shop.coverUrl ? ("photos" as const) : undefined,
-    };
-    try {
-      sessionStorage.setItem("konshu-service-carry", JSON.stringify(carry));
-    } catch {
-      /* private mode */
-    }
-    router.push(`/post?card=${card}`);
-  };
   const items = [
-    { id: "photo", done: Boolean(shop.coverUrl || shop.videoUrl), label: t.pointTodoPhoto, href: edit },
-    { id: "hours", done: hasShopHours(shop.hours) || Boolean(shop.hoursNote?.trim()), label: t.pointTodoHours, href: edit },
-    { id: "desc", done: Boolean(shop.description?.trim()), label: t.pointTodoDesc, href: edit },
-    { id: "place", done: shopHasPointPlace(shop) || Boolean(shop.address?.trim()), label: t.pointTodoPlace, href: edit },
+    { id: "photo", done: Boolean(shop.coverUrl || shop.videoUrl), label: t.pointTodoPhoto, href: set("photo") },
+    { id: "hours", done: hasShopHours(shop.hours) || Boolean(shop.hoursNote?.trim()), label: t.pointTodoHours, href: set("hours") },
+    { id: "desc", done: Boolean(shop.description?.trim()), label: t.pointTodoDesc, href: set("desc") },
+    { id: "place", done: shopHasPointPlace(shop) || Boolean(shop.address?.trim()), label: t.pointTodoPlace, href: set("place") },
     kind === "service"
-      ? { id: "services", done: hasCard("services"), label: t.pointTodoServices, href: "", run: () => openCard("service") }
+      ? { id: "services", done: hasCard("services") || (shop.products ?? []).length > 0, label: t.pointTodoServices, href: set("item") }
       : kind === "cafe"
-        ? { id: "menu", done: hasCard("restaurants"), label: t.pointTodoMenu, href: "", run: () => openCard("cafe") }
-        : { id: "product", done: (shop.products ?? []).length > 0, label: t.pointTodoProduct, href: `/shops/quick?shop=${shop.id}` },
-  ] as Array<{ id: string; done: boolean; label: string; href: string; run?: () => void }>;
+        ? { id: "menu", done: hasCard("restaurants") || (shop.products ?? []).length > 0, label: t.pointTodoMenu, href: set("item") }
+        : { id: "product", done: (shop.products ?? []).length > 0, label: t.pointTodoProduct, href: `/shops/quick?shop=${shop.id}&back=point` },
+  ];
   const left = items.filter((item) => !item.done);
   if (!left.length && !fresh) return null;
 
@@ -74,7 +54,7 @@ export function PointChecklist({ shop }: { shop: Shop }) {
                 key={item.id}
                 type="button"
                 data-testid={`point-todo-${item.id}`}
-                onClick={() => (item.run ? item.run() : router.push(item.href))}
+                onClick={() => router.push(item.href)}
                 className="flex h-10 items-center justify-between rounded-xl border border-line bg-surface px-3 text-left text-[13px] font-semibold text-ink"
               >
                 <span className="flex items-center gap-2">
@@ -85,7 +65,12 @@ export function PointChecklist({ shop }: { shop: Shop }) {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[12px] text-muted">{t.pointTodoLater}</p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-[12px] text-muted">{t.pointTodoLater}</p>
+            <button type="button" data-testid="point-edit-all" onClick={() => router.push(`/shops/${shop.id}/edit`)} className="shrink-0 text-[12px] font-semibold text-accent">
+              {t.pointEditAll}
+            </button>
+          </div>
         </>
       ) : null}
     </div>
