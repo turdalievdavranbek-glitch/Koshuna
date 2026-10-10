@@ -535,7 +535,7 @@ type Store = State & {
   requireAuth: (path: string) => boolean;
   setPendingPath: (path: string | null) => void;
   setDraft: (patch: Partial<DraftListing>) => void;
-  updateProfile: (patch: { name?: string; phone?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  updateProfile: (patch: { name?: string; phone?: string; telegram?: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   discardDraft: () => void;
   setLeaveGuard: (fn: ((intent: { proceed: () => void }) => void) | null) => void;
   askLeave: (proceed: () => void) => boolean;
@@ -828,6 +828,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               name: serverUser.name || s.user.name,
               phone: serverUser.phone ?? "",
               email: serverUser.email,
+              telegram: serverUser.telegram,
               method: serverUser.method ?? s.user.method,
               joinedYear: serverUser.joinedYear || s.user.joinedYear,
               roles: rolesForPhone(serverUser.phone || s.user.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
@@ -1533,6 +1534,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...state.user,
             name: serverUser.name || state.user.name,
             phone: serverUser.phone || "",
+            telegram: serverUser.telegram,
             roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
           }
         : null;

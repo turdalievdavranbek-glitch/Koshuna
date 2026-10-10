@@ -1,12 +1,14 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { telegramLink } from "@/lib/telegram-username";
+import { isDbUserId } from "@/lib/phone";
+import { api } from "@/lib/api/client";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopProductsEditor } from "@/components/shop-products";
@@ -46,6 +48,21 @@ export default function ShopDetailPage() {
     [allListings, shop],
   );
 
+  // No Telegram on the point: fall back to the owner's own Telegram from their profile.
+  const [ownerTelegram, setOwnerTelegram] = useState<string | null>(null);
+  const ownerId = shop && !shop.telegramUsername && isDbUserId(shop.ownerId) ? shop.ownerId : null;
+  useEffect(() => {
+    setOwnerTelegram(null);
+    if (!ownerId) return;
+    let cancel = false;
+    void api<{ telegram?: string | null }>(`/api/users/${encodeURIComponent(ownerId)}`).then((res) => {
+      if (!cancel) setOwnerTelegram(res.ok ? res.data?.telegram || null : null);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [ownerId]);
+
   if (!shop && !synced) return null;
 
   if (shop && isBlocked(shop.ownerId)) {
@@ -77,7 +94,7 @@ export default function ShopDetailPage() {
   });
   const cityLabel = t.cities[shop.city] || shop.city;
   const deliveryLine = shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine);
-  const telegramHref = telegramLink(shop.telegramUsername);
+  const telegramHref = telegramLink(shop.telegramUsername) ?? telegramLink(ownerTelegram);
 
   return (
     <PhoneShell>

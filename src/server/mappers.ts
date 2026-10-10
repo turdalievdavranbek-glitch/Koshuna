@@ -16,6 +16,7 @@ export function publicUser(user: SessionUser): User {
     name: user.name,
     phone: user.phone ?? "",
     email: user.email ?? undefined,
+    telegram: user.telegram ?? undefined,
     method: method === "demo" ? undefined : (method as AuthMethod),
     joinedYear: user.createdAt.getFullYear(),
     verified: user.method === "sms",

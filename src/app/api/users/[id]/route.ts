@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { isDbUserId } from "@/lib/phone";
 import { buildPublicProfile } from "@/lib/public-name";
+import { telegramUsername } from "@/lib/telegram-username";
 import { getDb } from "@/server/db";
 import { listings, shops, users } from "@/server/db/schema";
 import { json } from "@/server/http";
@@ -17,7 +18,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!isDbUserId(id)) return json({ error: "not-found" }, 404);
   const db = getDb();
   const rows = await db
-    .select({ id: users.id, name: users.name, createdAt: users.createdAt })
+    .select({ id: users.id, name: users.name, createdAt: users.createdAt, telegram: users.telegram })
     .from(users)
     .where(and(eq(users.id, id), isNull(users.deletedAt), isNull(users.bannedAt)))
     .limit(1);
@@ -34,5 +35,6 @@ export async function GET(_req: Request, ctx: Ctx) {
         sql`(${listings.shopId} is null or not exists (select 1 from ${shops} where ${shops.id} = ${listings.shopId} and ${shops.underReview} = true))`,
       ),
     );
-  return json(buildPublicProfile(row, Number(counts[0]?.n ?? 0)));
+  // The Telegram username is public by the owner's choice (profile «Telegram» field).
+  return json({ ...buildPublicProfile(row, Number(counts[0]?.n ?? 0)), telegram: telegramUsername(row.telegram) });
 }

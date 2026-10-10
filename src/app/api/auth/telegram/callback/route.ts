@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const signed = await signInWithIdentity({
       provider: "telegram",
       providerUserId: checked.id,
-      profile: { name: checked.firstName },
+      profile: { name: checked.firstName, telegram: checked.username },
       userAgent: req.headers.get("user-agent"),
     });
     const dest = safeNextPath(readCookie(req, "ktgdest"));

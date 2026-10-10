@@ -79,21 +79,25 @@ export default function ListingPage() {
   const [videoTall, setVideoTall] = useState(true);
   const [toast, setToast] = useState("");
   const [sellerPhone, setSellerPhone] = useState<string | null>(null);
+  const [sellerTelegram, setSellerTelegram] = useState<string | null>(null);
   const [remoteBlocked, setRemoteBlocked] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !listing) {
       setSellerPhone(null);
+      setSellerTelegram(null);
       return;
     }
     if (!isDbUserId(listing.ownerId) || listing.ownerId === user.id) {
       setSellerPhone(null);
+      setSellerTelegram(null);
       return;
     }
     let cancel = false;
-    void api<{ phone?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`).then((res) => {
+    void api<{ phone?: string | null; telegram?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`).then((res) => {
       if (cancel) return;
       setSellerPhone(res.ok ? res.data?.phone || null : null);
+      setSellerTelegram(res.ok ? res.data?.telegram || null : null);
     });
     return () => {
       cancel = true;
@@ -159,6 +163,10 @@ export default function ListingPage() {
   const showCall = user ? Boolean(sellerPhone) : dbSeller;
   const showWa = Boolean(user && sellerPhone);
   const callHref = sellerPhone ? `tel:${sellerPhone}` : "#";
+  // Point item: the point's Telegram, else the seller's own (both come from the contact API; signed-in only, like WhatsApp).
+  const telegramHref = user
+    ? (listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null) ?? telegramLink(sellerTelegram)
+    : null;
   const dealer = FEATURES.dealers && listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
   const title = listingTitle(listing, lang);
   const gate = (path: string) => {
@@ -351,7 +359,7 @@ export default function ListingPage() {
                 showCall={showCall}
                 showWa={showWa}
                 waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
-                telegramHref={user && listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null}
+                telegramHref={telegramHref}
                 onCallGate={(event) => {
                   if (!user) {
                     event.preventDefault();
@@ -715,7 +723,7 @@ export default function ListingPage() {
             showCall={showCall}
             showWa={showWa}
             waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
-            telegramHref={user && listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null}
+            telegramHref={telegramHref}
             onCallGate={(event) => {
               if (!user) {
                 event.preventDefault();

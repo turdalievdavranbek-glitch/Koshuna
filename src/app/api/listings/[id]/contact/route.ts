@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { ownerBlockedRequester } from "@/lib/blocks";
 import { normalizePhoneInput } from "@/lib/phone";
+import { telegramUsername } from "@/lib/telegram-username";
 import { getDb } from "@/server/db";
 import { blocks, listings, shops, users } from "@/server/db/schema";
 import { json, requireUser } from "@/server/http";
@@ -36,9 +37,10 @@ export async function GET(req: Request, ctx: Ctx) {
     if (ownerBlockedRequester(blockedRows, row.ownerId, user.id)) return json({ error: "blocked" }, 403);
   }
   let raw: string | null = null;
+  let telegram: string | null = null;
   if (row.shopId) {
     const shopRows = await db
-      .select({ phone: shops.phone, underReview: shops.underReview, status: shops.status })
+      .select({ phone: shops.phone, telegram: shops.telegram, underReview: shops.underReview, status: shops.status })
       .from(shops)
       .where(eq(shops.id, row.shopId))
       .limit(1);
@@ -46,10 +48,13 @@ export async function GET(req: Request, ctx: Ctx) {
       return json({ error: "not-found" }, 404);
     }
     raw = shopRows[0]?.phone ?? null;
+    telegram = telegramUsername(shopRows[0]?.telegram);
   }
-  if (!raw && row.ownerId) {
-    const owners = await db.select({ phone: users.phone }).from(users).where(eq(users.id, row.ownerId)).limit(1);
-    raw = owners[0]?.phone ?? null;
+  if ((!raw || !telegram) && row.ownerId) {
+    const owners = await db.select({ phone: users.phone, telegram: users.telegram }).from(users).where(eq(users.id, row.ownerId)).limit(1);
+    if (!raw) raw = owners[0]?.phone ?? null;
+    // Point items: the point's Telegram first, else the owner's.
+    if (!telegram) telegram = telegramUsername(owners[0]?.telegram);
   }
-  return json({ phone: normalized(raw) }, 200, { "Cache-Control": "no-store" });
+  return json({ phone: normalized(raw), telegram }, 200, { "Cache-Control": "no-store" });
 }

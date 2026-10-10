@@ -114,6 +114,8 @@ export type User = {
   name: string;
   phone: string;
   email?: string;
+  /** Public Telegram username (no @) for the «Telegram» contact button. */
+  telegram?: string;
   method?: AuthMethod;
   linkedChannels?: SellerChannel[];
   cardLinked?: boolean;

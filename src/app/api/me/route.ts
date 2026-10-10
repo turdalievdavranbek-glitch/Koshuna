@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { normalizePhoneInput } from "@/lib/phone";
+import { telegramUsername } from "@/lib/telegram-username";
 import { getDb } from "@/server/db";
 import { users } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
@@ -9,7 +10,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Patch = { name?: string; phone?: string; lang?: string; city?: string; district?: string };
+type Patch = { name?: string; phone?: string; lang?: string; city?: string; district?: string; telegram?: string };
 
 function bad(field: string) {
   return json({ error: field }, 400);
@@ -57,6 +58,16 @@ export async function PATCH(req: Request) {
     if (typeof body.district !== "string" || body.district.trim().length > 80) return bad("district");
     patch.district = body.district.trim() || null;
   }
+  if (body.telegram != null) {
+    if (typeof body.telegram !== "string") return bad("telegram");
+    if (!body.telegram.trim()) {
+      patch.telegram = null;
+    } else {
+      const handle = telegramUsername(body.telegram);
+      if (!handle) return bad("telegram");
+      patch.telegram = handle;
+    }
+  }
   const db = getDb();
   const [row] = await db.update(users).set(patch).where(eq(users.id, user.id)).returning();
   return json({
@@ -68,6 +79,7 @@ export async function PATCH(req: Request) {
       lang: row.lang,
       city: row.city,
       district: row.district,
+      telegram: row.telegram,
     }),
   });
 }
