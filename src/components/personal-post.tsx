@@ -364,8 +364,10 @@ export function PersonalPost() {
                       : { lat: gisCity(draft.city).lat, lng: gisCity(draft.city).lng }
                   }
                   onPick={(lat, lng) => {
-                    const area = nearestDistrict(lat, lng, draft.city);
-                    setDraft({ lat, lng, district: area?.name });
+                    // The pin decides the city too: a map pick with «Весь Кыргызстан» used to keep city "all" and hide the post from city feeds.
+                    const spot = spotForFix(lat, lng);
+                    const area = spot.district ?? nearestDistrict(lat, lng, spot.city ?? draft.city);
+                    setDraft({ lat, lng, ...(spot.city ? { city: spot.city } : {}), district: area?.name });
                   }}
                 />
               </div>
