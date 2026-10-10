@@ -191,7 +191,7 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
             >
               {cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={cover} alt="" className="h-full w-full object-cover" />
+                <img src={cover} alt="" className="h-full w-full bg-chip object-contain" />
               ) : photoBusy ? (
                 t.shopLoad
               ) : (

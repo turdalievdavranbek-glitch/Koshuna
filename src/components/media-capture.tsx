@@ -521,7 +521,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="h-40 w-full bg-ink object-cover" />
             ) : draft.photo ? (
               <div className="h-40">
-                <Photo src={draft.photo} alt="" />
+                <Photo src={draft.photo} alt="" fit="contain" />
               </div>
             ) : null}
             <button
@@ -743,7 +743,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               }}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
-              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
+              {draft.photo ? <Photo src={draft.photo} alt="" fit="contain" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
             </button>
             <button
               type="button"
@@ -779,7 +779,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               onClick={() => cameraRef.current?.click()}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
-              {draft.photo ? <Photo src={draft.photo} alt="" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
+              {draft.photo ? <Photo src={draft.photo} alt="" fit="contain" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
               <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(23,20,15,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
                 {t.mainPhoto}
               </span>

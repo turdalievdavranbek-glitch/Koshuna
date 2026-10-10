@@ -11,9 +11,7 @@ import { landmarksFromText, NEW_POINT_GROUPS, normalizePhone } from "@/lib/shops
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory } from "@/lib/types";
 import { GeoError } from "./geo-error";
-import { sectionIcon } from "./icons";
 import { NativePhotoInputs } from "./native-photo";
-import { POINT_GROUP_ICON } from "./point-rows";
 import { Chip } from "./ui";
 
 export const POINT_NEW_KEY = "konshu-point-new";
@@ -26,7 +24,20 @@ export function pointKindOf(raw: string | null | undefined): PointKind | undefin
   return raw === "shop" || raw === "stall" || raw === "service" || raw === "cafe" ? raw : undefined;
 }
 
-const SERVICE_GROUPS: ShopCategory[] = ["beauty", "repair", "health", "travel", "home", "other"];
+/** Service wizard tiles, in the same order and wording as the search «Услуги» groups. */
+const SERVICE_GROUPS: Array<{ id: ShopCategory; label: string }> = [
+  { id: "auto", label: "svc-transport" },
+  { id: "repair", label: "svc-tech" },
+  { id: "household", label: "svc-home" },
+  { id: "beauty", label: "svc-leisure" },
+  { id: "tailor", label: "svc-clothes" },
+  { id: "events", label: "svc-events" },
+  { id: "travel", label: "svc-tourism" },
+  { id: "health", label: "svc-health" },
+  { id: "education", label: "education" },
+  { id: "farm", label: "svc-farm" },
+  { id: "other", label: "other" },
+];
 export const CAFE_TYPES = ["cafe", "canteen", "coffee", "fastfood", "restaurant", "chaikhana"] as const;
 type CafeType = (typeof CAFE_TYPES)[number];
 
@@ -130,7 +141,10 @@ export function PointWizard({ kind }: { kind: PointKind }) {
 
   if (!user || !shopDraft) return <p className="text-[14px] text-muted">{t.shopLoad}</p>;
   const d = shopDraft;
-  const groups: ShopCategory[] = kind === "service" ? SERVICE_GROUPS : [...NEW_POINT_GROUPS];
+  const groups: Array<{ id: ShopCategory; label: string }> =
+    kind === "service"
+      ? SERVICE_GROUPS.map((row) => ({ id: row.id, label: t.cats[row.label] ?? t.shopCats[row.id] ?? row.id }))
+      : NEW_POINT_GROUPS.map((id) => ({ id, label: t.pointCatShort[id] ?? t.shopCats[id] ?? id }));
   const cafeType = CAFE_TYPES.find((id) => d.locked?.category && d.kindOther === t.cafeTypes[id]) ?? null;
   const group = kind === "cafe" ? (cafeType ? ("food" as ShopCategory) : null) : d.locked?.category ? d.category : null;
   const placed = Boolean(knownCity(d.city));
@@ -322,7 +336,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
             >
               {d.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={d.coverUrl} alt="" className="h-full w-full object-cover" />
+                <img src={d.coverUrl} alt="" className="h-full w-full bg-chip object-contain" />
               ) : photoBusy ? (
                 t.shopLoad
               ) : (
@@ -438,8 +452,8 @@ export function PointWizard({ kind }: { kind: PointKind }) {
               })}
             </div>
           ) : (
-            <div data-testid="point-groups" className="grid grid-cols-3 gap-2 desk:grid-cols-4">
-              {groups.map((id) => {
+            <div data-testid="point-groups" className="grid grid-cols-2 gap-2 desk:grid-cols-3">
+              {groups.map(({ id, label }) => {
                 const active = group === id;
                 return (
                   <button
@@ -452,10 +466,9 @@ export function PointWizard({ kind }: { kind: PointKind }) {
                       lockShopField("category");
                       setShopDraft({ category: id, kinds: [], kindOther: undefined, extraCategories: d.extraCategories.filter((item) => item !== id) });
                     }}
-                    className={`flex min-h-[80px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl border px-1.5 py-2 text-center touch-manipulation ${active ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
+                    className={`flex min-h-[64px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[14px] font-semibold leading-tight text-ink touch-manipulation ${active ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
                   >
-                    {sectionIcon(POINT_GROUP_ICON[id] || "bag", active ? "#B8452F" : "#5C5246", 22)}
-                    <span className="text-[13px] font-semibold leading-tight text-ink">{t.pointCatShort[id] ?? t.shopCats[id]}</span>
+                    {label}
                   </button>
                 );
               })}

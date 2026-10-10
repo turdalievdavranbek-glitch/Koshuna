@@ -10,10 +10,27 @@ import { useApp } from "@/lib/store";
 import { LANGS, type Listing } from "@/lib/types";
 import { IconCheck, IconHeart, IconPin } from "./icons";
 
-export function Photo({ src, alt, className }: { src: string; alt: string; className?: string }) {
+export function Photo({
+  src,
+  alt,
+  className,
+  fit = "cover",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  /** "contain" shows the whole photo (upload previews); "cover" fills the frame (cards). */
+  fit?: "cover" | "contain";
+}) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} loading="lazy" decoding="async" className={`h-full w-full object-cover ${className ?? ""}`} />
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      className={`h-full w-full ${fit === "contain" ? "bg-chip object-contain" : "object-cover"} ${className ?? ""}`}
+    />
   );
 }
 

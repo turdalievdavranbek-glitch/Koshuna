@@ -714,7 +714,7 @@ export function CardPost({ card }: { card: string }) {
                 <video src={draft.videoUrl} poster={draft.photo} controls playsInline className="h-56 w-full object-cover bg-ink" />
               ) : draft.photo ? (
                 <div className="h-44">
-                  <Photo src={draft.photo} alt="" />
+                  <Photo src={draft.photo} alt="" fit="contain" />
                 </div>
               ) : (
                 <div className="flex h-44 items-center justify-center bg-chip text-sm text-muted">{t.photos}</div>

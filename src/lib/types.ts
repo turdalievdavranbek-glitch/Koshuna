@@ -469,6 +469,12 @@ export const SHOP_CATEGORIES = [
   "travel",
   "books",
   "pets",
+  // Service points (wizard «Услуги / мастер»), mirroring the search service groups.
+  "auto",
+  "household",
+  "tailor",
+  "events",
+  "education",
   "other",
 ] as const;
 export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
@@ -496,6 +502,11 @@ export const SHOP_KINDS = {
   travel: ["travel-agency"],
   books: ["books-shop", "books-stationery"],
   pets: ["pets-food", "pets-goods"],
+  auto: [],
+  household: [],
+  tailor: [],
+  events: [],
+  education: [],
   other: [],
 } as const satisfies Record<ShopCategory, readonly string[]>;
 
