@@ -7,11 +7,9 @@ import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { listingTitle } from "@/lib/i18n";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
 import { mineRestaurants, parentOfMenuKind } from "@/lib/menu";
-import { DEMO_MENU_COUNTER } from "@/lib/menu-ai";
 import { menuKindLabel } from "@/lib/menu-copy";
 import { draftsFromMenuSpeech, pairMenuDraftsWithStills, type MenuItemDraft } from "@/lib/menu-media";
 import { validPrice } from "@/lib/shops";
-import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import type { MediaKind, RestaurantDish } from "@/lib/types";
 import { IconCamera } from "./icons";
@@ -225,18 +223,6 @@ export function RestaurantMenuCapture() {
       setError(t.shopAiNeedSpeech);
     } finally {
       URL.revokeObjectURL(url);
-    }
-  };
-
-  const runDemo = async () => {
-    setError("");
-    setNote("");
-    setMode("video");
-    try {
-      const stills = await sampleVideoStills(DEMO_VIDEO_URL, shopVideoMaxStills());
-      await applyTranscript(DEMO_MENU_COUNTER, stills, "video");
-    } catch {
-      await applyTranscript(DEMO_MENU_COUNTER, [], "video");
     }
   };
 
@@ -490,9 +476,6 @@ export function RestaurantMenuCapture() {
 
           {spoken && mode !== "photos" ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{spoken}</p> : null}
 
-          <button type="button" onClick={() => void runDemo()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
-            {t.restaurantQuickDemo}
-          </button>
           <NativePhotoInputs cameraRef={cameraRef} galleryRef={galleryRef} onFile={(file) => void onFile(file)} />
 
           {mode === "photos" ? (

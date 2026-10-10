@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVideoStills, startSpeech, videoFileDuration } from "@/lib/blob-media";
-import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
+import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
-import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
@@ -26,7 +25,6 @@ import {
   hoursToStored,
   type HoursPickerState,
 } from "@/lib/shops";
-import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
 import { FEATURES } from "@/lib/features";
 import { locate } from "@/lib/locate";
@@ -247,34 +245,6 @@ export function ShopItemCapture({
     if (image) await onFile(image);
   };
 
-  const demoTag = async () => {
-    priceTouched.current = false;
-    setError("");
-    setAi(t.shopItemAiBusy);
-    const itemPhoto = photoForProductTitle(title, kind) || photoForProductTitle("", kind);
-    if (itemPhoto) setPhoto(itemPhoto);
-    if (!title.trim()) setTitle(shopKindLabel(t, kind) || t.shopItemName);
-    try {
-      const guess = await priceFromPhoto(makeDemoPriceTag(85));
-      if (noPriceRef.current) {
-        setFromPhoto(false);
-        setAi("");
-      } else if (guess.price != null && !priceTouched.current) {
-        setPrice(String(guess.price));
-        setFromPhoto(true);
-        setAi(t.shopItemPriceAi);
-      } else if (guess.price != null) {
-        setAi(t.shopItemPriceAi);
-      } else {
-        setFromPhoto(false);
-        setAi(t.shopItemPriceNoAi);
-      }
-    } catch {
-      setFromPhoto(false);
-      setAi(t.shopItemPriceNoAi);
-    }
-  };
-
   const applyTranscript = async (text: string, stills: string[], source: ShopItemDraft["source"]) => {
     const raw = draftsFromShopSpeech(text, { category: parent, kind });
     const next = pairDraftsWithStills(raw, stills, source).map((row) => ({
@@ -423,19 +393,6 @@ export function ShopItemCapture({
       else window.setTimeout(() => void startVoice(), 400);
     } finally {
       URL.revokeObjectURL(url);
-    }
-  };
-
-  const runDemo = async () => {
-    setError("");
-    setNote("");
-    setMapPin(null);
-    setMode("video");
-    try {
-      const stills = await sampleVideoStills(DEMO_VIDEO_URL, shopVideoMaxStills());
-      await applyTranscript(DEMO_SHOP_COUNTER, stills, "video");
-    } catch {
-      await applyTranscript(DEMO_SHOP_COUNTER, [], "video");
     }
   };
 
@@ -845,11 +802,6 @@ export function ShopItemCapture({
                   {t.postGallery}
                 </button>
               </div>
-              {pointMode ? null : (
-              <button type="button" onClick={() => void demoTag()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
-                {t.shopItemDemoTag}
-              </button>
-              )}
             </>
           ) : null}
 
@@ -920,11 +872,6 @@ export function ShopItemCapture({
             </div>
           ) : null}
 
-          {mode !== "text" && !pointMode ? (
-          <button type="button" onClick={() => void runDemo()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
-            {t.shopQuickDemo}
-          </button>
-          ) : null}
           <input
             ref={fileRef}
             data-testid="point-photo"
