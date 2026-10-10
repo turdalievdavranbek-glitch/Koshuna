@@ -67,9 +67,14 @@ export function ListingContactRow({
         data-testid={withTestIds ? "listing-write" : undefined}
         onClick={onWrite}
         aria-label={writeLabel}
-        className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-accent"
+        className={
+          showCall
+            ? "flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-accent"
+            : "shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
+        }
       >
         <IconChat size={18} color="#FFF7F0" />
+        {showCall ? null : writeLabel}
       </button>
     </div>
   );

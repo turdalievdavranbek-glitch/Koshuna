@@ -72,7 +72,8 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     description: product.description || product.title,
     descriptionKy: product.description || product.title,
     descriptionEn: product.description || product.title,
-    ownerId: prev?.ownerId || "aida",
+    // Point products belong to the point owner. "aida" (a demo id) made other people's point products unmessageable.
+    ownerId: prev?.ownerId || shop.ownerId || "aida",
     sellerName: shop.name,
     sellerMethod: user?.method ?? prev?.sellerMethod,
     sellerCardLinked: user?.cardLinked ?? prev?.sellerCardLinked,
