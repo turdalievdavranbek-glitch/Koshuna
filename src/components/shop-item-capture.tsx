@@ -85,6 +85,7 @@ export function ShopItemCapture({
   const [pointVideo, setPointVideo] = useState("");
   // A gallery video for a product: kept as the listing video (it used to be cut down to one still).
   const [itemVideo, setItemVideo] = useState("");
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const [mediaBusy, setMediaBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [doneId, setDoneId] = useState(createdQuery);
@@ -842,6 +843,15 @@ export function ShopItemCapture({
                   {t.postGallery}
                 </button>
               </div>
+              <button
+                type="button"
+                data-testid="product-gallery-video"
+                disabled={mediaBusy}
+                onClick={() => videoFileRef.current?.click()}
+                className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
+              >
+                {mediaBusy ? t.videoPreparing : t.videoFromGallery}
+              </button>
             </>
           ) : null}
 
@@ -888,6 +898,20 @@ export function ShopItemCapture({
               >
                 {recording ? t.mediaStop : t.mediaRecord}
               </button>
+              {!recording ? (
+                <button
+                  type="button"
+                  data-testid="product-gallery-video-2"
+                  disabled={mediaBusy}
+                  onClick={() => {
+                    changeMode("photos");
+                    videoFileRef.current?.click();
+                  }}
+                  className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
+                >
+                  {mediaBusy ? t.videoPreparing : t.videoFromGallery}
+                </button>
+              ) : null}
               {spoken ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{spoken}</p> : null}
               <button
                 type="button"
@@ -912,6 +936,18 @@ export function ShopItemCapture({
             </div>
           ) : null}
 
+          <input
+            ref={videoFileRef}
+            data-testid="product-video-file"
+            type="file"
+            accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.mkv"
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              e.target.value = "";
+              if (files.length) void onGallery(files);
+            }}
+          />
           <input
             ref={fileRef}
             data-testid="point-photo"
