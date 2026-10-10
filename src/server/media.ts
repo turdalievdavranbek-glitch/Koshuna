@@ -229,7 +229,7 @@ export async function normalizeVideo(relative: string): Promise<{ relative: stri
     ? ["-c", "copy"]
     : [
         "-vf",
-        "scale='min(1280,iw)':'min(1280,ih)':force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "scale='min(1280,iw)':'min(1280,ih)':force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2:out_range=tv,format=yuv420p",
         "-c:v",
         "libx264",
         "-preset",
@@ -246,6 +246,8 @@ export async function normalizeVideo(relative: string): Promise<{ relative: stri
         "high",
         "-level",
         "4.0",
+        "-color_range",
+        "tv",
         "-c:a",
         "aac",
         "-b:a",
@@ -256,7 +258,7 @@ export async function normalizeVideo(relative: string): Promise<{ relative: stri
   try {
     await execFileAsync(
       bin,
-      ["-v", "error", "-y", "-i", full, "-map", "0:v:0", "-map", "0:a:0?", ...codecArgs, "-movflags", "+faststart", "-f", "mp4", tmp],
+      ["-nostdin", "-v", "error", "-y", "-i", full, "-map", "0:v:0", "-map", "0:a:0?", ...codecArgs, "-movflags", "+faststart", "-f", "mp4", tmp],
       { timeout: 180_000, maxBuffer: 4 * 1024 * 1024 },
     );
     await rename(tmp, out);
