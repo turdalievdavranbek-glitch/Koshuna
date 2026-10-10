@@ -260,7 +260,7 @@ export function RestaurantMenuCapture() {
         return;
       }
       const ref = await stashMedia(url, "video", duration || undefined);
-      updateListing(venue.id, { videoUrl: ref, mediaKind: "video", videoSec: duration || undefined });
+      updateListing(venue.id, { videoUrl: ref, mediaKind: "video" });
       setNote(t.cafeVideoSaved);
     } catch {
       setError(t.videoReadFail);
