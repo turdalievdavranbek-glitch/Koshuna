@@ -137,10 +137,74 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
   );
 }
 
-export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?: boolean }) {
+/** True while the on-screen keyboard covers part of the viewport (typing in a field). */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    let base = Math.max(vv?.height ?? 0, window.innerHeight);
+    let raf = 0;
+    const editable = () => {
+      const el = document.activeElement;
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+      if (el.tagName !== "INPUT") return false;
+      const type = (el as HTMLInputElement).type;
+      return !["button", "checkbox", "radio", "range", "file", "submit", "reset", "color", "image"].includes(type);
+    };
+    const check = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try {
+          const h = vv?.height ?? window.innerHeight;
+          if (!editable()) {
+            base = Math.max(h, window.innerHeight);
+            setOpen(false);
+            return;
+          }
+          if (h > base) base = h;
+          setOpen(base - h > 120);
+        } catch {
+          setOpen(false);
+        }
+      });
+    };
+    const reset = () => {
+      base = 0;
+      check();
+    };
+    vv?.addEventListener("resize", check);
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", reset);
+    document.addEventListener("focusin", check);
+    document.addEventListener("focusout", check);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv?.removeEventListener("resize", check);
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", reset);
+      document.removeEventListener("focusin", check);
+      document.removeEventListener("focusout", check);
+    };
+  }, []);
+  return open;
+}
+
+export function PhoneShell({
+  children,
+  tab: _tab,
+  focus = false,
+}: {
+  children: ReactNode;
+  tab?: boolean;
+  /** Focused full-screen flow (wizards, post form, chat): no bottom tab bar and no «+». */
+  focus?: boolean;
+}) {
   const { t, online } = useApp();
   const path = usePathname();
-  const [hidden, setHidden] = useState(false);
+  const [scrollHidden, setHidden] = useState(false);
+  const keyboard = useKeyboardOpen();
+  const hidden = scrollHidden || keyboard || focus;
   const phoneRef = useRef<HTMLDivElement>(null);
   const reels = path === "/reels";
   const narrow =
@@ -229,9 +293,11 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
             <div className="desk:pointer-events-auto desk:fixed desk:right-6 desk:bottom-4 desk:z-50 desk:w-[min(100%-2rem,360px)]">
               <UploadStatus />
             </div>
-            <div className="desk:hidden">
-              <TabBar hidden={hidden} />
-            </div>
+            {focus ? null : (
+              <div className="desk:hidden">
+                <TabBar hidden={hidden} />
+              </div>
+            )}
           </div>
         )}
       </div>

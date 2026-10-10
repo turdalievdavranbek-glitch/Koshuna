@@ -67,7 +67,7 @@ export function BuyRequestForm() {
   };
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-2">
         <ScreenBack fallback="/post" />
         <h1 className="mt-3 font-display text-[26px] font-extrabold text-ink">{t.buyRequestTitle}</h1>

@@ -26,7 +26,7 @@ export default function NewShopPage() {
   if (!user) return null;
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button

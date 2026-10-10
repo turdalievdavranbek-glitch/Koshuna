@@ -45,7 +45,7 @@ export default function OpenChatPage() {
   }, [ready, user?.id, listingId]);
 
   return (
-    <PhoneShell>
+    <PhoneShell focus>
       <div className="px-5 pt-2">
         <ScreenBack fallback={listingId ? `/listing/${listingId}` : "/"} />
         {error ? (
