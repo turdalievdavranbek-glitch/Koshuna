@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       { source: "/terms", destination: "/terms.html" },
       { source: "/delete-account", destination: "/delete-account.html" },
       { source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" },
+      { source: "/.well-known/apple-app-site-association", destination: "/api/aasa" },
     ];
   },
   async headers() {

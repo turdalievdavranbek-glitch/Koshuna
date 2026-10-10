@@ -1,0 +1,137 @@
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    name: Build and upload
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          XCODE="$(ls -d /Applications/Xcode_26*.app | sort | tail -1)"
+          echo "Using ${XCODE}"
+          sudo xcode-select -s "${XCODE}"
+          xcodebuild -version
+
+      - name: GoogleService-Info.plist
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_SERVICE_INFO_PLIST}" ]; then
+            echo "Missing secret GOOGLE_SERVICE_INFO_PLIST"
+            exit 1
+          fi
+          DEST="ios/App/App/GoogleService-Info.plist"
+          if printf '%s' "${GOOGLE_SERVICE_INFO_PLIST}" | grep -q '<plist'; then
+            printf '%s\n' "${GOOGLE_SERVICE_INFO_PLIST}" > "${DEST}"
+          else
+            printf '%s' "${GOOGLE_SERVICE_INFO_PLIST}" | python3 -c 'import base64,sys; sys.stdout.buffer.write(base64.b64decode("".join(sys.stdin.read().split())))' > "${DEST}"
+          fi
+          if grep -q PLACEHOLDER "${DEST}"; then
+            echo "GoogleService-Info.plist still contains PLACEHOLDER"
+            exit 1
+          fi
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: iOS Google client URL scheme
+        env:
+          GOOGLE_IOS_REVERSED_CLIENT_ID: ${{ secrets.GOOGLE_IOS_REVERSED_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          DEST="ios/App/App/GoogleService-Info.plist"
+          INFO="ios/App/App/Info.plist"
+          CLIENT_ID="$(/usr/libexec/PlistBuddy -c 'Print :CLIENT_ID' "${DEST}")"
+          REVERSED="$(/usr/libexec/PlistBuddy -c 'Print :REVERSED_CLIENT_ID' "${DEST}")"
+          if [ -n "${GOOGLE_IOS_REVERSED_CLIENT_ID}" ]; then
+            REVERSED="${GOOGLE_IOS_REVERSED_CLIENT_ID}"
+          fi
+          /usr/libexec/PlistBuddy -c "Set :GIDClientID ${CLIENT_ID}" "${INFO}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 ${REVERSED}" "${INFO}"
+
+      - name: App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${ASC_KEY_ID}"
+          test -n "${ASC_ISSUER_ID}"
+          test -n "${ASC_KEY_P8}"
+          test -n "${APPLE_TEAM_ID}"
+          mkdir -p "${HOME}/.appstoreconnect/private_keys" "${RUNNER_TEMP}/ios-signing"
+          KEY="${HOME}/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          if printf '%s' "${ASC_KEY_P8}" | grep -q 'BEGIN PRIVATE KEY'; then
+            printf '%s\n' "${ASC_KEY_P8}" | sed 's/\\n/\n/g' > "${KEY}"
+          else
+            printf '%s' "${ASC_KEY_P8}" | python3 -c 'import base64,sys; sys.stdout.buffer.write(base64.b64decode("".join(sys.stdin.read().split())))' > "${KEY}"
+          fi
+          chmod 600 "${KEY}"
+          cp "${KEY}" "${RUNNER_TEMP}/ios-signing/AuthKey.p8"
+          {
+            echo "KEY_PATH=${RUNNER_TEMP}/ios-signing/AuthKey.p8"
+            echo "APPLE_TEAM_ID=${APPLE_TEAM_ID}"
+            echo "ASC_KEY_ID=${ASC_KEY_ID}"
+            echo "ASC_ISSUER_ID=${ASC_ISSUER_ID}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Archive
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "${RUNNER_TEMP}/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            archive
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          sed "s/TEAM_PLACEHOLDER/${APPLE_TEAM_ID}/" scripts/ios-export-options.plist > "${RUNNER_TEMP}/ExportOptions.plist"
+          xcodebuild \
+            -exportArchive \
+            -archivePath "${RUNNER_TEMP}/App.xcarchive" \
+            -exportPath "${RUNNER_TEMP}/ipa" \
+            -exportOptionsPlist "${RUNNER_TEMP}/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          IPA="$(find "${RUNNER_TEMP}/ipa" -name '*.ipa' | head -1)"
+          test -n "${IPA}"
+          if xcrun altool --help >/dev/null 2>&1; then
+            xcrun altool --upload-app -f "${IPA}" -t ios --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}"
+          else
+            xcrun iTMSTransporter -m upload -assetFile "${IPA}" -apiKey "${ASC_KEY_ID}" -apiIssuer "${ASC_ISSUER_ID}"
+          fi

@@ -15,7 +15,7 @@ export function PlayBanner() {
   useEffect(() => {
     if (!FEATURES.playBanner) return;
     try {
-      if (Capacitor.isNativePlatform()) return;
+      if (Capacitor.getPlatform() === "ios" || Capacitor.isNativePlatform()) return;
     } catch {
       /* web */
     }
@@ -29,7 +29,7 @@ export function PlayBanner() {
       href={PLAY}
       target="_blank"
       rel="noreferrer"
-      className="mt-3 block rounded-2xl border border-line bg-white px-4 py-3 text-center text-[13px] font-semibold text-ink"
+      className="play-store mt-3 block rounded-2xl border border-line bg-white px-4 py-3 text-center text-[13px] font-semibold text-ink"
     >
       {t.playBanner}
     </a>

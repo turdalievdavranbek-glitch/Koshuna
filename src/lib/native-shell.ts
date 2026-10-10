@@ -1,5 +1,5 @@
 /**
- * Native shell hooks for the Android APK (Шаг 1).
+ * Native shell hooks for the Android APK (Шаг 1) and the iOS shell (Шаг 30).
  * No UI. Login buttons are Шаг 8. The home bell lists in-app notices (Шаг 18).
  * Push permission is not asked here. The native app asks after login or when
  * Messages is opened. Crashlytics stays quiet until google-services.json is in the APK.
@@ -10,13 +10,17 @@ let wired = false;
 export async function wireNativeShell(): Promise<void> {
   if (typeof window === "undefined") return;
   const { Capacitor } = await import("@capacitor/core");
-  if (Capacitor.isNativePlatform()) document.documentElement.classList.add("native");
+  if (Capacitor.isNativePlatform()) {
+    document.documentElement.classList.add("native");
+    if (Capacitor.getPlatform() === "ios") document.documentElement.classList.add("ios");
+  }
   if (wired || !Capacitor.isNativePlatform()) return;
   wired = true;
   const { wireNativeBack } = await import("./native-back");
-  const { wireAppLinks } = await import("./native-links");
+  const { wireAppLinks, wireIosExternalLinks } = await import("./native-links");
   void wireNativeBack();
   void wireAppLinks();
+  if (Capacitor.getPlatform() === "ios") wireIosExternalLinks();
   wireJsErrors();
   const { wirePushOpen } = await import("./native-push");
   await wirePushOpen();
@@ -49,4 +53,3 @@ function wireJsErrors(): void {
     report(typeof reason === "string" ? reason : "unhandledrejection");
   });
 }
-

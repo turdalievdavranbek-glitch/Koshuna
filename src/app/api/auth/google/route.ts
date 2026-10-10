@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleAuthError, googleWebClientId, verifyGoogleIdToken } from "@/server/google-auth";
+import { GoogleAuthError, googleAudiences, verifyGoogleIdToken } from "@/server/google-auth";
 import { readCookie, signInWithIdentity } from "@/server/auth";
 import { json, readJson } from "@/server/http";
 import { publicUser } from "@/server/mappers";
@@ -22,8 +22,8 @@ function requestOrigin(req: Request): string {
 }
 
 export async function POST(req: Request) {
-  const audience = googleWebClientId();
-  if (!audience) return json({ ok: false, error: "not-configured" }, 503, { "cache-control": "no-store" });
+  const audience = googleAudiences();
+  if (audience.length === 0) return json({ ok: false, error: "not-configured" }, 503, { "cache-control": "no-store" });
 
   const origin = req.headers.get("origin");
   if (origin && origin !== requestOrigin(req)) {

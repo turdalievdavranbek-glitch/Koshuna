@@ -191,6 +191,12 @@ export function DesktopHeader() {
 export function DesktopFooter() {
   const { t } = useApp();
   const play = FEATURES.playBanner;
+  const [ios, setIos] = useState(false);
+  useEffect(() => {
+    void import("@capacitor/core")
+      .then(({ Capacitor }) => setIos(Capacitor.getPlatform() === "ios"))
+      .catch(() => undefined);
+  }, []);
   return (
     <footer className="hidden shrink-0 border-t border-line bg-screen desk:block">
       <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 gap-y-2 px-6 py-6 text-[14px] text-muted">
@@ -203,14 +209,16 @@ export function DesktopFooter() {
         <a href={helpWhatsAppUrl()} target="_blank" rel="noreferrer" className="font-semibold text-ink">
           {t.deskHelp}
         </a>
-        {play ? (
-          <a href={PLAY} target="_blank" rel="noreferrer" className="font-semibold text-accent">
-            {t.deskDownload}
-          </a>
-        ) : (
-          <span>
-            {t.deskDownload}: {t.deskPlaySoon}
-          </span>
+        {ios ? null : (
+          play ? (
+            <a href={PLAY} target="_blank" rel="noreferrer" className="play-store font-semibold text-accent">
+              {t.deskDownload}
+            </a>
+          ) : (
+            <span className="play-store">
+              {t.deskDownload}: {t.deskPlaySoon}
+            </span>
+          )
         )}
         <span className="ml-auto">© Коңшу</span>
       </div>

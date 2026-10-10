@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru" suppressHydrationWarning>
       <body className={`${bricolage.variable} ${familjen.variable} ${manrope.variable} antialiased`}>
         <Script id="konshu-native-desk" strategy="beforeInteractive">
-          {`try{var c=window.Capacitor;if(c&&typeof c.isNativePlatform==="function"&&c.isNativePlatform()){document.documentElement.classList.add("native")}}catch(e){}`}
+          {`try{var c=window.Capacitor;if(c&&typeof c.isNativePlatform==="function"&&c.isNativePlatform()){document.documentElement.classList.add("native");if(typeof c.getPlatform==="function"&&c.getPlatform()==="ios")document.documentElement.classList.add("ios")}}catch(e){}`}
         </Script>
         <Providers>{children}</Providers>
       </body>
