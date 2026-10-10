@@ -205,7 +205,8 @@ export default function ListingPage() {
   };
 
   return (
-    <PhoneShell>
+    // Listing page: no tab bar, so «Написать»/«Позвонить» sit at the very bottom under the thumb (also when opened from /reels).
+    <PhoneShell focus>
       <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
         <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? (videoTall ? "min(72vh, 620px)" : 240) : listing.section === "secondhand" ? 300 : 320 }}>
           <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
@@ -686,8 +687,8 @@ export default function ListingPage() {
 
       <div
         data-testid="listing-contact"
-        className="absolute inset-x-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-3 pt-3.5 desk:hidden"
-        style={{ bottom: "var(--tabbar-h, 78px)" }}
+        className="absolute inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pt-3.5 desk:hidden"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
       >
         {mine ? (
           <>
