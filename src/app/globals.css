@@ -76,15 +76,7 @@ button {
   box-shadow: 0 8px 18px rgba(184, 69, 47, 0.35);
 }
 
-.tabbar-nav {
-  transition: height 200ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tabbar-nav {
-    transition: none;
-  }
-}
+/* No height transition: animating the bar's height re-laid out the whole page on every frame (scroll jank on Android). */
 
 .section-tile {
   background: #f3eee4;

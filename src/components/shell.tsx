@@ -152,7 +152,9 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
     path === "/shops/new" ||
     /^\/shops\/[^/]+\/edit$/.test(path);
 
+  const hiddenRef = useRef(false);
   useEffect(() => {
+    hiddenRef.current = false;
     setHidden(false);
   }, [path]);
 
@@ -160,20 +162,35 @@ export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?:
     const root = phoneRef.current;
     if (!root) return;
     const tops = new WeakMap<EventTarget, number>();
+    // Hiding/showing the tab bar resizes the scroll area by 78px. Near the bottom of a page the browser then
+    // clamps scrollTop, which fires a scroll "up" and showed the bar again — a show/hide loop that froze and
+    // jumped short pages (e.g. point products) on Android. Ignore the scroll events our own toggle causes and
+    // never hide the bar on pages that barely scroll.
+    let quietUntil = 0;
+    const toggle = (next: boolean) => {
+      if (next === hiddenRef.current) return;
+      hiddenRef.current = next;
+      quietUntil = performance.now() + 350;
+      setHidden(next);
+    };
     const onScroll = (event: Event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.scrollHeight <= target.clientHeight) return;
+      const room = target.scrollHeight - target.clientHeight;
+      if (room <= 0) return;
       const top = target.scrollTop;
       const prev = tops.get(target) ?? 0;
       tops.set(target, top);
-      if (top <= 24) {
-        setHidden(false);
+      if (performance.now() < quietUntil) return;
+      if (top <= 24 || room < TAB_H * 3) {
+        toggle(false);
         return;
       }
+      // At the very bottom keep whatever is shown, so the resize can't bounce the page.
+      if (room - top < TAB_H + 8) return;
       const delta = top - prev;
       if (Math.abs(delta) < 8) return;
-      setHidden(delta > 0);
+      toggle(delta > 0);
     };
     root.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => root.removeEventListener("scroll", onScroll, true);

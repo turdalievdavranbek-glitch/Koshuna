@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import Link from "next/link";
 import { listingMapPath, mapPointPath, twoGisUrl } from "@/lib/geo";
 import { useApp } from "@/lib/store";
@@ -25,6 +26,9 @@ export function GisOnMapCard({
   showHint?: boolean;
 }) {
   const { t } = useApp();
+  // Stable props: a new markers array on every parent render rebuilt the Leaflet layers each time.
+  const center = useMemo(() => ({ lat, lng }), [lat, lng]);
+  const markers = useMemo(() => [{ id: listingId || "pin", lat, lng, active: true, label }], [listingId, lat, lng, label]);
   const href = listingId ? listingMapPath(listingId) : mapPointPath(lat, lng, city);
 
   return (
@@ -32,10 +36,10 @@ export function GisOnMapCard({
       <Link href={href} className="block">
         <div className={`pointer-events-none relative z-0 ${compact ? "h-[132px]" : "h-44"}`}>
           <GisMap
-            center={{ lat, lng }}
+            center={center}
             zoom={15}
-            pick={{ lat, lng }}
-            markers={[{ id: listingId || "pin", lat, lng, active: true, label }]}
+            pick={center}
+            markers={markers}
             interactive={false}
           />
         </div>
