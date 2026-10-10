@@ -15,10 +15,31 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Local blob:/data: URL → server URL, so a file already sent this session is never sent again. */
+const uploaded = new Map<string, string>();
+
+function isLocal(url: string | undefined): url is string {
+  return Boolean(url && (url.startsWith("blob:") || url.startsWith("data:")));
+}
+
+/** The local file behind a URL is gone (e.g. a revoked blob from an earlier item). Not a network error. */
+export class LocalMediaGone extends Error {
+  constructor() {
+    super("local-media-gone");
+  }
+}
+
 /** Шаг 4 in-session upload. Shops stay on this path until Шаг 11. */
 export async function materializeMedia(url: string, kind: Kind, durationSec?: number): Promise<string> {
-  if (!url || (!url.startsWith("blob:") && !url.startsWith("data:"))) return url;
-  const blob = await fetch(url).then((res) => res.blob());
+  if (!isLocal(url)) return url;
+  const known = uploaded.get(url);
+  if (known) return known;
+  let blob: Blob;
+  try {
+    blob = await fetch(url).then((res) => res.blob());
+  } catch {
+    throw new LocalMediaGone();
+  }
   const mime = blob.type || MIME[kind];
   const created = await api<{ uploadId: string; chunkSize: number }>("/api/uploads", {
     method: "POST",
@@ -61,6 +82,7 @@ export async function materializeMedia(url: string, kind: Kind, durationSec?: nu
     json: {},
   });
   if (!done.ok || !done.data?.url) throw new Error(done.error || "complete");
+  uploaded.set(url, done.data.url);
   return done.data.url;
 }
 
@@ -76,24 +98,50 @@ export function stashListing(listing: Listing, videoSec?: number): Promise<Listi
   }));
 }
 
-async function mediaField(url: string | undefined, kind: Kind, durationSec?: number): Promise<string | undefined> {
+async function mediaField(
+  url: string | undefined,
+  kind: Kind,
+  durationSec?: number,
+  fallback?: () => Promise<string | undefined>,
+): Promise<string | undefined> {
   if (!url) return url;
-  return materializeMedia(url, kind, durationSec);
+  try {
+    return await materializeMedia(url, kind, durationSec);
+  } catch (err) {
+    // A stale local file on an older item must not block saving the new one:
+    // keep what the server already has for that field.
+    if (err instanceof LocalMediaGone && fallback) return fallback();
+    throw err;
+  }
 }
 
 export async function materializeShop(shop: Shop): Promise<Shop> {
+  let server: Promise<Shop | null> | null = null;
+  const serverShop = () => {
+    server ??= api<{ shop?: Shop }>(`/api/shops/${encodeURIComponent(shop.id)}`)
+      .then((res) => res.data?.shop ?? null)
+      .catch(() => null);
+    return server;
+  };
+  const keepServer = (pick: (s: Shop) => string | undefined) => async () => {
+    const remote = await serverShop();
+    const value = remote ? pick(remote) : undefined;
+    return isLocal(value) ? undefined : value;
+  };
   const products: ShopProduct[] = [];
   for (const product of shop.products ?? []) {
+    const fromServer = (field: "photo" | "videoUrl") =>
+      keepServer((s) => s.products?.find((row) => row.id === product.id)?.[field]);
     products.push({
       ...product,
-      photo: await mediaField(product.photo, "photo"),
-      videoUrl: await mediaField(product.videoUrl, "video"),
+      photo: await mediaField(product.photo, "photo", undefined, fromServer("photo")),
+      videoUrl: await mediaField(product.videoUrl, "video", undefined, fromServer("videoUrl")),
     });
   }
   return {
     ...shop,
-    coverUrl: await mediaField(shop.coverUrl, "poster"),
-    videoUrl: await mediaField(shop.videoUrl, "video"),
+    coverUrl: await mediaField(shop.coverUrl, "poster", undefined, keepServer((s) => s.coverUrl)),
+    videoUrl: await mediaField(shop.videoUrl, "video", undefined, keepServer((s) => s.videoUrl)),
     products,
   };
 }
