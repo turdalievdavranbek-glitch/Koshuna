@@ -1,5 +1,5 @@
 {
-  "id": "078e2f2d-7873-45f5-a451-6240ad0f17ce",
+  "id": "901098b1-4613-4386-8162-977371b25900",
   "prevId": "471a9594-c471-4274-8a83-6067aba4b57e",
   "version": "7",
   "dialect": "postgresql",
@@ -627,6 +627,83 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_views": {
+      "name": "listing_views",
+      "schema": "",
+      "columns": {
+        "listing_id": {
+          "name": "listing_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "viewer_key": {
+          "name": "viewer_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "listing_views_day_idx": {
+          "name": "listing_views_day_idx",
+          "columns": [
+            {
+              "expression": "day",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listing_views_listing_id_listings_id_fk": {
+          "name": "listing_views_listing_id_listings_id_fk",
+          "tableFrom": "listing_views",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "listing_views_listing_id_viewer_key_day_pk": {
+          "name": "listing_views_listing_id_viewer_key_day_pk",
+          "columns": [
+            "listing_id",
+            "viewer_key",
+            "day"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

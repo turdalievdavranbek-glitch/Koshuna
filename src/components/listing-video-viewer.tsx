@@ -10,6 +10,7 @@ import { IconBack } from "./icons";
 import { ReelVideo } from "./reel-video";
 import { FEATURES } from "@/lib/features";
 import { CommentsButton, CommentsSheet } from "./listing-comments";
+import { reportListingView } from "@/lib/listing-view";
 
 const CLOSE_DRAG_PX = 110;
 
@@ -35,6 +36,10 @@ export function ListingVideoViewer({
   const [drag, setDrag] = useState(0);
   const startY = useRef<number | null>(null);
   const price = listingHasPrice(listing) ? formatSom(listing.price) : t.priceNegotiable;
+
+  useEffect(() => {
+    void reportListingView(listing.id);
+  }, [listing.id]);
 
   const closeRef = useRef(onClose);
   useEffect(() => {

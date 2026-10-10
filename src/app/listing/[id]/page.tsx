@@ -39,6 +39,7 @@ import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingVideoViewer } from "@/components/listing-video-viewer";
+import { reportListingView } from "@/lib/listing-view";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
 import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
@@ -50,6 +51,18 @@ export default function ListingPage() {
   const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
+  const [viewsNow, setViewsNow] = useState<number | null>(null);
+  const viewId = listing && listing.status !== "hidden" && !listing.id.startsWith("demo") ? listing.id : null;
+  useEffect(() => {
+    if (!viewId) return;
+    let live = true;
+    void reportListingView(viewId).then((n) => {
+      if (live && n != null) setViewsNow(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, [viewId]);
   // Opening a video listing starts the full-screen reels player once; closing it shows the details.
   const autoVideo = useRef<string | null>(null);
   const videoId = listing && isVideoListing(listing) && listing.videoUrl ? listing.id : null;
@@ -322,6 +335,9 @@ export default function ListingPage() {
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
             <IconPin size={14} color="#B8452F" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
+            <span className="text-muted-2" data-testid="listing-views">
+              · {viewsNow ?? listing.views ?? 0} {t.views}
+            </span>
           </div>
           {mine ? null : (
             <div className="mt-4">
