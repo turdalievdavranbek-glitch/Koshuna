@@ -19,6 +19,7 @@ export default function ShopQuickPage() {
   const shopId = params.get("shop") || undefined;
   const created = params.get("created") || undefined;
   const pointCreate = Boolean(card) && !shopId;
+  const backToPoint = params.get("back") === "point" && shopId ? shopId : null;
 
   useEffect(() => {
     if (!user) {
@@ -34,7 +35,7 @@ export default function ShopQuickPage() {
   if (!user) return null;
 
   return (
-    <PhoneShell focus={pointCreate}>
+    <PhoneShell focus>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button
@@ -73,7 +74,7 @@ export default function ShopQuickPage() {
             <PointWizard kind={card ?? "shop"} />
           )
         ) : (
-          <ShopItemCapture shopId={shopId} />
+          <ShopItemCapture shopId={shopId} onPublished={backToPoint ? () => router.replace(`/shops/${backToPoint}`) : undefined} />
         )}
       </div>
     </PhoneShell>

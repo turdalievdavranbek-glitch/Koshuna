@@ -43,11 +43,14 @@ export function ShopItemCapture({
   kind,
   card,
   shopId,
+  onPublished,
 }: {
   parent?: ShopCategory;
   kind?: ShopKind;
   card?: "shop" | "stall";
   shopId?: string;
+  /** Called after an item was saved (e.g. go back to the point page from its checklist). */
+  onPublished?: () => void;
 }) {
   const { t, user, shops, ready, upsertShopProduct, setPendingPath, startShopDraft, setShopDraft, publishShop } = useApp();
   const router = useRouter();
@@ -596,6 +599,7 @@ export function ShopItemCapture({
     setFromPhoto(false);
     setAi("");
     priceTouched.current = false;
+    onPublished?.();
   };
 
   const reuse = async (item: ShopProduct) => {
