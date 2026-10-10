@@ -80,12 +80,12 @@ export default function FeedPage() {
               href="/notifications"
               data-testid="home-bell"
               aria-label={t.notifications}
-              className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
             >
               <RingOnRise count={unread}>
-                <IconBell size={26} color="#17140F" />
+                <IconBell size={16} color="#17140F" />
               </RingOnRise>
-              <UnreadBadge count={unread} testId="notif-dot" className="-top-1 -right-1" />
+              <UnreadBadge small count={unread} testId="notif-dot" className="-top-0.5 -right-0.5" />
             </Link>
           </div>
         </div>
