@@ -1,8 +1,8 @@
-export const LANGS = ["ru", "ky", "uz"] as const;
+export const LANGS = ["ky", "ru"] as const;
 export type Lang = (typeof LANGS)[number];
 
 export function isLang(value: unknown): value is Lang {
-  return value === "ru" || value === "ky" || value === "uz";
+  return value === "ru" || value === "ky";
 }
 
 export type AuthMethod =
@@ -29,7 +29,7 @@ export type SectionId =
   | "restaurants"
   | "shops";
 
-export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed";
+export type ListingStatus = "active" | "draft" | "withdrawn" | "promoted" | "reserved" | "closed" | "hidden";
 
 export type DealStage = "active" | "reserved" | "closed" | "withdrawn";
 
@@ -97,7 +97,7 @@ export type PropertyType =
 
 export type DealKind = "long" | "short" | "buy" | "share";
 
-export type AnimalGroup = "pets" | "farm";
+export type AnimalGroup = "pets" | "farm" | "plants";
 
 export const SELLER_CHANNELS = ["instagram", "facebook", "telegram", "whatsapp"] as const;
 export type SellerChannel = (typeof SELLER_CHANNELS)[number];
@@ -110,9 +110,12 @@ export function isAppSide(value: unknown): value is AppSide {
 }
 
 export type User = {
+  id?: string;
   name: string;
   phone: string;
   email?: string;
+  /** Public Telegram username (no @) for the «Telegram» contact button. */
+  telegram?: string;
   method?: AuthMethod;
   linkedChannels?: SellerChannel[];
   cardLinked?: boolean;
@@ -201,7 +204,7 @@ export type Listing = {
   promoPercent?: number;
   meetupSpot?: MeetupSpot;
   payAfter?: PayAfter[];
-  unit?: "month" | "day" | "night" | "bag" | "service";
+  unit?: "month" | "day" | "night" | "bag" | "service" | "kg" | "piece" | "hour";
   city: string;
   district?: string;
   settlement?: string;
@@ -211,6 +214,8 @@ export type Listing = {
   voiceTextEn?: string;
   postedAgo: string;
   postedAt?: string;
+  /** Owner pressed «Да» on «Ещё актуально?». Comes from listings.last_confirmed_at. */
+  confirmedAt?: string;
   rooms?: number;
   area?: number;
   housingKind?: PropertyType;
@@ -267,6 +272,8 @@ export type Listing = {
   hasPhoto: boolean;
   noAgent: boolean;
   status: ListingStatus;
+  /** Hidden from feed, search, map and share previews. The owner still sees «На проверке». */
+  underReview?: boolean;
   specs?: SpecRow[];
   utilitiesNote?: string;
   safetyKind: "home" | "goods";
@@ -276,6 +283,13 @@ export type Listing = {
   contact: "whatsapp" | "telegram";
   views: number;
   favCount: number;
+  /** Service card: own place or a visit to the client. */
+  serviceMode?: "place" | "mobile";
+  /** Mobile visits: the whole district or the whole city. */
+  serviceArea?: "district" | "city";
+  /** Show the price as «от …». */
+  priceFrom?: boolean;
+  hours?: ShopHours;
 };
 
 export type Filters = {
@@ -321,10 +335,17 @@ export type Filters = {
   locLng: number | null;
   locLat: number | null;
   locLabel: string | null;
+  nearLng: number | null;
+  nearLat: number | null;
   oblast: string;
+  /** Rayon or city of oblast significance. "any" means the whole oblast or city. */
+  rayon?: string;
   settlement: string;
   aiylOnly: boolean;
   priceDroppedOnly: boolean;
+  /** How long ago the listing was created. «any» means no limit. */
+  postedWithin: "any" | "today" | "3d" | "week" | "month";
+  scope: "near" | "area" | "all";
 };
 
 export type SavedSearch = {
@@ -365,6 +386,7 @@ export type Thread = {
 };
 
 export type DraftListing = {
+  id?: string;
   section: SectionId;
   kind: "rent" | "goods";
   title: string;
@@ -407,6 +429,7 @@ export type DraftListing = {
   jobType?: "full" | "part" | "gig" | "remote" | "shift" | "intern";
   mediaKind?: MediaKind;
   videoUrl?: string;
+  videoSec?: number;
   voiceUrl?: string;
   transcript?: string;
   aiConfirmed?: boolean;
@@ -414,15 +437,46 @@ export type DraftListing = {
   foodType?: string;
   calories?: string;
   ingredients?: string;
+  priceNegotiable?: boolean;
+  oldPrice?: string;
+  saleUnit?: "kg" | "piece" | "hour" | "service";
+  serviceMode?: "place" | "mobile";
+  serviceArea?: "district" | "city";
+  priceFrom?: boolean;
+  hours?: ShopHours;
+  savedAt?: string;
+  flow?: "personal" | `card:${string}`;
+  categoryLocked?: boolean;
+  /** Personal post: the section was tapped by the person or matched with high confidence. Needed to publish. */
+  sectionPicked?: boolean;
+  draftMedia?: { video?: string; voice?: string; photos?: string[] };
+  photos?: string[];
+  voiceSec?: number;
+  /** Editing an existing listing: publish updates `id` and keeps `editStatus`. */
+  editing?: boolean;
+  editStatus?: Listing["status"];
 };
 
 export const SHOP_CATEGORIES = [
   "food",
+  "farm",
   "construction",
   "furniture",
   "electronics",
   "apparel",
   "home",
+  "health",
+  "beauty",
+  "repair",
+  "travel",
+  "books",
+  "pets",
+  // Service points (wizard «Услуги / мастер»), mirroring the search service groups.
+  "auto",
+  "household",
+  "tailor",
+  "events",
+  "education",
   "other",
 ] as const;
 export type ShopCategory = (typeof SHOP_CATEGORIES)[number];
@@ -443,12 +497,24 @@ export const SHOP_KINDS = {
   electronics: ["el-phones", "el-computers", "el-tv", "el-appliances", "el-audio"],
   apparel: ["ap-men", "ap-women", "ap-kids", "ap-shoes", "ap-acc"],
   home: ["home-kitchen", "home-textile", "home-decor", "home-clean"],
+  farm: ["farm-animals", "farm-plants"],
+  health: ["health-pharmacy", "health-clinic", "health-dentist"],
+  beauty: ["beauty-hair", "beauty-salon"],
+  repair: ["repair-electronics"],
+  travel: ["travel-agency"],
+  books: ["books-shop", "books-stationery"],
+  pets: ["pets-food", "pets-goods"],
+  auto: [],
+  household: [],
+  tailor: [],
+  events: [],
+  education: [],
   other: [],
 } as const satisfies Record<ShopCategory, readonly string[]>;
 
 export type ShopKind = (typeof SHOP_KINDS)[Exclude<ShopCategory, "other">][number];
 
-export type ShopStatus = "draft" | "active" | "withdrawn";
+export type ShopStatus = "draft" | "active" | "withdrawn" | "hidden";
 
 export type ShopProductUnit = "piece" | "kg" | "meter" | "liter" | "pack" | "other";
 
@@ -456,10 +522,18 @@ export type ShopStock = "in" | "out" | "order" | "ask";
 
 export type ShopHoursSlot = { open: string; close: string };
 
+export const SHOP_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+export type ShopDay = (typeof SHOP_DAYS)[number];
+
 export type ShopHours = {
   weekdays?: ShopHoursSlot | null;
   saturday?: ShopHoursSlot | null;
   sunday?: ShopHoursSlot | null;
+  /** Selected days. One time range applies to all of them. */
+  days?: ShopDay[];
+  slot?: ShopHoursSlot | null;
+  allDay?: boolean;
 };
 
 export type ShopContacts = {
@@ -497,6 +571,8 @@ export type Shop = {
   id: string;
   name: string;
   ownerPhone: string;
+  /** Server user id. Local drafts before the first save may omit it. */
+  ownerId?: string;
   ownerName: string;
   category: ShopCategory;
   extraCategories: ShopCategory[];
@@ -509,14 +585,29 @@ export type Shop = {
   hours?: ShopHours;
   hoursNote?: string;
   contacts: ShopContacts;
+  /** Sanitized shops.telegram username. Empty when the column is only the old on/off flag. */
+  telegramUsername?: string;
   pickup: boolean;
   delivery: boolean;
   deliveryNote?: string;
+  /** Free delivery when true, paid when false. Only meaningful while delivery is on. */
+  deliveryFree?: boolean;
+  /** District ids the point delivers to. */
+  deliveryDistricts?: string[];
+  /** District id from DISTRICTS, or a short label. */
+  district?: string;
+  /** Short landmarks, no street. */
+  landmarks?: string[];
+  /** Free text when the group is «Другое». */
+  kindOther?: string;
   videoUrl?: string;
   coverUrl?: string;
   transcript?: string;
-  venueKind?: "shop" | "stall";
+  /** shop/stall sell goods; service and cafe are points for masters and food places. */
+  venueKind?: "shop" | "stall" | "service" | "cafe";
   status: ShopStatus;
+  /** Hidden from public lists. The owner still sees «На проверке». */
+  underReview?: boolean;
   products: ShopProduct[];
   createdAt: string;
   updatedAt: string;

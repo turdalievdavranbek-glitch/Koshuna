@@ -3,7 +3,9 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { BrandFacebook, BrandInstagram, BrandTelegram, BrandWhatsApp } from "@/components/auth-brands";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { SellerHub } from "@/components/seller-hub";
 import { PhoneShell } from "@/components/shell";
 import { Chip } from "@/components/ui";
@@ -49,10 +51,8 @@ export default function FromChannelPage() {
   if (!channel) {
     return (
       <PhoneShell>
-        <div className="px-5 pt-4">
-          <button type="button" onClick={() => router.push("/")} className="text-[15px] font-semibold text-accent">
-            {t.feed}
-          </button>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
         </div>
       </PhoneShell>
     );
@@ -111,7 +111,7 @@ export default function FromChannelPage() {
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
           <IconBack size={16} color="#17140F" />

@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { mineListings } from "@/lib/listing-owner";
 import { shopsOf } from "@/lib/shops";
 import { useState } from "react";
+import { FEATURES } from "@/lib/features";
 import { hasRole, isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { MyListings } from "@/components/my-listings";
 import { PhoneShell } from "@/components/shell";
-import { SideSwitch } from "@/components/side-switch";
+import { PointList } from "@/components/point-rows";
 import { SellerEntryCards } from "@/components/seller-entry-cards";
 import { Field, Input } from "@/components/ui";
 
@@ -29,8 +31,9 @@ export default function SellingPage() {
   if (!user) {
     return (
       <PhoneShell tab>
-        <div className="flex flex-1 flex-col px-5 pt-4">
-          <h1 className="font-display text-[28px] font-extrabold text-ink">{t.myListings}</h1>
+        <div className="flex flex-1 flex-col px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <h1 className="mt-3 font-display text-[28px] font-extrabold text-ink">{t.myListings}</h1>
           <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.guestSideHint}</p>
           <button
             type="button"
@@ -62,9 +65,6 @@ export default function SellingPage() {
           <h1 className="min-w-0 flex-1 font-display text-[24px] font-extrabold tracking-[-0.02em] text-ink">{t.myListings}</h1>
           <span className="text-[13px] font-semibold text-muted">{t.nListings(mine.length)}</span>
         </div>
-        <div className="mt-3.5">
-          <SideSwitch compact />
-        </div>
       </div>
       <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         <button
@@ -85,9 +85,12 @@ export default function SellingPage() {
           onClick={() => router.push("/shops")}
           className="mt-2.5 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left"
         >
-          <span className="text-[15px] font-semibold text-ink">{t.shopMine}</span>
+          <span className="text-[15px] font-semibold text-ink">{t.myPoints}</span>
           <span className="text-[13px] font-semibold text-accent">{t.allN(shopCount)}</span>
         </button>
+        <div className="mt-2.5">
+          <PointList shops={shopsOf(shops, user)} actions />
+        </div>
         <button
           type="button"
           onClick={() => router.push("/partner?kind=realtor")}
@@ -95,21 +98,25 @@ export default function SellingPage() {
         >
           {t.applyRealtor}
         </button>
-        <button
-          type="button"
-          onClick={() => router.push("/partner?kind=developer")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.applyDeveloper}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/partner?kind=dealer")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.applyDealer}
-        </button>
-        {user && hasRole(user, "developer") ? (
+        {FEATURES.developers ? (
+          <button
+            type="button"
+            onClick={() => router.push("/partner?kind=developer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.applyDeveloper}
+          </button>
+        ) : null}
+        {FEATURES.dealers ? (
+          <button
+            type="button"
+            onClick={() => router.push("/partner?kind=dealer")}
+            className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
+          >
+            {t.applyDealer}
+          </button>
+        ) : null}
+        {FEATURES.developers && user && hasRole(user, "developer") ? (
           <button
             type="button"
             onClick={() => router.push("/developer")}
@@ -118,7 +125,7 @@ export default function SellingPage() {
             {t.developerCabinet}
           </button>
         ) : null}
-        {user && hasRole(user, "dealer") ? (
+        {FEATURES.dealers && user && hasRole(user, "dealer") ? (
           <button
             type="button"
             onClick={() => router.push("/dealer")}
@@ -164,7 +171,7 @@ export default function SellingPage() {
             ) : null}
           </div>
         ) : null}
-        {user && hasRole(user, "dealer") ? (
+        {FEATURES.dealers && user && hasRole(user, "dealer") ? (
           <div className="mt-2.5 rounded-[16px] border border-line bg-white p-3.5">
             <div className="text-[13px] font-bold text-accent-dark">{t.dealerBadge}</div>
             <div className="mt-2">

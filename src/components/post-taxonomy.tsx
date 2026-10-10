@@ -1,21 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ANIMAL_GROUPS,
   animalKindsOf,
   CATEGORIES,
   CONSTRUCTION_CATEGORIES,
   DEAL_KINDS,
+  draftAfterServiceTap,
   goodsKindsOf,
+  isServiceGroup,
+  serviceGroupOf,
+  PRIVATE_POST_SHOP_CATEGORIES,
   isTechCategory,
   RESTAURANT_CATEGORIES,
   SERVICE_CATEGORIES,
+  SERVICE_GROUPS,
+  SERVICE_TOP,
+  serviceLeafReady,
   techBrandsOf,
   techModelsOf,
 } from "@/lib/data";
-import { SHOP_CATEGORIES } from "@/lib/types";
 import { MENU_CATEGORIES } from "@/lib/types";
-import { VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
+import { makeListView, VEHICLE_GROUPS, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { JOB_SPHERES, JOB_TYPES, jobRolesOf, jobSubsOf } from "@/lib/vacancies";
 import { REALTY_GROUPS, housingKindOfRealty, realtyKindsOf, realtySubsOf, roomsOfRealtyKind } from "@/lib/realty";
 import { useApp } from "@/lib/store";
@@ -27,6 +34,7 @@ import { Chip } from "@/components/ui";
 type Props = {
   draft: DraftListing;
   onPatch: (patch: Partial<DraftListing>) => void;
+  onTaxonomyReady?: (ready: boolean) => void;
 };
 
 export function pickSection(draft: DraftListing, id: SectionId): Partial<DraftListing> {
@@ -39,19 +47,56 @@ export function pickSection(draft: DraftListing, id: SectionId): Partial<DraftLi
   }
   if (id === "secondhand") {
     const keep = draft.category && (CATEGORIES as readonly string[]).includes(draft.category);
-    next.category = keep ? draft.category : "phones";
+    next.category = keep ? draft.category : undefined;
   }
-  if (id === "animals") next.animalGroup = draft.animalGroup ?? "pets";
-  if (id === "services") next.category = draft.category ?? SERVICE_CATEGORIES[0];
+  if (id === "animals" && draft.animalGroup) next.animalGroup = draft.animalGroup;
+  if (id === "services") {
+    const keep = draft.category && (SERVICE_CATEGORIES as readonly string[]).includes(draft.category);
+    next.category = keep ? draft.category : undefined;
+  }
   if (id === "construction") next.category = draft.category ?? CONSTRUCTION_CATEGORIES[0];
   if (id === "restaurants") next.category = draft.category ?? RESTAURANT_CATEGORIES[0];
   if (id === "vacancies") next.jobType = draft.jobType ?? "full";
-  if (id === "shops") next.category = draft.category ?? "food";
+  if (id === "shops") {
+    const category = draft.category;
+    const medicines = category === "health" || (category?.startsWith("health-") ?? false);
+    next.category = !medicines && category ? category : "food";
+  }
   return next;
 }
 
-export function PostTaxonomy({ draft, onPatch }: Props) {
+export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
   const { t, setFilters } = useApp();
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [makesOpen, setMakesOpen] = useState(false);
+  const makeIds = vehicleMakesOf(draft.vehicleGroup ?? "passenger", draft.vehicleType);
+  const makeView = makeListView(makeIds, {
+    expanded: makesOpen,
+    selected: draft.carMake,
+    labelOf: (id) => t.carMakes[id] ?? id,
+  });
+
+  useEffect(() => {
+    setOpenGroup(null);
+  }, [draft.section]);
+
+  useEffect(() => {
+    if (draft.section !== "services" || !draft.category) return;
+    if (isServiceGroup(draft.category)) {
+      setOpenGroup(draft.category);
+      return;
+    }
+    const group = serviceGroupOf(draft.category);
+    if (group) setOpenGroup(group);
+  }, [draft.section, draft.category]);
+
+  useEffect(() => {
+    setMakesOpen(false);
+  }, [draft.vehicleGroup, draft.vehicleType]);
+
+  useEffect(() => {
+    onTaxonomyReady?.(true);
+  }, [draft.section, draft.category, openGroup, onTaxonomyReady]);
 
   return (
     <div className="mt-2.5 flex flex-col gap-3">
@@ -84,12 +129,17 @@ export function PostTaxonomy({ draft, onPatch }: Props) {
           />
           <SectionList
             title={t.carMake}
-            rows={vehicleMakesOf(draft.vehicleGroup ?? "passenger", draft.vehicleType).map((id) => ({
-              id,
-              label: t.carMakes[id] ?? id,
-              active: draft.carMake === id,
-              onClick: () => onPatch({ carMake: id, carModel: undefined }),
-            }))}
+            rows={[
+              ...makeView.ids.map((id) => ({
+                id,
+                label: t.carMakes[id] ?? id,
+                active: draft.carMake === id,
+                onClick: () => onPatch({ carMake: id, carModel: undefined }),
+              })),
+              ...(makeView.showAll
+                ? [{ id: "all-makes", label: t.allMakes(makeView.total), active: false, onClick: () => setMakesOpen(true) }]
+                : []),
+            ]}
           />
           {vehicleModelsOf(draft.carMake, draft.vehicleGroup ?? "passenger", draft.vehicleType).length ? (
             <SectionList
@@ -272,14 +322,14 @@ export function PostTaxonomy({ draft, onPatch }: Props) {
             title={t.category}
             rows={ANIMAL_GROUPS.map((id) => ({
               id,
-              label: id === "pets" ? t.animalPets : t.animalFarm,
-              active: (draft.animalGroup ?? "pets") === id,
+              label: t.animalGroups[id] ?? id,
+              active: draft.animalGroup === id,
               onClick: () => onPatch({ animalGroup: id, animalKind: undefined }),
             }))}
           />
           <SectionList
             title={t.category}
-            rows={animalKindsOf(draft.animalGroup ?? "pets").map((id) => ({
+            rows={animalKindsOf(draft.animalGroup ?? "farm").map((id) => ({
               id,
               label: t.animalKinds[id],
               active: draft.animalKind === id,
@@ -290,15 +340,44 @@ export function PostTaxonomy({ draft, onPatch }: Props) {
       ) : null}
 
       {draft.section === "services" ? (
-        <SectionList
-          title={t.category}
-          rows={SERVICE_CATEGORIES.map((c) => ({
-            id: c,
-            label: t.cats[c],
-            active: draft.category === c,
-            onClick: () => onPatch({ category: c }),
-          }))}
-        />
+        <>
+          {serviceLeafReady(draft.category, openGroup) ? null : (
+            <p className="text-[12px] leading-[1.4] text-muted">{t.catRefine}</p>
+          )}
+          <SectionList
+            title={t.category}
+            rows={SERVICE_TOP.map((id) => ({
+              id,
+              label: t.cats[id] ?? id,
+              active: isServiceGroup(id) ? openGroup === id : draft.category === id && !openGroup,
+              onClick: () => {
+                if (isServiceGroup(id)) {
+                  setOpenGroup(id);
+                  onTaxonomyReady?.(true);
+                  return;
+                }
+                setOpenGroup(null);
+                const next = draftAfterServiceTap(draft, id);
+                onPatch(next);
+                onTaxonomyReady?.(true);
+              },
+            }))}
+          />
+          {openGroup && isServiceGroup(openGroup) ? (
+            <SectionList
+              title={t.cats[openGroup] ?? openGroup}
+              rows={SERVICE_GROUPS[openGroup].map((id) => ({
+                id,
+                label: t.cats[id] ?? id,
+                active: draft.category === id,
+                onClick: () => {
+                  onPatch({ category: id });
+                  onTaxonomyReady?.(true);
+                },
+              }))}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {draft.section === "construction" ? (
@@ -316,7 +395,7 @@ export function PostTaxonomy({ draft, onPatch }: Props) {
       {draft.section === "shops" ? (
         <SectionList
           title={t.category}
-          rows={SHOP_CATEGORIES.map((c) => ({
+          rows={PRIVATE_POST_SHOP_CATEGORIES.map((c) => ({
             id: c,
             label: t.shopCats[c],
             active: draft.category === c,

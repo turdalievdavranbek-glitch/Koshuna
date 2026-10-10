@@ -1,95 +1,309 @@
 "use client";
 
-import type { ReactNode } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { pushOverlay, removeOverlay } from "@/lib/native-back";
+import { searchRootPatch } from "@/lib/filter";
 import { useApp } from "@/lib/store";
-import { IconHeart, IconHome, IconListings, IconPin, IconPlus, IconUser } from "./icons";
+import { DesktopFooter, DesktopHeader } from "./desktop-shell";
+import { PostChoices } from "./post-choice";
+import { IconBag, IconChat, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
+import { FEATURES } from "@/lib/features";
+import { UploadStatus } from "./upload-status";
+import { UnreadBadge } from "./unread-badge";
+import { useChatUnread } from "@/lib/chat-unread";
 
-type TabIcon = (p: { size?: number; color?: string; filled?: boolean }) => ReactNode;
+type TabIcon = (p: { size?: number; color?: string }) => ReactNode;
 
-export function TabBar() {
-  const { t, user, setPendingPath, side } = useApp();
+const TAB_H = 78;
+
+export function TabBar({ hidden }: { hidden?: boolean }) {
+  const { t, user, setPendingPath, askLeave, setFilters } = useApp();
+  const chatUnread = useChatUnread(user?.id ?? null);
   const path = usePathname();
   const router = useRouter();
-  const selling = side === "sell";
+  const [sheet, setSheet] = useState(false);
 
-  const goPost = () => {
-    if (!user) {
-      setPendingPath("/post");
-      router.push("/login");
-      return;
-    }
-    router.push("/post");
+  useEffect(() => {
+    if (!sheet) return;
+    pushOverlay("post-sheet", () => setSheet(false));
+    return () => removeOverlay("post-sheet");
+  }, [sheet]);
+
+  const go = (href: string) => {
+    const run = () => {
+      setSheet(false);
+      if ((href === "/profile" || href === "/messages") && !user) {
+        setPendingPath(href);
+        router.push("/login");
+        return;
+      }
+      if (href === "/search" && path !== "/search" && path !== "/filters") {
+        setFilters(searchRootPatch());
+      }
+      router.push(href);
+    };
+    if (askLeave(run)) return;
+    run();
   };
 
-  const item = (
-    href: string,
-    label: string,
-    Icon: TabIcon,
-    active: boolean,
-    filled?: boolean,
-  ) => (
-    <Link
-      href={href}
-      className="flex flex-1 flex-col items-center gap-1 pt-2 no-underline"
+  const goPost = () => {
+    const run = () => {
+      if (!user) {
+        setPendingPath("/post");
+        router.push("/login");
+        return;
+      }
+      setSheet(true);
+    };
+    if (askLeave(run)) return;
+    run();
+  };
+
+  const item = (href: string, testId: string, label: string, Icon: TabIcon, active: boolean, badge = 0) => (
+    <button
+      type="button"
+      onClick={() => go(href)}
+      data-testid={testId}
+      className="flex flex-1 flex-col items-center gap-1 pt-2"
     >
-      <Icon size={21} color={active ? "#B8452F" : "#A79C8C"} filled={filled && active ? true : undefined} />
-      <span className="text-[10px] font-semibold" style={{ color: active ? "#B8452F" : "#A79C8C" }}>
+      <span className="relative flex">
+        <Icon size={21} color={active ? "#B8452F" : "#A79C8C"} />
+        <UnreadBadge count={badge} testId={`${testId}-badge`} className="-top-2 -right-3" />
+      </span>
+      <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#B8452F" : "#A79C8C" }}>
         {label}
       </span>
-    </Link>
+    </button>
   );
 
+  const homeOn = path === "/" || path.startsWith("/section");
+  const searchOn = path === "/search" || path.startsWith("/search/");
+  const favOn = path === "/favorites" || path.startsWith("/favorites/");
+  const chatOn = path === "/messages" || path.startsWith("/chat/");
+  const profileOn =
+    path === "/profile" || path.startsWith("/profile/") || path === "/selling" || path.startsWith("/selling/");
+
   return (
-    <nav className="flex h-[78px] shrink-0 items-center border-t border-line bg-surface pb-2 px-1.5">
-      {item("/", t.feed, IconHome, path === "/" || path.startsWith("/section"))}
-      {item("/map", t.map, IconPin, path === "/map")}
+    <nav
+      className={`tabbar-nav z-30 flex shrink-0 items-center border-t border-line bg-surface px-1.5 ${hidden ? "pointer-events-none" : ""}`}
+      style={{
+        height: hidden ? 0 : TAB_H,
+        overflow: hidden ? "hidden" : "visible",
+        paddingBottom: hidden ? 0 : 8,
+        borderTopWidth: hidden ? 0 : undefined,
+      }}
+    >
+      {item("/", "tab-home", t.feed, IconHome, homeOn)}
+      {item("/search", "tab-search", t.tabSearch, IconSearch, searchOn)}
       <div className="flex flex-1 justify-center">
         <button
           type="button"
           onClick={goPost}
+          data-testid="tab-post"
           aria-label={t.newListing}
-          className="shadow-fab flex h-[50px] w-[50px] items-center justify-center rounded-full bg-accent"
+          className="shadow-fab -mt-6 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-accent"
         >
-          <IconPlus size={22} color="#FFF7F0" />
+          <IconPlus size={26} color="#FFF7F0" />
         </button>
       </div>
-      {selling
-        ? item("/selling", t.myListingsShort, IconListings, path === "/selling", true)
-        : item("/favorites", t.fav, IconHeart, path === "/favorites", true)}
-      {item("/profile", selling ? t.sideDesk : t.profile, IconUser, path === "/profile")}
+      {FEATURES.cart
+        ? item("/favorites", "tab-favorites", t.fav, IconBag, favOn)
+        : item("/messages", "tab-messages", t.inbox, IconChat, chatOn, chatUnread)}
+      {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn, FEATURES.cart ? chatUnread : 0)}
+      {sheet ? (
+        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
+          <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
+            <div className="font-display text-[20px] font-bold text-ink">{t.postChoiceTitle}</div>
+            <div className="mt-3">
+              <PostChoices
+                onPersonal={() => {
+                  setSheet(false);
+                  router.push("/post?type=personal");
+                }}
+                onBusiness={() => {
+                  setSheet(false);
+                  router.push("/post?type=business");
+                }}
+                onRequest={() => {
+                  setSheet(false);
+                  router.push("/post?type=request");
+                }}
+              />
+            </div>
+            <button type="button" className="mt-3 h-11 w-full text-[15px] font-semibold text-muted" onClick={() => setSheet(false)}>
+              {t.postCancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }
 
-export function StatusBar() {
-  return (
-    <div className="flex h-11 shrink-0 items-center justify-between px-[26px] text-xs font-semibold text-ink">
-      <span>9:41</span>
-      <div className="flex items-center gap-[5px]">
-        <span className="block h-[9px] w-4 rounded-[2px] border border-ink" />
-        <span className="block h-[9px] w-[13px] rounded-[2px] bg-ink" />
-        <span className="relative block h-[10px] w-[22px] rounded-[3px] border border-ink">
-          <span className="absolute inset-[2px_8px_2px_2px] block rounded-[1px] bg-ink" />
-        </span>
-      </div>
-    </div>
-  );
+/** True while the on-screen keyboard covers part of the viewport (typing in a field). */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    let base = Math.max(vv?.height ?? 0, window.innerHeight);
+    let raf = 0;
+    const editable = () => {
+      const el = document.activeElement;
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+      if (el.tagName !== "INPUT") return false;
+      const type = (el as HTMLInputElement).type;
+      return !["button", "checkbox", "radio", "range", "file", "submit", "reset", "color", "image"].includes(type);
+    };
+    const check = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try {
+          const h = vv?.height ?? window.innerHeight;
+          if (!editable()) {
+            base = Math.max(h, window.innerHeight);
+            setOpen(false);
+            return;
+          }
+          if (h > base) base = h;
+          setOpen(base - h > 120);
+        } catch {
+          setOpen(false);
+        }
+      });
+    };
+    const reset = () => {
+      base = 0;
+      check();
+    };
+    vv?.addEventListener("resize", check);
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", reset);
+    document.addEventListener("focusin", check);
+    document.addEventListener("focusout", check);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv?.removeEventListener("resize", check);
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", reset);
+      document.removeEventListener("focusin", check);
+      document.removeEventListener("focusout", check);
+    };
+  }, []);
+  return open;
 }
 
-export function PhoneShell({ children, tab: _tab }: { children: ReactNode; tab?: boolean }) {
+export function PhoneShell({
+  children,
+  tab: _tab,
+  focus = false,
+}: {
+  children: ReactNode;
+  tab?: boolean;
+  /** Focused full-screen flow (wizards, post form, chat): no bottom tab bar and no «+». */
+  focus?: boolean;
+}) {
+  const { t, online } = useApp();
+  const path = usePathname();
+  const [scrollHidden, setHidden] = useState(false);
+  const keyboard = useKeyboardOpen();
+  const hidden = scrollHidden || keyboard || focus;
+  const phoneRef = useRef<HTMLDivElement>(null);
+  const reels = path === "/reels";
+  const narrow =
+    path === "/login" ||
+    path === "/post" ||
+    path === "/help" ||
+    path === "/profile" ||
+    path === "/profile/edit" ||
+    path === "/shops/new" ||
+    /^\/shops\/[^/]+\/edit$/.test(path);
+
+  const hiddenRef = useRef(false);
+  useEffect(() => {
+    hiddenRef.current = false;
+    setHidden(false);
+  }, [path]);
+
+  useEffect(() => {
+    const root = phoneRef.current;
+    if (!root) return;
+    const tops = new WeakMap<EventTarget, number>();
+    // Hiding/showing the tab bar resizes the scroll area by 78px. Near the bottom of a page the browser then
+    // clamps scrollTop, which fires a scroll "up" and showed the bar again — a show/hide loop that froze and
+    // jumped short pages (e.g. point products) on Android. Ignore the scroll events our own toggle causes and
+    // never hide the bar on pages that barely scroll.
+    let quietUntil = 0;
+    const toggle = (next: boolean) => {
+      if (next === hiddenRef.current) return;
+      hiddenRef.current = next;
+      quietUntil = performance.now() + 350;
+      setHidden(next);
+    };
+    const onScroll = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const room = target.scrollHeight - target.clientHeight;
+      if (room <= 0) return;
+      const top = target.scrollTop;
+      const prev = tops.get(target) ?? 0;
+      tops.set(target, top);
+      if (performance.now() < quietUntil) return;
+      if (top <= 24 || room < TAB_H * 3) {
+        toggle(false);
+        return;
+      }
+      // At the very bottom keep whatever is shown, so the resize can't bounce the page.
+      if (room - top < TAB_H + 8) return;
+      const delta = top - prev;
+      if (Math.abs(delta) < 8) return;
+      toggle(delta > 0);
+    };
+    root.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => root.removeEventListener("scroll", onScroll, true);
+  }, []);
+
   return (
-    <div className="flex h-[100%] max-h-[100dvh] min-h-0 justify-center overflow-hidden bg-canvas md:h-[100dvh] md:items-center md:py-6">
+    <div className="flex h-[100%] max-h-[100dvh] min-h-0 justify-center overflow-hidden bg-canvas md:h-[100dvh] md:items-center md:py-6 desk:h-[100dvh] desk:items-stretch desk:bg-screen desk:py-0">
       <div
+        ref={phoneRef}
         id="konshu-phone"
-        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)]"
+        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(23,20,15,.14)] desk:h-full desk:max-h-[100dvh] desk:w-full desk:max-w-none desk:rounded-none desk:border-0 desk:shadow-none"
+        style={{ "--tabbar-h": hidden ? "0px" : "78px" } as CSSProperties}
       >
-        <StatusBar />
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
-        <div className="z-30 shrink-0 bg-surface">
-          <TabBar />
+        <DesktopHeader />
+        {!online ? (
+          <div className="flex h-7 shrink-0 items-center justify-center bg-ink text-[12px] text-screen">{t.offlineTitle}</div>
+        ) : null}
+        <div className={reels ? "flex min-h-0 flex-1 flex-col overflow-hidden desk:bg-ink" : "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"}>
+          <div
+            className={
+              reels
+                ? "contents"
+                : `contents desk:mx-auto desk:flex desk:min-h-0 desk:w-full desk:flex-1 desk:flex-col ${
+                    narrow
+                      ? "desk:my-6 desk:max-w-[720px] desk:rounded-[28px] desk:border desk:border-line desk:bg-surface"
+                      : "desk:max-w-[1280px] desk:px-6"
+                  }`
+            }
+          >
+            {children}
+          </div>
+          {reels ? null : <DesktopFooter />}
         </div>
+        {reels ? null : (
+          <div className="z-30 shrink-0 bg-surface desk:contents">
+            <div className="desk:pointer-events-auto desk:fixed desk:right-6 desk:bottom-4 desk:z-50 desk:w-[min(100%-2rem,360px)]">
+              <UploadStatus />
+            </div>
+            {focus ? null : (
+              <div className="desk:hidden">
+                <TabBar hidden={hidden} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

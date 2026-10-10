@@ -1,4 +1,5 @@
-import { GIS_CITIES } from "./data";
+import { adminAreaById } from "./admin-areas";
+import { DISTRICTS, GIS_CITIES } from "./data";
 import { displayPhotoForProduct } from "./shop-photos";
 import {
   SHOP_CATEGORIES,
@@ -7,11 +8,15 @@ import {
   type ShopCategory,
   type ShopDraft,
   type ShopFilters,
+  SHOP_DAYS,
+  type ShopDay,
   type ShopHours,
+  type ShopHoursSlot,
   type ShopKind,
   type ShopProduct,
   type ShopStatus,
   type User,
+  type Lang,
 } from "./types";
 
 export { SHOP_CATEGORIES, SHOP_KINDS };
@@ -75,9 +80,10 @@ export function shopMatchesCategory(shop: Shop, filter: ShopCategory | ShopKind)
 export function emptyShopDraft(user: User): ShopDraft {
   const now = new Date().toISOString();
   return {
-    id: `shop-${Date.now()}`,
+    id: `shop-${crypto.randomUUID()}`,
     name: "",
-    ownerPhone: user.phone,
+    ownerPhone: user.phone || "",
+    ownerId: user.id,
     ownerName: user.name,
     category: "other",
     extraCategories: [],
@@ -89,7 +95,7 @@ export function emptyShopDraft(user: User): ShopDraft {
     lng: GIS_CITIES.bishkek?.lng,
     hours: undefined,
     hoursNote: "",
-    contacts: { phone: user.phone, whatsapp: true, telegram: false },
+    contacts: { phone: user.phone || "", whatsapp: true, telegram: false },
     pickup: true,
     delivery: false,
     deliveryNote: "",
@@ -103,7 +109,8 @@ export function emptyShopDraft(user: User): ShopDraft {
   };
 }
 
-export function isOwnShop(shop: Pick<Shop, "ownerPhone">, user: User | null): boolean {
+export function isOwnShop(shop: Pick<Shop, "ownerPhone"> & { ownerId?: string | null }, user: User | null): boolean {
+  if (shop.ownerId && user?.id) return shop.ownerId === user.id;
   if (!user?.phone) return false;
   return normalizePhone(shop.ownerPhone) === normalizePhone(user.phone);
 }
@@ -117,10 +124,11 @@ export function hasShopContact(shop: Pick<Shop, "contacts">): boolean {
 }
 
 export function publicShop(shop: Shop): boolean {
-  return shop.status === "active";
+  return shop.status === "active" && shop.underReview !== true;
 }
 
 export function canSeeShop(shop: Shop, user: User | null): boolean {
+  if (shop.status === "hidden") return false;
   if (publicShop(shop)) return true;
   return isOwnShop(shop, user);
 }
@@ -159,15 +167,150 @@ export function parseHour(raw: string): { h: number; m: number } | null {
   return { h, m: min };
 }
 
-export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): boolean | null {
-  if (!hours) return null;
-  const usable = [hours.weekdays, hours.saturday, hours.sunday].some(
-    (slot) => slot && parseHour(slot.open) && parseHour(slot.close),
-  );
-  if (!usable) return null;
-  const slot = slotForDay(hours, at);
-  if (slot === undefined) return null;
-  if (slot === null) return false;
+const WEEK_DAYS: ShopDay[] = ["mon", "tue", "wed", "thu", "fri"];
+
+export type HoursPickerState = {
+  days: ShopDay[];
+  slot: ShopHoursSlot | null;
+  allDay: boolean;
+};
+
+export type ShopHoursLabels = {
+  days: Record<ShopDay, string>;
+  daily: string;
+  allDay: string;
+};
+
+function padTime(h: number, m: number): string {
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function cleanSlot(slot: ShopHoursSlot | null | undefined): ShopHoursSlot | null {
+  if (!slot || typeof slot !== "object") return null;
+  if (typeof slot.open !== "string" || typeof slot.close !== "string") return null;
+  const open = parseHour(slot.open);
+  const close = parseHour(slot.close);
+  if (!open || !close) return null;
+  return { open: padTime(open.h, open.m), close: padTime(close.h, close.m) };
+}
+
+function isAllDaySlot(slot: ShopHoursSlot | null): boolean {
+  if (!slot) return false;
+  return (slot.open === "00:00" && slot.close === "00:00") || (slot.open === "00:00" && slot.close === "23:59");
+}
+
+function knownDays(days: ShopDay[] | undefined): ShopDay[] {
+  const set = new Set(days ?? []);
+  return SHOP_DAYS.filter((id) => set.has(id));
+}
+
+function hasModernHours(hours: ShopHours): boolean {
+  if (hours.allDay === true) return true;
+  if (hours.days?.length) return true;
+  return Boolean(cleanSlot(hours.slot));
+}
+
+/** Old weekdays/saturday/sunday rows, or a speech guess, become one range and day chips. */
+export function hoursFromLegacy(hours: ShopHours | undefined | null): HoursPickerState {
+  const blank: HoursPickerState = { days: [...WEEK_DAYS], slot: null, allDay: false };
+  if (!hours) return blank;
+  if (hasModernHours(hours)) {
+    const days = knownDays(hours.days);
+    const slot = cleanSlot(hours.slot);
+    const allDay = hours.allDay === true || isAllDaySlot(slot);
+    return {
+      days: days.length ? days : [...WEEK_DAYS],
+      slot: allDay ? null : slot,
+      allDay,
+    };
+  }
+  const week = hours.weekdays === null ? null : cleanSlot(hours.weekdays);
+  const sat = hours.saturday === undefined ? week : hours.saturday === null ? null : cleanSlot(hours.saturday);
+  const sun = hours.sunday === undefined ? week : hours.sunday === null ? null : cleanSlot(hours.sunday);
+  const days: ShopDay[] = [];
+  if (week) days.push(...WEEK_DAYS);
+  if (sat) days.push("sat");
+  if (sun) days.push("sun");
+  const slot = week ?? sat ?? sun;
+  if (!days.length || !slot) return blank;
+  const allDay = isAllDaySlot(slot);
+  return { days, slot: allDay ? null : slot, allDay };
+}
+
+function legacyFromDays(days: ShopDay[], slot: ShopHoursSlot): Pick<ShopHours, "weekdays" | "saturday" | "sunday"> | null {
+  const on = new Set(days);
+  const weekOn = WEEK_DAYS.every((id) => on.has(id));
+  const weekOff = WEEK_DAYS.every((id) => !on.has(id));
+  if (!weekOn && !weekOff) return null;
+  return {
+    weekdays: weekOn ? slot : null,
+    saturday: on.has("sat") ? slot : null,
+    sunday: on.has("sun") ? slot : null,
+  };
+}
+
+/** Picker state → jsonb. Legacy weekdays/saturday/sunday are filled when the pattern still fits. */
+export function hoursToStored(state: HoursPickerState): ShopHours | undefined {
+  const days = knownDays(state.days);
+  if (!days.length) return undefined;
+  if (!state.allDay && !state.slot) return undefined;
+  const slot = state.allDay ? { open: "00:00", close: "00:00" } : cleanSlot(state.slot);
+  if (!slot) return undefined;
+  const legacy = legacyFromDays(days, slot);
+  const out: ShopHours = {
+    days,
+    slot: state.allDay ? null : slot,
+    ...(state.allDay ? { allDay: true } : {}),
+    ...(legacy ?? {}),
+  };
+  return out;
+}
+
+export function sanitizeShopHours(raw: unknown): ShopHours | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const src = raw as Record<string, unknown>;
+  const out: ShopHours = {};
+  const takeSlot = (key: "weekdays" | "saturday" | "sunday" | "slot") => {
+    if (!(key in src)) return;
+    const value = src[key];
+    if (value === null) {
+      out[key] = null;
+      return;
+    }
+    const slot = cleanSlot(value as ShopHoursSlot);
+    if (slot) out[key] = slot;
+  };
+  takeSlot("weekdays");
+  takeSlot("saturday");
+  takeSlot("sunday");
+  takeSlot("slot");
+  if (Array.isArray(src.days)) {
+    const days: ShopDay[] = [];
+    for (const id of src.days) {
+      if (typeof id === "string" && (SHOP_DAYS as readonly string[]).includes(id) && !days.includes(id as ShopDay)) {
+        days.push(id as ShopDay);
+      }
+    }
+    if (days.length) out.days = knownDays(days);
+  }
+  if (src.allDay === true || src.allDay === false) out.allDay = src.allDay;
+  return Object.keys(out).length ? out : undefined;
+}
+
+export function hasShopHours(hours: ShopHours | undefined | null): boolean {
+  if (!hours) return false;
+  if (hours.allDay && knownDays(hours.days).length) return true;
+  if (cleanSlot(hours.slot) && knownDays(hours.days).length) return true;
+  return [hours.weekdays, hours.saturday, hours.sunday].some((slot) => cleanSlot(slot ?? undefined));
+}
+
+function dayInBishkek(at: Date): ShopDay {
+  const dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Bishkek" }).format(at);
+  const map: Record<string, ShopDay> = { Sun: "sun", Mon: "mon", Tue: "tue", Wed: "wed", Thu: "thu", Fri: "fri", Sat: "sat" };
+  return map[dow] ?? "mon";
+}
+
+function openDuring(slot: ShopHoursSlot, at: Date): boolean | null {
   const open = parseHour(slot.open);
   const close = parseHour(slot.close);
   if (!open || !close) return null;
@@ -178,11 +321,62 @@ export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): bool
   return mins >= a && mins < b;
 }
 
+export function shopOpenNow(hours: ShopHours | undefined, at = new Date()): boolean | null {
+  if (!hours) return null;
+  if (hasModernHours(hours)) {
+    const days = knownDays(hours.days);
+    if (!days.length) return null;
+    if (!days.includes(dayInBishkek(at))) return false;
+    if (hours.allDay || isAllDaySlot(cleanSlot(hours.slot))) return true;
+    const slot = cleanSlot(hours.slot);
+    if (!slot) return null;
+    return openDuring(slot, at);
+  }
+  const usable = [hours.weekdays, hours.saturday, hours.sunday].some((slot) => cleanSlot(slot ?? undefined));
+  if (!usable) return null;
+  const slot = slotForDay(hours, at);
+  if (slot === undefined) return null;
+  if (slot === null) return false;
+  return openDuring(slot, at);
+}
+
 function slotForDay(hours: ShopHours, at: Date): ShopHours["weekdays"] | null | undefined {
   const dow = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Bishkek" }).format(at);
   if (dow === "Sat") return hours.saturday === undefined ? hours.weekdays : hours.saturday;
   if (dow === "Sun") return hours.sunday === undefined ? hours.weekdays : hours.sunday;
   return hours.weekdays;
+}
+
+function groupDayLabels(days: ShopDay[], label: (id: ShopDay) => string): string {
+  const idx = days.map((id) => SHOP_DAYS.indexOf(id)).filter((n) => n >= 0).sort((a, b) => a - b);
+  const parts: string[] = [];
+  let i = 0;
+  while (i < idx.length) {
+    let j = i;
+    while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j += 1;
+    const start = label(SHOP_DAYS[idx[i]]);
+    const end = label(SHOP_DAYS[idx[j]]);
+    parts.push(i === j ? start : `${start}–${end}`);
+    i = j + 1;
+  }
+  return parts.join(", ");
+}
+
+export function formatShopHours(hours: ShopHours | undefined | null, labels: ShopHoursLabels): string {
+  if (!hours || !hasShopHours(hours)) return "";
+  const state = hoursFromLegacy(hours);
+  if (!state.allDay && !state.slot) return "";
+  const days = knownDays(state.days);
+  if (!days.length) return "";
+  const dayText = days.length === SHOP_DAYS.length ? labels.daily : groupDayLabels(days, (id) => labels.days[id]);
+  if (state.allDay) {
+    if (days.length === SHOP_DAYS.length) return labels.allDay;
+    const word = labels.allDay.charAt(0).toLowerCase() + labels.allDay.slice(1);
+    return `${dayText} ${word}`;
+  }
+  const slot = state.slot;
+  if (!slot) return "";
+  return `${dayText} ${slot.open}–${slot.close}`;
 }
 
 export function nowInKg(): Date {
@@ -262,7 +456,7 @@ export function groupShopProducts(shop: Shop, products: ShopProduct[]): Array<{ 
 
 export function shopsOf(list: Shop[], user: User | null): Shop[] {
   if (!user) return [];
-  return list.filter((s) => isOwnShop(s, user));
+  return list.filter((s) => isOwnShop(s, user) && s.status !== "hidden");
 }
 
 export function userHasShopBadge(list: Shop[], user: User | null): boolean {
@@ -333,4 +527,180 @@ export function publicProductsInKind(
     }
   }
   return out;
+}
+
+/** Groups a new point may use. Service-like groups stay on the «Услуги» card. */
+export const NEW_POINT_GROUPS: ShopCategory[] = [
+  "food",
+  "farm",
+  "construction",
+  "furniture",
+  "electronics",
+  "apparel",
+  "home",
+  "books",
+  "pets",
+  "health",
+  "other",
+];
+
+export const POINT_HIDDEN_GROUPS: ShopCategory[] = ["beauty", "repair", "travel", "auto", "household", "tailor", "events", "education"];
+
+export const POINT_HIDDEN_KINDS: ShopKind[] = ["health-clinic", "health-dentist"];
+
+export function pointGroupsFor(shop: Pick<Shop, "category" | "extraCategories">, creating: boolean): ShopCategory[] {
+  if (creating) return [...NEW_POINT_GROUPS];
+  const extra = [shop.category, ...(shop.extraCategories ?? [])].filter(
+    (id): id is ShopCategory => isShopCategory(id) && !NEW_POINT_GROUPS.includes(id),
+  );
+  return [...NEW_POINT_GROUPS, ...extra];
+}
+
+export function pointKindsFor(category: ShopCategory, current: readonly ShopKind[] | undefined, creating: boolean): ShopKind[] {
+  return shopKindsOf(category).filter((id) => {
+    if (!(POINT_HIDDEN_KINDS as readonly string[]).includes(id)) return true;
+    if (creating) return false;
+    return (current ?? []).includes(id);
+  });
+}
+
+const NAME_PLACE_SKIP = /^(ряд|катар|у входа|кире бериште|возле|жанында|\d+\s*этаж|\d+-кабат)\b/i;
+const NAME_ROW = /(?:ряд|катар)\s*\d+/i;
+
+/** Market or district already chosen. Placeholder words («Район», «ряд …») are not a place. */
+export function namePlacePart(districtName: string, landmarks: string[]): string {
+  const named = landmarks.find((part) => {
+    const value = part.trim();
+    if (!value || NAME_PLACE_SKIP.test(value)) return false;
+    if (NAME_ROW.test(value)) return false;
+    return true;
+  });
+  return (named ?? districtName).trim();
+}
+
+export function nameRowPart(landmarkText: string): string {
+  const hit = landmarkText.match(NAME_ROW);
+  if (!hit) return "";
+  const raw = hit[0].replace(/\s+/g, " ").trim();
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** Real name chips only. Unknown parts stay hidden so a tap cannot insert «Раздел · Район». */
+export function pointNameChips(input: { categoryShort: string; place: string; landmarkText: string }): { main: string; row: string } {
+  const category = input.categoryShort.trim();
+  const place = input.place.trim();
+  const main = category && place ? `${category} · ${place}` : category || place;
+  const row = nameRowPart(input.landmarkText);
+  return { main, row: row && main.toLowerCase() !== row.toLowerCase() ? row : "" };
+}
+
+/** A main chip replaces the field. A row chip is added once and never repeated. */
+export function applyNameChip(current: string, chip: string, mode: "replace" | "once"): string {
+  const piece = chip.trim();
+  const cur = current.trim();
+  if (!piece) return cur;
+  if (mode === "replace") return piece;
+  if (!cur) return piece;
+  if (cur.toLowerCase().includes(piece.toLowerCase())) return cur;
+  return `${cur}, ${piece}`;
+}
+
+export function landmarksFromText(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.slice(0, 60))
+    .slice(0, 3);
+}
+
+export function shopDistrictName(id: string | undefined | null, lang: Lang): string {
+  const raw = id?.trim() ?? "";
+  if (!raw) return "";
+  const row = DISTRICTS.find((item) => item.id === raw);
+  if (row) return lang === "ky" ? row.nameKy : row.name;
+  const area = adminAreaById(raw);
+  if (area) return lang === "ky" ? area.nameKy : area.name;
+  return raw;
+}
+
+export function shopLandmarkLine(shop: { landmarks?: string[] | null; address?: string | null }): string {
+  const marks = (shop.landmarks ?? []).map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+  if (marks.length) return marks.join(" · ");
+  return (shop.address ?? "").trim();
+}
+
+export function shopHasPointPlace(shop: { district?: string | null; landmarks?: string[] | null }): boolean {
+  return Boolean(shop.district?.trim() || (shop.landmarks ?? []).some((item) => item.trim()));
+}
+
+/** «район · ориентир» when the new fields are set. Otherwise the old «город, адрес» line. */
+export function shopPlaceHeadline(
+  shop: Pick<Shop, "district" | "landmarks" | "address">,
+  cityLabel: string,
+  lang: Lang,
+): string {
+  if (shopHasPointPlace(shop)) {
+    return [shopDistrictName(shop.district, lang), shopLandmarkLine(shop)].filter(Boolean).join(" · ");
+  }
+  return [cityLabel, (shop.address ?? "").trim()].filter(Boolean).join(", ");
+}
+
+export function shopPointSubtitle(
+  shop: Pick<Shop, "venueKind" | "district" | "landmarks" | "address" | "city">,
+  venueShop: string,
+  venueStall: string,
+  cityLabel: string,
+  lang: Lang,
+): string {
+  const venue = shop.venueKind === "stall" ? venueStall : shop.venueKind === "shop" ? venueShop : "";
+  const place = shopHasPointPlace(shop)
+    ? [shopDistrictName(shop.district, lang), shopLandmarkLine(shop)].filter(Boolean).join(" · ")
+    : [cityLabel, (shop.address ?? "").trim()].filter(Boolean).join(" · ");
+  return [venue, place].filter(Boolean).join(" · ");
+}
+
+export function shopDeliveryLine(
+  shop: { delivery?: boolean; deliveryFree?: boolean | null },
+  free: string,
+  paid: string,
+): string | null {
+  if (!shop.delivery) return null;
+  if (shop.deliveryFree === true) return free;
+  if (shop.deliveryFree === false) return paid;
+  return null;
+}
+
+function capText(value: unknown, max: number): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, max);
+}
+
+/** Trim the point fields. No new database columns: they already exist on shops. */
+export function sanitizeShopPointFields(shop: Shop): Shop {
+  const landmarks = (Array.isArray(shop.landmarks) ? shop.landmarks : [])
+    .map((item) => capText(item, 60))
+    .filter(Boolean)
+    .slice(0, 3);
+  const district = capText(shop.district, 60);
+  const kindOther = capText(shop.kindOther, 40);
+  const delivery = Boolean(shop.delivery);
+  const deliveryFree = delivery && typeof shop.deliveryFree === "boolean" ? shop.deliveryFree : undefined;
+  const deliveryDistricts = delivery
+    ? (Array.isArray(shop.deliveryDistricts) ? shop.deliveryDistricts : [])
+        .map((item) => capText(item, 60))
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
+  return {
+    ...shop,
+    landmarks: landmarks.length ? landmarks : undefined,
+    district: district || undefined,
+    kindOther: kindOther || undefined,
+    deliveryFree,
+    deliveryDistricts,
+    address: landmarks.length ? landmarks.join(" · ") : typeof shop.address === "string" ? shop.address : "",
+  };
 }

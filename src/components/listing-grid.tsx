@@ -1,7 +1,9 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { listingsForSearch } from "@/lib/search-browse";
 import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/data";
 import { dropPercent, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
@@ -11,6 +13,7 @@ import { NeighborMark } from "./neighbor-seal";
 import { ListingThumb, isVideoListing } from "./listing-media";
 import { ListingSocialMeta } from "./listing-social";
 import { Price } from "./ui";
+import { ServiceFacts } from "./service-facts";
 
 export function LayoutSwitch() {
   const { t, listingLayout, setListingLayout } = useApp();
@@ -20,7 +23,7 @@ export function LayoutSwitch() {
     { id: "small", count: 3, label: t.layoutSmall },
   ];
   return (
-    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5">
+    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5 desk:hidden">
       {opts.map((o) => {
         const on = listingLayout === o.id;
         return (
@@ -50,10 +53,10 @@ function ListingCard({
   layout: ListingLayout;
   onFav?: (id: string) => void;
 }) {
-  const { t, lang, isFav, user, meetDeals } = useApp();
+  const { t, lang, isFav, meetDeals } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
-  const saved = Boolean(user && isFav(listing.id));
+  const saved = isFav(listing.id);
   const video = isVideoListing(listing);
   const radius = layout === "small" ? "rounded-[12px]" : "rounded-[16px]";
   const pad = layout === "large" ? "px-[15px] pb-[15px] pt-[13px]" : layout === "medium" ? "px-2.5 pb-2.5 pt-2" : "px-1.5 pb-1.5 pt-1";
@@ -71,7 +74,7 @@ function ListingCard({
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {dropPercent(listing) != null ? (
+        {listing.section !== "services" && dropPercent(listing) != null ? (
           <span
             data-testid="promo-badge"
             className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen"
@@ -84,7 +87,7 @@ function ListingCard({
             <NeighborMark listing={listing} compact={layout === "small"} />
           </span>
         ) : null}
-        {onFav && layout !== "small" && !video ? (
+        {FEATURES.cart && onFav && layout !== "small" && !video ? (
           <span
             role="button"
             onClick={(e) => {
@@ -134,6 +137,7 @@ function ListingCard({
             {listing.area != null ? `${listing.area} м²` : null}
           </div>
         ) : null}
+        {layout !== "small" && listing.section === "services" ? <ServiceFacts listing={listing} compact /> : null}
         {layout !== "small" ? (
           <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
             {(listing.sellerName || (layout === "large" ? ownerById(listing.ownerId)?.name : undefined)) ? (
@@ -157,15 +161,22 @@ function ListingCard({
 export function ListingGrid({
   listings,
   onFav,
+  columns = "feed",
 }: {
   listings: Listing[];
   onFav?: (id: string) => void;
+  /** feed: 4 then 5 columns. browse: 3 then 4 beside the filter sidebar. */
+  columns?: "feed" | "browse";
 }) {
   const { listingLayout } = useApp();
   const cols = listingLayout === "large" ? "grid-cols-1" : listingLayout === "small" ? "grid-cols-3" : "grid-cols-2";
   const gap = listingLayout === "small" ? "gap-1.5" : "gap-2.5";
+  const deskCols =
+    columns === "browse"
+      ? "desk:grid-cols-3 min-[1280px]:desk:grid-cols-4"
+      : "desk:grid-cols-4 min-[1280px]:desk:grid-cols-5";
   return (
-    <div className={`mt-3 grid ${cols} ${gap}`}>
+    <div className={`mt-3 grid ${cols} ${gap} ${deskCols}`}>
       {listings.map((item) => (
         <ListingCard key={item.id} listing={item} layout={listingLayout} onFav={onFav} />
       ))}
@@ -174,11 +185,14 @@ export function ListingGrid({
 }
 
 export function RecentlyViewed() {
-  const { t, lang, viewedIds, allListings } = useApp();
+  const { t, lang, viewedIds, allListings, shops } = useApp();
   const router = useRouter();
-  const items = viewedIds
-    .map((id) => allListings.find((l) => l.id === id))
-    .filter((item): item is Listing => Boolean(item));
+  const items = listingsForSearch(
+    viewedIds
+      .map((id) => allListings.find((l) => l.id === id))
+      .filter((item): item is Listing => Boolean(item)),
+    shops,
+  );
   if (items.length < 1) return null;
   return (
     <div className="mt-[22px]">

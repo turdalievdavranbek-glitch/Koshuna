@@ -1,6 +1,7 @@
 "use client";
 
-import { vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
+import { useEffect, useState } from "react";
+import { makeListView, vehicleMakesOf, vehicleModelsOf, vehicleTypesOf } from "@/lib/transport";
 import { useApp } from "@/lib/store";
 import { Chip, Eyebrow } from "@/components/ui";
 import { SectionList } from "@/components/section-list";
@@ -11,6 +12,15 @@ export function CarMakeChips({ labeled, list }: { labeled?: boolean; list?: bool
   const type = filters.bodyType === "any" ? undefined : filters.bodyType;
   const makes = vehicleMakesOf(group, type);
   const models = vehicleModelsOf(filters.carMake, group, type);
+  const [makesOpen, setMakesOpen] = useState(false);
+  useEffect(() => {
+    setMakesOpen(false);
+  }, [group, type]);
+  const makeView = makeListView(makes, {
+    expanded: makesOpen,
+    selected: filters.carMake,
+    labelOf: (id) => t.carMakes[id] ?? id,
+  });
 
   const pickGroup = (id: "any" | "passenger" | "special") => {
     setFilters({ vehicleGroup: id, bodyType: "any", carMake: "any", carModel: "any" });
@@ -52,12 +62,15 @@ export function CarMakeChips({ labeled, list }: { labeled?: boolean; list?: bool
           title={t.carMake}
           rows={[
             { id: "any", label: t.any, active: filters.carMake === "any", onClick: () => pickMake("any") },
-            ...makes.map((id) => ({
+            ...makeView.ids.map((id) => ({
               id,
               label: t.carMakes[id] ?? id,
               active: filters.carMake === id,
               onClick: () => pickMake(id),
             })),
+            ...(makeView.showAll
+              ? [{ id: "all-makes", label: t.allMakes(makeView.total), active: false, onClick: () => setMakesOpen(true) }]
+              : []),
           ]}
         />
         {models.length ? (
@@ -108,11 +121,14 @@ export function CarMakeChips({ labeled, list }: { labeled?: boolean; list?: bool
       <Chip active={filters.carMake === "any"} onClick={() => pickMake("any")}>
         {t.any}
       </Chip>
-      {makes.map((id) => (
+      {makeView.ids.map((id) => (
         <Chip key={id} active={filters.carMake === id} onClick={() => pickMake(id)}>
           {t.carMakes[id] ?? id}
         </Chip>
       ))}
+      {makeView.showAll ? (
+        <Chip onClick={() => setMakesOpen(true)}>{t.allMakes(makeView.total)}</Chip>
+      ) : null}
     </div>
   );
 

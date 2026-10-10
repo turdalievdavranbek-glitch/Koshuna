@@ -1,12 +1,17 @@
-/** Single place for upload caps. Shops enforce these on client and `/api/shops/validate`. Listing video does not yet call this — wire it here when listing upload gets a server check. Override with env. */
+/** Single place for upload caps. Shops enforce these on client and `/api/shops/validate`. Listing video is checked on the server in `/api/uploads`. Override with env. */
 export function videoMaxBytes(): number {
   const raw = Number(process.env.VIDEO_MAX_BYTES || process.env.NEXT_PUBLIC_VIDEO_MAX_BYTES);
-  return Number.isFinite(raw) && raw > 0 ? raw : 80 * 1024 * 1024;
+  return Number.isFinite(raw) && raw > 0 ? raw : 200 * 1024 * 1024;
+}
+
+export function voiceMaxSeconds(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_VOICE_MAX_SECONDS || process.env.VOICE_MAX_SECONDS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 120;
 }
 
 export function videoMaxSeconds(): number {
   const raw = Number(process.env.VIDEO_MAX_SECONDS || process.env.NEXT_PUBLIC_VIDEO_MAX_SECONDS);
-  return Number.isFinite(raw) && raw > 0 ? raw : 180;
+  return Number.isFinite(raw) && raw > 0 ? raw : 120;
 }
 
 /** Product-counter walkthrough is shorter than a shop intro. */

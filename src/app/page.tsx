@@ -1,33 +1,43 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import Link from "next/link";
+import { useEffect } from "react";
+import { hideNativeSplash } from "@/lib/native-splash";
 import { useRouter } from "next/navigation";
-import { HOME_HERO_COUNT, PROMOTED_IDS, formatSom, homeTiles } from "@/lib/data";
+import { formatSom } from "@/lib/data";
 import { applyFilters, clearFreshListPatch, homeFeedFilters } from "@/lib/filter";
 import { listingTitle, searchPlaceholder } from "@/lib/i18n";
-import { patchForSection } from "@/lib/section";
-import { locationLineLabel } from "@/lib/places";
+import { listingsForSearch } from "@/lib/search-browse";
 import { useApp } from "@/lib/store";
-import type { SectionId } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
+import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
+import { openLocationPicker, shownLocationLabel } from "@/components/location-line";
 import { PhoneShell } from "@/components/shell";
-import { Chip } from "@/components/ui";
+import { LangSwitch } from "@/components/ui";
 import { LayoutSwitch, ListingGrid, RecentlyViewed } from "@/components/listing-grid";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { ListingSocialMeta } from "@/components/listing-social";
 import { NeighborCircles } from "@/components/neighbor-circles";
+import { NeighborNearby, TodayOnPoints } from "@/components/magnets";
 import { HomeFreshFilters } from "@/components/home-fresh-filters";
+import { RingOnRise, UnreadBadge } from "@/components/unread-badge";
 import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
-import { openLocationPicker } from "@/components/location-line";
+import { useNotices } from "@/lib/notices";
 
 export default function FeedPage() {
-  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings } = useApp();
+  const { t, lang, city, filters, setFilters, user, setPendingPath, toggleFav, allListings, shops, online, synced, resync } = useApp();
+  const { unread } = useNotices(user?.id ?? null);
   const router = useRouter();
-  const listings = applyFilters(allListings, homeFeedFilters(filters), city);
-  const promoted = PROMOTED_IDS.map((id) => allListings.find((item) => item.id === id)).filter(Boolean);
-  const tiles = homeTiles();
-  const hero = tiles.slice(0, HOME_HERO_COUNT);
-  const rest = tiles.slice(HOME_HERO_COUNT);
+  const listings = listingsForSearch(applyFilters(allListings, homeFeedFilters(filters), city), shops);
+  const promoted = listingsForSearch(allListings, shops).filter((item) => item.status === "promoted");
+
+  // Native splash goes away as soon as the feed (cached or fresh) or its empty state is on screen.
+  const painted = listings.length > 0 || synced;
+  useEffect(() => {
+    if (painted) hideNativeSplash();
+  }, [painted]);
 
   const onFav = (id: string) => {
     const ok = toggleFav(id);
@@ -37,132 +47,97 @@ export default function FeedPage() {
     }
   };
 
-  const openSearch = () => {
-    setFilters({ section: null, category: null });
+  const openFilters = () => {
     router.push("/filters");
   };
 
-  const openSection = (id: SectionId, href: string) => {
-    if (id !== "shops") setFilters(patchForSection(id, filters));
-    router.push(href);
-  };
-
-  const feedQuick = [
-    { id: "shops" as const, label: t.homeQuickBazaar, href: "/shops" },
-    { id: "restaurants" as const, label: t.homeQuickFood, href: "/section/restaurants" },
-  ];
-  const moreQuick = [
-    { id: "rent" as const, label: t.homeQuickRent, href: "/section/rent" },
-    { id: "cars" as const, label: t.homeQuickCars, href: "/section/cars" },
-    { id: "vacancies" as const, label: t.homeQuickJobs, href: "/section/vacancies" },
-  ];
-
   return (
     <PhoneShell tab>
-      <header className="z-20 shrink-0 border-b border-line/70 bg-screen px-5 pb-2 pt-1.5" data-testid="home-sticky">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BrandMark size={26} wordClass="text-[23px] text-ink" />
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => openLocationPicker(router, "/")}
-              className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-[7px] text-[13px] font-semibold text-ink"
-            >
-              <IconPin size={13} color="#B8452F" />
-              <span className="max-w-[140px] truncate">
-                {locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint)}
-              </span>
-              <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
-                <IconChevronDown size={14} color="#17140F" />
-              </span>
-            </button>
+      <header
+        className="z-20 shrink-0 overflow-visible border-b border-line/70 bg-screen px-5 pb-2"
+        style={{ paddingTop: "max(6px, env(safe-area-inset-top, 0px))" }}
+        data-testid="home-sticky"
+      >
+        <div className="flex items-center gap-1.5 desk:hidden">
+          <BrandMark
+            size={26}
+            className="shrink-0"
+            wordClass="text-[20px] text-ink min-[380px]:text-[23px]"
+          />
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <div data-testid="home-lang" className="shrink-0">
+              <LangSwitch size="sm" />
+            </div>
             <Link
               href="/notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
+              data-testid="home-bell"
+              aria-label={t.notifications}
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
             >
-              <IconBell size={16} color="#17140F" />
-              <span className="absolute top-1.5 right-[7px] h-[7px] w-[7px] rounded-full border-[1.5px] border-white bg-accent" />
+              <RingOnRise count={unread}>
+                <IconBell size={16} color="#17140F" />
+              </RingOnRise>
+              <UnreadBadge small count={unread} testId="notif-dot" className="-top-0.5 -right-0.5" />
             </Link>
           </div>
         </div>
         <button
           type="button"
-          onClick={openSearch}
-          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 text-left"
-          data-testid="home-search"
+          data-testid="home-location"
+          onClick={() => openLocationPicker(router, "/")}
+          className="mt-2 flex w-full items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-[7px] text-left text-[13px] font-semibold text-ink"
         >
-          <IconSearch size={17} color="#A79C8C" />
-          <span className="h-full flex-1 truncate text-[15px] leading-[44px] text-muted-2">
-            {filters.query || searchPlaceholder(null, t)}
+          <IconPin size={13} color="#B8452F" />
+          <span data-testid="home-location-label" className="min-w-0 flex-1">
+            {shownLocationLabel(lang, city, filters, t)}
           </span>
-          <span aria-label={t.filters}>
-            <IconSliders size={17} color="#17140F" />
+          <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
+            <IconChevronDown size={14} color="#17140F" />
           </span>
         </button>
         <div className="mt-2">
-          <NeighborCircles listings={listings} />
+          <ScopeChips />
         </div>
-        <div className="sc mt-2 flex gap-2 overflow-x-auto pb-0.5" data-testid="home-feed-quick">
-          {feedQuick.map((item) => (
-            <Chip key={item.id} size="sm" onClick={() => openSection(item.id, item.href)}>
-              {item.label}
-            </Chip>
-          ))}
+        {filters.scope === "near" ? (
+          <Link href="/map" data-testid="home-map-link" className="mt-2 inline-flex text-[13px] font-semibold text-accent">
+            {t.map} ›
+          </Link>
+        ) : null}
+        {FEATURES.reelsStrip ? (
+          <div className="mt-2">
+            <NeighborCircles listings={listings} />
+          </div>
+        ) : null}
+        <div
+          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 desk:hidden"
+          data-testid="home-search"
+        >
+          <IconSearch size={17} color="#A79C8C" />
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(e) => setFilters({ query: e.target.value })}
+            placeholder={searchPlaceholder(filters.section, t)}
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-muted-2"
+            aria-label={t.filters}
+          />
+          <button
+            type="button"
+            onClick={openFilters}
+            aria-label={t.filters}
+            data-testid="home-filters"
+            className="flex h-9 w-9 shrink-0 items-center justify-center"
+          >
+            <IconSliders size={17} color="#17140F" />
+          </button>
         </div>
       </header>
 
-      <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4" data-testid="home-feed-scroll">
-        <div className="sc mt-3 flex gap-2 overflow-x-auto pb-0.5">
-          {moreQuick.map((item) => (
-            <Chip key={item.id} onClick={() => openSection(item.id, item.href)}>
-              {item.label}
-            </Chip>
-          ))}
-        </div>
+      <div className="sc min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pb-4" data-testid="home-feed-scroll">
+        <NeighborNearby />
+        <TodayOnPoints />
 
-        <div className="mt-[16px] flex items-baseline justify-between">
-          <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.sections}</h2>
-          <span className="text-[13px] font-semibold text-muted">{t.nSections}</span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2.5">
-          {hero.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[128px] flex-col overflow-hidden rounded-[18px] text-center"
-            >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-1.5 text-[12px] font-semibold leading-[1.2] text-ink">
-                {s.id === "shops" ? t.shopNav : t.sectionNames[s.id]}
-              </span>
-              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-                <img src={s.art} alt="" className="h-full w-full object-cover" />
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
-          {rest.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => openSection(s.id, s.href)}
-              className="section-tile flex h-[96px] flex-col overflow-hidden rounded-[14px] text-center"
-            >
-              <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-1 py-1 text-[10px] font-semibold leading-[1.15] text-ink">
-                {t.sectionNames[s.id]}
-              </span>
-              <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-                <img src={s.art} alt="" className="h-full w-full object-cover" />
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-[22px]">
+        {promoted.length > 0 ? <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
             <span className="font-display text-[17px] font-bold text-ink">{t.promoted}</span>
             <span className="rounded-md bg-accent-tint px-[7px] py-0.5 text-[10px] font-bold tracking-wide text-accent-dark">
@@ -204,37 +179,51 @@ export default function FeedPage() {
             )}
             <button
               type="button"
-              onClick={() => (user ? router.push("/post") : router.push("/login"))}
+              onClick={() => {
+                if (user) {
+                  router.push("/post");
+                  return;
+                }
+                setPendingPath("/post");
+                router.push("/login");
+              }}
               className="flex w-[100px] shrink-0 items-center justify-center rounded-2xl border border-dashed border-[#D3C7B4] px-2.5 text-center text-xs font-semibold leading-[1.35] text-accent-dark"
             >
               {t.promoteYours}
             </button>
           </div>
-        </div>
+        </div> : null}
 
         <RecentlyViewed />
 
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <h2 className="font-display text-[19px] font-bold tracking-[-0.01em] text-ink">{t.fresh}</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-muted">{t.nListings(listings.length)}</span>
-            <LayoutSwitch />
-          </div>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <h2 className="min-w-0 flex-1 truncate font-display text-[15px] font-bold leading-tight tracking-[-0.01em] text-ink">{t.fresh}</h2>
+          <LayoutSwitch />
         </div>
         <HomeFreshFilters />
 
         {listings.length === 0 ? (
-          <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
-            <div className="text-[15px] font-semibold text-ink">{t.empty}</div>
-            <p className="mt-2 text-[13px] text-muted">{t.emptyHint}</p>
-            <button
-              type="button"
-              onClick={() => setFilters(clearFreshListPatch(filters))}
-              className="mt-4 text-[13px] font-semibold text-accent"
-            >
-              {t.resetFilters}
-            </button>
-          </div>
+          !synced ? null : filters.scope === "near" ? (
+            <NearEmptyState />
+          ) : !online && allListings.length === 0 ? (
+            <EmptyState variant="offline" onRetry={() => resync()} />
+          ) : allListings.length === 0 ? (
+            <EmptyState variant="first" />
+          ) : filters.section || filters.category ? (
+            <div className="mt-4 rounded-[16px] border border-line bg-white px-4 py-6 text-center" data-testid="fresh-section-empty">
+              <p className="text-[14px] font-semibold text-ink">{t.freshSectionEmpty}</p>
+              <button
+                type="button"
+                data-testid="fresh-show-all"
+                onClick={() => setFilters(clearFreshListPatch(filters))}
+                className="mt-3 h-11 rounded-2xl bg-accent px-5 text-[14px] font-semibold text-accent-on"
+              >
+                {t.freshShowAll}
+              </button>
+            </div>
+          ) : (
+            <EmptyState variant="nothing" onReset={() => setFilters(clearFreshListPatch(filters))} />
+          )
         ) : (
           <ListingGrid listings={listings} onFav={onFav} />
         )}

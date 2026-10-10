@@ -1,12 +1,14 @@
 import type { Filters, Listing } from "./types";
-import { isAiylListing } from "./data";
-import { hasPriceDrop } from "./deal";
-import { haversineKm } from "./geo";
+import { isAiylListing, serviceCategoryMatches } from "./data";
+import { listingTextHit } from "./catalog-words";
+import { isPromoListing } from "./deal";
+import { haversineKm, hasCoords, nearRadiusKm } from "./geo";
 import { isFromNeighbor } from "./neighbor";
-import { oblastOfListing } from "./places";
+import { adminAreaById, adminAreaMatchesListing } from "./admin-areas";
+import { listingInOblast } from "./places";
 import { isShopCategory, isShopKind, parentOfShopKind } from "./shops";
 import { listingMatchesRealty, listingRoomsMatch } from "./realty";
-import { isSpokenListing } from "./video-ai";
+import { isVideoListing } from "./video-ai";
 
 /** Home «Свежее» list: apply section/category chips, keep place, drop leftover map-pin / price-range. */
 export function homeFeedFilters(filters: Filters): Filters {
@@ -48,6 +50,7 @@ export function homeFeedFilters(filters: Filters): Filters {
     jobRole: section === "vacancies" ? filters.jobRole : "any",
     jobType: section === "vacancies" ? filters.jobType : "any",
     sellerKind: section === "rent" || section === "cars" ? filters.sellerKind : "any",
+    postedWithin: "any",
   };
 }
 
@@ -91,37 +94,202 @@ export function clearFreshListPatch(filters: Filters): Partial<Filters> {
     areaMin: null,
     areaMax: null,
     priceDroppedOnly: false,
+    postedWithin: "any",
     city: filters.city,
     oblast: filters.oblast,
     settlement: filters.settlement,
+    rayon: filters.rayon,
     aiylOnly: filters.aiylOnly,
     query: filters.query,
+    scope:
+      (filters.rayon && filters.rayon !== "any") ||
+      (filters.settlement && filters.settlement !== "any") ||
+      (filters.oblast && filters.oblast !== "any") ||
+      (filters.city && filters.city !== "all")
+        ? "area"
+        : "all",
   };
 }
 
+/** Search tab root: drop the open section, keep the query, place and price sheet. */
+export function searchRootPatch(): Partial<Filters> {
+  return {
+    section: null,
+    category: null,
+    goodsKind: "any",
+    techBrand: "any",
+    techModel: "any",
+    housingType: "any",
+    realtyGroup: "any",
+    realtySub: "any",
+    realtyKind: "any",
+    rooms: [],
+    areaMin: null,
+    areaMax: null,
+    bodyType: "any",
+    gear: "any",
+    autoType: "sale",
+    vehicleGroup: "any",
+    carMake: "any",
+    carModel: "any",
+    animalGroup: "any",
+    animalKind: "any",
+    jobSphere: "any",
+    jobSub: "any",
+    jobRole: "any",
+    jobType: "any",
+    sellerKind: "any",
+    dealType: "any",
+    stockType: "any",
+    neighborOnly: false,
+    checkIn: null,
+    checkOut: null,
+  };
+}
+
+const AGO_MS: Record<string, number> = { h: 3_600_000, d: 86_400_000, w: 604_800_000, m: 2_592_000_000 };
+
+/** Server rows store createdAt in postedAt. Demo rows only have postedAgo («2h», «3d»). */
+export function listingCreatedMs(item: { postedAt?: string; postedAgo?: string }, now = Date.now()): number | null {
+  if (item.postedAt) {
+    const stamp = Date.parse(item.postedAt);
+    if (!Number.isNaN(stamp)) return stamp;
+  }
+  const match = item.postedAgo?.trim().match(/^(\d+)(h|d|w|m)$/i);
+  if (!match) return null;
+  return now - Number(match[1]) * AGO_MS[match[2].toLowerCase()];
+}
+
+function postedSince(within: Exclude<Filters["postedWithin"], "any">, now = Date.now()): number {
+  if (within === "today") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+  }
+  const days = within === "3d" ? 3 : within === "week" ? 7 : 30;
+  return now - days * 86_400_000;
+}
+
+export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settlement" | "locLabel" | "rayon">): boolean {
+  if (filters.rayon && filters.rayon !== "any") return true;
+  if (filters.settlement && filters.settlement !== "any") return true;
+  if (filters.oblast && filters.oblast !== "any") return true;
+  if (filters.city && filters.city !== "all") return true;
+  if (filters.locLabel) return true;
+  return false;
+}
+
+/** «Рядом» is the phone. A district or map pin in locLat is not a shortcut. */
+export function nearDecision(filters: Pick<Filters, "scope" | "nearLat">): "keep" | "locate" {
+  if (filters.scope === "near" && filters.nearLat != null) return "keep";
+  return "locate";
+}
+
+export function nearPatch(res: { lat: number; lng: number }): Pick<Filters, "nearLat" | "nearLng" | "scope"> {
+  return { nearLat: res.lat, nearLng: res.lng, scope: "near" };
+}
+
+/** A map point, district chip, search hit, or deep link is «Мой район». */
+export function mapPointFilters(patch: {
+  section: Filters["section"];
+  autoType?: Filters["autoType"];
+  locLat: number | null;
+  locLng: number | null;
+  locLabel: string | null;
+}): Partial<Filters> {
+  return { ...patch, scope: "area" };
+}
+
+export function clearMapPoint(filters: Filters): Partial<Filters> {
+  const next = { ...filters, locLat: null, locLng: null, locLabel: null };
+  return {
+    locLat: null,
+    locLng: null,
+    locLabel: null,
+    scope: hasPlaceFilter(next) ? "area" : "all",
+  };
+}
+
+/** Old saved filters have no scope. A phone fix → near; a picked pin or place → area; otherwise all. An explicit scope is kept. */
+export function scopeForSaved(filters: {
+  scope?: string | null;
+  locLat?: number | null;
+  locLng?: number | null;
+  nearLat?: number | null;
+  nearLng?: number | null;
+  locLabel?: string | null;
+  settlement?: string | null;
+  city?: string | null;
+  oblast?: string | null;
+  rayon?: string | null;
+}): "near" | "area" | "all" {
+  if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
+  if (filters.nearLat != null) return "near";
+  if (filters.locLat != null) return "area";
+  if (
+    (filters.rayon && filters.rayon !== "any") ||
+    (filters.settlement && filters.settlement !== "any") ||
+    filters.locLabel ||
+    (filters.city && filters.city !== "all") ||
+    (filters.oblast && filters.oblast !== "any")
+  ) {
+    return "area";
+  }
+  return "all";
+}
+
+/**
+ * A point product also belongs to the matching browse section, not only «Магазины»:
+ * farm animals → «Животные» (farm), farm plants → «Животные» (plants), building goods → «Стройка».
+ */
+export function shopItemAlsoIn(item: Pick<Listing, "section" | "shopId" | "category">): {
+  section: Listing["section"];
+  animalGroup?: Listing["animalGroup"];
+} | null {
+  if (item.section !== "shops" || !item.shopId) return null;
+  const cat = item.category ?? "";
+  if (cat === "farm" || cat === "farm-animals") return { section: "animals", animalGroup: "farm" };
+  if (cat === "farm-plants") return { section: "animals", animalGroup: "plants" };
+  if (cat === "construction" || cat.startsWith("build-")) return { section: "construction" };
+  return null;
+}
+
 function placeMatches(item: Listing, filters: Filters, city: string): boolean {
+  // No place chosen («Кыргызстан, область, район»): the whole country, not the last remembered city.
+  if (!hasPlaceFilter(filters)) return true;
+  if (filters.rayon && filters.rayon !== "any") {
+    const area = adminAreaById(filters.rayon);
+    if (area) return adminAreaMatchesListing(area, item);
+  }
   if (filters.settlement && filters.settlement !== "any") return item.settlement === filters.settlement;
   if (filters.aiylOnly) return isAiylListing(item);
   const cityKey = filters.city !== "all" ? filters.city : city;
   if (cityKey && cityKey !== "all") return item.city === cityKey;
-  if (filters.oblast && filters.oblast !== "any") return oblastOfListing(item) === filters.oblast;
+  if (filters.oblast && filters.oblast !== "any") return listingInOblast(item, filters.oblast);
   return true;
 }
 
 export function applyFilters(list: Listing[], filters: Filters, city: string): Listing[] {
   let out = list.filter((item) => {
-    if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
-    if (!placeMatches(item, filters, city)) return false;
+    if (item.underReview) return false;
+    if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
+    if (filters.scope === "near") {
+      if (filters.nearLat == null || filters.nearLng == null || !hasCoords(item)) return false;
+      if (haversineKm(filters.nearLat, filters.nearLng, item.lat, item.lng) > nearRadiusKm()) return false;
+    } else if (filters.scope !== "all") {
+      if (!placeMatches(item, filters, city)) return false;
+    }
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";
       if (item.section !== want) return false;
-    } else if (filters.section && item.section !== filters.section) {
+    } else if (filters.section && item.section !== filters.section && shopItemAlsoIn(item)?.section !== filters.section) {
       return false;
     }
     if (filters.category && filters.category !== "all") {
-      if (
+      if (filters.section === "services") {
+        if (!serviceCategoryMatches(item.category, filters.category)) return false;
+      } else if (
         (filters.section === "secondhand" ||
-          filters.section === "services" ||
           filters.section === "construction" ||
           filters.section === "restaurants") &&
         item.category !== filters.category
@@ -148,7 +316,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (item.techModel !== filters.techModel) return false;
     }
     if (filters.section === "animals") {
-      if (filters.animalGroup && filters.animalGroup !== "any" && item.animalGroup !== filters.animalGroup) {
+      const group = item.animalGroup ?? shopItemAlsoIn(item)?.animalGroup;
+      if (filters.animalGroup && filters.animalGroup !== "any" && group !== filters.animalGroup) {
         return false;
       }
       if (filters.animalKind && filters.animalKind !== "any" && item.animalKind !== filters.animalKind) {
@@ -164,24 +333,17 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
     if (filters.sellerKind === "private" && item.sellerType === "dealer") return false;
     if (filters.sellerKind === "dealer" && item.sellerType !== "dealer") return false;
-    if (filters.priceDroppedOnly && !hasPriceDrop(item)) return false;
-    if (filters.videoOnly && !isSpokenListing(item)) return false;
+    if (filters.priceDroppedOnly && !isPromoListing(item)) return false;
+    if (filters.postedWithin && filters.postedWithin !== "any") {
+      const at = listingCreatedMs(item);
+      if (at == null || at < postedSince(filters.postedWithin)) return false;
+    }
+    if (filters.videoOnly && !isVideoListing(item)) return false;
     if (filters.section === "rent" && filters.dealType && filters.dealType !== "any") {
       if (item.dealKind !== filters.dealType) return false;
     }
     if (filters.section === "rent" && filters.stockType && filters.stockType !== "any") {
       if (item.dealKind !== "buy" || item.stockKind !== filters.stockType) return false;
-    }
-    if (
-      !filters.aiylOnly &&
-      (!filters.settlement || filters.settlement === "any") &&
-      (filters.section === "rent" || filters.section === "restaurants") &&
-      filters.locLng != null &&
-      filters.locLat != null &&
-      item.lng != null &&
-      item.lat != null
-    ) {
-      if (haversineKm(filters.locLat, filters.locLng, item.lat, item.lng) > 6) return false;
     }
     const rentFilters = filters.section === "rent";
     if (rentFilters && !listingMatchesRealty(item, filters)) return false;
@@ -228,11 +390,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     }
     if (filters.priceMin != null && item.price < filters.priceMin) return false;
     if (filters.priceMax != null && item.price > filters.priceMax) return false;
-    if (filters.query.trim()) {
-      const q = filters.query.trim().toLowerCase();
-      const blob = `${item.title} ${item.titleEn} ${item.titleKy} ${item.description}`.toLowerCase();
-      if (!blob.includes(q)) return false;
-    }
+    if (filters.query.trim() && !listingTextHit(item, filters.query)) return false;
     return true;
   });
 

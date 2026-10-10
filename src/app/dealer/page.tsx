@@ -6,6 +6,7 @@ import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
@@ -43,8 +44,9 @@ export default function DealerCabinetPage() {
   if (!hasRole(user, "dealer") || !profile) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <p className="text-muted">{t.applyDealer}</p>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/selling" />
+          <p className="mt-4 text-muted">{t.applyDealer}</p>
           <button type="button" onClick={() => router.push("/partner?kind=dealer")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.partnerApplyTitle}
           </button>

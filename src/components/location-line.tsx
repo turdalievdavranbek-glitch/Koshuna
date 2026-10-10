@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { nearRadiusKm } from "@/lib/geo";
 import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
+import type { Filters, Lang } from "@/lib/types";
 import { IconChevronDown, IconPin } from "@/components/icons";
 
 const BACK_KEY = "koshuna-location-back";
@@ -24,19 +26,27 @@ export function locationPickerBack(): string {
   }
 }
 
+export function shownLocationLabel(
+  lang: Lang,
+  city: string,
+  filters: Filters,
+  t: {
+    cities: Record<string, string>;
+    oblasts: Record<string, string>;
+    locationRefine: string;
+    locationCountryHint: string;
+    nearLabel: (km: number) => string;
+  },
+) {
+  if (filters.scope === "near") return t.nearLabel(nearRadiusKm());
+  return locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint);
+}
+
 export function LocationLine({ className }: { className?: string }) {
   const { t, lang, city, filters } = useApp();
   const router = useRouter();
   const path = usePathname();
-  const label = locationLineLabel(
-    lang,
-    city,
-    filters,
-    t.cities,
-    t.oblasts,
-    t.locationRefine,
-    t.locationCountryHint,
-  );
+  const label = shownLocationLabel(lang, city, filters, t);
 
   return (
     <button

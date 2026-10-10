@@ -1,17 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { areasOfOblast, adminAreaLabel } from "@/lib/admin-areas";
 import { settlementLabel } from "@/lib/data";
-import { districtLabel } from "@/lib/geo";
 import {
   OBLASTS,
   applyPlace,
-  citiesOfOblast,
-  districtsOfOblast,
   isOblastId,
-  placeCity,
-  placeDistrict,
+  placeAdminArea,
   placeFromGeo,
   placeOblast,
   placeSettlement,
@@ -20,7 +17,11 @@ import {
   settlementsOfOblast,
   type PlacePatch,
 } from "@/lib/places";
+import { locate, type LocateError } from "@/lib/locate";
+import { goBack } from "@/lib/go-back";
 import { useApp } from "@/lib/store";
+import type { Filters } from "@/lib/types";
+import { GeoError } from "@/components/geo-error";
 import { IconBack, IconLocate, IconSearch } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { locationPickerBack } from "@/components/location-line";
@@ -41,6 +42,7 @@ function Rows({
           <button
             key={row.id}
             type="button"
+            data-testid={`location-row-${row.id}`}
             onClick={row.onClick}
             className={`flex min-h-[54px] w-full items-center justify-between px-4 py-2.5 text-left ${
               i < rows.length - 1 ? "border-b border-line" : ""
@@ -64,10 +66,18 @@ export default function LocationPage() {
   const router = useRouter();
   const { t, lang, setCity, setFilters } = useApp();
   const [query, setQuery] = useState("");
-  const [geo, setGeo] = useState<"idle" | "busy" | "fail">("idle");
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoError, setGeoError] = useState<LocateError | null>(null);
+  const [markList, setMarkList] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const pick = (next: PlacePatch) => {
+    const scope: Filters["scope"] =
+      next.city === "all" && next.oblast === "any" && (!next.settlement || next.settlement === "any") && !next.locLabel
+        ? "all"
+        : "area";
     applyPlace(setCity, setFilters, next);
+    setFilters({ scope });
     router.replace(locationPickerBack());
   };
 
@@ -76,32 +86,37 @@ export default function LocationPage() {
     [query, lang, t.cities, t.oblasts],
   );
 
-  const locate = () => {
-    if (!navigator.geolocation) {
-      setGeo("fail");
+  const locateHere = async () => {
+    if (geoBusy) return;
+    setGeoBusy(true);
+    setGeoError(null);
+    const res = await locate();
+    setGeoBusy(false);
+    if (!res.ok) {
+      setGeoError(res.error);
       return;
     }
-    setGeo("busy");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        pick(placeFromGeo(pos.coords.latitude, pos.coords.longitude, lang));
-      },
-      () => setGeo("fail"),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 },
-    );
+    pick(placeFromGeo(res.lat, res.lng, lang));
   };
 
-  const drill = oblast && isOblastId(oblast) ? oblast : null;
-  const cities = drill ? citiesOfOblast(drill) : [];
-  const districts = drill ? districtsOfOblast(drill) : [];
-  const settlements = drill ? settlementsOfOblast(drill) : [];
+  const showList = () => {
+    setMarkList(true);
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const drill = oblast === "osh" ? "osh-oblast" : oblast && isOblastId(oblast) ? oblast : null;
+  const areas = drill ? areasOfOblast(drill) : { districts: [], cities: [] };
+  const leadCity = drill === "osh-oblast" ? areas.cities.find((area) => area.cityId === "osh") : undefined;
+  const otherCities = leadCity ? areas.cities.filter((area) => area.id !== leadCity.id) : areas.cities;
+  const citySettlementIds = new Set(areas.cities.map((area) => area.settlementId).filter(Boolean));
+  const settlements = drill ? settlementsOfOblast(drill).filter((item) => !citySettlementIds.has(item.id)) : [];
 
   return (
     <PhoneShell>
       <div className="flex items-center justify-between px-5 pb-2 pt-1">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
           <IconBack size={16} color="#17140F" />
@@ -126,8 +141,8 @@ export default function LocationPage() {
         {!drill && !query.trim() ? (
           <button
             type="button"
-            onClick={locate}
-            disabled={geo === "busy"}
+            onClick={() => void locateHere()}
+            disabled={geoBusy}
             className="mb-4 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-tint">
@@ -136,11 +151,16 @@ export default function LocationPage() {
             <span className="flex-1">
               <span className="block text-[15px] font-semibold text-ink">{t.locationGeo}</span>
               <span className="mt-0.5 block text-[12px] text-muted">
-                {geo === "busy" ? t.locationGeoBusy : geo === "fail" ? t.locationGeoFail : t.locationGeoHint}
+                {geoBusy ? t.locationGeoBusy : t.locationGeoHint}
               </span>
             </span>
             <span className="text-[18px] text-muted-2">›</span>
           </button>
+        ) : null}
+        {geoError && !drill && !query.trim() ? (
+          <div className="mb-4">
+            <GeoError error={geoError} onRetry={() => void locateHere()} onManual={showList} />
+          </div>
         ) : null}
 
         {query.trim() ? (
@@ -164,6 +184,15 @@ export default function LocationPage() {
           <div className="flex flex-col gap-4">
             <Rows
               rows={[
+                ...(leadCity
+                  ? [
+                      {
+                        id: leadCity.id,
+                        label: adminAreaLabel(leadCity, lang),
+                        onClick: () => pick(placeAdminArea(leadCity, lang)),
+                      },
+                    ]
+                  : []),
                 {
                   id: "all-oblast",
                   label: t.oblasts[drill],
@@ -173,19 +202,19 @@ export default function LocationPage() {
               ]}
             />
             <Rows
-              title={t.city}
-              rows={cities.map((id) => ({
-                id,
-                label: t.cities[id],
-                onClick: () => pick(placeCity(id)),
+              title={t.locationDistricts}
+              rows={areas.districts.map((area) => ({
+                id: area.id,
+                label: adminAreaLabel(area, lang),
+                onClick: () => pick(placeAdminArea(area, lang)),
               }))}
             />
             <Rows
-              title={t.locationDistricts}
-              rows={districts.map((d) => ({
-                id: d.id,
-                label: districtLabel(d, lang),
-                onClick: () => pick(placeDistrict(d, lang)),
+              title={t.city}
+              rows={otherCities.map((area) => ({
+                id: area.id,
+                label: adminAreaLabel(area, lang),
+                onClick: () => pick(placeAdminArea(area, lang)),
               }))}
             />
             <Rows
@@ -209,21 +238,23 @@ export default function LocationPage() {
                 },
               ]}
             />
-            <Rows
-              title={t.region}
-              rows={OBLASTS.map((id) => ({
-                id,
-                label: t.oblasts[id],
-                onClick: () => router.push(`/location/${id}`),
-              }))}
-            />
+            <div ref={listRef} className={markList ? "rounded-[18px] ring-2 ring-accent" : ""}>
+              <Rows
+                title={t.region}
+                rows={OBLASTS.map((id) => ({
+                  id,
+                  label: t.oblasts[id],
+                  onClick: () => router.push(`/location/${id}`),
+                }))}
+              />
+            </div>
             <button
               type="button"
               onClick={() => router.push("/map")}
               className="flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
             >
               <span>
-                <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+                <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
                 <span className="mt-0.5 block text-[15px] font-semibold text-ink">{t.pickOnMap}</span>
               </span>
               <span className="text-[18px] text-muted-2">›</span>

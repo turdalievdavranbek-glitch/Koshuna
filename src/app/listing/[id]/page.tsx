@@ -1,14 +1,19 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api/client";
+import { isDbUserId, phoneDigits } from "@/lib/phone";
 import { formatSom, ownerById } from "@/lib/data";
-import { formatStayRange, nightsBetween } from "@/lib/dates";
+import { FEATURES } from "@/lib/features";
+import { nightsBetween } from "@/lib/dates";
 import { goLookKind, listingHasPrice, similarListings } from "@/lib/deal";
 import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/i18n";
-import { familyShareText, shareListingLink } from "@/lib/share";
+import { telegramLink } from "@/lib/telegram-username";
 import { useApp } from "@/lib/store";
-import { IconBack, IconChat, IconHeart, IconPhone, IconPin, IconShare, IconTg, IconWa } from "@/components/icons";
+import { ScreenBack } from "@/components/back-button";
+import { IconBack, IconChat, IconHeart, IconPin } from "@/components/icons";
+import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
 import { NeighborCard, NeighborMark } from "@/components/neighbor-seal";
@@ -18,26 +23,108 @@ import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
 import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listing";
+import { HoldRequest } from "@/components/hold-request";
+import { StillActual } from "@/components/still-actual";
 import { MeetDealBlock } from "@/components/meet-deal";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
-import { ShareToSocial } from "@/components/share-to-social";
 import { ListingSocial } from "@/components/listing-social";
+import { ShareButton } from "@/components/share-button";
+import { ListingContactRow } from "@/components/listing-contact-row";
+import { BlockAuthorButton, BlockedAuthorNotice } from "@/components/block-author";
+import { PlayBanner } from "@/components/play-banner";
+import { ServiceFacts } from "@/components/service-facts";
 import { HonestyCard } from "@/components/honesty-card";
+import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
+import { ListingVideoViewer } from "@/components/listing-video-viewer";
+import { reportListingView } from "@/lib/listing-view";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
+import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { GisOnMapCard } from "@/components/gis-on-map";
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, ensureThread, filters, setFilters, addMessage, elderMode, markViewed, shops, duplicateListingToDraft, dealerProfiles } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
+  const [viewsNow, setViewsNow] = useState<number | null>(null);
+  const viewId = listing && listing.status !== "hidden" && !listing.id.startsWith("demo") ? listing.id : null;
+  useEffect(() => {
+    if (!viewId) return;
+    let live = true;
+    void reportListingView(viewId).then((n) => {
+      if (live && n != null) setViewsNow(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, [viewId]);
+  // Opening a video listing starts the full-screen reels player once; closing it shows the details.
+  const autoVideo = useRef<string | null>(null);
+  const videoId = listing && isVideoListing(listing) && listing.videoUrl ? listing.id : null;
+  useEffect(() => {
+    if (!videoId || autoVideo.current === videoId) return;
+    autoVideo.current = videoId;
+    // Coming from /reels the person already watched it and asked for the details.
+    if (new URLSearchParams(window.location.search).get("from") === "reels") return;
+    setVideoOpen(true);
+  }, [videoId]);
   const [photo, setPhoto] = useState(0);
+  const [videoOpen, setVideoOpen] = useState(false);
+  // Phone videos are mostly vertical; a landscape clip switches the box back to a short one.
+  const [videoTall, setVideoTall] = useState(true);
   const [toast, setToast] = useState("");
+  const [sellerPhone, setSellerPhone] = useState<string | null>(null);
+  const [sellerTelegram, setSellerTelegram] = useState<string | null>(null);
+  const [remoteBlocked, setRemoteBlocked] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || !listing) {
+      setSellerPhone(null);
+      setSellerTelegram(null);
+      return;
+    }
+    if (!isDbUserId(listing.ownerId) || listing.ownerId === user.id) {
+      setSellerPhone(null);
+      setSellerTelegram(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ phone?: string | null; telegram?: string | null }>(`/api/listings/${encodeURIComponent(listing.id)}/contact`).then((res) => {
+      if (cancel) return;
+      setSellerPhone(res.ok ? res.data?.phone || null : null);
+      setSellerTelegram(res.ok ? res.data?.telegram || null : null);
+    });
+    return () => {
+      cancel = true;
+    };
+    // Refetch only when the listing or the signed-in user changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, listing?.id, listing?.ownerId]);
+
+  useEffect(() => {
+    if (!user || !synced) return;
+    const raw = recallListing(id);
+    if (raw) {
+      setRemoteBlocked(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ listing?: { ownerId?: string } }>(`/api/listings/${encodeURIComponent(id)}`).then((res) => {
+      if (cancel) return;
+      const ownerId = res.data?.listing?.ownerId;
+      setRemoteBlocked(ownerId && isBlocked(ownerId) ? ownerId : null);
+    });
+    return () => {
+      cancel = true;
+    };
+    // Reload when the block list changes. recallListing identity changes every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, synced, id, blockedUserIds]);
 
   useEffect(() => {
     if (listing) markViewed(listing.id);
@@ -45,16 +132,42 @@ export default function ListingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing?.id]);
 
-  if (!listing) {
+  const recalled = recallListing(id);
+  const blockedOwner = user && recalled && isBlocked(recalled.ownerId) ? recalled.ownerId : remoteBlocked;
+  if (blockedOwner && (!recalled || isBlocked(recalled.ownerId))) {
     return (
       <PhoneShell>
-        <div className="p-6">{t.empty}</div>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <BlockedAuthorNotice userId={blockedOwner} />
+        </div>
+      </PhoneShell>
+    );
+  }
+
+  if (!listing && !synced) return null;
+
+  if (!listing || listing.status === "hidden" || (listing.underReview && listing.ownerId !== user?.id)) {
+    return (
+      <PhoneShell>
+        <div className="p-6">
+          <ScreenBack fallback="/" />
+          <p className="mt-4">{t.empty}</p>
+        </div>
       </PhoneShell>
     );
   }
 
   const owner = ownerById(listing.ownerId);
-  const dealer = listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
+  const dbSeller = isDbUserId(listing.ownerId) && listing.ownerId !== user?.id;
+  const showCall = user ? Boolean(sellerPhone) : dbSeller;
+  const showWa = Boolean(user && sellerPhone);
+  const callHref = sellerPhone ? `tel:${sellerPhone}` : "#";
+  // Point item: the point's Telegram, else the seller's own (both come from the contact API; signed-in only, like WhatsApp).
+  const telegramHref = user
+    ? (listing.shopId ? telegramLink(shops.find((item) => item.id === listing.shopId)?.telegramUsername) : null) ?? telegramLink(sellerTelegram)
+    : null;
+  const dealer = FEATURES.dealers && listing.dealerId ? dealerProfiles.find((row) => row.id === listing.dealerId) : undefined;
   const title = listingTitle(listing, lang);
   const gate = (path: string) => {
     if (!user) {
@@ -66,14 +179,18 @@ export default function ListingPage() {
   };
 
   const onFav = () => {
-    if (!gate(`/listing/${listing.id}`)) return;
     toggleFav(listing.id);
   };
 
-  const onChat = () => {
-    if (!gate(`/chat/${listing.id}`)) return;
-    const tid = ensureThread(listing.id);
-    router.push(`/chat/${tid}`);
+  const onWrite = () => {
+    const path = `/chat/open/${listing.id}`;
+    if (!gate(path)) return;
+    if (!isDbUserId(listing.ownerId)) {
+      setToast(t.chatNoSeller);
+      setTimeout(() => setToast(""), 1800);
+      return;
+    }
+    router.push(path);
   };
 
   const similar = similarListings(listing, allListings);
@@ -82,7 +199,7 @@ export default function ListingPage() {
   const reserved = listing.status === "reserved";
   const isStay = listing.section === "stays" || listing.dealKind === "short";
   const personal = showsPersonalNeighborBlocks(listing);
-  const look = personal ? goLookKind(listing) : "none";
+  const look = FEATURES.goLookMeet && personal ? goLookKind(listing) : "none";
   const nights = filters.checkIn && filters.checkOut ? nightsBetween(filters.checkIn, filters.checkOut) : 0;
   const stayTotal = nights ? listing.price * nights : 0;
 
@@ -92,45 +209,46 @@ export default function ListingPage() {
       setTimeout(() => setToast(""), 1800);
       return;
     }
-    if (!gate(`/chat/${listing.id}`)) return;
-    const tid = ensureThread(listing.id);
-    addMessage(
-      tid,
-      t.bookRequest(formatStayRange(filters.checkIn, filters.checkOut, lang), t.nights(nights), formatSom(stayTotal)),
-    );
-    router.push(`/chat/${tid}`);
+    onWrite();
   };
 
   return (
-    <PhoneShell>
-      <div className="sc relative min-h-0 flex-1 overflow-y-auto">
-        <div className="relative bg-ink" style={{ height: isVideoListing(listing) ? 360 : listing.section === "secondhand" ? 300 : 320 }}>
-          <ListingHero listing={listing} photo={photo} title={title} />
+    // Listing page: no tab bar, so «Написать»/«Позвонить» sit at the very bottom under the thumb (also when opened from /reels).
+    <PhoneShell focus>
+      <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
+        <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? (videoTall ? "min(72vh, 620px)" : 240) : listing.section === "secondhand" ? 300 : 320 }}>
+          <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
+          {!isVideoListing(listing) && listing.photos.length > 1 ? (
+            <>
+              <button
+                type="button"
+                aria-label={t.backLeave}
+                onClick={() => setPhoto((index) => (index - 1 + listing.photos.length) % listing.photos.length)}
+                className="absolute top-1/2 left-3 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/94 text-[20px] text-ink desk:flex"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label={t.open}
+                onClick={() => setPhoto((index) => (index + 1) % listing.photos.length)}
+                className="absolute top-1/2 right-3 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/94 text-[20px] text-ink desk:flex"
+              >
+                ›
+              </button>
+            </>
+          ) : null}
           <div className="absolute left-[18px] right-[18px] top-[12px] z-10 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => goBack(router, "/")}
               className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
             >
               <IconBack size={17} color="#17140F" />
             </button>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void shareListingLink(listing.id, title).then((how) => {
-                    if (how === "copied") {
-                      setToast(t.shareCopied);
-                      setTimeout(() => setToast(""), 1800);
-                    }
-                  });
-                }}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
-                aria-label={t.shareCopyLink}
-              >
-                <IconShare size={17} color="#17140F" />
-              </button>
-              {mine ? null : (
+              <ShareButton listing={listing} variant="icon" />
+              {mine || !FEATURES.cart ? null : (
                 <button
                   type="button"
                   onClick={onFav}
@@ -143,11 +261,11 @@ export default function ListingPage() {
           </div>
           {isVideoListing(listing) ? (
             <span className="pointer-events-none absolute bottom-4 right-4">
-              <SellerStarsBadge listing={listing} placed />
+              {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
             </span>
           ) : (
             <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2">
-              <SellerStarsBadge listing={listing} placed />
+              {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
               <span className="rounded-full bg-[rgba(23,20,15,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
                 {photo + 1} / {listing.photos.length}
               </span>
@@ -156,7 +274,7 @@ export default function ListingPage() {
         </div>
 
         {listing.photos.length > 1 && !isVideoListing(listing) ? (
-          <div className="flex gap-2 px-5 pt-3">
+          <div className="flex gap-2 px-5 pt-3 desk:hidden">
             {listing.photos.slice(0, 3).map((src, i) => (
               <button
                 key={src}
@@ -175,8 +293,24 @@ export default function ListingPage() {
             ) : null}
           </div>
         ) : null}
+        {listing.photos.length > 1 && !isVideoListing(listing) ? (
+          <div className="hidden gap-2 px-5 pt-3 desk:col-start-1 desk:row-start-2 desk:flex desk:px-0">
+            {listing.photos.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => setPhoto(i)}
+                className="h-[72px] w-[72px] overflow-hidden rounded-xl"
+                style={{ border: i === photo ? "2px solid #B8452F" : "1px solid #E4DCCE" }}
+              >
+                <Photo src={src} alt="" />
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="px-5 pt-5">
+        <div className="px-5 pt-5 desk:contents">
+          <div className="desk:sticky desk:top-4 desk:z-10 desk:col-start-2 desk:row-start-1 desk:row-end-[-1] desk:self-start desk:rounded-[20px] desk:border desk:border-line desk:bg-surface desk:p-5">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
               {listingChipLabel(listing, t)}
@@ -189,7 +323,7 @@ export default function ListingPage() {
               <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
                 {t.conditions[listing.condition]}
               </span>
-            ) : listing.shopId ? null : (
+            ) : listing.shopId || isDbUserId(listing.ownerId) || !FEATURES.demoMedia ? null : (
               <span className="text-xs text-muted-2">
                 {t.cities[listing.city]} · {t.sample}
               </span>
@@ -202,35 +336,94 @@ export default function ListingPage() {
             {title}
           </h1>
           <ListingStageBanner listing={listing} />
-          <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-            <IconPin size={14} color="#B8452F" />
-            {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
-          </div>
-          {listing.lng != null && listing.lat != null ? (
-            <div className="mt-3">
-              <GisOnMapCard city={listing.city} lat={listing.lat} lng={listing.lng} listingId={listing.id} compact />
-            </div>
+          {listing.underReview ? (
+            <p className="mt-3 rounded-xl bg-[#F6E3D4] px-3 py-2 text-center text-[13px] font-semibold text-ink">{t.underReview}</p>
           ) : null}
           <div className="mt-4">
             <Price listing={listing} large />
           </div>
+          <PriceHonest listing={listing} />
+          <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
+            <IconPin size={14} color="#B8452F" />
+            {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
+            <span className="text-muted-2" data-testid="listing-views">
+              · {viewsNow ?? listing.views ?? 0} {t.views}
+            </span>
+          </div>
+          {mine ? null : (
+            <div className="mt-4">
+              {/* Phones use the sticky bar at the bottom; a second copy here showed two «Написать» buttons. */}
+              <div className="hidden desk:block">
+              <ListingContactRow
+                callHref={callHref}
+                showCall={showCall}
+                showWa={showWa}
+                waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
+                telegramHref={telegramHref}
+                onCallGate={(event) => {
+                  if (!user) {
+                    event.preventDefault();
+                    gate(`/listing/${listing.id}`);
+                  }
+                }}
+                onWrite={() => {
+                  if (isStay) onBook();
+                  else onWrite();
+                }}
+                callLabel={t.callNow}
+                writeLabel={t.write}
+              />
+              </div>
+              {FEATURES.holds ? <HoldRequest listing={listing} onSignUp={onWrite} /> : null}
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            {mine || !FEATURES.cart ? null : (
+              <button
+                type="button"
+                onClick={onFav}
+                className="flex h-[54px] flex-1 items-center justify-center rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
+              >
+                {isFav(listing.id) ? t.cartIn : t.cartAdd}
+              </button>
+            )}
+            <ShareButton listing={listing} />
+          </div>
+          <PlayBanner />
+          </div>
+          <div className="desk:col-start-1 desk:row-start-3 desk:min-w-0">
+          <ServiceFacts listing={listing} />
+          {listing.lng != null && listing.lat != null && listing.serviceMode !== "mobile" ? (
+            <div className="mt-3">
+              <GisOnMapCard city={listing.city} lat={listing.lat} lng={listing.lng} listingId={listing.id} compact />
+            </div>
+          ) : null}
           {listing.shopId
             ? (() => {
                 const shop = shops.find((item) => item.id === listing.shopId);
                 if (!shop) return null;
                 const others = allListings.filter(
-                  (item) => item.shopId === shop.id && item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed",
+                  (item) => item.shopId === shop.id && item.id !== listing.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden",
                 );
                 return (
                   <div className="mt-3 rounded-[16px] border border-line bg-white p-4">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.shopFromListing}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">
+                      {listing.section === "services" ? t.serviceFromCard : t.shopFromListing}
+                    </div>
                     <button type="button" onClick={() => router.push(`/shops/${shop.id}`)} className="mt-1.5 text-left">
                       <div className="font-display text-[17px] font-bold text-ink">{shop.name}</div>
-                      <div className="text-[13px] text-muted">{t.shopToShop} · {t.cities[shop.city]}</div>
+                      <div className="text-[13px] text-muted">
+                        {t.shopToShop} · {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, t.cities[shop.city] || shop.city, lang) : t.cities[shop.city]}
+                      </div>
+                      {shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine) ? (
+                        <div className="text-[12px] text-muted">{shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine)}</div>
+                      ) : null}
                     </button>
                     {others.length ? (
                       <div className="mt-2">
-                        <div className="text-[12px] font-semibold text-muted">{t.shopMoreFrom}</div>
+                        <div className="text-[12px] font-semibold text-muted">
+                          {listing.section === "services" ? t.serviceMoreFrom : t.shopMoreFrom}
+                        </div>
                         {others.slice(0, 4).map((item) => (
                           <button
                             key={item.id}
@@ -247,6 +440,7 @@ export default function ListingPage() {
                 );
               })()
             : null}
+          {mine || listing.ownerId === user?.id ? <StillActual listing={listing} /> : null}
           {mine ? <OwnerListingTools listing={listing} /> : null}
           {mine ? (
             <button
@@ -260,7 +454,7 @@ export default function ListingPage() {
               {t.duplicateListing}
             </button>
           ) : null}
-          {reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
+          {FEATURES.goLookMeet && reserved ? <MeetDealBlock listing={listing} mine={mine} /> : null}
           {personal ? <PayAfterNote listing={listing} /> : null}
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
@@ -271,30 +465,9 @@ export default function ListingPage() {
 
           {personal ? <NeighborCard listing={listing} /> : null}
           {!mine && (listing.sellerType === "realtor" || listing.sellerType === "dealer") ? <ListingLeadForm listing={listing} /> : null}
-          {personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
+          {FEATURES.goLookMeet && personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
           {personal ? <VoiceNote listing={listing} /> : null}
-          <AiylRoad listing={listing} />
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => router.push(`/story/${listing.id}`)}
-              className="h-[48px] rounded-[14px] border border-line bg-white text-[13px] font-semibold text-ink"
-            >
-              {t.storyToIg}
-            </button>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(familyShareText(listing, t, lang))}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex h-[48px] items-center justify-center rounded-[14px] bg-success text-[13px] font-semibold text-white"
-            >
-              {t.showApa}
-            </a>
-          </div>
-          <div className="mt-3 rounded-[18px] border border-line bg-white p-4">
-            <ShareToSocial listing={listing} />
-          </div>
+          {FEATURES.aiyl ? <AiylRoad listing={listing} /> : null}
 
           {listing.rooms != null || listing.area != null ? (
             <div className="mt-5 grid grid-cols-3 gap-2">
@@ -401,15 +574,16 @@ export default function ListingPage() {
             </button>
           ) : null}
 
-          <HonestyCard listing={listing} />
+          {FEATURES.honesty ? <HonestyCard listing={listing} /> : null}
           <ListingSocial listing={listing} />
 
-          {listing.shopId || listing.sellerName || dealer ? (
+          {listing.shopId || listing.sellerName || dealer || isDbUserId(listing.ownerId) ? (
             <button
               type="button"
               onClick={() => {
                 if (listing.shopId) router.push(`/shops/${listing.shopId}`);
                 else if (dealer) router.push(`/dealers/${dealer.slug}`);
+                else if (isDbUserId(listing.ownerId)) router.push(`/owner/${listing.ownerId}`);
               }}
               className="mt-6 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-4 text-left"
             >
@@ -418,8 +592,8 @@ export default function ListingPage() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name}</span>
-                  <SellerStarsBadge listing={listing} placed />
+                  <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name || t.ownerProfile}</span>
+                  {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
                   {mine
@@ -431,6 +605,9 @@ export default function ListingPage() {
               </div>
               {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
               {dealer ? <span className="text-[13px] font-semibold text-accent">{t.dealersTitle}</span> : null}
+              {!listing.shopId && !dealer && isDbUserId(listing.ownerId) ? (
+                <span className="text-[13px] font-semibold text-accent">{t.ownerProfile}</span>
+              ) : null}
             </button>
           ) : owner ? (
             <button
@@ -465,10 +642,12 @@ export default function ListingPage() {
             </button>
           ) : null}
 
-          <div className="mt-3 rounded-[18px] bg-accent-tint p-4">
-            <div className="text-[15px] font-bold text-accent-dark">{t.meetSafe}</div>
+          <div className="mt-3 rounded-[18px] bg-accent-tint p-4" data-testid="listing-safety">
+            <div className="text-[15px] font-bold text-accent-dark">
+              {listing.section === "services" ? t.meetService : t.meetSafe}
+            </div>
             <p className="mt-1.5 text-[13px] leading-[1.5] text-safe">
-              {listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
+              {listing.section === "services" ? t.meetServiceText : listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
             </p>
           </div>
 
@@ -506,11 +685,19 @@ export default function ListingPage() {
           ) : null}
 
           <ReportListing listing={listing} />
-          <div className="h-[120px]" />
+          {!mine && isDbUserId(listing.ownerId) ? (
+            <BlockAuthorButton userId={listing.ownerId} returnPath={`/listing/${listing.id}`} />
+          ) : null}
+          <div className="h-[132px] desk:hidden" />
+          </div>
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pb-[26px] pt-3.5">
+      <div
+        data-testid="listing-contact"
+        className="absolute inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pt-3.5 desk:hidden"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+      >
         {mine ? (
           <>
             <button
@@ -529,111 +716,56 @@ export default function ListingPage() {
               {t.sideDesk}
             </button>
           </>
-        ) : elderMode && !isStay ? (
-          <>
-            <a
-              href={`tel:+996555123456`}
-              onClick={(e) => {
-                if (!user) {
-                  e.preventDefault();
-                  gate(`/listing/${listing.id}`);
-                }
-              }}
-              className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
-            >
-              <IconPhone size={19} color="#F7F3EC" />
-              {t.call}
-            </a>
-            <button
-              type="button"
-              onClick={onChat}
-              className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
-            >
-              <IconChat size={18} color="#FFF7F0" />
-            </button>
-          </>
         ) : (
-          <>
-        <button
-          type="button"
-          onClick={() => {
-            if (off) return;
-            if (reserved) {
-              document.getElementById("meet-deal")?.scrollIntoView({ behavior: "smooth", block: "center" });
-              return;
-            }
-            if (isStay) {
-              onBook();
-              return;
-            }
-            if (look !== "none") {
-              document.getElementById("go-look")?.scrollIntoView({ behavior: "smooth", block: "center" });
-              return;
-            }
-            onChat();
-          }}
-          className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-accent text-base font-semibold text-accent-on"
-        >
-          {off || reserved ? (
-            listing.status === "reserved" ? t.status.reserved : listing.status === "closed" ? t.status.closed : t.status.withdrawn
-          ) : isStay ? (
-            t.bookStay
-          ) : look !== "none" ? (
-            look === "meet" ? t.goMeet : t.goLook
-          ) : (
-            <>
-              <IconChat size={18} color="#FFF7F0" />
-              {listing.section === "secondhand" ? t.writeSeller : t.write}
-            </>
-          )}
-        </button>
-        {!isStay && look !== "none" ? (
-          <button
-            type="button"
-            onClick={onChat}
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-accent"
-          >
-            <IconChat size={18} color="#FFF7F0" />
-          </button>
-        ) : null}
-        <a
-          href={`tel:+996555123456`}
-          onClick={(e) => {
-            if (!user) {
-              e.preventDefault();
-              gate(`/listing/${listing.id}`);
-            }
-          }}
-          className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-ink"
-        >
-          <IconPhone size={19} color="#F7F3EC" />
-        </a>
-        {listing.contact === "telegram" ? (
-          <a
-            href="https://t.me/share"
-            target="_blank"
-            rel="noreferrer"
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-telegram"
-          >
-            <IconTg size={19} color="#F7F3EC" />
-          </a>
-        ) : (
-          <a
-            href="https://wa.me/996555123456"
-            target="_blank"
-            rel="noreferrer"
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-2xl bg-success"
-          >
-            <IconWa size={19} color="#F7F3EC" />
-          </a>
-        )}
-          </>
+          <ListingContactRow
+            withTestIds
+            callHref={callHref}
+            showCall={showCall}
+            showWa={showWa}
+            waHref={`https://wa.me/${phoneDigits(sellerPhone || "")}`}
+            telegramHref={telegramHref}
+            onCallGate={(event) => {
+              if (!user) {
+                event.preventDefault();
+                gate(`/listing/${listing.id}`);
+              }
+            }}
+            onWrite={() => {
+              if (reserved && FEATURES.goLookMeet) {
+                document.getElementById("meet-deal")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+              }
+              if (look !== "none") {
+                document.getElementById("go-look")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+              }
+              if (isStay) onBook();
+              else onWrite();
+            }}
+            callLabel={t.callNow}
+            writeLabel={t.write}
+          />
         )}
       </div>
       {toast ? (
         <div className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-screen">
           {toast}
         </div>
+      ) : null}
+      {videoOpen && isVideoListing(listing) && listing.videoUrl ? (
+        <ListingVideoViewer
+          listing={listing}
+          title={title}
+          onClose={() => setVideoOpen(false)}
+          onWrite={
+            mine
+              ? undefined
+              : () => {
+                  setVideoOpen(false);
+                  onWrite();
+                }
+          }
+        />
       ) : null}
     </PhoneShell>
   );

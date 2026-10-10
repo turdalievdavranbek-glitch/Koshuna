@@ -158,7 +158,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     if (!needUser() || !deal.offer) return;
     const when = offerWhen(deal.offer, lang);
     const place = `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`;
-    const title = `Koshuna · ${listingTitle(listing, lang)}`;
+    const title = `Коңшу · ${listingTitle(listing, lang)}`;
     const details = `${when} · ${place}`;
     const { start, end } = meetEventTimes(deal.offer);
     downloadMeetIcs(
@@ -181,7 +181,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const cal =
     deal.phase === "agreed" && deal.offer
       ? googleCalUrl({
-          title: `Koshuna · ${listingTitle(listing, lang)}`,
+          title: `Коңшу · ${listingTitle(listing, lang)}`,
           place: `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`,
           details: `${offerWhen(deal.offer, lang)} · ${t.meetupSpots[deal.offer.spot]}`,
           ...meetEventTimes(deal.offer),

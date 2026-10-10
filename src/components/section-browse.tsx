@@ -1,15 +1,18 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CONSTRUCTION_CATEGORIES } from "@/lib/data";
+import { FEATURES, isSectionVisible } from "@/lib/features";
 import { realtyIsLiving } from "@/lib/realty";
 import { formatStayDay, formatStayRange } from "@/lib/dates";
 import { searchPlaceholder } from "@/lib/i18n";
 import { isSectionId, patchForSection } from "@/lib/section";
 import { BRANCH_ALL, parseBranch, resolveBranch, sectionFeedReset, sectionHref } from "@/lib/section-tree";
+import { makeListView } from "@/lib/transport";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack, IconSearch, IconSliders } from "@/components/icons";
 import { DealTypeChips } from "@/components/deal-chips";
 import { LocationLine } from "@/components/location-line";
@@ -17,6 +20,9 @@ import { RealtyChips } from "@/components/realty-chips";
 import { SellerKindChips } from "@/components/seller-chips";
 import { VacancyChips } from "@/components/vacancy-chips";
 import { StayCalendar } from "@/components/stay-calendar";
+import { EmptyState } from "@/components/empty-state";
+import { NearEmptyState, ScopeChips } from "@/components/scope-chips";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { Chip, useFiltered } from "@/components/ui";
 import { LayoutSwitch, ListingGrid } from "@/components/listing-grid";
@@ -32,7 +38,7 @@ function FeedExtras({ id }: { id: SectionId }) {
         <DealTypeChips labeled />
         <RealtyChips list />
         <SellerKindChips />
-        {filters.realtyKind === "newbuild" || filters.stockType === "newbuild" || filters.realtyGroup === "apartments" ? (
+        {FEATURES.complexes && (filters.realtyKind === "newbuild" || filters.stockType === "newbuild" || filters.realtyGroup === "apartments") ? (
           <button
             type="button"
             onClick={() => router.push("/complexes")}
@@ -51,7 +57,7 @@ function FeedExtras({ id }: { id: SectionId }) {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -108,7 +114,7 @@ function FeedExtras({ id }: { id: SectionId }) {
             ))}
           </FeedFilterBar>
         ) : null}
-        <button
+        {FEATURES.dealers ? <button
           type="button"
           onClick={() => router.push("/dealers")}
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
@@ -118,7 +124,7 @@ function FeedExtras({ id }: { id: SectionId }) {
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">{t.dealersTitle}</span>
           </span>
           <span className="text-[13px] font-semibold text-accent">›</span>
-        </button>
+        </button> : null}
       </div>
     );
   }
@@ -146,7 +152,7 @@ function FeedExtras({ id }: { id: SectionId }) {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -230,10 +236,14 @@ function BranchList({
 
 export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   const router = useRouter();
-  const { t, lang, filters, setFilters, setPendingPath, toggleFav } = useApp();
+  const { t, lang, filters, setFilters, setPendingPath, toggleFav, allListings, online, synced, resync } = useApp();
   const listings = useFiltered();
   const state = resolveBranch(id, path);
   const pathKey = path.join("/");
+  const [makesOpen, setMakesOpen] = useState(false);
+  useEffect(() => {
+    setMakesOpen(false);
+  }, [pathKey]);
 
   useEffect(() => {
     if (!state) return;
@@ -245,7 +255,10 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
   if (!state) {
     return (
       <PhoneShell tab>
-        <div className="p-6">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <div className="mt-4">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }
@@ -271,15 +284,37 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
     router.push(sectionHref(id));
   };
 
-  const rows = state.options.map((row) => ({
+  const makeStep = (id === "cars" || id === "car-rental") && path.length === 2 && path[1] !== BRANCH_ALL;
+  const makeView = makeStep
+    ? makeListView(
+        state.options.map((row) => row.id),
+        { expanded: makesOpen, selected: filters.carMake, labelOf: (mid) => t.carMakes[mid] ?? mid },
+      )
+    : null;
+  const optionById = new Map(state.options.map((row) => [row.id, row]));
+  const shown = makeView
+    ? makeView.ids.flatMap((mid) => {
+        const row = optionById.get(mid);
+        return row ? [row] : [];
+      })
+    : state.options;
+  const rows = shown.map((row) => ({
     id: row.id,
     label: row.label(t),
-    onClick: () => router.push(sectionHref(id, [...path, row.id])),
+    onClick: () => router.push(row.href ?? sectionHref(id, [...path, row.id])),
   }));
+  if (makeView?.showAll) {
+    rows.push({
+      id: "all-makes",
+      label: t.allMakes(makeView.total),
+      onClick: () => setMakesOpen(true),
+    });
+  }
 
   if (state.isPicker) {
     return (
       <PhoneShell tab>
+        <BrowseColumns>
         <div className="flex min-h-0 flex-1 flex-col bg-screen">
           <div className="flex items-center justify-between px-5 pb-2 pt-1">
             <button
@@ -294,9 +329,12 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             </h1>
             <span className="w-9" />
           </div>
-          <LocationLine className="px-5 pb-2" />
+          <LocationLine className="px-5" />
+          <div className="px-5 pb-2 pt-2">
+            <ScopeChips />
+          </div>
           <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-            {id === "rent" && path[0] === "apartments" ? (
+            {FEATURES.complexes && id === "rent" && path[0] === "apartments" ? (
               <button
                 type="button"
                 onClick={() => router.push("/complexes")}
@@ -309,7 +347,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
                 <span className="text-muted-2">›</span>
               </button>
             ) : null}
-            {id === "cars" && !path.length ? (
+            {FEATURES.dealers && id === "cars" && !path.length ? (
               <button
                 type="button"
                 onClick={() => router.push("/dealers")}
@@ -330,12 +368,14 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             />
           </div>
         </div>
+        </BrowseColumns>
       </PhoneShell>
     );
   }
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <header className="shrink-0 bg-screen px-5 pb-3.5 pt-1.5">
         <div className="flex items-center justify-between">
           <button
@@ -347,12 +387,15 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             <IconBack size={16} color="#17140F" />
           </button>
           <h1 className="max-w-[240px] truncate font-display text-lg font-bold text-ink">{state.title(t)}</h1>
-          <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters}>
+          <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters} className="desk:hidden">
             <IconSliders size={17} color="#17140F" />
           </button>
         </div>
         <div className="mt-1">
           <LocationLine />
+        </div>
+        <div className="mt-2">
+          <ScopeChips />
         </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
           <IconSearch size={17} color="#A79C8C" />
@@ -393,17 +436,20 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
         />
 
         {listings.length === 0 ? (
-          <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
-            <div className="text-[15px] font-semibold text-ink">{t.empty}</div>
-            <p className="mt-2 text-[13px] text-muted">{t.emptyHint}</p>
-            <button type="button" onClick={reset} className="mt-4 text-[13px] font-semibold text-accent">
-              {t.resetFilters}
-            </button>
-          </div>
+          !synced ? null : filters.scope === "near" ? (
+            <NearEmptyState />
+          ) : !online && allListings.every((item) => item.section !== id) ? (
+            <EmptyState variant="offline" onRetry={() => resync()} />
+          ) : allListings.every((item) => item.section !== id) ? (
+            <EmptyState variant="first" />
+          ) : (
+            <EmptyState variant="nothing" onReset={reset} />
+          )
         ) : (
-          <ListingGrid listings={listings} onFav={onFav} />
+          <ListingGrid listings={listings} onFav={onFav} columns="browse" />
         )}
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }
@@ -423,15 +469,20 @@ export function SectionRoutePage() {
   if (id === "car-rental") {
     return (
       <PhoneShell tab>
-        <div className="p-6" />
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+        </div>
       </PhoneShell>
     );
   }
 
-  if (!isSectionId(id)) {
+  if (!isSectionId(id) || !isSectionVisible(id)) {
     return (
       <PhoneShell tab>
-        <div className="p-6">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/" />
+          <div className="mt-4">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }

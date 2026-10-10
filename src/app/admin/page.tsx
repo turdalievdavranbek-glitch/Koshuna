@@ -1,14 +1,58 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api/client";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
+
+type ModerationItem = {
+  kind: "listing" | "shop" | "comment";
+  id: string;
+  title: string;
+  label: "listing" | "point" | "service" | "comment";
+  listingId?: string;
+  underReview: boolean;
+  reportCount: number;
+  reasons: string[];
+  ownerId: string;
+  ownerName: string;
+};
 
 export default function AdminPage() {
   const { t, user, applications, complexes, developerProfiles, realtorProfiles, dealerProfiles, reviewApplication, publishComplex, toggleDeveloperVerified, toggleRealtorVerified, toggleDealerVerified, setPendingPath } = useApp();
   const router = useRouter();
+  const [items, setItems] = useState<ModerationItem[] | null>(null);
+  const [busy, setBusy] = useState("");
+
+  useEffect(() => {
+    if (!user || !isAdminUser(user)) return;
+    let cancelled = false;
+    void api<{ items: ModerationItem[] }>("/api/admin/moderation").then((res) => {
+      if (cancelled) return;
+      setItems(res.ok ? res.data?.items ?? [] : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const act = (item: ModerationItem, action: "delete" | "keep" | "ban") => {
+    const key = `${action}:${item.kind}:${item.id}`;
+    setBusy(key);
+    void api("/api/admin/moderation", { method: "POST", json: { action, kind: item.kind, id: item.id } }).then((res) => {
+      setBusy("");
+      if (!res.ok) return;
+      setItems((rows) => {
+        const list = rows ?? [];
+        if (action === "ban") return list.filter((row) => row.ownerId !== item.ownerId);
+        return list.filter((row) => !(row.kind === item.kind && row.id === item.id));
+      });
+    });
+  };
 
   if (!user) {
     setPendingPath("/admin");
@@ -18,7 +62,10 @@ export default function AdminPage() {
   if (!isAdminUser(user)) {
     return (
       <PhoneShell>
-        <div className="p-5 text-muted">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/selling" />
+          <div className="mt-4 text-muted">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }
@@ -38,8 +85,46 @@ export default function AdminPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <div className="font-display text-[19px] font-bold text-ink">{t.partnerApplyTitle}</div>
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
+          {items === null ? null : items.length === 0 ? (
+            <p className="text-[13px] text-muted">{t.moderationEmpty}</p>
+          ) : items.map((item) => {
+            const kind =
+              item.label === "comment"
+                ? t.moderationKindComment
+                : item.label === "service"
+                  ? t.moderationKindService
+                  : item.label === "point"
+                    ? t.moderationKindPoint
+                    : t.moderationKindListing;
+            const reasons = item.reasons.map((reason) => t.reportReasons[reason] || reason).join(" · ");
+            return (
+              <div key={`${item.kind}:${item.id}`} className="rounded-[16px] border border-line bg-white p-3.5">
+                <div className="text-[11px] font-bold uppercase text-accent-dark">{kind}</div>
+                <div className="mt-1 whitespace-pre-wrap break-words text-[15px] font-semibold text-ink">{item.title}</div>
+                {item.kind === "comment" && item.listingId ? (
+                  <a href={`/listing/${item.listingId}`} className="text-[12px] font-semibold text-accent">
+                    {t.open}
+                  </a>
+                ) : null}
+                {item.ownerName ? <div className="text-[13px] text-muted">{item.ownerName}</div> : null}
+                <div className="mt-1 text-[13px] text-muted">
+                  {t.moderationCount(item.reportCount)}
+                  {item.underReview ? ` · ${t.underReview}` : ""}
+                </div>
+                {reasons ? <div className="mt-1 text-[13px] leading-[1.4] text-ink">{reasons}</div> : null}
+                <div className="mt-2 flex flex-col gap-2">
+                  <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "delete")} className="h-10 w-full rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">{t.cardDelete}</button>
+                  <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "keep")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40">{t.moderationKeep}</button>
+                  <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "ban")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">{t.blockAuthor}</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 font-display text-[19px] font-bold text-ink">{t.partnerApplyTitle}</div>
+        <div className="mt-3 flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {pending.length ? pending.map((row) => (
             <div key={row.id} className="rounded-[16px] border border-line bg-white p-3.5">
               <div className="text-[11px] font-bold uppercase text-accent-dark">
@@ -56,7 +141,7 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 font-display text-[19px] font-bold text-ink">{t.complexesTitle}</div>
-        <div className="mt-3 flex flex-col gap-2.5">
+        <div className="mt-3 flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {unpublished.map((row) => (
             <div key={row.id} className="rounded-[16px] border border-line bg-white p-3.5">
               <div className="text-[15px] font-semibold text-ink">{row.name}</div>

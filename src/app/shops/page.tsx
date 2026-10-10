@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { applyShopFilters, publicShops, SHOP_CATEGORIES, shopKindsOf, shopsOf, type ShopCategory } from "@/lib/shops";
 import { useApp } from "@/lib/store";
+import { EmptyState } from "@/components/empty-state";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { ShopRows } from "@/components/shop-rows";
 import { ListingGrid } from "@/components/listing-grid";
@@ -33,7 +35,8 @@ export default function ShopsPage() {
     const q = query.trim().toLowerCase();
     return allListings.filter((item) => {
       if (item.section !== "shops") return false;
-      if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed") return false;
+      if (item.underReview) return false;
+      if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
       if (item.shopId && !shopIds.has(item.shopId)) return false;
       if (q && !`${item.title} ${item.description}`.toLowerCase().includes(q)) return false;
       return true;
@@ -54,6 +57,7 @@ export default function ShopsPage() {
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
@@ -92,8 +96,11 @@ export default function ShopsPage() {
           ))}
         </div>
         {!ready ? <p className="mt-6 text-[14px] text-muted">{t.shopLoad}</p> : null}
-        {ready && !list.length ? (
-          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : mine ? t.shopEmptyMine : t.shopEmpty}</p>
+        {ready && !list.length && !query && cat === "all" && city === "all" && !mine ? (
+          <EmptyState variant="nothing" title={t.shopEmpty} quiet />
+        ) : null}
+        {ready && !list.length && (query || cat !== "all" || city !== "all" || mine) ? (
+          <p className="mt-6 text-[14px] leading-[1.45] text-muted">{query || cat !== "all" || city !== "all" ? t.shopEmptyFilter : t.shopEmptyMine}</p>
         ) : null}
         <div className="mt-4">
           <ShopRows shops={list} />
@@ -103,6 +110,7 @@ export default function ShopsPage() {
             <h2 className="font-display text-[19px] font-bold text-ink">{t.shopFeedTitle}</h2>
             <div className="mt-3">
               <ListingGrid
+                columns="browse"
                 listings={cards}
                 onFav={(id) => {
                   const ok = toggleFav(id);
@@ -116,6 +124,7 @@ export default function ShopsPage() {
           </div>
         ) : null}
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }

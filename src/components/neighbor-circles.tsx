@@ -2,20 +2,35 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CIRCLE_TTL_MS, pickNeighborCircles, resetCircleCache } from "@/lib/circles";
+import { api } from "@/lib/api/client";
+import {
+  CIRCLE_TTL_MS,
+  circleScopeFrom,
+  circlesFromIds,
+  listingInCircleScope,
+  pickNeighborCircles,
+  resetCircleCache,
+} from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { pinnedMedia, pinnedTitle } from "@/lib/pinned-circle";
+import { listingsForSearch } from "@/lib/search-browse";
 import { useApp } from "@/lib/store";
+import { usePinnedCircle } from "@/lib/use-pinned-circle";
 import type { Listing } from "@/lib/types";
-import { ListingThumb } from "./listing-media";
+import { ListingThumb, PlayBadge } from "./listing-media";
+import { Photo } from "./ui";
 
-export function NeighborCircles({ listings }: { listings: Listing[] }) {
-  void listings;
-  const { t, lang, city, filters, allListings, comments, reactions } = useApp();
-  const router = useRouter();
-  const [tick, setTick] = useState(0);
-  const scope = { city: filters.city && filters.city !== "all" ? filters.city : city, oblast: filters.oblast };
+/** Videos for the home strip. Server picks when the hourly job has written this city; otherwise the local likes ranking. */
+export function useCircleList(): Listing[] {
+  const { city, filters, allListings, comments, reactions, shops } = useApp();
+  const scope = useMemo(
+    () => circleScopeFrom(city, filters.city, filters.oblast),
+    [city, filters.city, filters.oblast],
+  );
   const scopeKey = `${scope.city}|${scope.oblast}`;
+  const [tick, setTick] = useState(0);
+  const [serverIds, setServerIds] = useState<string[] | null>(null);
   const prevScope = useRef<string | null>(null);
 
   useEffect(() => {
@@ -31,31 +46,83 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
     return () => window.clearInterval(id);
   }, []);
 
-  const { listings: videos } = useMemo(
-    () => pickNeighborCircles(allListings, scope, reactions, comments, Date.now(), false),
-    [allListings, scope.city, scope.oblast, comments, reactions, tick],
-  );
+  useEffect(() => {
+    if (!scope.city || scope.city === "all") {
+      setServerIds(null);
+      return;
+    }
+    let cancel = false;
+    void api<{ ids?: string[] }>(`/api/circles?city=${encodeURIComponent(scope.city)}`).then((res) => {
+      if (cancel) return;
+      const ids = res.ok && Array.isArray(res.data?.ids) ? res.data.ids.filter((id) => typeof id === "string") : [];
+      setServerIds(ids.length ? ids : null);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [scope.city, tick]);
+
+  return useMemo(() => {
+    const publicList = listingsForSearch(allListings, shops).filter((item) => listingInCircleScope(item, scope));
+    if (serverIds?.length) {
+      const fromServer = circlesFromIds(serverIds, publicList, scope);
+      if (fromServer.length) return listingsForSearch(fromServer, shops);
+    }
+    const picked = pickNeighborCircles(publicList, scope, reactions, comments, Date.now(), false).listings;
+    return listingsForSearch(picked, shops);
+  }, [allListings, comments, reactions, scope, serverIds, shops]);
+}
+
+export function NeighborCircles({ listings }: { listings: Listing[] }) {
+  void listings;
+  const { t, lang } = useApp();
+  const router = useRouter();
+  const videos = useCircleList();
+  const { pinned, ready: pinReady } = usePinnedCircle();
+  const pinnedLabel = pinned ? pinnedTitle(pinned, lang) : "";
+  const pinnedClip = pinned ? pinnedMedia(pinned, lang) : null;
+  const showEmpty = pinReady && !pinned && videos.length === 0;
 
   return (
     <div data-testid="neighbor-circles">
-      {videos.length === 0 ? (
+      {showEmpty ? (
         <p className="text-[12px] leading-[1.35] text-muted" data-testid="circles-empty">
           {t.homeCirclesEmpty}
         </p>
       ) : (
         <div className="sc flex gap-2.5 overflow-x-auto pb-0.5">
+          {pinned ? (
+            <button
+              type="button"
+              data-testid="pinned-circle"
+              onClick={() => router.push(`/reels?id=${encodeURIComponent(pinned.id)}`)}
+              className="flex w-[76px] shrink-0 flex-col items-center text-center"
+            >
+              <div className="relative w-[60px] rounded-full p-[2.5px]" style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}>
+                <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
+                  {pinnedClip?.posterUrl ? (
+                    <Photo src={pinnedClip.posterUrl} alt={pinnedLabel} />
+                  ) : (
+                    <video src={pinnedClip?.videoUrl} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+                  )}
+                  <PlayBadge compact />
+                </div>
+              </div>
+              <div className="mt-1 w-full truncate text-[12px] font-bold leading-[1.2] text-ink">{pinnedLabel}</div>
+            </button>
+          ) : null}
           {videos.map((item) => {
             const title = listingTitle(item, lang);
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => router.push(`/listing/${item.id}`)}
+                onClick={() => router.push(`/reels?id=${encodeURIComponent(item.id)}`)}
                 className="flex w-[76px] shrink-0 flex-col items-center text-center"
               >
-                <ListingThumb listing={item} alt={title} compact playInline className="w-[60px]" />
-                <div className="mt-1 w-full truncate text-[10px] font-bold leading-[1.2] text-ink">{title}</div>
-                <div className="w-full truncate text-[9px] leading-[1.2] text-muted">
+                <ListingThumb listing={item} alt={title} compact playInline circle className="w-[60px]" />
+                <div className="mt-1 w-full truncate text-[12px] font-bold leading-[1.2] text-ink">{title}</div>
+                <div className="w-full truncate text-[12px] leading-[1.2] text-muted">
                   {formatSom(item.price)} · {t.cities[item.city]}
                 </div>
               </button>

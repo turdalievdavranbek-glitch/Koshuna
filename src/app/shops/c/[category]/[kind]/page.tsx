@@ -6,6 +6,8 @@ import { applyShopFilters, isShopCategory, isShopKind, parentOfShopKind, publicS
 import { shopKindLabel } from "@/lib/shop-copy";
 import { useApp } from "@/lib/store";
 import type { ShopCategory, ShopKind } from "@/lib/types";
+import { ScreenBack } from "@/components/back-button";
+import { BrowseColumns } from "@/components/browse-columns";
 import { PhoneShell } from "@/components/shell";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { ShopRows } from "@/components/shop-rows";
@@ -32,12 +34,15 @@ export default function ShopKindResultsPage() {
   if (!parentOk || !shopKindsOf(category).length || !kindOk) {
     return (
       <PhoneShell tab>
-        <div className="p-6 text-[15px] text-muted">{t.empty}</div>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/shops" />
+          <div className="mt-4 text-[15px] text-muted">{t.empty}</div>
+        </div>
       </PhoneShell>
     );
   }
 
-  if (!all && isShopKind(kind)) {
+  if (!all && isShopKind(kind) && kind !== "health-pharmacy") {
     return (
       <PhoneShell tab>
         <div className="px-5 pb-2 pt-1">
@@ -49,7 +54,7 @@ export default function ShopKindResultsPage() {
             <span className="w-9" />
           </div>
         </div>
-        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 desk:mx-auto desk:max-w-[720px]">
           <ShopItemCapture parent={category} kind={kind} />
         </div>
       </PhoneShell>
@@ -58,6 +63,7 @@ export default function ShopKindResultsPage() {
 
   return (
     <PhoneShell tab>
+      <BrowseColumns>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push(`/shops/c/${category}`)} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
@@ -86,6 +92,7 @@ export default function ShopKindResultsPage() {
           <ShopRows shops={list} />
         </div>
       </div>
+      </BrowseColumns>
     </PhoneShell>
   );
 }

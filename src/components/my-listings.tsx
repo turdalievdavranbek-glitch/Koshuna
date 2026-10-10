@@ -1,25 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
+import { listingEditHref } from "@/lib/listing-edit";
 import { mineListings } from "@/lib/listing-owner";
 import { useApp } from "@/lib/store";
+import { CardMenu, DeleteCardDialog } from "@/components/card-delete";
+import { StillActual } from "@/components/still-actual";
 import { ListingThumb, isVideoListing } from "@/components/listing-media";
 import { Photo } from "@/components/ui";
 
 function statusLabel(
-  item: { status: string; closedKind?: "sold" | "rented" },
+  item: { status: string; closedKind?: "sold" | "rented"; underReview?: boolean },
   t: ReturnType<typeof useApp>["t"],
 ) {
+  if (item.underReview) return t.underReview;
   if (item.status === "closed" && item.closedKind === "sold") return t.closedSold;
   if (item.status === "closed" && item.closedKind === "rented") return t.closedRented;
   return t.status[item.status as keyof typeof t.status] ?? item.status;
 }
 
 export function MyListings({ limit }: { limit?: number }) {
-  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft } = useApp();
+  const { t, lang, user, extraListings, allListings, meetDeals, shops, duplicateListingToDraft, editListingToDraft, deleteListing } = useApp();
   const router = useRouter();
+  const [pendingId, setPendingId] = useState("");
+  const [busy, setBusy] = useState(false);
   const mine = mineListings(allListings, extraListings, user, shops);
   const rows = limit ? mine.slice(0, limit) : mine;
 
@@ -39,7 +46,7 @@ export function MyListings({ limit }: { limit?: number }) {
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
       {rows.map((item) => (
         <div key={item.id} className="overflow-hidden rounded-[18px] border border-line bg-white">
           <button
@@ -61,16 +68,18 @@ export function MyListings({ limit }: { limit?: number }) {
                 <span
                   className="rounded-md px-2 py-0.5 text-[10px] font-bold"
                   style={{
-                    background:
-                      item.status === "promoted" || item.status === "reserved"
+                    background: item.underReview
+                      ? "#F6E3D4"
+                      : item.status === "promoted" || item.status === "reserved"
                         ? "#F3E0D9"
                         : item.status === "closed"
                           ? "#E4EFE9"
                           : item.status === "draft" || item.status === "withdrawn"
                             ? "#EFE8DB"
                             : "#E4EFE9",
-                    color:
-                      item.status === "promoted" || item.status === "reserved"
+                    color: item.underReview
+                      ? "#17140F"
+                      : item.status === "promoted" || item.status === "reserved"
                         ? "#8E3423"
                         : item.status === "draft" || item.status === "withdrawn"
                           ? "#6E6558"
@@ -96,20 +105,59 @@ export function MyListings({ limit }: { limit?: number }) {
               </div>
             </div>
           </button>
-          <div className="flex gap-2 border-t border-line px-3.5 py-2">
+          <StillActual listing={item} compact />
+          <div className="flex items-center gap-2 border-t border-line px-3.5 py-2">
             <button
               type="button"
+              data-testid="listing-edit"
               onClick={() => {
-                duplicateListingToDraft(item);
-                router.push("/post");
+                if (!item.shopId) editListingToDraft(item);
+                router.push(listingEditHref(item));
               }}
-              className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold"
+              className="h-9 rounded-full bg-ink px-4 text-[13px] font-bold text-screen"
             >
-              {t.duplicateListing}
+              {t.edit}
             </button>
+            <span className="ml-auto">
+              <CardMenu
+                onDelete={() => setPendingId(item.id)}
+                testId="listing-menu"
+                items={[
+                  {
+                    label: t.edit,
+                    testId: "listing-menu-edit",
+                    onClick: () => {
+                      if (!item.shopId) editListingToDraft(item);
+                      router.push(listingEditHref(item));
+                    },
+                  },
+                  {
+                    label: t.duplicateListing,
+                    testId: "listing-menu-duplicate",
+                    onClick: () => {
+                      duplicateListingToDraft(item);
+                      router.push("/post");
+                    },
+                  },
+                ]}
+              />
+            </span>
           </div>
         </div>
       ))}
+      <DeleteCardDialog
+        open={Boolean(pendingId)}
+        busy={busy}
+        onCancel={() => setPendingId("")}
+        onConfirm={() => {
+          const id = pendingId;
+          setBusy(true);
+          void deleteListing(id).then((result) => {
+            setBusy(false);
+            if (!result.error) setPendingId("");
+          });
+        }}
+      />
     </div>
   );
 }

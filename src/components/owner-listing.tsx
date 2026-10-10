@@ -1,13 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { RESERVE_ACCOUNTS, formatSom } from "@/lib/data";
-import { DEAL_STAGES, stageOf, statusForStage } from "@/lib/listing-owner";
+import { formatSom } from "@/lib/data";
+import { stageOf } from "@/lib/listing-owner";
 import { offerWhen } from "@/lib/meet";
 import { parseDraftPrice } from "@/lib/market";
+import { listingEditHref } from "@/lib/listing-edit";
 import { useApp } from "@/lib/store";
-import type { DealStage, Listing, ReserveAccount } from "@/lib/types";
-import { Chip, Eyebrow, Field, Input } from "./ui";
+import type { Listing } from "@/lib/types";
+import { DeleteCardDialog } from "./card-delete";
+import { CategoryChips } from "./category-chips";
+import { Chip, Field, Input } from "./ui";
+import type { DraftListing } from "@/lib/types";
 
 export function ListingStageBanner({ listing }: { listing: Listing }) {
   const { t, lang, meetDeals } = useApp();
@@ -48,18 +53,55 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
   );
 }
 
+function listingAsDraft(listing: Listing): DraftListing {
+  return {
+    section: listing.section,
+    kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
+    title: listing.title,
+    city: listing.city,
+    price: listing.price ? String(listing.price) : "",
+    rooms: "",
+    area: "",
+    name: "",
+    phone: "",
+    description: listing.description || "",
+    promote: listing.status === "promoted",
+    category: listing.category,
+    goodsKind: listing.goodsKind,
+    animalGroup: listing.animalGroup,
+    animalKind: listing.animalKind,
+    carMake: listing.carMake,
+    techBrand: listing.techBrand,
+    categoryLocked: true,
+  };
+}
+
 export function OwnerListingTools({ listing }: { listing: Listing }) {
-  const { t, updateListing, ensureMeetDeal, clearMeetDeal } = useApp();
-  const [price, setPrice] = useState(String(listing.price));
+  const { t, updateListing, clearMeetDeal, deleteListing, editListingToDraft } = useApp();
+  const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(listing.title);
+  const [description, setDescription] = useState(listing.description || "");
+  const [price, setPrice] = useState(listing.price ? String(listing.price) : "");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
-  const stage = stageOf(listing);
+  const withdrawn = listing.status === "withdrawn";
 
   useEffect(() => {
-    setPrice(String(listing.price));
-  }, [listing.price]);
+    setTitle(listing.title);
+    setDescription(listing.description || "");
+    setPrice(listing.price ? String(listing.price) : "");
+  }, [listing.id, listing.title, listing.description, listing.price]);
 
-  const savePrice = () => {
+  const saveEdit = () => {
+    const nextTitle = title.trim();
+    if (!nextTitle) {
+      setError(t.postNeedTitle);
+      setNote("");
+      return;
+    }
     const next = parseDraftPrice(price);
     if (!next) {
       setError(t.priceNeed);
@@ -67,107 +109,149 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
       return;
     }
     setError("");
-    const patch: Partial<Listing> = { price: next };
+    const patch: Partial<Listing> = {
+      title: nextTitle,
+      titleKy: nextTitle,
+      titleEn: nextTitle,
+      description: description.trim(),
+      descriptionKy: description.trim(),
+      descriptionEn: description.trim(),
+      price: next,
+    };
     if (next < listing.price) patch.previousPrice = listing.price;
     if (next >= listing.price) patch.previousPrice = listing.previousPrice && listing.previousPrice > next ? listing.previousPrice : undefined;
     updateListing(listing.id, patch);
     setNote(t.priceSaved);
   };
 
-  const setStage = (next: DealStage) => {
-    if (next === "reserved" && !listing.reservedBy) {
-      setError(t.stageNeedAccount);
-      setNote("");
-      return;
-    }
-    setError("");
-    setNote("");
-    const patch: Partial<Listing> = { status: statusForStage(listing, next) };
-    if (next !== "reserved") {
-      patch.reservedBy = undefined;
-      clearMeetDeal(listing.id);
-    } else if (listing.reservedBy) {
-      ensureMeetDeal(listing.id, listing.reservedBy.id);
-    }
-    if (next !== "closed") patch.closedKind = undefined;
-    updateListing(listing.id, patch);
-  };
-
-  const setClosedKind = (kind: "sold" | "rented") => {
+  const markClosed = (kind: "sold" | "rented") => {
     setError("");
     setNote("");
     updateListing(listing.id, { status: "closed", closedKind: kind, reservedBy: undefined });
     clearMeetDeal(listing.id);
   };
 
-  const setAccount = (account: ReserveAccount) => {
+  const withdraw = () => {
     setError("");
     setNote("");
-    updateListing(listing.id, { reservedBy: account, status: "reserved" });
-    ensureMeetDeal(listing.id, account.id);
+    updateListing(listing.id, { status: "withdrawn", closedKind: undefined, reservedBy: undefined });
+    clearMeetDeal(listing.id);
+  };
+
+  const restore = () => {
+    setError("");
+    setNote("");
+    updateListing(listing.id, { status: "active", closedKind: undefined });
   };
 
   return (
     <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.ownerTools}</div>
-      <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.stageHint}</p>
-      <div className="mt-3">
-        <Field label={t.priceEdit}>
-          <div className="flex gap-2">
-            <Input value={price} onChange={setPrice} placeholder={formatSom(listing.price)} />
-            <button
-              type="button"
-              onClick={savePrice}
-              className="h-[50px] shrink-0 rounded-[14px] bg-ink px-3.5 text-[13px] font-semibold text-screen"
-            >
-              {t.priceSave}
-            </button>
-          </div>
-        </Field>
-      </div>
-      <div className="mt-4">
-        <Eyebrow>{t.stageTitle}</Eyebrow>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {DEAL_STAGES.map((id) => (
-            <Chip key={id} active={stage === id && !listing.closedKind} accent={stage === id && !listing.closedKind} onClick={() => setStage(id)}>
-              {t.status[id]}
+      <button
+        type="button"
+        data-testid="listing-edit-full"
+        onClick={() => {
+          if (!listing.shopId) editListingToDraft(listing);
+          router.push(listingEditHref(listing));
+        }}
+        className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+      >
+        {t.edit}
+      </button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Chip active={editing} accent={editing} onClick={() => setEditing((value) => !value)}>
+          {t.ownerEdit}
+        </Chip>
+        {listing.section === "rent" ? (
+          <>
+            <Chip active={listing.closedKind === "sold"} accent={listing.closedKind === "sold"} onClick={() => markClosed("sold")}>
+              {t.closedSold}
             </Chip>
-          ))}
-          {listing.section === "rent" ? (
-            <>
-              <Chip active={listing.closedKind === "sold"} accent={listing.closedKind === "sold"} onClick={() => setClosedKind("sold")}>
-                {t.closedSold}
-              </Chip>
-              <Chip active={listing.closedKind === "rented"} accent={listing.closedKind === "rented"} onClick={() => setClosedKind("rented")}>
-                {t.closedRented}
-              </Chip>
-            </>
-          ) : null}
-        </div>
-      </div>
-      <div className="mt-4">
-        <Eyebrow>{t.stageReservedBy}</Eyebrow>
-        <p className="mt-1 text-[12px] leading-[1.4] text-muted">{t.stageReservedHint}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {RESERVE_ACCOUNTS.map((account) => (
-            <Chip
-              key={account.id}
-              active={listing.reservedBy?.id === account.id}
-              accent={listing.reservedBy?.id === account.id}
-              onClick={() => setAccount(account)}
-            >
-              {account.name}
+            <Chip active={listing.closedKind === "rented"} accent={listing.closedKind === "rented"} onClick={() => markClosed("rented")}>
+              {t.closedRented}
             </Chip>
-          ))}
-        </div>
-        {listing.reservedBy ? (
-          <p className="mt-2 text-[13px] leading-[1.45] text-ink">
-            {listing.reservedBy.name} · {listing.reservedBy.phone}
-          </p>
-        ) : null}
+          </>
+        ) : (
+          <Chip active={listing.status === "closed" && listing.closedKind === "sold"} accent={listing.closedKind === "sold"} onClick={() => markClosed("sold")}>
+            {t.closedSold}
+          </Chip>
+        )}
+        {withdrawn ? (
+          <Chip onClick={restore}>{t.ownerRestore}</Chip>
+        ) : (
+          <Chip onClick={withdraw}>{t.ownerWithdraw}</Chip>
+        )}
       </div>
+      {editing ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <CategoryChips
+            draft={listingAsDraft(listing)}
+            personal={!listing.shopId}
+            autoApply={false}
+            onPatch={(patch) =>
+              updateListing(listing.id, {
+                section: patch.section ?? listing.section,
+                category: patch.category,
+                goodsKind: patch.goodsKind,
+                animalGroup: patch.animalGroup,
+                animalKind: patch.animalKind,
+                carMake: patch.carMake,
+                techBrand: patch.techBrand,
+              })
+            }
+          />
+          <Field label={t.editTitle}>
+            <Input value={title} onChange={setTitle} />
+          </Field>
+          <Field label={t.description}>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={4}
+              className="w-full rounded-[14px] border border-line bg-white px-3.5 py-3 text-[15px] text-ink outline-none"
+            />
+          </Field>
+          <Field label={t.priceEdit}>
+            <div className="flex gap-2">
+              <Input value={price} onChange={setPrice} placeholder={formatSom(listing.price)} />
+              <button
+                type="button"
+                onClick={saveEdit}
+                className="h-[50px] shrink-0 rounded-[14px] bg-ink px-3.5 text-[13px] font-semibold text-screen"
+              >
+                {t.priceSave}
+              </button>
+            </div>
+          </Field>
+        </div>
+      ) : null}
       {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
+      <button
+        type="button"
+        data-testid="listing-delete"
+        onClick={() => setConfirmDelete(true)}
+        className="mt-4 h-11 w-full text-[15px] font-semibold text-accent"
+      >
+        {t.cardDelete}
+      </button>
+      <DeleteCardDialog
+        open={confirmDelete}
+        busy={deleting}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setDeleting(true);
+          void deleteListing(listing.id).then((result) => {
+            setDeleting(false);
+            if (result.error) {
+              setError(t.cardDeleteError);
+              setConfirmDelete(false);
+              return;
+            }
+            router.push("/profile");
+          });
+        }}
+      />
     </div>
   );
 }

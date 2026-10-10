@@ -16,18 +16,24 @@ export function sectionLabel(id: SectionId, t: ReturnType<typeof useApp>["t"]) {
 export function PostTypePicker({
   value,
   onPick,
+  exclude,
+  startOpen,
 }: {
-  value: SectionId;
+  /** Undefined: nothing chosen yet (fresh personal post). */
+  value?: SectionId;
   onPick: (id: SectionId) => void;
+  exclude?: SectionId[];
+  startOpen?: boolean;
 }) {
   const { t } = useApp();
-  const [open, setOpen] = useState(false);
-  const tiles = homeTiles();
+  const [open, setOpen] = useState(Boolean(startOpen));
+  const hidden = new Set(exclude ?? []);
+  const tiles = homeTiles().filter((s) => !hidden.has(s.id));
   const visual = value === "car-rental" ? "cars" : value;
 
   return (
     <div>
-      <SelectRow label={t.listingType} value={sectionLabel(visual, t)} onClick={() => setOpen((v) => !v)} />
+      <SelectRow label={t.listingType} value={visual ? sectionLabel(visual, t) : t.catPickHint} onClick={() => setOpen((v) => !v)} />
       {open ? (
         <div className="mt-2 overflow-hidden rounded-[16px] border border-line bg-white">
           {tiles.map((s, i) => {
@@ -46,8 +52,8 @@ export function PostTypePicker({
                 <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px] bg-[#eee8dc]">
                   <img src={s.art} alt="" className="h-full w-full object-cover" />
                 </span>
-                <span className="flex-1 text-[15px] font-semibold" style={{ color: on ? "#F7F3EC" : "#17140F" }}>
-                  {s.id === "shops" ? t.shopNav : t.sectionNames[s.id]}
+                <span className="flex-1 text-[15px] font-semibold" style={{ color: on ? "#F7F3EC" : "#17140F" }} data-testid={`section-${s.id}`}>
+                  {s.id === "shops" ? t.sectionNames.shops : t.sectionNames[s.id]}
                 </span>
                 {on ? <IconCheck size={16} color="#F7F3EC" /> : <span className="text-muted-2">›</span>}
               </button>

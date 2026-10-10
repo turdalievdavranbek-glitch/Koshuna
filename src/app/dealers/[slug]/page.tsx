@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { twoGisUrl } from "@/lib/geo";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { ListingGrid } from "@/components/listing-grid";
 import { PhoneShell } from "@/components/shell";
@@ -30,8 +31,9 @@ export default function DealerPublicPage() {
   if (!dealer || !dealer.verified) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <button type="button" onClick={() => router.push("/dealers")} className="text-[15px] font-semibold text-accent">
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/dealers" />
+          <button type="button" onClick={() => router.push("/dealers")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.dealersTitle}
           </button>
           <p className="mt-4 text-muted">{t.empty}</p>
