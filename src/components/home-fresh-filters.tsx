@@ -13,8 +13,8 @@ import { openLocationPicker } from "@/components/location-line";
 import { useApp } from "@/lib/store";
 import type { SectionId } from "@/lib/types";
 import { Chip } from "@/components/ui";
-import { IconPin, IconSliders } from "@/components/icons";
-import { useState } from "react";
+import { IconCheck, IconPin, IconSliders } from "@/components/icons";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const HOME_SECTIONS: SectionId[] = [
@@ -82,6 +82,18 @@ export function HomeFreshFilters() {
     Boolean(filters.category);
 
   const [panel, setPanel] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortNow = filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new";
+  useEffect(() => {
+    if (!sortOpen && !panel) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setSortOpen(false);
+      setPanel(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sortOpen, panel]);
   const toggles = [filters.neighborOnly, filters.priceDroppedOnly, filters.videoOnly].filter(Boolean).length;
 
   const pickSection = (id: SectionId | null) => {
@@ -280,29 +292,75 @@ export function HomeFreshFilters() {
       ) : null}
 
       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5" data-testid="fresh-tools">
-        <label className="relative flex h-7 shrink-0 items-center rounded-full border border-line bg-surface pl-2.5 pr-6 text-[11px] font-semibold text-ink">
-          <span className="text-muted">{t.sort}:&nbsp;</span>
-          <select
+        <div className="relative shrink-0">
+          <button
+            type="button"
             data-testid="fresh-sort"
-            value={filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new"}
-            onChange={(e) => setFilters({ sort: e.target.value as "new" | "price-asc" | "price-desc" })}
-            aria-label={t.sort}
-            className="appearance-none bg-transparent font-semibold text-ink outline-none"
+            aria-haspopup="menu"
+            aria-expanded={sortOpen}
+            onClick={() => {
+              setPanel(false);
+              setSortOpen(true);
+            }}
+            className="flex h-7 items-center gap-1 rounded-full border border-line bg-surface px-2.5 text-[11px] font-semibold text-ink"
           >
-            <option value="new">{t.newestShort}</option>
-            <option value="price-asc">{t.priceAsc}</option>
-            <option value="price-desc">{t.priceDesc}</option>
-          </select>
-          <span className="pointer-events-none absolute right-2 text-[9px] text-muted" aria-hidden>
-            ▼
-          </span>
-        </label>
+            <span className="text-muted">{t.sort}:</span>
+            {sortNow === "price-asc" ? t.priceAsc : sortNow === "price-desc" ? t.priceDesc : t.newestShort}
+            <span className="text-[9px] text-muted" aria-hidden>
+              ▼
+            </span>
+          </button>
+          {sortOpen ? (
+            <>
+              {/* Full-screen backdrop: any outside click (including on the chip) closes; no open/close race. */}
+              <button
+                type="button"
+                aria-label={t.freshClose}
+                className="fixed inset-0 z-[60] cursor-default bg-[rgba(23,20,15,.25)] desk:bg-transparent"
+                onClick={() => setSortOpen(false)}
+              />
+              <div
+                role="menu"
+                data-testid="fresh-sort-menu"
+                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(23,20,15,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:min-w-[220px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(23,20,15,.14)]"
+              >
+                <div className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-[0.08em] text-muted desk:hidden">{t.sort}</div>
+                {(
+                  [
+                    ["new", t.sortMenuNew],
+                    ["price-asc", t.sortMenuCheap],
+                    ["price-desc", t.sortMenuDear],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={sortNow === id}
+                    data-testid={`fresh-sort-${id}`}
+                    onClick={() => {
+                      setFilters({ sort: id });
+                      setSortOpen(false);
+                    }}
+                    className="flex h-12 w-full items-center justify-between gap-3 rounded-[12px] px-3 text-left text-[15px] font-semibold text-ink hover:bg-chip desk:h-10 desk:text-[14px]"
+                  >
+                    {label}
+                    {sortNow === id ? <IconCheck size={16} color="#B8452F" /> : null}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
         <div className="relative shrink-0">
           <button
             type="button"
             data-testid="fresh-filters"
             aria-expanded={panel}
-            onClick={() => setPanel((v) => !v)}
+            onClick={() => {
+              setSortOpen(false);
+              setPanel((v) => !v);
+            }}
             className={`flex h-7 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold ${
               toggles ? "border-ink bg-ink text-screen" : "border-line bg-surface text-ink"
             }`}
