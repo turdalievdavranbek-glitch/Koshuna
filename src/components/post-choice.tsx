@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ScreenBack } from "@/components/back-button";
@@ -98,10 +99,12 @@ export function PostChoices({
         <div className="text-[16px] font-semibold text-ink">{t.postBusiness}</div>
         <div className="mt-1 text-[13px] text-muted">{t.postBusinessHint}</div>
       </button>
-      <button type="button" data-testid="post-choice-request" onClick={onRequest} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
-        <div className="text-[16px] font-semibold text-ink">{t.postRequest}</div>
-        <div className="mt-1 text-[13px] text-muted">{t.postRequestHint}</div>
-      </button>
+      {FEATURES.purchaseRequests ? (
+        <button type="button" data-testid="post-choice-request" onClick={onRequest} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
+          <div className="text-[16px] font-semibold text-ink">{t.postRequest}</div>
+          <div className="mt-1 text-[13px] text-muted">{t.postRequestHint}</div>
+        </button>
+      ) : null}
       {askNew ? (
         <div className="mt-3 rounded-[14px] bg-chip p-3" data-testid="draft-start">
           <p className="text-[14px]">{t.draftStartNew}</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import Link from "next/link";
 import { useEffect } from "react";
 import { hideNativeSplash } from "@/lib/native-splash";
@@ -102,9 +103,11 @@ export default function FeedPage() {
             {t.map} ›
           </Link>
         ) : null}
-        <div className="mt-2">
-          <NeighborCircles listings={listings} />
-        </div>
+        {FEATURES.reelsStrip ? (
+          <div className="mt-2">
+            <NeighborCircles listings={listings} />
+          </div>
+        ) : null}
         <div
           className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 desk:hidden"
           data-testid="home-search"

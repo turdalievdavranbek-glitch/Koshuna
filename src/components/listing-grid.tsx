@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { listingsForSearch } from "@/lib/search-browse";
@@ -86,7 +87,7 @@ function ListingCard({
             <NeighborMark listing={listing} compact={layout === "small"} />
           </span>
         ) : null}
-        {onFav && layout !== "small" && !video ? (
+        {FEATURES.cart && onFav && layout !== "small" && !video ? (
           <span
             role="button"
             onClick={(e) => {

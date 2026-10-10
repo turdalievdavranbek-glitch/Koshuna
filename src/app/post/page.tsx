@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { pendingOps, subscribeOutbox } from "@/lib/api/outbox";
@@ -38,7 +39,7 @@ export default function PostPage() {
   if (!ready || !user) return null;
   if (published) return <Published id={published} />;
   if (card === "cafe" || card === "developer" || card === "dealer" || card === "service") return <CardPost card={card} />;
-  if (type === "request") return <BuyRequestForm />;
+  if (type === "request" && FEATURES.purchaseRequests) return <BuyRequestForm />;
   if (type === "personal") return <PersonalPost />;
   if (type === "business") return <BusinessPost />;
   return (

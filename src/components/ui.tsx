@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { hasPriceDrop, listingHasPrice } from "@/lib/deal";
@@ -190,6 +191,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
+        {FEATURES.cart ? (
         <span
           role="button"
           onClick={(e) => {
@@ -200,6 +202,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
         >
           <IconHeart size={16} color={isFav(listing.id) ? "#B8452F" : "#17140F"} filled={isFav(listing.id)} />
         </span>
+        ) : null}
       </div>
       <div className={`px-[15px] pb-[15px] pt-[13px] ${video ? "text-center" : ""}`}>
         <Price listing={listing} />
@@ -307,7 +310,7 @@ export function ListingRow({
         <div className="pr-3 pt-3">
           <IconHeart size={18} filled color="#B8452F" />
         </div>
-      ) : isFav(listing.id) ? (
+      ) : FEATURES.cart && isFav(listing.id) ? (
         <div className="pr-3 pt-3">
           <IconHeart size={18} filled color="#B8452F" />
         </div>
