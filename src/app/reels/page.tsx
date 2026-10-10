@@ -23,6 +23,8 @@ import { usePinnedCircle } from "@/lib/use-pinned-circle";
 import type { Listing } from "@/lib/types";
 import { isVideoListing } from "@/lib/video-ai";
 import { ReelVideo } from "@/components/reel-video";
+import { VideoSoundHint } from "@/components/video-sound-hint";
+import { playWithSound, useVideoSound } from "@/lib/video-sound";
 import { CommentsButton, CommentsSheet } from "@/components/listing-comments";
 import { FEATURES } from "@/lib/features";
 import { reportListingView } from "@/lib/listing-view";
@@ -43,7 +45,7 @@ function ReelSlide({
   const { t, lang, user, setPendingPath, reactionOf, setReaction, reactions } = useApp();
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
-  const [sound, setSound] = useState(false);
+  const { sound, blocked, toggle: toggleSound, turnOn: soundOn } = useVideoSound();
   const [comments, setComments] = useState(false);
   const video = isVideoListing(listing) && Boolean(listing.videoUrl);
   const title = listingTitle(listing, lang);
@@ -52,10 +54,6 @@ function ReelSlide({
   const reaction = reactionOf(listing.id);
   const likes = socialCounts(listing.id, reactions, 0).likes;
   const openHref = `/listing/${listing.id}?from=reels`;
-
-  useEffect(() => {
-    if (!active) setSound(false);
-  }, [active]);
 
   useEffect(() => {
     if (active && listing.id !== PINNED_REEL_ID) void reportListingView(listing.id);
@@ -92,7 +90,7 @@ function ReelSlide({
           preloadNext={preloadNext}
           sound={sound}
           onToggleSound={() => {
-            if (active) setSound((value) => !value);
+            if (active) toggleSound();
           }}
         />
       ) : (
@@ -101,6 +99,7 @@ function ReelSlide({
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
       {/* Tap anywhere on the photo or video opens the listing details (sound has its own button). */}
       <Link href={openHref} aria-label={t.reelOpen} data-testid="reel-open-area" className="absolute inset-0" />
+      {video && active && blocked ? <VideoSoundHint onTap={soundOn} /> : null}
       <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <button
           type="button"
@@ -114,7 +113,7 @@ function ReelSlide({
         {video ? (
           <button
             type="button"
-            onClick={() => setSound((value) => !value)}
+            onClick={toggleSound}
             className="rounded-full bg-white/92 px-3 py-1.5 text-[12px] font-semibold text-ink"
           >
             {sound ? t.reelSoundOn : t.reelSoundOff}
@@ -163,7 +162,6 @@ function PinnedReel({
   sound,
   videoRef,
   onToggleSound,
-  onBlocked,
 }: {
   src: string;
   poster: string | null;
@@ -171,7 +169,6 @@ function PinnedReel({
   sound: boolean;
   videoRef: RefObject<HTMLVideoElement | null>;
   onToggleSound: () => void;
-  onBlocked: () => void;
 }) {
   useEffect(() => {
     const el = videoRef.current;
@@ -180,17 +177,8 @@ function PinnedReel({
       el.pause();
       return;
     }
-    let cancelled = false;
-    el.muted = !sound;
-    void el.play().catch(() => {
-      if (cancelled || el.muted) return;
-      el.muted = true;
-      onBlocked();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [active, sound, src, onBlocked, videoRef]);
+    return playWithSound(el, sound);
+  }, [active, sound, src, videoRef]);
 
   return (
     <video
@@ -215,19 +203,11 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [sound, setSound] = useState(true);
+  const { sound, blocked, toggle, turnOn: soundOn } = useVideoSound();
   const title = pinnedTitle(pinned, lang);
   const clip = pinnedMedia(pinned, lang);
-  const blockSound = useRef(() => setSound(false));
   const toggleSound = () => {
-    if (!active) return;
-    const next = !sound;
-    const el = videoRef.current;
-    if (el) {
-      el.muted = !next;
-      void el.play().catch(() => undefined);
-    }
-    setSound(next);
+    if (active) toggle();
   };
 
   useEffect(() => {
@@ -252,8 +232,8 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
         sound={sound}
         videoRef={videoRef}
         onToggleSound={toggleSound}
-        onBlocked={blockSound.current}
       />
+      {active && blocked ? <VideoSoundHint onTap={soundOn} /> : null}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
       <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <button

@@ -8,6 +8,8 @@ import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { IconBack } from "./icons";
 import { ReelVideo } from "./reel-video";
+import { VideoSoundHint } from "./video-sound-hint";
+import { useVideoSound } from "@/lib/video-sound";
 import { FEATURES } from "@/lib/features";
 import { CommentsButton, CommentsSheet } from "./listing-comments";
 import { reportListingView } from "@/lib/listing-view";
@@ -31,7 +33,7 @@ export function ListingVideoViewer({
   onWrite?: () => void;
 }) {
   const { t } = useApp();
-  const [sound, setSound] = useState(false);
+  const { sound, blocked, toggle: toggleSound, turnOn: soundOn } = useVideoSound();
   const [comments, setComments] = useState(false);
   const [drag, setDrag] = useState(0);
   const startY = useRef<number | null>(null);
@@ -90,7 +92,8 @@ export function ListingVideoViewer({
         className="relative h-full w-full overflow-hidden bg-ink desk:aspect-[9/16] desk:h-[min(92vh,900px)] desk:w-auto desk:rounded-[20px]"
         style={drag ? { transform: `translateY(${drag}px)`, opacity: Math.max(0.4, 1 - drag / 500) } : undefined}
       >
-        <ReelVideo listing={listing} active preloadNext={false} sound={sound} onToggleSound={() => setSound((value) => !value)} />
+        <ReelVideo listing={listing} active preloadNext={false} sound={sound} onToggleSound={toggleSound} />
+        {blocked ? <VideoSoundHint onTap={soundOn} /> : null}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.8)]" />
         <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
           <button
@@ -105,7 +108,7 @@ export function ListingVideoViewer({
           <button
             type="button"
             data-testid="listing-video-sound"
-            onClick={() => setSound((value) => !value)}
+            onClick={toggleSound}
             className="rounded-full bg-white/92 px-3 py-1.5 text-[12px] font-semibold text-ink"
           >
             {sound ? t.reelSoundOn : t.reelSoundOff}

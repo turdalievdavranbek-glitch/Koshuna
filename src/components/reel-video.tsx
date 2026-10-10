@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import type { Listing } from "@/lib/types";
+import { playWithSound } from "@/lib/video-sound";
 
-/** The /reels player: full-bleed vertical video, muted until the person turns sound on. */
+/** The /reels player: full-bleed vertical video, sound on by default (muted only if the browser blocks it). */
 export function ReelVideo({
   listing,
   active,
@@ -27,8 +28,8 @@ export function ReelVideo({
       el.muted = true;
       return;
     }
-    el.muted = !sound;
-    void el.play().catch(() => undefined);
+    // Sound on by default: try unmuted, fall back to muted + «tap for sound» if the browser refuses.
+    return playWithSound(el, sound);
   }, [active, sound]);
 
   return (
