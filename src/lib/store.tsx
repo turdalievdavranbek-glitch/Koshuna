@@ -87,20 +87,48 @@ import { BrandMark } from "@/components/brand";
 
 const STORAGE = "konshu-state-v1";
 /** Last public feed + points, shown instantly on the next open while the fresh copy loads. */
-const FEED_CACHE = "konshu-feed-cache-v1";
+const FEED_CACHE = "konshu-feed-cache-v2";
+const FEED_CACHE_VERSION = 2;
 const FEED_CACHE_MAX_AGE = 7 * 24 * 3600 * 1000;
 
+function cachedListing(item: unknown): item is Listing {
+  if (!item || typeof item !== "object") return false;
+  const row = item as Partial<Listing>;
+  return (
+    typeof row.id === "string" &&
+    typeof row.section === "string" &&
+    typeof row.title === "string" &&
+    typeof row.city === "string" &&
+    typeof row.price === "number" &&
+    Array.isArray(row.photos) &&
+    typeof row.ownerId === "string"
+  );
+}
+
+function cachedShop(item: unknown): item is Shop {
+  if (!item || typeof item !== "object") return false;
+  const row = item as Partial<Shop>;
+  return typeof row.id === "string" && typeof row.name === "string" && typeof row.city === "string" && Array.isArray(row.products);
+}
+
+/** Never throws; anything unexpected (old version, other shape, broken JSON) is discarded. */
 function readFeedCache(): { feed: Listing[]; shops: Shop[] } | null {
   try {
+    localStorage.removeItem("konshu-feed-cache-v1");
     const raw = localStorage.getItem(FEED_CACHE);
     if (!raw) return null;
-    const data = JSON.parse(raw) as { at?: number; feed?: Listing[]; shops?: Shop[] };
-    if (!data.at || Date.now() - data.at > FEED_CACHE_MAX_AGE) return null;
-    return {
-      feed: Array.isArray(data.feed) ? data.feed : [],
-      shops: Array.isArray(data.shops) ? data.shops : [],
-    };
+    const data = JSON.parse(raw) as { v?: number; at?: number; feed?: unknown; shops?: unknown };
+    if (!data || data.v !== FEED_CACHE_VERSION || typeof data.at !== "number" || Date.now() - data.at > FEED_CACHE_MAX_AGE) {
+      localStorage.removeItem(FEED_CACHE);
+      return null;
+    }
+    if (!Array.isArray(data.feed) || !Array.isArray(data.shops)) throw new Error("cache shape");
+    const feed = data.feed.filter(cachedListing);
+    const shops = data.shops.filter(cachedShop);
+    if (feed.length !== data.feed.length || shops.length !== data.shops.length) throw new Error("cache rows");
+    return { feed, shops };
   } catch {
+    dropFeedCache();
     return null;
   }
 }
@@ -108,7 +136,7 @@ function readFeedCache(): { feed: Listing[]; shops: Shop[] } | null {
 function writeFeedCache(feed: Listing[], shops: Shop[]) {
   try {
     const visible = feed.filter((item) => item.status !== "hidden" && !item.underReview).slice(0, 400);
-    localStorage.setItem(FEED_CACHE, JSON.stringify({ at: Date.now(), feed: visible, shops: shops.slice(0, 200) }));
+    localStorage.setItem(FEED_CACHE, JSON.stringify({ v: FEED_CACHE_VERSION, at: Date.now(), feed: visible, shops: shops.slice(0, 200) }));
   } catch {
     try {
       localStorage.removeItem(FEED_CACHE);
