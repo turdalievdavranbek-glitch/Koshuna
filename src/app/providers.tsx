@@ -1,6 +1,7 @@
 "use client";
 
 import { LanguageGate } from "@/components/language-gate";
+import { VersionWatch } from "@/components/version-watch";
 import { wireNativeShell } from "@/lib/native-shell";
 import { hideNativeSplash } from "@/lib/native-splash";
 import { AppProvider } from "@/lib/store";
@@ -19,6 +20,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <AppProvider>
       <LanguageGate />
+      <VersionWatch />
       {children}
     </AppProvider>
   );

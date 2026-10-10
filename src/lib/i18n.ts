@@ -1602,7 +1602,7 @@ const ru = {
   pointOffer4: "Магазин, прилавок, кафе или мастерская",
   pointOfferTime: "Займёт пару минут · можно позже",
   pointOfferNo: "Нет, выложить как личную вещь",
-  pointAddGoods: "Выложить товар",
+  pointAddGoods: "+ Товар",
   pointNeedGroup: "Выберите раздел.",
   pointPhotoAdd: "Добавить фото точки",
   pointPhotoVideo: "Видео",
