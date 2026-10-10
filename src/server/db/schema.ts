@@ -4,6 +4,7 @@ import {
   bigint,
   boolean,
   check,
+  date,
   doublePrecision,
   index,
   integer,
@@ -290,6 +291,21 @@ export const blocks = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedUserId] })],
+);
+
+/** One row per viewer per listing per day: the views counter never counts the same person twice a day. */
+export const listingViews = pgTable(
+  "listing_views",
+  {
+    listingId: text("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    /** "u:<user id>" or "d:<anonymous device id>". */
+    viewerKey: text("viewer_key").notNull(),
+    day: date("day").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.listingId, t.viewerKey, t.day] }), index("listing_views_day_idx").on(t.day)],
 );
 
 /** Listing comments (Instagram-style, one reply level). Soft delete; 3 reporters hide for review. */

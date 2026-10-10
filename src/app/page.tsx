@@ -222,6 +222,18 @@ export default function FeedPage() {
             <EmptyState variant="offline" onRetry={() => resync()} />
           ) : allListings.length === 0 ? (
             <EmptyState variant="first" />
+          ) : filters.section || filters.category ? (
+            <div className="mt-4 rounded-[16px] border border-line bg-white px-4 py-6 text-center" data-testid="fresh-section-empty">
+              <p className="text-[14px] font-semibold text-ink">{t.freshSectionEmpty}</p>
+              <button
+                type="button"
+                data-testid="fresh-show-all"
+                onClick={() => setFilters(clearFreshListPatch(filters))}
+                className="mt-3 h-11 rounded-2xl bg-accent px-5 text-[14px] font-semibold text-accent-on"
+              >
+                {t.freshShowAll}
+              </button>
+            </div>
           ) : (
             <EmptyState variant="nothing" onReset={() => setFilters(clearFreshListPatch(filters))} />
           )

@@ -238,7 +238,25 @@ export function scopeForSaved(filters: {
   return "all";
 }
 
+/**
+ * A point product also belongs to the matching browse section, not only «Магазины»:
+ * farm animals → «Животные» (farm), farm plants → «Животные» (plants), building goods → «Стройка».
+ */
+export function shopItemAlsoIn(item: Pick<Listing, "section" | "shopId" | "category">): {
+  section: Listing["section"];
+  animalGroup?: Listing["animalGroup"];
+} | null {
+  if (item.section !== "shops" || !item.shopId) return null;
+  const cat = item.category ?? "";
+  if (cat === "farm" || cat === "farm-animals") return { section: "animals", animalGroup: "farm" };
+  if (cat === "farm-plants") return { section: "animals", animalGroup: "plants" };
+  if (cat === "construction" || cat.startsWith("build-")) return { section: "construction" };
+  return null;
+}
+
 function placeMatches(item: Listing, filters: Filters, city: string): boolean {
+  // No place chosen («Кыргызстан, область, район»): the whole country, not the last remembered city.
+  if (!hasPlaceFilter(filters)) return true;
   if (filters.rayon && filters.rayon !== "any") {
     const area = adminAreaById(filters.rayon);
     if (area) return adminAreaMatchesListing(area, item);
@@ -264,7 +282,7 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.section === "cars") {
       const want = filters.autoType === "rent" ? "car-rental" : "cars";
       if (item.section !== want) return false;
-    } else if (filters.section && item.section !== filters.section) {
+    } else if (filters.section && item.section !== filters.section && shopItemAlsoIn(item)?.section !== filters.section) {
       return false;
     }
     if (filters.category && filters.category !== "all") {
@@ -298,7 +316,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
       if (item.techModel !== filters.techModel) return false;
     }
     if (filters.section === "animals") {
-      if (filters.animalGroup && filters.animalGroup !== "any" && item.animalGroup !== filters.animalGroup) {
+      const group = item.animalGroup ?? shopItemAlsoIn(item)?.animalGroup;
+      if (filters.animalGroup && filters.animalGroup !== "any" && group !== filters.animalGroup) {
         return false;
       }
       if (filters.animalKind && filters.animalKind !== "any" && item.animalKind !== filters.animalKind) {
