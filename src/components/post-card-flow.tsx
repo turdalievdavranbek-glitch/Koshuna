@@ -41,6 +41,7 @@ export function CardPost({ card }: { card: string }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
   const [taxonomyReady, setTaxonomyReady] = useState(true);
+  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [limit, setLimit] = useState(false);
   const [publishedId, setPublishedId] = useState<string | null>(null);
@@ -764,8 +765,13 @@ export function CardPost({ card }: { card: string }) {
             <button
               type="button"
               data-testid="post-publish"
+              disabled={publishing}
               onClick={() => {
+                if (publishing) return;
+                setPublishing(true);
+                setError("");
                 void (async () => {
+                try {
                 const spoken = draft.mediaKind === "video" || draft.mediaKind === "voice";
                 if (spoken && !draft.aiConfirmed) {
                   setError(t.needConfirm);
@@ -788,7 +794,11 @@ export function CardPost({ card }: { card: string }) {
                   return;
                 }
                 setLimit(false);
-                if (!draft.editing && (await personalPostLimited())) {
+                // A hung limit check must not freeze the button; the server enforces the limit on insert too.
+                const limited = draft.editing
+                  ? false
+                  : await Promise.race([personalPostLimited(), new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 8000))]);
+                if (limited) {
                   setLimit(true);
                   setError("");
                   return;
@@ -804,6 +814,11 @@ export function CardPost({ card }: { card: string }) {
                 clearPostedDraft();
                 setPublishedId(item.id);
                 setStep(3);
+                } catch {
+                  setError(t.postFailed);
+                } finally {
+                  setPublishing(false);
+                }
                 })();
               }}
               className="shadow-btn h-[54px] flex-1 rounded-2xl text-base font-semibold"
@@ -818,7 +833,7 @@ export function CardPost({ card }: { card: string }) {
                     : "#FFF7F0",
               }}
             >
-              {t.publish}
+              {publishing ? t.postPublishing : t.publish}
             </button>
             </div>
           </div>

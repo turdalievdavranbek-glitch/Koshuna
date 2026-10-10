@@ -11,7 +11,7 @@ import { media } from "./db/schema";
 const execFileAsync = promisify(execFile);
 
 const PHOTO_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime", "video/3gpp", "video/x-m4v", "video/x-matroska"]);
 const VOICE_MIME = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg"]);
 
 const EXT: Record<string, string> = {
@@ -21,6 +21,9 @@ const EXT: Record<string, string> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
   "video/quicktime": "mov",
+  "video/3gpp": "3gp",
+  "video/x-m4v": "m4v",
+  "video/x-matroska": "mkv",
   "audio/webm": "webm",
   "audio/ogg": "ogg",
   "audio/mp4": "m4a",
@@ -179,23 +182,32 @@ export async function writeChunk(uploadId: string, offset: number, bytes: Uint8A
   return { received: offset + bytes.byteLength };
 }
 
-type VideoCodecs = { container: string; video?: string; pixFmt?: string; audio?: string };
+type VideoCodecs = { container: string; video?: string; pixFmt?: string; audio?: string; width?: number; height?: number; bitRate?: number };
 
 async function probeCodecs(full: string): Promise<VideoCodecs | null> {
   const bin = process.env.FFPROBE_PATH || "ffprobe";
   try {
     const { stdout } = await execFileAsync(
       bin,
-      ["-v", "error", "-show_entries", "format=format_name:stream=codec_type,codec_name,pix_fmt", "-of", "json", full],
+      ["-v", "error", "-show_entries", "format=format_name,bit_rate:stream=codec_type,codec_name,pix_fmt,width,height", "-of", "json", full],
       { timeout: 15_000, maxBuffer: 1024 * 1024 },
     );
     const data = JSON.parse(String(stdout)) as {
-      format?: { format_name?: string };
-      streams?: { codec_type?: string; codec_name?: string; pix_fmt?: string }[];
+      format?: { format_name?: string; bit_rate?: string };
+      streams?: { codec_type?: string; codec_name?: string; pix_fmt?: string; width?: number; height?: number }[];
     };
     const video = data.streams?.find((s) => s.codec_type === "video");
     const audio = data.streams?.find((s) => s.codec_type === "audio");
-    return { container: data.format?.format_name ?? "", video: video?.codec_name, pixFmt: video?.pix_fmt, audio: audio?.codec_name };
+    const bitRate = Number(data.format?.bit_rate);
+    return {
+      container: data.format?.format_name ?? "",
+      video: video?.codec_name,
+      pixFmt: video?.pix_fmt,
+      audio: audio?.codec_name,
+      width: video?.width,
+      height: video?.height,
+      bitRate: Number.isFinite(bitRate) ? bitRate : undefined,
+    };
   } catch {
     return null;
   }
@@ -224,7 +236,10 @@ export async function normalizeVideo(relative: string): Promise<{ relative: stri
   const outRelative = relative.replace(/\.[^./]+$/, "") + ".mp4";
   const out = path.join(mediaRoot(), outRelative);
   const tmp = `${out}.normalize.tmp`;
-  const copy = playableEverywhere(codecs);
+  // Gallery videos from phones are often 1080p/4K at 15-50 Mbit/s: shrink them so viewers on mobile data can play them.
+  const heavy =
+    Math.min(codecs.width ?? 0, codecs.height ?? 0) > 1080 || (codecs.bitRate != null && codecs.bitRate > 5_000_000);
+  const copy = playableEverywhere(codecs) && !heavy;
   const codecArgs = copy
     ? ["-c", "copy"]
     : [
@@ -259,7 +274,7 @@ export async function normalizeVideo(relative: string): Promise<{ relative: stri
     await execFileAsync(
       bin,
       ["-nostdin", "-v", "error", "-y", "-i", full, "-map", "0:v:0", "-map", "0:a:0?", ...codecArgs, "-movflags", "+faststart", "-f", "mp4", tmp],
-      { timeout: 180_000, maxBuffer: 4 * 1024 * 1024 },
+      { timeout: 420_000, maxBuffer: 4 * 1024 * 1024 },
     );
     await rename(tmp, out);
     const { chmod } = await import("fs/promises");

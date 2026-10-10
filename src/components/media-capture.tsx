@@ -347,7 +347,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           const duration = meta > 0 && Number.isFinite(meta) ? meta : wall;
           if (duration > videoMaxSeconds()) {
             dropBlob("video");
-            setBusy(t.shopVideoTime);
+            setBusy(t.videoTooLong(Math.round(videoMaxSeconds() / 60)));
             return;
           }
           const poster = (await captureVideoPoster(url)) ?? undefined;
@@ -411,10 +411,15 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
 
   const onFile = async (file: File) => {
     setBusy("");
-    const isVideo = file.type.startsWith("video");
     const isAudio = file.type.startsWith("audio");
+    // Desktop browsers often give .mov/.mkv an empty type: the extension decides, not only file.type.
+    const isVideo = !isAudio && isGalleryVideo(file);
     if (isVideo && file.size > videoMaxBytes()) {
-      setBusy(t.shopVideoSize);
+      setBusy(t.videoTooBig(Math.round(videoMaxBytes() / (1024 * 1024))));
+      return;
+    }
+    if (!isVideo && !isAudio && !file.type.startsWith("image") && file.type) {
+      setBusy(t.videoBadFormat);
       return;
     }
     const url = keepBlob(isVideo ? "video" : isAudio ? "voice" : "photo", file);
@@ -423,14 +428,21 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       return;
     }
     if (isVideo) {
-      const duration = await videoDuration(url);
-      if (duration > videoMaxSeconds()) {
+      setBusy(t.videoPreparing);
+      try {
+        const duration = await videoDuration(url);
+        if (duration > videoMaxSeconds()) {
+          dropBlob("video");
+          setBusy(t.videoTooLong(Math.round(videoMaxSeconds() / 60)));
+          return;
+        }
+        const poster = (await captureVideoPoster(url)) ?? DEMO_POSTER_URL;
+        onPatch({ mediaKind: "video", videoUrl: url, videoSec: duration || undefined, photo: poster, aiConfirmed: false });
+        setBusy("");
+      } catch {
         dropBlob("video");
-        setBusy(t.shopVideoTime);
-        return;
+        setBusy(t.videoReadFail);
       }
-      const poster = (await captureVideoPoster(url)) ?? DEMO_POSTER_URL;
-      onPatch({ mediaKind: "video", videoUrl: url, videoSec: duration || undefined, photo: poster, aiConfirmed: false });
     } else if (isAudio) {
       onPatch({ mediaKind: "voice", voiceUrl: url, aiConfirmed: false });
     } else {

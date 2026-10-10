@@ -26,6 +26,8 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopVideoSize;
     case "video-duration":
       return t.shopVideoTime;
+    case "bad-mime":
+      return t.videoBadFormat;
     case "network":
       return t.shopNetwork;
     case "reuse":
