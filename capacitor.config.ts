@@ -20,6 +20,13 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: false,
   },
   plugins: {
+    // Android 15 edge-to-edge (targetSdk 36). The site has no viewport-fit=cover, so Capacitor pads the
+    // WebView by the status/navigation bar insets natively: content never sits under the bars.
+    // "LIGHT" = dark bar icons on the light #F7F3EC background (the site has no dark theme).
+    SystemBars: {
+      insetsHandling: "css",
+      style: "LIGHT",
+    },
     PushNotifications: {
       presentationOptions: ["alert", "sound", "badge"],
     },

@@ -39,11 +39,13 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            // R8: shrink, optimize and obfuscate (Play Console 1.3: low DEX optimization, 1% obfuscation).
+            minifyEnabled true
+            shrinkResources true
             if (releaseStorePath) {
                 signingConfig signingConfigs.release
             }
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -74,6 +76,11 @@ def servicesJSON = file("google-services.json")
 if (servicesJSON.exists()) {
     apply plugin: "com.google.gms.google-services"
     apply plugin: "com.google.firebase.crashlytics"
+    // Upload the R8 mapping so Crashlytics shows readable stack traces.
+    // Local test builds pass -PkoshunaNoMappingUpload to send nothing.
+    android.buildTypes.release.firebaseCrashlytics {
+        mappingFileUploadEnabled = !project.hasProperty("koshunaNoMappingUpload")
+    }
 } else {
     logger.lifecycle("google-services.json not found. The APK still compiles. Crashlytics and FCM send nothing until android/app/google-services.json is added and this APK is rebuilt. See android/OWNER-SETUP.md.")
 }
