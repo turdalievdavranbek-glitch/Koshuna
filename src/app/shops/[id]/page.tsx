@@ -20,6 +20,7 @@ import { starsForUser } from "@/lib/trust";
 import { ScreenBack } from "@/components/back-button";
 import { BlockedAuthorNotice } from "@/components/block-author";
 import { PlayBanner } from "@/components/play-banner";
+import { PointChecklist } from "@/components/point-checklist";
 import { ShareButton } from "@/components/share-button";
 import { ShopSubscribe } from "@/components/shop-subscribe";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
@@ -132,6 +133,8 @@ export default function ShopDetailPage() {
           ))}
         </div>
 
+        {mine ? <PointChecklist shop={shop} /> : null}
+
         {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2 desk:col-span-12">{shop.description}</p> : null}
 
         <div className="desk:col-span-12">
@@ -165,7 +168,7 @@ export default function ShopDetailPage() {
 
         <div className="mt-4 rounded-[16px] border border-line bg-white p-4 desk:col-span-4 desk:col-start-6 desk:row-start-1 desk:mt-0">
           <div className="text-[13px] font-semibold text-ink">
-            {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : `${cityLabel}, ${shop.address}`}
+            {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : [cityLabel, shop.address?.trim()].filter(Boolean).join(", ")}
           </div>
           {deliveryLine ? <div className="mt-1 text-[12px] text-muted">{deliveryLine}</div> : null}
           {open === true ? <div className="mt-1 text-[12px] font-bold text-success">{t.shopOpenNow}</div> : null}

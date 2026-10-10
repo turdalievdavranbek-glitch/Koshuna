@@ -6,6 +6,7 @@ import { shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { mediaUrlError, rowToShop, sessionAsUser, shopMediaUrls } from "@/server/mappers";
 import { shopsForViewer } from "@/server/moderation";
+import { normalizePhone } from "@/lib/shops";
 import { hideShopForUser, saveShopForUser, validateShopAction, type ShopBody } from "@/server/shops";
 import { NextResponse } from "next/server";
 
@@ -46,6 +47,14 @@ export async function PUT(req: Request, ctx: Ctx) {
   clientUser.name = user.name || shop.ownerName;
   const invalid = validateShopAction({ ...body, shop }, clientUser);
   if (invalid) return json(invalid.body, invalid.status);
+  if (body.action === "publish") {
+    // New point: the same four required fields as the client (name, type, place, phone).
+    // Existing points keep the older contact rule so their edits never break.
+    const exists = await getDb().select({ id: shops.id }).from(shops).where(eq(shops.id, id)).limit(1);
+    if (!exists[0] && normalizePhone(shop.contacts?.phone ?? "").length < 9) {
+      return json({ ok: false, error: "contact", errors: ["contact"] }, 400);
+    }
+  }
   const urls = shopMediaUrls(shop);
   const mediaError = mediaUrlError(urls);
   if (mediaError) return json({ ok: false, error: mediaError }, 400);

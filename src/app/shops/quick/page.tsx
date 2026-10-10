@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PointForm } from "@/components/point-form";
+import { PointQuickForm } from "@/components/point-quick-form";
 import { ShopItemCapture } from "@/components/shop-item-capture";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
@@ -56,7 +57,11 @@ export default function ShopQuickPage() {
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
         {pointCreate ? (
-          <PointForm mode="create" venue={card === "stall" ? "stall" : "shop"} createdId={created} />
+          created ? (
+            <PointForm mode="create" venue={card === "stall" ? "stall" : "shop"} createdId={created} />
+          ) : (
+            <PointQuickForm venue={card === "stall" ? "stall" : "shop"} />
+          )
         ) : (
           <ShopItemCapture shopId={shopId} />
         )}
