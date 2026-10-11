@@ -290,6 +290,8 @@ export type Listing = {
   /** Show the price as «от …». */
   priceFrom?: boolean;
   hours?: ShopHours;
+  /** Item of a point run for a seller with their consent («Добавлено с согласия продавца»). */
+  managedPoint?: boolean;
 };
 
 export type Filters = {
@@ -614,6 +616,8 @@ export type Shop = {
   createdAt: string;
   updatedAt: string;
   aiConfirmed: boolean;
+  /** «Точка ведётся от имени продавца»: calls and WhatsApp go to this seller; in-app chat stays with the account owner. */
+  managedFor?: { phone: string; name?: string };
 };
 
 export type ShopDraft = Shop & {

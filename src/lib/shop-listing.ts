@@ -97,6 +97,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     videoUrl: product.videoUrl,
     reservedBy: prev?.reservedBy,
     underReview: shop.underReview === true || prev?.underReview === true,
+    managedPoint: shop.managedFor?.phone ? true : undefined,
   };
   // Admin «Сменить раздел» wins over the section derived from the point's category.
   return moved ? (applySectionMove(base as unknown as Record<string, unknown>, moved as SectionMove) as unknown as Listing) : base;

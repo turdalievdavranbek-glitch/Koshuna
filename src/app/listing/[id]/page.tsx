@@ -603,6 +603,9 @@ export default function ListingPage() {
                       ? `${t.dealerBadge} · ${postedLabel(listing, t)}`
                       : `${t.shopFromListing} · ${postedLabel(listing, t)}`}
                 </div>
+                {listing.managedPoint ? (
+                  <div className="mt-1 inline-block rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink-2">{t.managedBadge}</div>
+                ) : null}
               </div>
               {listing.shopId ? <span className="text-[13px] font-semibold text-accent">{t.shopToShop}</span> : null}
               {dealer ? <span className="text-[13px] font-semibold text-accent">{t.dealersTitle}</span> : null}
