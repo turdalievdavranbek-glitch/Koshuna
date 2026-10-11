@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { getSessionUser } from "@/server/auth";
 import { getDb } from "@/server/db";
 import { blocks, listings, shops } from "@/server/db/schema";
@@ -16,6 +16,8 @@ export async function GET(req: Request) {
   const city = url.searchParams.get("city");
   const q = url.searchParams.get("q")?.trim() || "";
   const cursor = url.searchParams.get("cursor");
+  // order=old → oldest first (ascending created date); default newest first.
+  const oldest = url.searchParams.get("order") === "old";
   const requested = Number(url.searchParams.get("limit") || 100);
   const limit = Math.min(1000, Math.max(1, Number.isFinite(requested) ? requested : 100));
   const filters: SQL[] = [
@@ -44,7 +46,11 @@ export async function GET(req: Request) {
     const id = split >= 0 ? cursor.slice(split + 1) : "";
     const at = new Date(stamp);
     if (id && !Number.isNaN(at.getTime())) {
-      filters.push(sql`(${listings.createdAt}, ${listings.id}) < (${at.toISOString()}::timestamptz, ${id})`);
+      filters.push(
+        oldest
+          ? sql`(${listings.createdAt}, ${listings.id}) > (${at.toISOString()}::timestamptz, ${id})`
+          : sql`(${listings.createdAt}, ${listings.id}) < (${at.toISOString()}::timestamptz, ${id})`,
+      );
     }
   }
   let rows;
@@ -53,7 +59,7 @@ export async function GET(req: Request) {
       .select()
       .from(listings)
       .where(and(...filters))
-      .orderBy(desc(listings.createdAt), desc(listings.id))
+      .orderBy(...(oldest ? [asc(listings.createdAt), asc(listings.id)] : [desc(listings.createdAt), desc(listings.id)]))
       .limit(limit + 1);
   } catch {
     return json({ listings: [], counts: {}, nextCursor: null });

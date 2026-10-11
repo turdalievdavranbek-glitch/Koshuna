@@ -61,7 +61,7 @@ export type MeetDeal = {
   calendarSaved: boolean;
 };
 
-export type SortMode = "new" | "price-asc" | "price-desc";
+export type SortMode = "new" | "old" | "price-asc" | "price-desc";
 
 export type ListingLayout = "large" | "medium" | "small";
 

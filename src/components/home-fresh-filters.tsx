@@ -83,7 +83,7 @@ export function HomeFreshFilters() {
 
   const [panel, setPanel] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const sortNow = filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new";
+  const sortNow = filters.sort === "old" || filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new";
   useEffect(() => {
     if (!sortOpen && !panel) return;
     const onKey = (e: KeyboardEvent) => {
@@ -305,7 +305,7 @@ export function HomeFreshFilters() {
             className="flex h-7 items-center gap-1 rounded-full border border-line bg-surface px-2.5 text-[11px] font-semibold text-ink"
           >
             <span className="text-muted">{t.sort}:</span>
-            {sortNow === "price-asc" ? t.priceAsc : sortNow === "price-desc" ? t.priceDesc : t.newestShort}
+            {sortNow === "price-asc" ? t.priceAsc : sortNow === "price-desc" ? t.priceDesc : sortNow === "old" ? t.oldestShort : t.newestShort}
             <span className="text-[9px] text-muted" aria-hidden>
               ▼
             </span>
@@ -328,6 +328,7 @@ export function HomeFreshFilters() {
                 {(
                   [
                     ["new", t.sortMenuNew],
+                    ["old", t.sortMenuOld],
                     ["price-asc", t.sortMenuCheap],
                     ["price-desc", t.sortMenuDear],
                   ] as const

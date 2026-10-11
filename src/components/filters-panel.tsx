@@ -331,6 +331,7 @@ export function FiltersPanel() {
             {(
               [
                 ["new", t.newestShort],
+                ["old", t.oldestShort],
                 ["price-asc", t.sortCheaper],
                 ["price-desc", t.sortDearer],
               ] as const

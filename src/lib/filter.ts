@@ -411,7 +411,11 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     return true;
   });
 
-  if (filters.sort === "price-asc") out = [...out].sort((a, b) => a.price - b.price);
+  if (filters.sort === "old") {
+    // «Сначала старые»: oldest created first; rows without a date go last.
+    const at = (item: Listing) => listingCreatedMs(item) ?? Number.MAX_SAFE_INTEGER;
+    out = [...out].sort((a, b) => at(a) - at(b));
+  } else if (filters.sort === "price-asc") out = [...out].sort((a, b) => a.price - b.price);
   else if (filters.sort === "price-desc") out = [...out].sort((a, b) => b.price - a.price);
   return out;
 }
