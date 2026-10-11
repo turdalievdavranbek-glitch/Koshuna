@@ -35,6 +35,9 @@ export type ModerationItem = {
  * Users with one are not limited. Everyone else: at most 3 personal listings per rolling 24h.
  */
 export async function personalLimitReached(tx: Executor, userId: string): Promise<boolean> {
+  // «Мастер-аккаунт» and admins have no personal daily limit.
+  const who = await tx.select({ isAdmin: users.isAdmin, isMaster: users.isMaster }).from(users).where(eq(users.id, userId)).limit(1);
+  if (who[0]?.isAdmin || who[0]?.isMaster) return false;
   const point = await tx
     .select({ id: shops.id })
     .from(shops)

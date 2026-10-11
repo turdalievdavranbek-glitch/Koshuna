@@ -8,6 +8,7 @@ import type { Shop, ShopCategory, ShopKind, ShopProduct, User } from "@/lib/type
 import { getDb } from "./db";
 import { listings, reports, shops } from "./db/schema";
 import { attachMedia } from "./media";
+import { isMasterOrAdmin } from "./masters";
 import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
 function productCreatesPharmacyListing(
@@ -103,7 +104,10 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
     const stored = storedProducts.find((row) => row.id === product.id)?.adminSection;
     return stored ? { ...rest, adminSection: stored } : rest;
   });
-  const clean: Shop = sanitizeShopPointFields({ ...shop, products, hours: sanitizeShopHours(shop.hours) });
+  // «Точка от имени продавца» only for master accounts and admins; others keep what is stored (or nothing).
+  const storedManaged = (existing[0]?.doc as Shop | undefined)?.managedFor;
+  const managedFor = shop.managedFor && !(await isMasterOrAdmin(user.id)) ? storedManaged : shop.managedFor;
+  const clean: Shop = sanitizeShopPointFields({ ...shop, managedFor, products, hours: sanitizeShopHours(shop.hours) });
   const columns = shopToColumns({ ...clean, id: clean.id }, user.id);
   if (!existing[0]) {
     await db.insert(shops).values(columns);

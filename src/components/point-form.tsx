@@ -9,6 +9,7 @@ import { districtLabel } from "@/lib/geo";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
+import { isAdminUser } from "@/lib/partners";
 import { normalizePhoneInput } from "@/lib/phone";
 import { telegramUsername } from "@/lib/telegram-username";
 import {
@@ -646,6 +647,7 @@ export function PointForm({
         </div>
       </div>
 
+      {user?.master || isAdminUser(user) || d.managedFor ? (
       <div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-[13px] font-semibold text-ink">{t.managedToggle}</span>
@@ -672,6 +674,7 @@ export function PointForm({
           </div>
         ) : null}
       </div>
+      ) : null}
 
       <div>
         <span className="text-[13px] font-semibold text-ink">{t.tgContactField}</span>

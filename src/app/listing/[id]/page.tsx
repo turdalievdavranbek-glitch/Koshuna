@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterBadge } from "@/components/master-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -595,6 +596,7 @@ export default function ListingPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-semibold text-ink">{dealer?.companyName || listing.sellerName || owner?.name || t.ownerProfile}</span>
                   {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
+                  <MasterBadge userId={listing.ownerId} />
                 </div>
                 <div className="mt-0.5 text-[13px] text-muted">
                   {mine

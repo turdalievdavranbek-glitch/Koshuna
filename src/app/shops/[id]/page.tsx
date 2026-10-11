@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterBadge } from "@/components/master-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
@@ -119,7 +120,10 @@ export default function ShopDetailPage() {
               <h1 className="font-display text-[22px] font-bold leading-[1.15] text-ink">{shop.name}</h1>
               <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
             </div>
-            <div className="mt-1 text-[13px] text-muted">{shop.managedFor?.name || shop.ownerName}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+              <span>{shop.managedFor?.name || shop.ownerName}</span>
+              <MasterBadge userId={shop.ownerId} />
+            </div>
             {shop.managedFor?.phone ? (
               <div className="mt-1.5 inline-block rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink-2">{t.managedBadge}</div>
             ) : null}

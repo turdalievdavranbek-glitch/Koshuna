@@ -37,6 +37,8 @@ export const users = pgTable("users", {
   lastLat: doublePrecision("last_lat"),
   lastLng: doublePrecision("last_lng"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  /** «Мастер-аккаунт»: set by an admin. May run points for sellers; no personal daily limit. */
+  isMaster: boolean("is_master").notNull().default(false),
   bannedAt: ts("banned_at"),
   deletedAt: ts("deleted_at"),
   createdAt: ts("created_at").notNull().defaultNow(),

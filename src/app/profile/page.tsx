@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mineListings } from "@/lib/listing-owner";
@@ -99,6 +100,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-1.5">
               <span className="truncate font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={17} /> : null}
+              <MasterBadge userId={user.id} on={user.master || undefined} />
               {userHasShopBadge(shops, user) ? (
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
               ) : null}
