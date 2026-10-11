@@ -47,7 +47,7 @@ export function listingOgCard(
   } | null,
 ): OgCard {
   if (!row || !LISTING_PUBLIC.has(row.status)) return genericOgCard();
-  const price = row.price != null && row.price > 0 ? `${formatSom(row.price)} KGS` : "договорная";
+  const price = row.price != null && row.price > 0 ? `${formatSom(row.price)} сом` : "договорная";
   const place = row.place.trim();
   return {
     hidden: false,
