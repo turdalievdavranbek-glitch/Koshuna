@@ -95,7 +95,7 @@ function Published({ id }: { id: string }) {
         </div>
         {published?.lat != null && published.lng != null ? (
           <div className="mt-6">
-            <GisOnMapCard city={published.city} lat={published.lat} lng={published.lng} listingId={published.id} label={`${published.price} KGS`} showHint />
+            <GisOnMapCard city={published.city} lat={published.lat} lng={published.lng} listingId={published.id} label={`${published.price} сом`} showHint />
           </div>
         ) : null}
         {published ? (

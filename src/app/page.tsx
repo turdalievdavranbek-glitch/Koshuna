@@ -165,7 +165,7 @@ export default function FeedPage() {
                     <div className="font-display text-[15px] font-bold text-ink">
                       {formatSom(item.price)}{" "}
                       <span className="text-[11px] text-muted">
-                        KGS{item.unit === "month" ? t.perMonthShort.replace("/ ", "/") : ""}
+                        сом{item.unit === "month" ? t.perMonthShort.replace("/ ", "/") : ""}
                       </span>
                     </div>
                     <div className="mt-[3px] text-xs leading-[1.3] text-muted">
@@ -230,7 +230,7 @@ export default function FeedPage() {
 
         <div className="mt-4 flex items-center gap-[7px] pb-1.5 text-xs text-muted">
           <Flag />
-          {t.country} · KGS
+          {t.country} · сом
         </div>
       </div>
     </PhoneShell>

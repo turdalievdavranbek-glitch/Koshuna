@@ -45,7 +45,7 @@ export function MarketRangeCard({
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.marketHint}</p>
       <div className="mt-3 font-display text-[22px] font-bold leading-[1.15] text-ink">
         {formatSom(band.min)} – {formatSom(band.max)}
-        <span className="ml-1 text-[13px] font-semibold text-muted">KGS{unit}</span>
+        <span className="ml-1 text-[13px] font-semibold text-muted">сом{unit}</span>
       </div>
       <p className="mt-1 text-[12px] text-muted">
         {t.marketCount(band.count)} · {scopeText}

@@ -735,7 +735,7 @@ export function CardPost({ card }: { card: string }) {
                   </div>
                 ) : entryCard === "cafe" && !draft.price.trim() ? null : (
                 <div className="font-display text-[21px] font-bold text-ink">
-                  {draft.price} KGS {draft.kind === "rent" ? t.perMonth : ""}
+                  {draft.price} сом {draft.kind === "rent" ? t.perMonth : ""}
                 </div>
                 )}
                 <div className="mt-1 text-[15px] font-medium text-ink">{draft.title}</div>
@@ -859,7 +859,7 @@ export function CardPost({ card }: { card: string }) {
                 lat={published.lat}
                 lng={published.lng}
                 listingId={published.id}
-                label={`${published.price} KGS`}
+                label={`${published.price} сом`}
                 showHint
               />
             </div>

@@ -98,7 +98,7 @@ export function MyListings({ limit }: { limit?: number }) {
               <div className="mt-1.5 text-sm leading-[1.3] text-ink">{listingTitle(item, lang)}</div>
               <div className="mt-1.5 text-xs text-muted-2">
                 {item.status === "draft"
-                  ? `${t.cities[item.city]} · ${formatSom(item.price)} KGS`
+                  ? `${t.cities[item.city]} · ${formatSom(item.price)} сом`
                   : `${item.views} ${t.views} · ${item.favCount} ${t.fav.toLowerCase()}${
                       item.leadCount ? ` · ${t.leadsTitle} ${item.leadCount}` : ""
                     }`}

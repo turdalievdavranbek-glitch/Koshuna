@@ -1169,7 +1169,7 @@ export function ShopItemCapture({
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] font-semibold text-ink">{product.title}</span>
                   <span className="mt-0.5 block text-[13px] font-semibold text-accent">
-                    {product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}
+                    {product.price != null ? `${formatSom(product.price)} сом` : t.shopAskPrice}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-2">{row.name}</span>
                 </span>
@@ -1202,7 +1202,7 @@ function ItemCard({
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold text-ink">{product.title}</div>
         <div className="mt-0.5 text-[13px] font-semibold text-accent">
-          {product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}
+          {product.price != null ? `${formatSom(product.price)} сом` : t.shopAskPrice}
         </div>
         {shopQtyLabel(t, product) ? <div className="mt-0.5 text-[11px] text-muted">{shopQtyLabel(t, product)}</div> : null}
         {product.priceFromPhoto ? <div className="mt-0.5 text-[11px] text-muted">{t.shopItemPriceAiShort}</div> : null}

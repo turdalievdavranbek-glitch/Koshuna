@@ -210,7 +210,7 @@ export function RecentlyViewed() {
             <ListingThumb listing={item} alt={listingTitle(item, lang)} compact className={isVideoListing(item) ? "px-3 pt-2" : ""} />
             <div className={`px-2.5 pb-2.5 pt-2 ${isVideoListing(item) ? "text-center" : ""}`}>
               <div className="font-display text-[14px] font-bold text-ink">
-                {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
+                {listingHasPrice(item) ? `${formatSom(item.price)} сом` : t.shopAskPrice}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
               <ListingSocialMeta listingId={item.id} size="sm" align={isVideoListing(item) ? "center" : "start"} />

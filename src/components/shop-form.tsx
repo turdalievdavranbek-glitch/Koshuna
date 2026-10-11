@@ -278,7 +278,7 @@ export function ShopForm({ boot = true }: { boot?: boolean } = {}) {
               <div key={`${item.title}-${i}`} className="flex items-center justify-between gap-2 rounded-[14px] bg-chip px-3 py-2">
                 <div>
                   <div className="text-[13px] font-semibold text-ink">{item.title}</div>
-                  {item.price ? <div className="text-[12px] text-muted">{item.price} KGS</div> : <div className="text-[12px] text-muted">{t.shopAskPrice}</div>}
+                  {item.price ? <div className="text-[12px] text-muted">{item.price} сом</div> : <div className="text-[12px] text-muted">{t.shopAskPrice}</div>}
                   {item.quantity != null && item.quantity > 0 ? (
                     <div className="text-[12px] text-muted">
                       {item.quantity} {t.shopUnits[item.unit ?? "piece"]}

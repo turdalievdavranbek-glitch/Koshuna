@@ -19,7 +19,7 @@ export function DraftContinueCard({ onOpen }: { onOpen: (draft: DraftListing) =>
   const { t, draft, discardDraft } = useApp();
   const [ask, setAsk] = useState(false);
   if (!draftUnfinished(draft)) return null;
-  const price = draft.priceNegotiable ? t.priceNegotiable : draft.price ? `${draft.price} KGS` : "";
+  const price = draft.priceNegotiable ? t.priceNegotiable : draft.price ? `${draft.price} сом` : "";
   return (
     <div className="mb-3 rounded-[16px] border border-line bg-white p-3" data-testid="draft-card">
       <button type="button" data-testid="draft-continue" onClick={() => onOpen(draft)} className="flex w-full items-center gap-3 text-left">
