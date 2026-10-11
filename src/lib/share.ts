@@ -16,7 +16,7 @@ export function storyCaption(listing: Listing, t: Dict, lang: Lang): string {
   return [
     `${t.fromNeighbor} · ${place}`,
     `${title}`,
-    `${formatSom(listing.price)} KGS${unit}`,
+    `${formatSom(listing.price)} сом${unit}`,
     t.storyCaptionTail,
   ].join("\n");
 }
@@ -25,7 +25,7 @@ export function familyShareText(listing: Listing, t: Dict, lang: Lang): string {
   const title = listingTitle(listing, lang);
   const place = listingPlace(listing, t, lang);
   const unit = listing.unit ? ` ${t.units[listing.unit]}` : "";
-  const price = `${formatSom(listing.price)} KGS${unit}`;
+  const price = `${formatSom(listing.price)} сом${unit}`;
   return t.familyShareBody(title, place, price);
 }
 
@@ -38,7 +38,7 @@ export function ownerShareText(
   const title = listingTitle(listing, lang);
   const place = listingPlace(listing, t, lang);
   const unit = listing.unit ? ` ${t.units[listing.unit]}` : "";
-  const price = `${formatSom(listing.price)} KGS${unit}`;
+  const price = `${formatSom(listing.price)} сом${unit}`;
   return t.ownerShareBody(title, place, price, url);
 }
 

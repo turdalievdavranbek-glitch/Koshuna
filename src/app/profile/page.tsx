@@ -285,7 +285,7 @@ export default function ProfilePage() {
             value={
               <span className="flex items-center gap-[7px] text-sm text-muted">
                 <Flag />
-                {t.country} · KGS
+                {t.country} · сом
               </span>
             }
           />

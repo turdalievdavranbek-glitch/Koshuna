@@ -39,7 +39,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         : t.cities[shop.city] || shop.city
       : "";
   const storiesPlace = point?.name || place;
-  const price = listing ? (listingHasPrice(listing) ? `${formatSom(listing.price)} KGS` : t.priceNegotiable) : "";
+  const price = listing ? (listingHasPrice(listing) ? `${formatSom(listing.price)} сом` : t.priceNegotiable) : "";
   const text = cardShareText({ title, price, place, url });
 
   const ping = (msg: string) => {

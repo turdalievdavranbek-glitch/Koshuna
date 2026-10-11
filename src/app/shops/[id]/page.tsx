@@ -238,7 +238,7 @@ export default function ShopDetailPage() {
                       <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
                       {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
                       <div className="mt-1 text-[15px] font-semibold text-accent">
-                        {item.price != null ? `${formatSom(item.price)} KGS / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
+                        {item.price != null ? `${formatSom(item.price)} сом / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
                       </div>
                       <div className="mt-0.5 text-[12px] text-muted">
                         {shopQtyLabel(t, item) ? `${shopQtyLabel(t, item)} · ` : ""}
@@ -266,7 +266,7 @@ export default function ShopDetailPage() {
                   onClick={() => router.push(`/listing/${item.id}`)}
                   className="rounded-[16px] border border-line bg-white px-3 py-3 text-left text-[14px] font-semibold"
                 >
-                  {item.title} · {formatSom(item.price)} KGS
+                  {item.title} · {formatSom(item.price)} сом
                 </button>
               ))}
             </div>

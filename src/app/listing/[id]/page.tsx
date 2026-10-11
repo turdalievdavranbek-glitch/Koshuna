@@ -458,7 +458,7 @@ export default function ListingPage() {
           {personal ? <PayAfterNote listing={listing} /> : null}
           {isStay && nights ? (
             <div className="mt-2 text-[15px] font-semibold text-ink">
-              {t.stayTotal}: {formatSom(stayTotal)} KGS · {t.nights(nights)}
+              {t.stayTotal}: {formatSom(stayTotal)} сом · {t.nights(nights)}
             </div>
           ) : null}
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
@@ -671,7 +671,7 @@ export default function ListingPage() {
                     />
                     <div className={`px-[11px] pb-[11px] pt-[9px] ${isVideoListing(item) ? "text-center" : ""}`}>
                       <div className="font-display text-[15px] font-bold text-ink">
-                        {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
+                        {listingHasPrice(item) ? `${formatSom(item.price)} сом` : t.shopAskPrice}
                       </div>
                       <div className="mt-[3px] line-clamp-2 text-xs leading-[1.3] text-muted">
                         {listingTitle(item, lang)}

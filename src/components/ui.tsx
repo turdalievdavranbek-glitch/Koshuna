@@ -119,7 +119,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
   const promo = listing.section === "services" ? null : dropped && listing.previousPrice ? (
     <div className={`flex items-center gap-1.5 ${large ? "mt-1" : compact ? "mt-0.5" : "mt-1"}`}>
       <span className={`text-muted-2 line-through ${large ? "text-sm" : compact ? "text-[10px]" : "text-xs"}`}>
-        {formatSom(listing.previousPrice)}{large ? " KGS" : ""}
+        {formatSom(listing.previousPrice)}{large ? " сом" : ""}
       </span>
       <span className={`rounded-md bg-success-tint font-bold text-success ${large ? "px-1.5 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]"}`}>
         {t.priceDropped}
@@ -131,7 +131,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
       <div>
         <div className="flex items-baseline gap-2">
           <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-            {amount ?? empty ?? `${formatSom(listing.price)} KGS`}
+            {amount ?? empty ?? `${formatSom(listing.price)} сом`}
           </span>
           {unit && !amount ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
@@ -145,9 +145,9 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
         <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
           {amount ?? empty ?? (
             <>
-              {formatSom(listing.price)} {compact ? "" : "KGS"}
+              {formatSom(listing.price)} {compact ? "" : "сом"}
               {unit ? <span className="ml-1 text-xs font-medium text-muted">{unit}</span> : null}
-              {compact && !unit ? <span className="ml-1 text-[11px] font-medium text-muted">KGS</span> : null}
+              {compact && !unit ? <span className="ml-1 text-[11px] font-medium text-muted">сом</span> : null}
             </>
           )}
         </span>

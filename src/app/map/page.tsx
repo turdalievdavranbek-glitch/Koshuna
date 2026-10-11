@@ -61,7 +61,7 @@ export default function MapPage() {
           id: l.id,
           lat: l.lat!,
           lng: l.lng!,
-          label: `${formatSom(l.price)} KGS`,
+          label: `${formatSom(l.price)} сом`,
           active: l.id === selected,
         })),
     [listings, selected],
