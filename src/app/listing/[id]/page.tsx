@@ -530,7 +530,6 @@ export default function ListingPage() {
               <p className="mt-2 text-[12px] font-semibold text-accent-dark">{t.fromSpeech}</p>
             ) : null}
             <p className="mt-2.5 text-[15px] leading-[1.6] text-ink-2">{listingDesc(listing, lang)}</p>
-            <p className="mt-2.5 text-xs leading-[1.5] text-muted-2">{t.disclaimer.split(".")[0]}.</p>
           </div>
 
           {listing.section === "restaurants" && (listing.address || listing.foodType || listing.calories || listing.ingredients) ? (
