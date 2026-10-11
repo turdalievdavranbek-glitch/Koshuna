@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
-import { canSeeShop, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
+import { canSeeShop, shopCallPhone, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { telegramLink } from "@/lib/telegram-username";
 import { isDbUserId } from "@/lib/phone";
@@ -24,6 +24,7 @@ import { BlockedAuthorNotice } from "@/components/block-author";
 import { PlayBanner } from "@/components/play-banner";
 import { PointChecklist } from "@/components/point-checklist";
 import { ShareButton } from "@/components/share-button";
+import { PointTransfer } from "@/components/point-transfer";
 import { ShopSubscribe } from "@/components/shop-subscribe";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
@@ -36,6 +37,7 @@ export default function ShopDetailPage() {
   const [playing, setPlaying] = useState(false);
 
   const mine = shop ? isOwnShop(shop, user) : false;
+  const callPhone = shop ? shopCallPhone(shop) : "";
   const visible = shop ? canSeeShop(shop, user) : false;
   const open = shopOpenNow(shop?.hours, nowInKg());
   const products = useMemo(
@@ -117,7 +119,10 @@ export default function ShopDetailPage() {
               <h1 className="font-display text-[22px] font-bold leading-[1.15] text-ink">{shop.name}</h1>
               <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
             </div>
-            <div className="mt-1 text-[13px] text-muted">{shop.ownerName}</div>
+            <div className="mt-1 text-[13px] text-muted">{shop.managedFor?.name || shop.ownerName}</div>
+            {shop.managedFor?.phone ? (
+              <div className="mt-1.5 inline-block rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink-2">{t.managedBadge}</div>
+            ) : null}
             {FEATURES.accountStars && mine ? (
               <div className="mt-1">
                 <TrustStars n={starsForUser(user)} size={12} />
@@ -163,14 +168,14 @@ export default function ShopDetailPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden desk:col-span-3 desk:col-start-10 desk:row-start-1 desk:mt-0 desk:flex-col">
-          {shop.contacts.phone ? (
-            <a href={`tel:${shop.contacts.phone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
+          {callPhone ? (
+            <a href={`tel:${callPhone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
               <IconPhone size={18} color="#FFF7F0" />
               {t.callNow}
             </a>
           ) : null}
-          {shop.contacts.whatsapp && shop.contacts.phone ? (
-            <a href={`https://wa.me/${shop.contacts.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success text-white">
+          {callPhone && (shop.contacts.whatsapp || shop.managedFor?.phone) ? (
+            <a href={`https://wa.me/${callPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success text-white">
               <IconWa size={18} color="#fff" />
             </a>
           ) : null}
@@ -292,6 +297,7 @@ export default function ShopDetailPage() {
                 {t.shopWithdraw}
               </button>
             ) : null}
+            {isDbUserId(shop.ownerId) ? <PointTransfer shop={shop} /> : null}
           </div>
         ) : reports[shop.id] ? (
           <p className="mt-5 text-center text-[13px] text-muted">{t.reportThanks}</p>

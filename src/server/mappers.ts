@@ -1,4 +1,5 @@
 import { postedAgoFrom } from "@/lib/shop-listing";
+import { shopCallPhone } from "@/lib/shops";
 import { telegramUsername } from "@/lib/telegram-username";
 import type { AuthMethod, Listing, Shop, ShopProduct, User } from "@/lib/types";
 import type { SessionUser } from "./auth";
@@ -165,8 +166,9 @@ export function shopToColumns(shop: Shop, ownerId: string): typeof shops.$inferI
     hasDelivery: Boolean(shop.delivery),
     deliveryFree: shop.delivery ? (shop.deliveryFree ?? null) : null,
     deliveryDistricts: shop.delivery ? (shop.deliveryDistricts ?? []) : [],
-    phone: shop.contacts?.phone ?? null,
-    whatsapp: shop.contacts?.whatsapp ? shop.contacts.phone || "1" : null,
+    // Managed point: buyers' calls and WhatsApp reach the seller, not the account owner.
+    phone: shopCallPhone(shop) || null,
+    whatsapp: shop.managedFor?.phone ? shop.managedFor.phone : shop.contacts?.whatsapp ? shop.contacts.phone || "1" : null,
     telegram: telegramUsername(shop.telegramUsername) ?? (shop.contacts?.telegram ? "1" : null),
     status: shop.status || "draft",
     lastPostedAt: shop.products?.some((item) => item.published !== false) ? new Date() : null,

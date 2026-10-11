@@ -1,3 +1,4 @@
+import { normalizePhoneInput } from "./phone";
 import { adminAreaById } from "./admin-areas";
 import { DISTRICTS, GIS_CITIES } from "./data";
 import { displayPhotoForProduct } from "./shop-photos";
@@ -113,6 +114,11 @@ export function isOwnShop(shop: Pick<Shop, "ownerPhone"> & { ownerId?: string | 
   if (shop.ownerId && user?.id) return shop.ownerId === user.id;
   if (!user?.phone) return false;
   return normalizePhone(shop.ownerPhone) === normalizePhone(user.phone);
+}
+
+/** Phone for «Позвонить»/WhatsApp: the seller's own when the point is run on their behalf. */
+export function shopCallPhone(shop: Pick<Shop, "contacts" | "managedFor">): string {
+  return shop.managedFor?.phone?.trim() || shop.contacts?.phone?.trim() || "";
 }
 
 export function normalizePhone(raw: string): string {
@@ -694,8 +700,11 @@ export function sanitizeShopPointFields(shop: Shop): Shop {
         .filter(Boolean)
         .slice(0, 10)
     : [];
+  const managedPhone = shop.managedFor?.phone ? normalizePhoneInput(String(shop.managedFor.phone)) : null;
+  const managedName = capText(shop.managedFor?.name, 60);
   return {
     ...shop,
+    managedFor: managedPhone ? { phone: managedPhone, ...(managedName ? { name: managedName } : {}) } : undefined,
     landmarks: landmarks.length ? landmarks : undefined,
     district: district || undefined,
     kindOther: kindOther || undefined,

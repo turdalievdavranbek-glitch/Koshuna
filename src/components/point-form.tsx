@@ -9,6 +9,7 @@ import { districtLabel } from "@/lib/geo";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
+import { normalizePhoneInput } from "@/lib/phone";
 import { telegramUsername } from "@/lib/telegram-username";
 import {
   applyNameChip,
@@ -305,6 +306,11 @@ export function PointForm({
       setError(t.tgContactBad);
       return;
     }
+    const managedPhone = d.managedFor ? normalizePhoneInput(d.managedFor.phone) : null;
+    if (d.managedFor && !managedPhone) {
+      setError(t.managedPhoneBad);
+      return;
+    }
     const marks = landmarksFromText(landmarkText);
     const shopToSave: Shop = {
       ...d,
@@ -318,6 +324,7 @@ export function PointForm({
       deliveryDistricts: d.delivery ? (d.deliveryDistricts ?? []).slice(0, 10) : [],
       contacts: { ...d.contacts, phone: (d.contacts.phone ?? "").trim(), telegram: Boolean(tgHandle) },
       telegramUsername: tgHandle || undefined,
+      managedFor: managedPhone ? { phone: managedPhone, name: (d.managedFor?.name ?? "").trim().slice(0, 60) || undefined } : undefined,
     };
     setBusy(true);
     const result = await publishShop(shopToSave);
@@ -637,6 +644,33 @@ export function PointForm({
         <div className="mt-2">
           <Input testId="point-phone" value={d.contacts.phone ?? ""} onChange={(value) => patch({ contacts: { ...d.contacts, phone: value } })} />
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[13px] font-semibold text-ink">{t.managedToggle}</span>
+          <Toggle
+            on={Boolean(d.managedFor)}
+            onChange={() => patch({ managedFor: d.managedFor ? undefined : { phone: "", name: "" } })}
+          />
+        </div>
+        <p className="mt-1.5 text-[12px] leading-[1.4] text-muted">{t.managedHint}</p>
+        {d.managedFor ? (
+          <div className="mt-2 flex flex-col gap-2">
+            <Input
+              testId="point-managed-phone"
+              value={d.managedFor.phone}
+              onChange={(value) => patch({ managedFor: { ...(d.managedFor ?? { phone: "" }), phone: value } })}
+              placeholder={t.managedPhone}
+            />
+            <Input
+              testId="point-managed-name"
+              value={d.managedFor.name ?? ""}
+              onChange={(value) => patch({ managedFor: { ...(d.managedFor ?? { phone: "" }), name: value } })}
+              placeholder={t.managedName}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div>
