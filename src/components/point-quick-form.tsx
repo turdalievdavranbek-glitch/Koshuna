@@ -15,11 +15,20 @@ export const POINT_NEW_KEY = "konshu-point-new";
 const STEP_KEY = "konshu-point-wizard";
 const STEPS = 5;
 
-export type PointKind = "shop" | "stall" | "service" | "cafe";
+export type PointKind = "shop" | "stall" | "service" | "cafe" | "farm";
 
 export function pointKindOf(raw: string | null | undefined): PointKind | undefined {
-  return raw === "shop" || raw === "stall" || raw === "service" || raw === "cafe" ? raw : undefined;
+  return raw === "shop" || raw === "stall" || raw === "service" || raw === "cafe" || raw === "farm" ? raw : undefined;
 }
+
+/**
+ * «Фермерское хозяйство» is a goods point (venueKind "shop") in the «farm» group, like the existing farm points.
+ * Its items land in «Животные» → «Ферма» (see shopItemAlsoIn).
+ */
+const FARM_KINDS = ["farm-animals", "farm-plants"] as const;
+type FarmKind = (typeof FARM_KINDS)[number];
+const isFarmKind = (id: string): id is FarmKind => (FARM_KINDS as readonly string[]).includes(id);
+const venueOf = (kind: PointKind): "shop" | "stall" | "service" | "cafe" => (kind === "farm" ? "shop" : kind);
 
 /** Service wizard tiles, in the same order and wording as the search «Услуги» groups. */
 const SERVICE_GROUPS: Array<{ id: ShopCategory; label: string }> = [
@@ -93,7 +102,11 @@ export function PointWizard({ kind }: { kind: PointKind }) {
   useEffect(() => {
     if (booted.current || !user) return;
     booted.current = true;
-    const prev = shopDraft && shopDraft.status !== "active" && (shopDraft.venueKind ?? "shop") === kind ? shopDraft : null;
+    const sameKind =
+      shopDraft &&
+      (shopDraft.venueKind ?? "shop") === venueOf(kind) &&
+      (kind === "farm" ? shopDraft.category === "farm" : true);
+    const prev = shopDraft && shopDraft.status !== "active" && sameKind ? shopDraft : null;
     const draft = startShopDraft(undefined, prev ? undefined : { fresh: true });
     if (!draft) return;
     if (draft === prev || draft.id === prev?.id) {
@@ -104,8 +117,8 @@ export function PointWizard({ kind }: { kind: PointKind }) {
     const chosen = knownCity(city) ?? knownCity(filters.city);
     const gis = chosen ? GIS_CITIES[chosen] : null;
     setShopDraft({
-      venueKind: kind,
-      category: kind === "cafe" ? "food" : draft.category,
+      venueKind: venueOf(kind),
+      category: kind === "cafe" ? "food" : kind === "farm" ? "farm" : draft.category,
       city: chosen ?? "all",
       lat: gis?.lat,
       lng: gis?.lng,
@@ -137,7 +150,19 @@ export function PointWizard({ kind }: { kind: PointKind }) {
       ? SERVICE_GROUPS.map((row) => ({ id: row.id, label: t.cats[row.label] ?? t.shopCats[row.id] ?? row.id }))
       : NEW_POINT_GROUPS.map((id) => ({ id, label: t.pointCatShort[id] ?? t.shopCats[id] ?? id }));
   const cafeType = CAFE_TYPES.find((id) => d.locked?.category && d.kindOther === t.cafeTypes[id]) ?? null;
-  const group = kind === "cafe" ? (cafeType ? ("food" as ShopCategory) : null) : d.locked?.category ? d.category : null;
+  const farmKind = kind === "farm" ? ((d.kinds ?? []).find((id) => isFarmKind(id)) ?? null) : null;
+  const group =
+    kind === "cafe"
+      ? cafeType
+        ? ("food" as ShopCategory)
+        : null
+      : kind === "farm"
+        ? farmKind
+          ? ("farm" as ShopCategory)
+          : null
+        : d.locked?.category
+          ? d.category
+          : null;
   const placed = Boolean(knownCity(d.city));
   const phone = d.contacts.phone ?? "";
 
@@ -189,9 +214,9 @@ export function PointWizard({ kind }: { kind: PointKind }) {
       ...d,
       name: d.name.trim().slice(0, 80),
       category: group ?? d.category,
-      kinds: [],
+      kinds: kind === "farm" && farmKind ? [farmKind] : [],
       kindOther: kind === "cafe" && cafeType ? t.cafeTypes[cafeType] : undefined,
-      venueKind: kind,
+      venueKind: venueOf(kind),
       landmarks: marks,
       address: marks.join(" · "),
       district: d.district || undefined,
@@ -227,16 +252,22 @@ export function PointWizard({ kind }: { kind: PointKind }) {
     go(step + 1);
   };
 
-  const goods = kind === "shop" || kind === "stall";
+  const goods = kind === "shop" || kind === "stall" || kind === "farm";
   const titles = [
     t.pointQuickName,
     t.pointQuickPhone,
     goods ? t.pointQuickPhoto : t.pointQuickCover,
     t.pointQuickPlace,
-    kind === "service" ? t.pointQuickTypeService : kind === "cafe" ? t.pointQuickTypeCafe : t.pointQuickType,
+    kind === "service" ? t.pointQuickTypeService : kind === "cafe" ? t.pointQuickTypeCafe : kind === "farm" ? t.pointQuickTypeFarm : t.pointQuickType,
   ];
   const hints = [
-    kind === "service" ? t.pointQuickNameHintService : kind === "cafe" ? t.pointQuickNameHintCafe : t.pointQuickNameHint,
+    kind === "service"
+      ? t.pointQuickNameHintService
+      : kind === "cafe"
+        ? t.pointQuickNameHintCafe
+        : kind === "farm"
+          ? t.pointQuickNameHintFarm
+          : t.pointQuickNameHint,
     t.pointQuickPhoneHint,
     goods ? t.pointQuickPhotoHint : t.pointQuickCoverHint,
     t.pointQuickPlaceHint,
@@ -347,7 +378,29 @@ export function PointWizard({ kind }: { kind: PointKind }) {
         ) : null}
 
         {step === 4 ? (
-          kind === "cafe" ? (
+          kind === "farm" ? (
+            <div data-testid="point-groups" className="grid grid-cols-2 gap-2 desk:grid-cols-3">
+              {FARM_KINDS.map((id) => {
+                const active = farmKind === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    data-testid={`point-farm-${id}`}
+                    aria-pressed={active}
+                    onClick={() => {
+                      setError("");
+                      lockShopField("category");
+                      setShopDraft({ category: "farm", kinds: [id], kindOther: undefined });
+                    }}
+                    className={`flex min-h-[64px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[14px] font-semibold leading-tight text-ink touch-manipulation ${active ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
+                  >
+                    {t.shopKinds[id] ?? id}
+                  </button>
+                );
+              })}
+            </div>
+          ) : kind === "cafe" ? (
             <div data-testid="point-groups" className="grid grid-cols-2 gap-2 desk:grid-cols-3">
               {CAFE_TYPES.map((id) => {
                 const active = cafeType === id;
