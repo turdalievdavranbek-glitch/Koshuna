@@ -11,5 +11,6 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifChat") return t.notifChat(name, title);
   if (row.textKey === "notifComment") return t.notifComment(name, title);
   if (row.textKey === "notifBuyRequest") return t.notifBuyRequest(title);
+  if (row.textKey === "notifSectionMoved") return t.notifSectionMoved(title, (row.params.name ?? "").trim());
   return t.notifGeneric;
 }

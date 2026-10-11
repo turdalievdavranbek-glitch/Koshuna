@@ -96,7 +96,14 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   const db = getDb();
   const existing = await db.select().from(shops).where(eq(shops.id, shop.id)).limit(1);
   if (existing[0] && existing[0].ownerId !== user.id) return { error: "forbidden", status: 403 };
-  const clean: Shop = sanitizeShopPointFields({ ...shop, hours: sanitizeShopHours(shop.hours) });
+  // «Сменить раздел» overrides belong to admins: never taken from the client, kept from the stored point.
+  const storedProducts = ((existing[0]?.doc as Shop | undefined)?.products ?? []) as Shop["products"];
+  const products = (shop.products ?? []).map((product) => {
+    const { adminSection: _client, ...rest } = product;
+    const stored = storedProducts.find((row) => row.id === product.id)?.adminSection;
+    return stored ? { ...rest, adminSection: stored } : rest;
+  });
+  const clean: Shop = sanitizeShopPointFields({ ...shop, products, hours: sanitizeShopHours(shop.hours) });
   const columns = shopToColumns({ ...clean, id: clean.id }, user.id);
   if (!existing[0]) {
     await db.insert(shops).values(columns);

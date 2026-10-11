@@ -1,4 +1,5 @@
 import { listingHasPrice } from "./deal";
+import { applySectionMove, type SectionMove } from "./section-move";
 import { displayPhotoForProduct } from "./shop-photos";
 import { listingSectionForShop } from "./shops";
 import type { AuthMethod, Listing, ListingStatus, Shop, ShopProduct, User } from "./types";
@@ -54,7 +55,8 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
         : undefined;
   const photo = displayPhotoForProduct(product, shop.coverUrl || "/sections/shops.jpg");
   const id = prev?.id || product.listingId || listingIdForProduct(product.id);
-  return {
+  const moved = product.adminSection;
+  const base: Listing = {
     id,
     section: mapped.section,
     category: mapped.category,
@@ -96,6 +98,8 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     reservedBy: prev?.reservedBy,
     underReview: shop.underReview === true || prev?.underReview === true,
   };
+  // Admin «Сменить раздел» wins over the section derived from the point's category.
+  return moved ? (applySectionMove(base as unknown as Record<string, unknown>, moved as SectionMove) as unknown as Listing) : base;
 }
 
 export function syncProductListing(extra: Listing[], shop: Shop, product: ShopProduct, user: User | null): Listing[] {

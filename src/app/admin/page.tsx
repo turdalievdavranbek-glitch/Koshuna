@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import type { Listing } from "@/lib/types";
+import { AdminSectionButton } from "@/components/admin-section-sheet";
 import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
@@ -20,6 +22,7 @@ type ModerationItem = {
   reasons: string[];
   ownerId: string;
   ownerName: string;
+  listing?: Listing;
 };
 
 export default function AdminPage() {
@@ -117,6 +120,12 @@ export default function AdminPage() {
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "delete")} className="h-10 w-full rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">{t.cardDelete}</button>
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "keep")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40">{t.moderationKeep}</button>
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "ban")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">{t.blockAuthor}</button>
+                  {item.kind === "listing" && item.listing ? (
+                    <AdminSectionButton
+                      listing={item.listing}
+                      className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40"
+                    />
+                  ) : null}
                 </div>
               </div>
             );

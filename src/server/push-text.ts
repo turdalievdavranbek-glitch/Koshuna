@@ -16,6 +16,7 @@ type Copy = {
   chat: (name: string, title: string) => string;
   buy: (title: string) => string;
   comment: (name: string, title: string) => string;
+  moved: (title: string, to: string) => string;
   generic: string;
 };
 
@@ -32,6 +33,7 @@ const COPY: Record<PushLang, Copy> = {
     chat: (name, title) => (title ? `${name} написал про «${title}»` : `${name} написал сообщение`),
     buy: (title) => (title ? `Покупатель ищет: «${title}»` : "Покупатель ищет товар"),
     comment: (name, title) => (title ? `${name} прокомментировал «${title}»` : `${name} оставил комментарий`),
+    moved: (title, to) => `Раздел вашего объявления «${title}» изменён на «${to}»`,
     generic: "Новость в Коңшу",
   },
   ky: {
@@ -46,6 +48,7 @@ const COPY: Record<PushLang, Copy> = {
     chat: (name, title) => (title ? `${name} «${title}» жөнүндө жазды` : `${name} билдирүү жазды`),
     buy: (title) => (title ? `Сатып алуучу издеп жатат: «${title}»` : "Сатып алуучу товар издеп жатат"),
     comment: (name, title) => (title ? `${name} «${title}» жарнамасына пикир жазды` : `${name} пикир жазды`),
+    moved: (title, to) => `«${title}» жарнамаңыздын бөлүмү «${to}» болуп өзгөртүлдү`,
     generic: "Коңшудагы жаңылык",
   },
 };
@@ -80,5 +83,6 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
   else if (input.textKey === "notifStillActual") body = copy.still;
   else if (input.textKey === "notifBuyRequest") body = copy.buy(title);
   else if (input.textKey === "notifComment") body = copy.comment(name, title);
+  else if (input.textKey === "notifSectionMoved") body = copy.moved(title, (input.name ?? "").trim());
   return { title: copy.app, body: body.slice(0, 180) };
 }
