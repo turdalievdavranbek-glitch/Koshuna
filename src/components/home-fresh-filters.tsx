@@ -371,11 +371,18 @@ export function HomeFreshFilters() {
           </button>
           {panel ? (
             <>
-              <button type="button" aria-label={t.freshClose} className="fixed inset-0 z-30 cursor-default" onClick={() => setPanel(false)} />
+              {/* Phone: bottom sheet like «Сортировка», so it never runs off the screen edge. Desktop: dropdown. */}
+              <button
+                type="button"
+                aria-label={t.freshClose}
+                className="fixed inset-0 z-[60] cursor-default bg-[rgba(23,20,15,.25)] desk:bg-transparent"
+                onClick={() => setPanel(false)}
+              />
               <div
                 data-testid="fresh-filters-panel"
-                className="absolute left-0 top-9 z-40 w-[min(260px,calc(100vw-40px))] rounded-[16px] border border-line bg-surface p-1.5 shadow-[0_12px_32px_rgba(23,20,15,.14)]"
+                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(23,20,15,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:w-[260px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(23,20,15,.14)]"
               >
+                <div className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-[0.08em] text-muted desk:hidden">{t.filters}</div>
                 {(
                   [
                     ["neighborOnly", t.fromNeighbor],
@@ -388,7 +395,7 @@ export function HomeFreshFilters() {
                     type="button"
                     data-testid={`fresh-toggle-${key}`}
                     onClick={() => setFilters({ [key]: !filters[key] })}
-                    className="flex w-full items-center justify-between gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold text-ink hover:bg-chip"
+                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[12px] px-3 py-2.5 text-left text-[15px] font-semibold text-ink hover:bg-chip desk:min-h-0 desk:text-[13px]"
                   >
                     {label}
                     <span
