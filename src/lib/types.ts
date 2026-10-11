@@ -565,6 +565,8 @@ export type ShopProduct = {
   updatedAt: string;
   createdAt: string;
   published: boolean;
+  /** Set by an admin («Сменить раздел»): the item's listing uses this section/taxonomy instead of the point's. */
+  adminSection?: { section: SectionId } & { [key: string]: string | number };
 };
 
 export type Shop = {

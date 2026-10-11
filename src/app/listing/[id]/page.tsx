@@ -26,6 +26,8 @@ import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listin
 import { HoldRequest } from "@/components/hold-request";
 import { StillActual } from "@/components/still-actual";
 import { MeetDealBlock } from "@/components/meet-deal";
+import { AdminSectionButton } from "@/components/admin-section-sheet";
+import { isAdminUser } from "@/lib/partners";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
 import { ListingSocial } from "@/components/listing-social";
@@ -684,6 +686,7 @@ export default function ListingPage() {
           ) : null}
 
           <ReportListing listing={listing} />
+          {isAdminUser(user) ? <AdminSectionButton listing={listing} /> : null}
           {!mine && isDbUserId(listing.ownerId) ? (
             <BlockAuthorButton userId={listing.ownerId} returnPath={`/listing/${listing.id}`} />
           ) : null}

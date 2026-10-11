@@ -357,6 +357,11 @@ const ru = {
   commentAgo: (mins: number) =>
     mins < 1 ? "сейчас" : mins < 60 ? `${mins} мин` : mins < 1440 ? `${Math.floor(mins / 60)} ч` : mins < 10080 ? `${Math.floor(mins / 1440)} д` : `${Math.floor(mins / 10080)} нед`,
   notifComment: (name: string, title: string) => (title ? `${name} прокомментировал «${title}»` : `${name} оставил комментарий`),
+  notifSectionMoved: (title: string, to: string) => `Раздел вашего объявления «${title}» изменён на «${to}»`,
+  adminMoveSection: "Сменить раздел",
+  adminMoveSave: "Сохранить раздел",
+  adminMoveDone: "Раздел изменён. Автор получил уведомление.",
+  adminMoveFail: "Не удалось сменить раздел. Попробуйте ещё раз.",
   honestyTitle: "Честность",
   honestyHint: "Оценка соседей: цена, фото и слова совпали.",
   honestyRate: "Оценить честность",
@@ -3049,6 +3054,11 @@ const ky: typeof ru = {
   commentAgo: (mins: number) =>
     mins < 1 ? "азыр" : mins < 60 ? `${mins} мүн` : mins < 1440 ? `${Math.floor(mins / 60)} саат` : mins < 10080 ? `${Math.floor(mins / 1440)} күн` : `${Math.floor(mins / 10080)} жума`,
   notifComment: (name: string, title: string) => (title ? `${name} «${title}» жарнамасына пикир жазды` : `${name} пикир жазды`),
+  notifSectionMoved: (title: string, to: string) => `«${title}» жарнамаңыздын бөлүмү «${to}» болуп өзгөртүлдү`,
+  adminMoveSection: "Бөлүмдү алмаштыруу",
+  adminMoveSave: "Бөлүмдү сактоо",
+  adminMoveDone: "Бөлүм өзгөртүлдү. Авторго билдирүү жөнөтүлдү.",
+  adminMoveFail: "Бөлүмдү алмаштыруу болбоду. Кайра аракет кылыңыз.",
   honestyTitle: "Ак ниеттик",
   honestyHint: "Кошуналардын баасы: баа, сүрөт жана сөз дал келди.",
   honestyRate: "Ак ниеттикти баалоо",

@@ -1,8 +1,8 @@
 import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
-import type { Shop } from "@/lib/types";
+import type { Listing, Shop } from "@/lib/types";
 import { getDb, type Db } from "./db";
 import { listingComments, listings, reports, sessions, shops, users } from "./db/schema";
-import { rowToShop } from "./mappers";
+import { rowToListing, rowToShop } from "./mappers";
 
 /** Personal listings without a point, per rolling 24 hours. */
 export const PERSONAL_DAILY_MAX = 3;
@@ -26,6 +26,8 @@ export type ModerationItem = {
   ownerId: string;
   ownerName: string;
   latestAt: string;
+  /** Listing items: the full listing, so an admin can «Сменить раздел» from the queue. */
+  listing?: Listing;
 };
 
 /**
@@ -205,6 +207,7 @@ export async function moderationQueue(): Promise<ModerationItem[]> {
       ownerId: row.ownerId,
       ownerName: names.get(row.ownerId) || "",
       latestAt: (grouped.latestAt ?? row.updatedAt).toISOString(),
+      listing: rowToListing(row),
     });
   }
   for (const row of shopRows) {
