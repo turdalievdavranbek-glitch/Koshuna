@@ -1,7 +1,7 @@
 "use client";
 
 import { CATEGORIES, RESTAURANT_CATEGORIES, SERVICE_TOP, ANIMAL_GROUPS, goodsKindsOf } from "@/lib/data";
-import { isSectionVisible } from "@/lib/features";
+import { FEATURES, isSectionVisible } from "@/lib/features";
 import { clearFreshListPatch } from "@/lib/filter";
 import { housingKindOfRealty, REALTY_GROUPS } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
@@ -75,7 +75,7 @@ export function HomeFreshFilters() {
   const goodsKinds = section === "secondhand" ? goodsKindsOf(filters.category) : [];
   const dirty =
     Boolean(section) ||
-    filters.neighborOnly ||
+    (FEATURES.neighborFilter && filters.neighborOnly) ||
     filters.priceDroppedOnly ||
     filters.videoOnly ||
     filters.sort !== "new" ||
@@ -94,7 +94,7 @@ export function HomeFreshFilters() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sortOpen, panel]);
-  const toggles = [filters.neighborOnly, filters.priceDroppedOnly, filters.videoOnly].filter(Boolean).length;
+  const toggles = [FEATURES.neighborFilter && filters.neighborOnly, filters.priceDroppedOnly, filters.videoOnly].filter(Boolean).length;
 
   const pickSection = (id: SectionId | null) => {
     if (!id) {
@@ -389,7 +389,7 @@ export function HomeFreshFilters() {
                     ["priceDroppedOnly", t.priceDropped],
                     ["videoOnly", t.videoOnly],
                   ] as const
-                ).map(([key, label]) => (
+                ).filter(([key]) => key !== "neighborOnly" || FEATURES.neighborFilter).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"

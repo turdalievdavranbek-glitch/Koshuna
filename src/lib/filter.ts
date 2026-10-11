@@ -1,4 +1,5 @@
 import type { Filters, Listing } from "./types";
+import { FEATURES } from "./features";
 import { isAiylListing, serviceCategoryMatches } from "./data";
 import { listingTextHit } from "./catalog-words";
 import { isPromoListing } from "./deal";
@@ -343,8 +344,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
-    if (filters.neighborOnly && !isFromNeighbor(item)) return false;
-    if (filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
+    if (FEATURES.neighborFilter && filters.neighborOnly && !isFromNeighbor(item)) return false;
+    if (FEATURES.neighborFilter && filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
     if (filters.sellerKind === "owner" && item.sellerType !== "owner" && item.sellerType) return false;
     if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
     if (filters.sellerKind === "private" && item.sellerType === "dealer") return false;

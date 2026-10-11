@@ -381,7 +381,7 @@ export function FiltersPanel() {
               ["videoOnly", t.withVideo],
               ["verifiedOnly", t.verifiedOwners],
               ["noAgents", t.noAgents],
-              ...(isRent ? [] : ([["neighborOnly", t.neighborOnly]] as const)),
+              ...(isRent || !FEATURES.neighborFilter ? [] : ([["neighborOnly", t.neighborOnly]] as const)),
               ...(FEATURES.aiyl ? ([["aiylOnly", t.bridgeAiyl]] as const) : []),
             ] as const
           ).map(([key, label]) => (

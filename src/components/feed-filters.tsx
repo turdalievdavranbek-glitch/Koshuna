@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { Chip } from "@/components/ui";
@@ -26,11 +27,11 @@ export function SharedFeedFilters({
     <FeedFilterBar>
       {kind ? (
         <SellerKindChips variant={kind} />
-      ) : (
+      ) : FEATURES.neighborFilter ? (
         <Chip active={filters.neighborOnly} onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}>
           {t.fromNeighbor}
         </Chip>
-      )}
+      ) : null}
       <Chip
         active={filters.priceDroppedOnly}
         onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
