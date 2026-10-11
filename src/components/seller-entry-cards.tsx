@@ -9,6 +9,7 @@ export function SellerEntryCards() {
   const router = useRouter();
   const cards = ([
     { id: "shop", href: "/shops/quick?card=shop", title: t.sellCardShop, hint: t.sellCardShopHint },
+    { id: "farm", href: "/shops/quick?card=farm", title: t.sellCardFarm, hint: t.sellCardFarmHint },
     { id: "stall", href: "/shops/quick?card=stall", title: t.sellCardStall, hint: t.sellCardStallHint },
     { id: "service", href: "/shops/quick?card=service", title: t.sellCardService, hint: t.sellCardServiceHint },
     { id: "cafe", href: "/shops/quick?card=cafe", title: t.sellCardCafe, hint: t.sellCardCafeHint },

@@ -56,7 +56,9 @@ export default function ShopQuickPage() {
                 ? t.sellCardService
                 : card === "cafe"
                   ? t.sellCardCafe
-                  : t.pointFormTitle
+                  : card === "farm"
+                    ? t.sellCardFarm
+                    : t.pointFormTitle
               : card === "stall"
                 ? t.sellCardStall
                 : card === "shop"
