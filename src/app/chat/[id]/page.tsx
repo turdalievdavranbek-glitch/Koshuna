@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterBadge } from "@/components/master-badge";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
@@ -212,7 +213,10 @@ export default function ChatPage() {
               if (isDbUserId(detail.peerId)) router.push(`/owner/${detail.peerId}`);
             }}
           >
-            <span className="block truncate text-base font-semibold text-ink">{peer}</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-base font-semibold text-ink">{peer}</span>
+              <MasterBadge userId={detail.peerId} />
+            </span>
           </button>
         </div>
         <button

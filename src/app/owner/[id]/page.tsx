@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterBadge, MasterToggle } from "@/components/master-badge";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
@@ -113,13 +114,17 @@ export default function OwnerPage() {
             {(profile.name || "?").slice(0, 1)}
           </div>
           <div>
-            <div className="font-display text-[22px] font-bold text-ink">{profile.name}</div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-display text-[22px] font-bold text-ink">{profile.name}</span>
+              <MasterBadge userId={id} />
+            </div>
             <div className="mt-1 text-[13px] text-muted">
               {t.onKonshu} {profile.joinedYear}
             </div>
           </div>
         </div>
         {blocked ? <BlockedAuthorNotice userId={id} /> : null}
+        {mine ? null : <MasterToggle userId={id} />}
         {mine || blocked ? null : (
           <>
             <BlockAuthorButton userId={id} returnPath={`/owner/${id}`} />

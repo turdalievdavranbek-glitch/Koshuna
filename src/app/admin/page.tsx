@@ -1,5 +1,6 @@
 "use client";
 
+import { MasterToggle } from "@/components/master-badge";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
@@ -120,6 +121,7 @@ export default function AdminPage() {
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "delete")} className="h-10 w-full rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">{t.cardDelete}</button>
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "keep")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40">{t.moderationKeep}</button>
                   <button type="button" disabled={Boolean(busy)} onClick={() => act(item, "ban")} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">{t.blockAuthor}</button>
+                  <MasterToggle userId={item.ownerId} className="h-10 w-full rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40" />
                   {item.kind === "listing" && item.listing ? (
                     <AdminSectionButton
                       listing={item.listing}

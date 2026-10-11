@@ -26,6 +26,7 @@ export function publicUser(user: SessionUser): User {
     linkedChannels: [],
     cardLinked: false,
     roles: user.isAdmin ? ["admin"] : undefined,
+    master: user.isMaster === true ? true : undefined,
   };
 }
 

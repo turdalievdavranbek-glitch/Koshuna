@@ -24,6 +24,7 @@ export type SessionUser = {
   telegram?: string | null;
   method: string;
   isAdmin: boolean;
+  isMaster?: boolean;
 };
 
 export function assertSessionSecret(): string {
@@ -166,6 +167,7 @@ export async function signInWithIdentity(input: {
       telegram: row.telegram,
       method: input.provider,
       isAdmin: row.isAdmin === true,
+      isMaster: row.isMaster === true,
     },
     cookie,
     isNew: signed.isNew,
@@ -213,6 +215,7 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
     telegram: hit.user.telegram,
     method,
     isAdmin: hit.user.isAdmin === true,
+    isMaster: hit.user.isMaster === true,
   };
 }
 

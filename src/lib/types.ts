@@ -124,6 +124,8 @@ export type User = {
   rating: number;
   views: number;
   roles?: Array<"realtor" | "developer" | "dealer" | "admin">;
+  /** «Мастер-аккаунт» (set by an admin). */
+  master?: boolean;
 };
 
 export type Owner = {
