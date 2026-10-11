@@ -62,5 +62,5 @@ export function cleanSectionMove(raw: unknown): SectionMove | null {
 export function applySectionMove<T extends Record<string, unknown>>(target: T, move: SectionMove): T {
   const next: Record<string, unknown> = { ...target };
   for (const key of TAXONOMY_KEYS) delete next[key];
-  return { ...next, ...move } as T;
+  return { ...next, ...move } as unknown as T;
 }
