@@ -51,7 +51,7 @@ export function ListingSocialMeta({
   );
 }
 
-export function ListingSocial({ listing }: { listing: Listing }) {
+export function ListingSocial({ listing, className }: { listing: Listing; className?: string }) {
   const { t, user, setPendingPath, reactionOf, setReaction, reactions, lang } = useApp();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -74,7 +74,7 @@ export function ListingSocial({ listing }: { listing: Listing }) {
   };
 
   return (
-    <div className="mt-6">
+    <div className={className ?? "mt-6"}>
       <div className="flex items-center gap-2">
         <button
           type="button"

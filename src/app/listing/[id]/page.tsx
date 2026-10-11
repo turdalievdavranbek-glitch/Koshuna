@@ -312,6 +312,9 @@ export default function ListingPage() {
           </div>
         ) : null}
 
+        {/* 👍/👎 right under the gallery, before title and price (desktop copy sits at the top of the left column below). */}
+        <ListingSocial listing={listing} className="px-5 pt-3 desk:hidden" />
+
         <div className="px-5 pt-5 desk:contents">
           <div className="desk:sticky desk:top-4 desk:z-10 desk:col-start-2 desk:row-start-1 desk:row-end-[-1] desk:self-start desk:rounded-[20px] desk:border desk:border-line desk:bg-surface desk:p-5">
           <div className="flex items-center gap-2">
@@ -395,6 +398,7 @@ export default function ListingPage() {
           <PlayBanner />
           </div>
           <div className="desk:col-start-1 desk:row-start-3 desk:min-w-0">
+            <ListingSocial listing={listing} className="mb-4 hidden desk:block" />
           <ServiceFacts listing={listing} />
           {listing.lng != null && listing.lat != null && listing.serviceMode !== "mobile" ? (
             <div className="mt-3">
@@ -577,7 +581,6 @@ export default function ListingPage() {
           ) : null}
 
           {FEATURES.honesty ? <HonestyCard listing={listing} /> : null}
-          <ListingSocial listing={listing} />
 
           {listing.shopId || listing.sellerName || dealer || isDbUserId(listing.ownerId) ? (
             <button
