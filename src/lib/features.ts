@@ -25,6 +25,7 @@ export const FEATURES = {
   cart: false,            // «Корзина» tab, header icon and add-to-cart buttons/hearts (tab slot → «Сообщения»)
   pointSetupHints: false, // owner checklist on the point page + «Мои точки» hint line
   reelsStrip: false,      // Reels/circles strip at the top of home (video listings still open full-screen from the listing)
+  neighborFilter: false,  // «От соседа» filter option (home Фильтры, feed chip, /filters, seller chips); «Рядом» covers it. Badge on listings stays.
   magnets: false,         // «Цена честная?», «Сегодня на точке(ах)», «Сосед рядом» (overrides admin magnet config)
   playBanner: false,     // Google Play banner stays off until the app is in Play (Step 26)
   /** D1 / Р-019: hide «Пример для проверки» in production. NEXT_PUBLIC_DEMO_MEDIA=1 forces it on, =0 forces it off. */

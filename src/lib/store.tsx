@@ -26,7 +26,7 @@ import { nearestDistrict, publishCoords } from "./geo";
 import { sanitizeServiceListing } from "./service-listing";
 import { channelsOf } from "./channels";
 import { hiddenByBlock } from "./blocks";
-import { isSectionVisible } from "./features";
+import { FEATURES, isSectionVisible } from "./features";
 import { isDbUserId } from "./phone";
 import { DICT } from "./i18n";
 import { setServerCounts, voterId, type ReactionsByVoter } from "./reactions";
@@ -652,7 +652,8 @@ export function normalizeFilters(filters: Filters, savedScope?: unknown): Filter
     realtyKind: next.realtyKind && next.realtyKind !== "any" ? next.realtyKind : "any",
     areaMin: typeof next.areaMin === "number" ? next.areaMin : null,
     areaMax: typeof next.areaMax === "number" ? next.areaMax : null,
-    neighborOnly: Boolean(next.neighborOnly),
+    // «От соседа» filter hidden (FEATURES.neighborFilter): a saved value opens as off.
+    neighborOnly: FEATURES.neighborFilter && Boolean(next.neighborOnly),
     aiylOnly: Boolean(next.aiylOnly),
     priceDroppedOnly: Boolean(next.priceDroppedOnly),
     postedWithin:
@@ -661,7 +662,7 @@ export function normalizeFilters(filters: Filters, savedScope?: unknown): Filter
         : "any",
     videoOnly: Boolean(next.videoOnly),
     sellerKind:
-      next.sellerKind === "neighbor" ||
+      (next.sellerKind === "neighbor" && FEATURES.neighborFilter) ||
       next.sellerKind === "owner" ||
       next.sellerKind === "realtor" ||
       next.sellerKind === "private" ||

@@ -1,7 +1,7 @@
 "use client";
 
 import { CATEGORIES, RESTAURANT_CATEGORIES, SERVICE_TOP, ANIMAL_GROUPS, goodsKindsOf } from "@/lib/data";
-import { isSectionVisible } from "@/lib/features";
+import { FEATURES, isSectionVisible } from "@/lib/features";
 import { clearFreshListPatch } from "@/lib/filter";
 import { housingKindOfRealty, REALTY_GROUPS } from "@/lib/realty";
 import { patchForSection } from "@/lib/section";
@@ -75,7 +75,7 @@ export function HomeFreshFilters() {
   const goodsKinds = section === "secondhand" ? goodsKindsOf(filters.category) : [];
   const dirty =
     Boolean(section) ||
-    filters.neighborOnly ||
+    (FEATURES.neighborFilter && filters.neighborOnly) ||
     filters.priceDroppedOnly ||
     filters.videoOnly ||
     filters.sort !== "new" ||
@@ -83,7 +83,7 @@ export function HomeFreshFilters() {
 
   const [panel, setPanel] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const sortNow = filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new";
+  const sortNow = filters.sort === "old" || filters.sort === "price-asc" || filters.sort === "price-desc" ? filters.sort : "new";
   useEffect(() => {
     if (!sortOpen && !panel) return;
     const onKey = (e: KeyboardEvent) => {
@@ -94,7 +94,7 @@ export function HomeFreshFilters() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sortOpen, panel]);
-  const toggles = [filters.neighborOnly, filters.priceDroppedOnly, filters.videoOnly].filter(Boolean).length;
+  const toggles = [FEATURES.neighborFilter && filters.neighborOnly, filters.priceDroppedOnly, filters.videoOnly].filter(Boolean).length;
 
   const pickSection = (id: SectionId | null) => {
     if (!id) {
@@ -305,7 +305,7 @@ export function HomeFreshFilters() {
             className="flex h-7 items-center gap-1 rounded-full border border-line bg-surface px-2.5 text-[11px] font-semibold text-ink"
           >
             <span className="text-muted">{t.sort}:</span>
-            {sortNow === "price-asc" ? t.priceAsc : sortNow === "price-desc" ? t.priceDesc : t.newestShort}
+            {sortNow === "price-asc" ? t.priceAsc : sortNow === "price-desc" ? t.priceDesc : sortNow === "old" ? t.oldestShort : t.newestShort}
             <span className="text-[9px] text-muted" aria-hidden>
               ▼
             </span>
@@ -328,6 +328,7 @@ export function HomeFreshFilters() {
                 {(
                   [
                     ["new", t.sortMenuNew],
+                    ["old", t.sortMenuOld],
                     ["price-asc", t.sortMenuCheap],
                     ["price-desc", t.sortMenuDear],
                   ] as const
@@ -389,7 +390,7 @@ export function HomeFreshFilters() {
                     ["priceDroppedOnly", t.priceDropped],
                     ["videoOnly", t.videoOnly],
                   ] as const
-                ).map(([key, label]) => (
+                ).filter(([key]) => key !== "neighborOnly" || FEATURES.neighborFilter).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"

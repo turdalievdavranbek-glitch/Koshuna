@@ -1,4 +1,5 @@
 import type { Filters, Listing } from "./types";
+import { FEATURES } from "./features";
 import { isAiylListing, serviceCategoryMatches } from "./data";
 import { listingTextHit } from "./catalog-words";
 import { isPromoListing } from "./deal";
@@ -343,8 +344,8 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     if (filters.photosOnly && !item.hasPhoto) return false;
     if (filters.verifiedOnly && !item.verified) return false;
     if (filters.noAgents && !item.noAgent) return false;
-    if (filters.neighborOnly && !isFromNeighbor(item)) return false;
-    if (filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
+    if (FEATURES.neighborFilter && filters.neighborOnly && !isFromNeighbor(item)) return false;
+    if (FEATURES.neighborFilter && filters.sellerKind === "neighbor" && !isFromNeighbor(item)) return false;
     if (filters.sellerKind === "owner" && item.sellerType !== "owner" && item.sellerType) return false;
     if (filters.sellerKind === "realtor" && item.sellerType !== "realtor") return false;
     if (filters.sellerKind === "private" && item.sellerType === "dealer") return false;
@@ -410,7 +411,11 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
     return true;
   });
 
-  if (filters.sort === "price-asc") out = [...out].sort((a, b) => a.price - b.price);
+  if (filters.sort === "old") {
+    // «Сначала старые»: oldest created first; rows without a date go last.
+    const at = (item: Listing) => listingCreatedMs(item) ?? Number.MAX_SAFE_INTEGER;
+    out = [...out].sort((a, b) => at(a) - at(b));
+  } else if (filters.sort === "price-asc") out = [...out].sort((a, b) => a.price - b.price);
   else if (filters.sort === "price-desc") out = [...out].sort((a, b) => b.price - a.price);
   return out;
 }
