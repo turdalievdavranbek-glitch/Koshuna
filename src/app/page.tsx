@@ -228,8 +228,7 @@ export default function FeedPage() {
           <ListingGrid listings={listings} onFav={onFav} />
         )}
 
-        <p className="mt-4 text-xs leading-[1.5] text-muted-2">{t.disclaimer}</p>
-        <div className="mt-3.5 flex items-center gap-[7px] pb-1.5 text-xs text-muted">
+        <div className="mt-4 flex items-center gap-[7px] pb-1.5 text-xs text-muted">
           <Flag />
           {t.country} · KGS
         </div>
