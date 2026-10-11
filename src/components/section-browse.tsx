@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CONSTRUCTION_CATEGORIES } from "@/lib/data";
+import { effectiveScope } from "@/lib/filter";
 import { FEATURES, isSectionVisible } from "@/lib/features";
 import { realtyIsLiving } from "@/lib/realty";
 import { formatStayDay, formatStayRange } from "@/lib/dates";
@@ -436,7 +437,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
         />
 
         {listings.length === 0 ? (
-          !synced ? null : filters.scope === "near" ? (
+          !synced ? null : effectiveScope(filters) === "near" ? (
             <NearEmptyState />
           ) : !online && allListings.every((item) => item.section !== id) ? (
             <EmptyState variant="offline" onRetry={() => resync()} />
