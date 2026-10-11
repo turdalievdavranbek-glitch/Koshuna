@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { effectiveScope } from "@/lib/filter";
 import { nearRadiusKm } from "@/lib/geo";
 import { locationLineLabel } from "@/lib/places";
 import { useApp } from "@/lib/store";
@@ -38,7 +39,7 @@ export function shownLocationLabel(
     nearLabel: (km: number) => string;
   },
 ) {
-  if (filters.scope === "near") return t.nearLabel(nearRadiusKm());
+  if (effectiveScope(filters) === "near") return t.nearLabel(nearRadiusKm());
   return locationLineLabel(lang, city, filters, t.cities, t.oblasts, t.locationRefine, t.locationCountryHint);
 }
 

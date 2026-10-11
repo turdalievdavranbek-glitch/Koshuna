@@ -179,6 +179,19 @@ export function hasPlaceFilter(filters: Pick<Filters, "city" | "oblast" | "settl
   return false;
 }
 
+/**
+ * One chip «Рядом» (owner 2026-10-11): «near» = phone position within nearRadiusKm() when we have it,
+ * otherwise the chosen district/city (old «Мой район»), otherwise the whole country.
+ * «area» stays for an explicit place pick in this session; «all» = «Весь Кыргызстан».
+ */
+export function effectiveScope(
+  filters: Pick<Filters, "scope" | "nearLat" | "nearLng" | "rayon" | "settlement" | "oblast" | "city" | "locLabel">,
+): "near" | "area" | "all" {
+  if (filters.scope === "all") return "all";
+  if (filters.scope === "near" && filters.nearLat != null && filters.nearLng != null) return "near";
+  return hasPlaceFilter(filters as Filters) ? "area" : "all";
+}
+
 /** «Рядом» is the phone. A district or map pin in locLat is not a shortcut. */
 export function nearDecision(filters: Pick<Filters, "scope" | "nearLat">): "keep" | "locate" {
   if (filters.scope === "near" && filters.nearLat != null) return "keep";
@@ -223,9 +236,11 @@ export function scopeForSaved(filters: {
   oblast?: string | null;
   rayon?: string | null;
 }): "near" | "area" | "all" {
-  if (filters.scope === "near" || filters.scope === "area" || filters.scope === "all") return filters.scope;
+  // «Мой район» merged into «Рядом»: a saved district scope opens as «Рядом» (falls back to the district without GPS).
+  if (filters.scope === "area") return "near";
+  if (filters.scope === "near" || filters.scope === "all") return filters.scope;
   if (filters.nearLat != null) return "near";
-  if (filters.locLat != null) return "area";
+  if (filters.locLat != null) return "near";
   if (
     (filters.rayon && filters.rayon !== "any") ||
     (filters.settlement && filters.settlement !== "any") ||
@@ -233,7 +248,7 @@ export function scopeForSaved(filters: {
     (filters.city && filters.city !== "all") ||
     (filters.oblast && filters.oblast !== "any")
   ) {
-    return "area";
+    return "near";
   }
   return "all";
 }
@@ -273,10 +288,11 @@ export function applyFilters(list: Listing[], filters: Filters, city: string): L
   let out = list.filter((item) => {
     if (item.underReview) return false;
     if (item.status === "draft" || item.status === "withdrawn" || item.status === "closed" || item.status === "hidden") return false;
-    if (filters.scope === "near") {
+    const scope = effectiveScope(filters);
+    if (scope === "near") {
       if (filters.nearLat == null || filters.nearLng == null || !hasCoords(item)) return false;
       if (haversineKm(filters.nearLat, filters.nearLng, item.lat, item.lng) > nearRadiusKm()) return false;
-    } else if (filters.scope !== "all") {
+    } else if (scope === "area") {
       if (!placeMatches(item, filters, city)) return false;
     }
     if (filters.section === "cars") {

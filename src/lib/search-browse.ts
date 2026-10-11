@@ -1,7 +1,7 @@
 import { shopSearchText, wordsHit } from "./catalog-words";
 import { SECTIONS, SHOP_ART, homeTiles } from "./data";
 import { isSectionVisible } from "./features";
-import { searchRootPatch } from "./filter";
+import { effectiveScope, searchRootPatch } from "./filter";
 import { haversineKm, nearRadiusKm } from "./geo";
 import { adminAreaById, adminAreaMatchesListing } from "./admin-areas";
 import { listingInOblast } from "./places";
@@ -203,11 +203,12 @@ export function listingsForSearch(listings: Listing[], shops: Shop[]): Listing[]
 }
 
 export function shopInScope(shop: Shop, filters: Filters, city: string): boolean {
-  if (filters.scope === "near") {
+  const scope = effectiveScope(filters);
+  if (scope === "near") {
     if (filters.nearLat == null || filters.nearLng == null || shop.lat == null || shop.lng == null) return false;
     return haversineKm(filters.nearLat, filters.nearLng, shop.lat, shop.lng) <= nearRadiusKm();
   }
-  if (filters.scope === "all") return true;
+  if (scope === "all") return true;
   const place = { city: shop.city, district: shop.district, settlement: undefined };
   if (filters.rayon && filters.rayon !== "any") {
     const area = adminAreaById(filters.rayon);
