@@ -75,7 +75,7 @@ export default function FeedPage() {
               className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
             >
               <RingOnRise count={unread}>
-                <IconBell size={16} color="#17140F" />
+                <IconBell size={16} color="#2A2550" />
               </RingOnRise>
               <UnreadBadge small count={unread} testId="notif-dot" className="-top-0.5 -right-0.5" />
             </Link>
@@ -87,12 +87,12 @@ export default function FeedPage() {
           onClick={() => openLocationPicker(router, "/")}
           className="mt-2 flex w-full items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-[7px] text-left text-[13px] font-semibold text-ink"
         >
-          <IconPin size={13} color="#B8452F" />
+          <IconPin size={13} color="#7C5CFF" />
           <span data-testid="home-location-label" className="min-w-0 flex-1">
             {shownLocationLabel(lang, city, filters, t)}
           </span>
           <span className="ml-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
-            <IconChevronDown size={14} color="#17140F" />
+            <IconChevronDown size={14} color="#2A2550" />
           </span>
         </button>
         <div className="mt-2">
@@ -109,10 +109,10 @@ export default function FeedPage() {
           </div>
         ) : null}
         <div
-          className="mt-2 flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4 desk:hidden"
+          className="mt-2 flex h-11 w-full items-center gap-2.5 clay-card rounded-2xl border border-line bg-surface px-4 desk:hidden"
           data-testid="home-search"
         >
-          <IconSearch size={17} color="#A79C8C" />
+          <IconSearch size={17} color="#A19DBD" />
           <input
             type="search"
             value={filters.query}
@@ -128,7 +128,7 @@ export default function FeedPage() {
             data-testid="home-filters"
             className="flex h-9 w-9 shrink-0 items-center justify-center"
           >
-            <IconSliders size={17} color="#17140F" />
+            <IconSliders size={17} color="#2A2550" />
           </button>
         </div>
       </header>

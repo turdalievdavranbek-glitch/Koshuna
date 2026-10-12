@@ -70,7 +70,7 @@ export default function ProfileEditPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => goBack(router, back)} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
           </button>
           <span className="font-display text-[16px] font-bold">{t.myData}</span>
           <span className="w-9" />

@@ -30,7 +30,7 @@ export default function CardPage() {
     <PhoneShell>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 pb-8">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </RoundBtn>
         <h1 className="mt-8 font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.cardTitle}</h1>
         <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.cardHint}</p>

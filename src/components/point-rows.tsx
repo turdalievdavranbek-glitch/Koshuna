@@ -40,7 +40,7 @@ export function PointAvatar({ shop, size = 44 }: { shop: Pick<Shop, "coverUrl" |
         // eslint-disable-next-line @next/next/no-img-element
         <img src={shop.coverUrl} alt="" className="h-full w-full object-cover" />
       ) : (
-        sectionIcon(POINT_GROUP_ICON[shop.category] || "bag", "#B8452F", 18)
+        sectionIcon(POINT_GROUP_ICON[shop.category] || "bag", "#7C5CFF", 18)
       )}
     </div>
   );

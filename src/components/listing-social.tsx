@@ -34,16 +34,16 @@ export function ListingSocialMeta({
       }`}
     >
       <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconLike size={icon} color="#6E6558" />
+        <IconLike size={icon} color="#6F6B8F" />
         <span className="tabular-nums">{likes}</span>
       </span>
       <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconDislike size={icon} color="#6E6558" />
+        <IconDislike size={icon} color="#6F6B8F" />
         <span className="tabular-nums">{dislikes}</span>
       </span>
       {FEATURES.comments ? (
         <span className="inline-flex min-w-0 items-center gap-0.5">
-          <IconChat size={icon} color="#6E6558" />
+          <IconChat size={icon} color="#6F6B8F" />
           <span className="tabular-nums">{comments}</span>
         </span>
       ) : null}
@@ -87,7 +87,7 @@ export function ListingSocial({ listing, className }: { listing: Listing; classN
             reaction === "like" ? "border-success bg-success-tint text-success" : "border-line bg-white text-ink"
           }`}
         >
-          <IconLike size={18} color={reaction === "like" ? "#2A6B57" : "#17140F"} filled={reaction === "like"} />
+          <IconLike size={18} color={reaction === "like" ? "#2A6B57" : "#2A2550"} filled={reaction === "like"} />
           {likes}
         </button>
         <button
@@ -101,7 +101,7 @@ export function ListingSocial({ listing, className }: { listing: Listing; classN
             reaction === "dislike" ? "border-accent bg-accent-tint text-accent" : "border-line bg-white text-ink"
           }`}
         >
-          <IconDislike size={18} color={reaction === "dislike" ? "#B8452F" : "#17140F"} filled={reaction === "dislike"} />
+          <IconDislike size={18} color={reaction === "dislike" ? "#7C5CFF" : "#2A2550"} filled={reaction === "dislike"} />
           {dislikes}
         </button>
         {FEATURES.comments ? <CommentsButton listingId={listing.id} onOpen={() => setSheet(true)} /> : null}

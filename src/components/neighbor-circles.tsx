@@ -98,7 +98,7 @@ export function NeighborCircles({ listings }: { listings: Listing[] }) {
               onClick={() => router.push(`/reels?id=${encodeURIComponent(pinned.id)}`)}
               className="flex w-[76px] shrink-0 flex-col items-center text-center"
             >
-              <div className="relative w-[60px] rounded-full p-[2.5px]" style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}>
+              <div className="relative w-[60px] rounded-full p-[2.5px]" style={{ background: "linear-gradient(145deg, #7C5CFF 0%, #2A2550 78%)" }}>
                 <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
                   {pinnedClip?.posterUrl ? (
                     <Photo src={pinnedClip.posterUrl} alt={pinnedLabel} />

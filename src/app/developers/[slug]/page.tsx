@@ -30,7 +30,7 @@ export default function DeveloperPublicPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/complexes")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
           </button>
           <h1 className="max-w-[240px] truncate font-display text-[17px] font-bold text-ink">{developer.companyName}</h1>
           <span className="w-9" />

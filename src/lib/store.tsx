@@ -2717,7 +2717,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       {ready ? (
         children
       ) : (
-        <div className="flex min-h-[100dvh] items-center justify-center bg-[#EDE7DC]">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#EEF0FF]">
           <BrandMark size={40} wordClass="text-[32px] text-ink" />
         </div>
       )}

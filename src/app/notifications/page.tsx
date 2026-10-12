@@ -33,7 +33,7 @@ export default function NotificationsPage() {
     <PhoneShell>
       <div className="flex items-center gap-3 px-5 pt-1">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/")}>
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </RoundBtn>
         <h1 className="font-display text-[22px] font-bold text-ink">{t.notifTitle}</h1>
       </div>

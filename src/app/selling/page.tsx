@@ -60,7 +60,7 @@ export default function SellingPage() {
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
             aria-label={t.feed}
           >
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
           </button>
           <h1 className="min-w-0 flex-1 font-display text-[24px] font-extrabold tracking-[-0.02em] text-ink">{t.myListings}</h1>
           <span className="text-[13px] font-semibold text-muted">{t.nListings(mine.length)}</span>

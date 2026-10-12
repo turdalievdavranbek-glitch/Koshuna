@@ -166,7 +166,7 @@ function CartRow({
             onClick={() => void call()}
             className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-ink px-3 text-[13px] font-semibold text-screen disabled:opacity-60"
           >
-            <IconPhone size={15} color="#F7F3EC" />
+            <IconPhone size={15} color="#F6F4FF" />
             {callLabel}
           </button>
           <button type="button" data-testid="cart-remove" onClick={onRemove} className="inline-flex h-9 items-center px-2 text-[13px] font-semibold text-muted">

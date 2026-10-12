@@ -215,7 +215,7 @@ function drawSevenSeg(ctx: CanvasRenderingContext2D, digit: string, x: number, y
   const [a, b, c, d, e, f, g] = key.split("").map((v) => v === "1");
   const t = Math.max(10, Math.floor(h / 8));
   const pad = Math.floor(w * 0.08);
-  ctx.fillStyle = "#17140f";
+  ctx.fillStyle = "#2a2550";
   if (a) fillSeg(ctx, x + pad, y, w - pad * 2, t);
   if (d) fillSeg(ctx, x + pad, y + h - t, w - pad * 2, t);
   if (g) fillSeg(ctx, x + pad, y + (h >> 1) - (t >> 1), w - pad * 2, t);
@@ -235,7 +235,7 @@ export function makeDemoPriceTag(price = 85): string {
   ctx.fillRect(0, 0, 640, 800);
   ctx.fillStyle = "#fff";
   ctx.fillRect(70, 140, 500, 520);
-  ctx.strokeStyle = "#e4dcce";
+  ctx.strokeStyle = "#e3def7";
   ctx.lineWidth = 6;
   ctx.strokeRect(70, 140, 500, 520);
   const digits = String(price);
@@ -247,7 +247,7 @@ export function makeDemoPriceTag(price = 85): string {
     drawSevenSeg(ctx, d, x, 250, dw, 260);
     x += dw + gap;
   }
-  ctx.fillStyle = "#6e6558";
+  ctx.fillStyle = "#6f6b8f";
   ctx.font = "bold 42px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";

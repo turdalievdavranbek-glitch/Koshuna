@@ -93,7 +93,7 @@ export default function ChatPage() {
       <PhoneShell focus>
         <div className="p-6">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
-            <IconBack size={18} color="#17140F" />
+            <IconBack size={18} color="#2A2550" />
           </button>
           <p className="mt-4">{missing ? t.emptyInbox : ""}</p>
         </div>
@@ -204,7 +204,7 @@ export default function ChatPage() {
       <div className="shrink-0 border-b border-line bg-white">
         <div className="flex items-center gap-3 px-4 pb-3 pt-1.5">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
-            <IconBack size={18} color="#17140F" />
+            <IconBack size={18} color="#2A2550" />
           </button>
           <button
             type="button"
@@ -347,7 +347,7 @@ export default function ChatPage() {
               onClick={() => void send()}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-accent disabled:opacity-60"
             >
-              <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="#FFF7F0" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="#FFFFFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 3 2.5 8.2l4.2 1.3L15.8 3.2 8.4 11l.4 4 2.2-3 3 2.4z" />
               </svg>
             </button>
@@ -358,7 +358,7 @@ export default function ChatPage() {
       </div>
       {menuFor ? (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4"
           onClick={() => setMenuFor(null)}
           data-testid="chat-msg-sheet"
         >

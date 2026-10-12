@@ -12,14 +12,14 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
   }, [error]);
   return (
     <html lang="ru">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#F7F3EC", color: "#17140F" }}>
+      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#F6F4FF", color: "#2A2550" }}>
         <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{tried ? "Не удалось загрузить Коңшу" : "Обновляем Коңшу…"}</div>
           {tried ? (
             <button
               type="button"
               onClick={() => window.location.reload()}
-              style={{ height: 48, padding: "0 24px", borderRadius: 16, border: 0, background: "#B8452F", color: "#FFF7F0", fontSize: 16, fontWeight: 600 }}
+              style={{ height: 48, padding: "0 24px", borderRadius: 16, border: 0, background: "#7C5CFF", color: "#FFFFFF", fontSize: 16, fontWeight: 600 }}
             >
               Обновить / Жаңыртуу
             </button>

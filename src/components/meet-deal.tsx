@@ -40,7 +40,7 @@ function Sheet({
   const layer = usePhoneLayer();
   if (!layer) return null;
   return createPortal(
-    <div className="absolute inset-0 z-40 flex flex-col justify-end bg-[rgba(23,20,15,.38)]">
+    <div className="absolute inset-0 z-40 flex flex-col justify-end bg-[rgba(42,37,80,.38)]">
       <button type="button" className="h-full w-full" aria-label="close" onClick={onClose} />
       <div className="max-h-[82%] overflow-y-auto rounded-t-[22px] bg-white px-4 pb-6 pt-3">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
@@ -217,11 +217,11 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
       {deal.offer && deal.phase !== "wait-buyer" ? (
         <div
           className="mt-3 rounded-[14px] px-3.5 py-3"
-          style={{ background: deal.phase === "agreed" ? "#E4EFE9" : deal.phase === "declined" ? "#EFE8DB" : "#F3E0D9" }}
+          style={{ background: deal.phase === "agreed" ? "#E4EFE9" : deal.phase === "declined" ? "#EEEAFB" : "#ECE6FF" }}
         >
           <div
             className="text-[13px] font-bold leading-[1.4]"
-            style={{ color: deal.phase === "agreed" ? "#245046" : deal.phase === "declined" ? "#6E6558" : "#8E3423" }}
+            style={{ color: deal.phase === "agreed" ? "#245046" : deal.phase === "declined" ? "#6F6B8F" : "#5A3FD6" }}
           >
             {deal.phase === "agreed"
               ? t.meetAgreed(offerWhen(deal.offer, lang), t.meetupSpots[deal.offer.spot])
@@ -318,7 +318,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
           ) : null}
 
           {deal.buyerLeft && travel ? (
-            <div className="mt-3 rounded-[14px] bg-[#F3E0D9] px-3.5 py-3">
+            <div className="mt-3 rounded-[14px] bg-[#ECE6FF] px-3.5 py-3">
               <div className="text-[13px] font-bold leading-[1.4] text-accent-dark">
                 {party === "seller" ? t.meetLeftSeller(reservedBy.name) : t.meetLeftBuyer}
               </div>

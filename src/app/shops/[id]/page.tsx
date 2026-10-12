@@ -104,7 +104,7 @@ export default function ShopDetailPage() {
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => goBack(router, "/shops")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
           </button>
           <span className="font-display text-[15px] font-bold">{t.shopCard}</span>
           <span className="w-9" />
@@ -174,7 +174,7 @@ export default function ShopDetailPage() {
         <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden desk:col-span-3 desk:col-start-10 desk:row-start-1 desk:mt-0 desk:flex-col">
           {callPhone ? (
             <a href={`tel:${callPhone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
-              <IconPhone size={18} color="#FFF7F0" />
+              <IconPhone size={18} color="#FFFFFF" />
               {t.callNow}
             </a>
           ) : null}
@@ -185,7 +185,7 @@ export default function ShopDetailPage() {
           ) : null}
           {telegramHref ? (
             <a href={telegramHref} target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl border border-line bg-white">
-              <IconTg size={18} color="#17140F" />
+              <IconTg size={18} color="#2A2550" />
             </a>
           ) : null}
         </div>

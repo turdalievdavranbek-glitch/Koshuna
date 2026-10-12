@@ -10,21 +10,21 @@
 }
 
 @theme inline {
-  --color-ink: #17140f;
-  --color-ink-2: #4a4238;
-  --color-muted: #6e6558;
-  --color-muted-2: #a79c8c;
-  --color-accent: #b8452f;
-  --color-accent-dark: #8e3423;
-  --color-accent-tint: #f3e0d9;
-  --color-accent-on: #fff7f0;
+  --color-ink: #2a2550;
+  --color-ink-2: #4a4570;
+  --color-muted: #6f6b8f;
+  --color-muted-2: #a19dbd;
+  --color-accent: #7c5cff;
+  --color-accent-dark: #5a3fd6;
+  --color-accent-tint: #ece6ff;
+  --color-accent-on: #ffffff;
   --color-surface: #ffffff;
-  --color-screen: #f7f3ec;
-  --color-canvas: #ede7dc;
-  --color-line: #e4dcce;
-  --color-line-2: #efe8db;
-  --color-chip: #efe8db;
-  --color-toggle-off: #dcd3c4;
+  --color-screen: #f6f4ff;
+  --color-canvas: #eef0ff;
+  --color-line: #e3def7;
+  --color-line-2: #eeeafb;
+  --color-chip: #eeeafb;
+  --color-toggle-off: #d9d3f5;
   --color-success: #2a6b57;
   --color-success-tint: #e4efe9;
   --color-success-ink: #245046;
@@ -46,8 +46,9 @@ body {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  background: #ede7dc;
-  color: #17140f;
+  background: linear-gradient(160deg, #eef0ff, #fdf2ff 60%, #fff4ea);
+  background-attachment: fixed;
+  color: #2a2550;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -69,32 +70,87 @@ button {
 }
 
 .shadow-btn {
-  box-shadow: 0 8px 20px rgba(184, 69, 47, 0.28);
+  box-shadow: 0 5px 0 #4b32c4, 0 10px 18px rgba(124, 92, 255, 0.32);
 }
 
 .shadow-fab {
-  box-shadow: 0 8px 18px rgba(184, 69, 47, 0.35);
+  box-shadow: 0 8px 18px rgba(124, 92, 255, 0.35);
+}
+
+/* Soft 3D / claymorphism (variant D). Visual only: no tilt in the real feed, CSS shadows only. */
+.clay {
+  background: #fff;
+  box-shadow:
+    6px 8px 18px rgba(90, 80, 160, 0.16),
+    inset -3px -4px 8px rgba(0, 0, 0, 0.04),
+    inset 3px 4px 8px rgba(255, 255, 255, 0.9);
+}
+
+.clay-card {
+  background: #fff;
+  border-color: transparent !important;
+  box-shadow:
+    6px 8px 18px rgba(90, 80, 160, 0.18),
+    inset -3px -4px 8px rgba(0, 0, 0, 0.04),
+    inset 3px 4px 8px rgba(255, 255, 255, 0.9);
+}
+
+.clay-chip {
+  box-shadow: 0 4px 0 #d9d3f5, 0 7px 12px rgba(90, 80, 160, 0.13);
+}
+
+.clay-chip-on {
+  background: linear-gradient(180deg, #9a83ff, #6d4cf5) !important;
+  box-shadow: 0 4px 0 #4b32c4, 0 8px 14px rgba(124, 92, 255, 0.35);
+}
+
+.clay-plus {
+  background: radial-gradient(circle at 35% 30%, #b9a6ff, #7c5cff 60%, #5a3fd6);
+  box-shadow:
+    0 12px 24px rgba(124, 92, 255, 0.45),
+    inset -4px -6px 10px rgba(0, 0, 0, 0.2),
+    inset 4px 5px 10px rgba(255, 255, 255, 0.45);
+}
+
+.clay-bar {
+  border-top-color: transparent !important;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -6px 18px rgba(90, 80, 160, 0.14);
+}
+
+/* Primary buttons (dark fill): purple clay with a pressed edge. White text keeps strong contrast on #6d4cf5. */
+button.bg-ink,
+a.bg-ink {
+  background: linear-gradient(180deg, #8b6dff, #6a48f0);
+  box-shadow: 0 4px 0 #4b32c4, 0 8px 16px rgba(124, 92, 255, 0.3);
+}
+
+button.bg-ink:active,
+a.bg-ink:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #4b32c4, 0 4px 8px rgba(124, 92, 255, 0.25);
 }
 
 /* No height transition: animating the bar's height re-laid out the whole page on every frame (scroll jank on Android). */
 
 .section-tile {
-  background: #f3eee4;
-  border: 1px solid #efe8db;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #eeeafb;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 0 #e4dcce,
-    0 6px 0 #d8ccba,
-    0 10px 16px rgba(23, 20, 15, 0.12);
+    0 1px 0 #e3def7,
+    0 6px 0 #d4ccf2,
+    0 10px 16px rgba(42, 37, 80, 0.12);
 }
 
 .section-tile:active {
   transform: translateY(3px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 1px 0 #e4dcce,
-    0 3px 0 #d8ccba,
-    0 4px 8px rgba(23, 20, 15, 0.1);
+    0 1px 0 #e3def7,
+    0 3px 0 #d4ccf2,
+    0 4px 8px rgba(42, 37, 80, 0.1);
 }
 
 .leaflet-container {
@@ -117,7 +173,7 @@ button {
 }
 
 .leaflet-bar a {
-  color: #17140f !important;
+  color: #2a2550 !important;
 }
 
 @keyframes bell-ring {

@@ -99,7 +99,7 @@ export function DesktopHeader() {
             submitSearch();
           }}
         >
-          <IconSearch size={17} color="#A79C8C" />
+          <IconSearch size={17} color="#A19DBD" />
           <input
             type="search"
             value={filters.query}
@@ -119,7 +119,7 @@ export function DesktopHeader() {
           onClick={() => openLocationPicker(router, path || "/")}
           className="flex h-10 max-w-[220px] shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink"
         >
-          <IconPin size={14} color="#B8452F" />
+          <IconPin size={14} color="#7C5CFF" />
           <span className="truncate">{shownLocationLabel(lang, city, filters, t)}</span>
         </button>
         <LangSwitch size="sm" />
@@ -130,7 +130,7 @@ export function DesktopHeader() {
           className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
         >
           <RingOnRise count={unread}>
-            <IconBell size={18} color="#17140F" />
+            <IconBell size={18} color="#2A2550" />
           </RingOnRise>
           <UnreadBadge small count={unread} testId="desk-notif-badge" className="-top-0.5 -right-0.5" />
         </Link>
@@ -138,13 +138,13 @@ export function DesktopHeader() {
           "/messages",
           t.inbox,
           <>
-            <IconChat size={18} color="#17140F" />
+            <IconChat size={18} color="#2A2550" />
             <UnreadBadge small count={chatUnread} testId="desk-chat-badge" className="-top-0.5 -right-0.5" />
           </>,
           "desk-messages",
         )}
-        {FEATURES.cart ? icon("/favorites", t.fav, <IconBag size={18} color="#17140F" />, "desk-cart") : null}
-        {icon("/profile", t.sideDesk, <IconUser size={18} color="#17140F" />, "desk-profile")}
+        {FEATURES.cart ? icon("/favorites", t.fav, <IconBag size={18} color="#2A2550" />, "desk-cart") : null}
+        {icon("/profile", t.sideDesk, <IconUser size={18} color="#2A2550" />, "desk-profile")}
         <button
           type="button"
           data-testid="desk-post"
@@ -156,7 +156,7 @@ export function DesktopHeader() {
       </div>
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(23,20,15,.45)] p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(42,37,80,.45)] p-4"
           data-testid="post-sheet"
           onClick={() => setOpen(false)}
         >

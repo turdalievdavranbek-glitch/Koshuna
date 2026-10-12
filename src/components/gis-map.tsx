@@ -94,7 +94,7 @@ export function GisMap({
       const marker = L.circleMarker([m.lat, m.lng], {
         radius: m.active ? 10 : 7,
         color: "#FFFFFF",
-        fillColor: m.active ? "#B8452F" : "#17140F",
+        fillColor: m.active ? "#7C5CFF" : "#2A2550",
         fillOpacity: 1,
         weight: 2,
       });
@@ -115,7 +115,7 @@ export function GisMap({
     if (!pick) return;
     const icon = L.divIcon({
       className: "",
-      html: `<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#B8452F;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 4px 10px rgba(23,20,15,.28)"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#7C5CFF;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 4px 10px rgba(42,37,80,.28)"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 18],
     });

@@ -389,9 +389,9 @@ export function PointForm({
                 }}
                 className="h-11 min-w-0 flex-1 rounded-full px-2 text-[13px] font-semibold touch-manipulation"
                 style={{
-                  background: active ? "#B8452F" : "#FFFFFF",
-                  color: active ? "#FFF7F0" : "#17140F",
-                  border: active ? "none" : "1px solid #E4DCCE",
+                  background: active ? "#7C5CFF" : "#FFFFFF",
+                  color: active ? "#FFFFFF" : "#2A2550",
+                  border: active ? "none" : "1px solid #E3DEF7",
                 }}
               >
                 {label}

@@ -421,7 +421,7 @@ export function RestaurantMenuCapture() {
                     <img src={row.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
                   ) : (
                     <div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-chip">
-                      <IconCamera size={18} color="#A79C8C" />
+                      <IconCamera size={18} color="#A19DBD" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -473,7 +473,7 @@ export function RestaurantMenuCapture() {
             ) : null}
             {!live && (mode === "video" || !photo) ? (
               <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 px-6 text-center">
-                <IconCamera size={28} color="#FFF7F0" />
+                <IconCamera size={28} color="#FFFFFF" />
                 <div className="text-[14px] font-semibold text-screen">{mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
               </div>
             ) : null}
@@ -501,7 +501,7 @@ export function RestaurantMenuCapture() {
               type="button"
               onClick={() => (recording ? void stopVoice() : void startVoice())}
               className="mt-2 h-11 w-full rounded-2xl text-[13px] font-semibold"
-              style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
+              style={{ background: recording ? "#7C5CFF" : "#2A2550", color: "#F6F4FF" }}
             >
               {recording ? t.mediaStop : t.mediaVoiceRec}
             </button>
@@ -512,7 +512,7 @@ export function RestaurantMenuCapture() {
               type="button"
               onClick={() => (recording ? void stopVideo() : void startVideo())}
               className="mt-3 h-11 w-full rounded-2xl text-[13px] font-semibold"
-              style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
+              style={{ background: recording ? "#7C5CFF" : "#2A2550", color: "#F6F4FF" }}
             >
               {recording ? t.mediaStop : t.mediaRecord}
             </button>
