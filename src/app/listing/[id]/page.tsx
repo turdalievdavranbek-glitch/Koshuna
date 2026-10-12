@@ -28,6 +28,7 @@ import { HoldRequest } from "@/components/hold-request";
 import { StillActual } from "@/components/still-actual";
 import { MeetDealBlock } from "@/components/meet-deal";
 import { AdminSectionButton } from "@/components/admin-section-sheet";
+import { listingEditHref } from "@/lib/listing-edit";
 import { isAdminUser } from "@/lib/partners";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
@@ -51,7 +52,7 @@ import { GisOnMapCard } from "@/components/gis-on-map";
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
+  const { t, lang, allListings, extraListings, isFav, toggleFav, user, setPendingPath, filters, setFilters, markViewed, shops, duplicateListingToDraft, editListingToDraft, dealerProfiles, synced, isBlocked, recallListing, blockedUserIds } =
     useApp();
   const listing = allListings.find((l) => l.id === id);
   const [viewsNow, setViewsNow] = useState<number | null>(null);
@@ -694,6 +695,19 @@ export default function ListingPage() {
           ) : null}
 
           <ReportListing listing={listing} />
+          {isAdminUser(user) && !mine ? (
+            // Admin: open the normal edit form for someone else's listing (the server saves it as the owner).
+            <button
+              type="button"
+              onClick={() => {
+                if (!listing.shopId) editListingToDraft(listing);
+                router.push(listingEditHref(listing));
+              }}
+              className="mt-3 h-11 w-full rounded-xl border border-line bg-white text-[14px] font-semibold text-ink"
+            >
+              {t.promoEdit}
+            </button>
+          ) : null}
           {isAdminUser(user) ? <AdminSectionButton listing={listing} /> : null}
           {!mine && isDbUserId(listing.ownerId) ? (
             <BlockAuthorButton userId={listing.ownerId} returnPath={`/listing/${listing.id}`} />
