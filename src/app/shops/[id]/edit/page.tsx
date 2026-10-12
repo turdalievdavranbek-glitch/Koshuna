@@ -6,6 +6,7 @@ import { PointForm } from "@/components/point-form";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { IconBack } from "@/components/icons";
+import { isAdminUser } from "@/lib/partners";
 import { isOwnShop } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 
@@ -21,12 +22,12 @@ export default function EditShopPage() {
       router.replace("/login");
       return;
     }
-    if (shop && isOwnShop(shop, user)) startShopDraft(id);
+    if (shop && (isOwnShop(shop, user) || isAdminUser(user))) startShopDraft(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, id, shop?.id]);
 
   if (!user) return null;
-  if (!shop || !isOwnShop(shop, user)) {
+  if (!shop || !(isOwnShop(shop, user) || isAdminUser(user))) {
     return (
       <PhoneShell>
         <div className="px-5 pt-1">

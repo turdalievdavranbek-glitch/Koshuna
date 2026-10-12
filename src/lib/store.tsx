@@ -168,6 +168,12 @@ function trackAuth(task: Promise<unknown>) {
   return done;
 }
 
+
+/** Owner, or an admin editing someone's point (the server keeps the real owner). */
+function canEditShop(shop: Pick<Shop, "ownerPhone"> & { ownerId?: string | null }, user: User | null): boolean {
+  return isOwnShop(shop, user) || isAdminUser(user);
+}
+
 export function waitAuthReady(): Promise<void> {
   return authReady;
 }
@@ -563,6 +569,8 @@ type Store = State & {
   saveCurrentSearch: () => void;
   setNotificationsOn: (on: boolean) => void;
   startShopDraft: (id?: string, opts?: { fresh?: boolean }) => ShopDraft | null;
+  /** Admin view: make another account's points/listings known locally so the normal edit forms can open them. */
+  adminAdopt: (input: { shops?: Shop[]; listings?: Listing[] }) => void;
   setShopDraft: (patch: Partial<ShopDraft>) => void;
   lockShopField: (key: keyof Shop) => void;
   saveShopDraft: () => Shop | null;
@@ -1617,9 +1625,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             postedAgo: original.postedAgo,
           } as Listing)
         : built;
+      // Admin editing someone else's listing: keep it out of the admin's own list.
+      const foreign = Boolean(original?.ownerId && liveUser?.id && original.ownerId !== liveUser.id);
       update((s) => ({
         ...s,
-        extraListings: upsertExtraListing(s.extraListings, listing),
+        extraListings: foreign ? s.extraListings : upsertExtraListing(s.extraListings, listing),
+        feed: foreign ? s.feed.map((item) => (item.id === listing.id ? { ...listing, ownerId: original?.ownerId ?? listing.ownerId } : item)) : s.feed,
         draft: { ...s.draft, id: listing.id },
         side: "sell",
       }));
@@ -1858,11 +1869,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     setNotificationsOn: (on) => update({ notificationsOn: on }),
+    adminAdopt: ({ shops: more = [], listings: extra = [] }) => {
+      if (!isAdminUser(state.user)) return;
+      update((s) => ({
+        ...s,
+        shops: [...more.filter((shop) => !s.shops.some((item) => item.id === shop.id)), ...s.shops.map((item) => more.find((shop) => shop.id === item.id) ?? item)],
+        feed: [...extra.filter((item) => !s.feed.some((row) => row.id === item.id)), ...s.feed],
+      }));
+    },
     startShopDraft: (id, opts) => {
       if (!state.user) return null;
       if (id) {
         const existing = state.shops.find((s) => s.id === id);
-        if (!existing || !isOwnShop(existing, state.user)) return null;
+        if (!existing || !canEditShop(existing, state.user)) return null;
         const draft: ShopDraft = { ...existing, locked: {}, pendingProducts: [] };
         update({ shopDraft: draft });
         return draft;
@@ -1887,7 +1906,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveShopDraft: () => {
       const draft = state.shopDraft;
       const user = state.user;
-      if (!draft || !user || !isOwnShop(draft, user)) return null;
+      if (!draft || !user || !canEditShop(draft, user)) return null;
       const saved: Shop = { ...draft, status: draft.status === "active" ? "active" : "draft", updatedAt: new Date().toISOString() };
       const prevShop = state.shops.find((item) => item.id === saved.id);
       const mergedShop: Shop = {
@@ -1926,7 +1945,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const draft = source ?? state.shopDraft;
       if (!user) return { shop: null, error: "auth" };
-      if (!draft || !isOwnShop(draft, user)) return { shop: null, error: "forbidden" };
+      if (!draft || !canEditShop(draft, user)) return { shop: null, error: "forbidden" };
       const shop: Shop = { ...draft, status: "active", updatedAt: new Date().toISOString(), aiConfirmed: true };
       try {
         await authReady;
@@ -1967,7 +1986,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === id);
       if (!user) return { error: "auth" };
-      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      if (!shop || !canEditShop(shop, user)) return { error: "forbidden" };
       const next = { ...shop, status: "withdrawn" as const, updatedAt: new Date().toISOString() };
       try {
         await authReady;
@@ -1992,7 +2011,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === id);
       if (!user) return { error: "auth" };
-      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      if (!shop || !canEditShop(shop, user)) return { error: "forbidden" };
       try {
         await authReady;
         const res = await api<{ ok?: boolean; error?: string }>(`/api/shops/${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -2052,7 +2071,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === shopId);
       if (!user) return { error: "auth" };
-      if (!shop || !isOwnShop(shop, user)) return { error: "forbidden" };
+      if (!shop || !canEditShop(shop, user)) return { error: "forbidden" };
       const price = product.price != null ? validPrice(product.price) : undefined;
       if (product.price != null && product.price !== 0 && price == null) return { error: "price" };
       const now = new Date().toISOString();
@@ -2141,7 +2160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const shop = state.shops.find((item) => item.id === shopId);
       const current = shop?.products.find((row) => row.id === productId);
       if (!user) return { error: "auth" };
-      if (!shop || !current || !isOwnShop(shop, user)) return { error: "forbidden" };
+      if (!shop || !current || !canEditShop(shop, user)) return { error: "forbidden" };
       if ("price" in patch && patch.price != null && patch.price !== 0 && validPrice(patch.price) == null) return { error: "price" };
       if ("quantity" in patch && patch.quantity != null && patch.quantity !== 0 && validQuantity(patch.quantity) == null) {
         return { error: "quantity" };
@@ -2183,7 +2202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === shopId);
       const product = shop?.products.find((row) => row.id === productId);
-      if (!user || !shop || !isOwnShop(shop, user) || !product) return;
+      if (!user || !shop || !canEditShop(shop, user) || !product) return;
       const hiddenShop: Shop = {
         ...shop,
         products: shop.products.map((row) => (row.id === productId ? { ...row, published: false, updatedAt: new Date().toISOString() } : row)),
@@ -2211,7 +2230,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       const shop = state.shops.find((item) => item.id === shopId);
       const product = shop?.products.find((row) => row.id === productId);
-      if (!user || !shop || !product || !isOwnShop(shop, user)) return null;
+      if (!user || !shop || !product || !canEditShop(shop, user)) return null;
       if (!product.title.trim()) return { missing: ["name"] };
       let listing: Listing | undefined;
       update((s) => {

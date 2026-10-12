@@ -8,6 +8,7 @@ import { getDb } from "@/server/db";
 import { listings, shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { attachMedia } from "@/server/media";
+import { auditAdminEdit, ownerSessionForAdmin } from "@/server/admin-edit";
 import { hideListingById, insertPersonalListing } from "@/server/moderation";
 import { isListingStatus, listingCounts, listingMediaUrls, listingToRow, mediaUrlError, rowToListing, rowToShop } from "@/server/mappers";
 import { NextResponse } from "next/server";
@@ -58,12 +59,28 @@ export async function GET(req: Request, ctx: Ctx) {
 async function save(req: Request, id: string, patch: Body | null, mode: "put" | "patch") {
   const blocked = guardCsrf(req);
   if (blocked) return blocked;
-  const user = await requireUser(req);
-  if (user instanceof NextResponse) return user;
+  const actor = await requireUser(req);
+  if (actor instanceof NextResponse) return actor;
   if (!patch) return json({ error: "bad-json" }, 400);
   const db = getDb();
   const existing = await db.select().from(listings).where(eq(listings.id, id)).limit(1);
-  if (existing[0] && existing[0].ownerId !== user.id) return json({ error: "forbidden" }, 403);
+  // Admin may edit anyone's listing; the save runs as the owner so ownership and seller data stay theirs.
+  let user = actor;
+  if (existing[0] && existing[0].ownerId !== actor.id) {
+    const owner = await ownerSessionForAdmin(actor, existing[0].ownerId);
+    if (!owner) return json({ error: "forbidden" }, 403);
+    user = owner;
+    const stored = (existing[0].attrs ?? {}) as Partial<Listing> & { sellerPhone?: string };
+    patch = {
+      ...patch,
+      ownerId: existing[0].ownerId,
+      sellerName: stored.sellerName,
+      sellerMethod: stored.sellerMethod,
+      sellerCardLinked: stored.sellerCardLinked,
+      ...(stored.sellerPhone ? { sellerPhone: stored.sellerPhone } : {}),
+    } as Body;
+    auditAdminEdit("listing", id, actor.id, existing[0].ownerId);
+  }
 
   // A listing hidden by moderation cannot be revived or edited by its owner.
   if (existing[0]?.status === "hidden") return json({ error: "hidden" }, 403);
@@ -114,6 +131,7 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   }
   if (!saved) return json({ error: "save" }, 500);
   await attachMedia(user.id, urls, { listingId: id });
+  if (user.id !== actor.id) await attachMedia(actor.id, urls, { listingId: id });
   return json(pack(saved));
 }
 

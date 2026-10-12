@@ -1,5 +1,6 @@
 "use client";
 
+import { PromoterAdmin } from "@/components/promoter-admin";
 import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -253,6 +254,7 @@ export default function ProfilePage() {
           <span className="text-[13px] font-semibold text-muted">{mine.length}</span>
         </div>
         <div className="mt-3" data-testid="cabinet-listings">
+          <PromoterAdmin />
           <MyListings />
         </div>
 

@@ -1,12 +1,14 @@
 import { eq } from "drizzle-orm";
 import type { Shop, ShopProduct } from "@/lib/types";
-import { getSessionUser } from "@/server/auth";
+import { getSessionUser, sessionIsAdmin } from "@/server/auth";
+import { attachMedia } from "@/server/media";
 import { getDb } from "@/server/db";
 import { shops } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { mediaUrlError, rowToShop, sessionAsUser, shopMediaUrls } from "@/server/mappers";
 import { shopsForViewer } from "@/server/moderation";
 import { normalizePhone } from "@/lib/shops";
+import { auditAdminEdit, ownerSessionForAdmin } from "@/server/admin-edit";
 import { hideShopForUser, saveShopForUser, validateShopAction, type ShopBody } from "@/server/shops";
 import { NextResponse } from "next/server";
 
@@ -22,8 +24,9 @@ export async function GET(req: Request, ctx: Ctx) {
   const shop = rowToShop(rows[0]);
   if (shop.status === "hidden") return json({ error: "not-found" }, 404);
   const viewer = await getSessionUser(req).catch(() => null);
-  if (rows[0].underReview && viewer?.id !== rows[0].ownerId) return json({ error: "not-found" }, 404);
-  if (shop.status !== "active" && viewer?.id !== rows[0].ownerId) return json({ error: "not-found" }, 404);
+  const staff = Boolean(viewer && viewer.id !== rows[0].ownerId && (await sessionIsAdmin(viewer.id)));
+  if (rows[0].underReview && viewer?.id !== rows[0].ownerId && !staff) return json({ error: "not-found" }, 404);
+  if (shop.status !== "active" && viewer?.id !== rows[0].ownerId && !staff) return json({ error: "not-found" }, 404);
   const [visible] = await shopsForViewer([shop], viewer?.id ?? null);
   return json({ shop: visible });
 }
@@ -31,11 +34,22 @@ export async function GET(req: Request, ctx: Ctx) {
 export async function PUT(req: Request, ctx: Ctx) {
   const blocked = guardCsrf(req);
   if (blocked) return blocked;
-  const user = await requireUser(req);
-  if (user instanceof NextResponse) return user;
+  const actor = await requireUser(req);
+  if (actor instanceof NextResponse) return actor;
   const { id } = await ctx.params;
   const body = await readJson<ShopBody>(req);
   if (!body?.shop) return json({ ok: false, error: "bad-json" }, 400);
+  // Admin may edit anyone's point; the save runs as the owner (ownership, name and phone stay theirs).
+  let user = actor;
+  const stored = await getDb().select({ ownerId: shops.ownerId, doc: shops.doc }).from(shops).where(eq(shops.id, id)).limit(1);
+  if (stored[0] && stored[0].ownerId !== actor.id) {
+    const owner = await ownerSessionForAdmin(actor, stored[0].ownerId);
+    if (!owner) return json({ ok: false, error: "forbidden" }, 403);
+    user = owner;
+    const doc = stored[0].doc as Shop;
+    body.shop = { ...body.shop, ownerName: doc.ownerName, ownerPhone: doc.ownerPhone };
+    auditAdminEdit("point", id, actor.id, owner.id);
+  }
   const shop = { ...body.shop, id, ownerId: user.id } as Shop;
   if (body.product && shop.products) {
     const product = body.product as ShopProduct;
@@ -60,6 +74,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (mediaError) return json({ ok: false, error: mediaError }, 400);
   const saved = await saveShopForUser(user, shop);
   if ("error" in saved) return json({ ok: false, error: saved.error }, saved.status);
+  if (user.id !== actor.id) await attachMedia(actor.id, urls, { shopId: id });
   return json({ ok: true, shop: saved.shop });
 }
 
