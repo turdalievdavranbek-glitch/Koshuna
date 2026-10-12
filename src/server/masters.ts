@@ -72,8 +72,8 @@ export async function listPromoters(): Promise<PromoterRow[]> {
       id: users.id,
       name: users.name,
       email: users.email,
-      points: sql<number>`(select count(*)::int from ${shops} s where s.owner_id = ${users.id} and s.status <> 'hidden')`,
-      listings: sql<number>`(select count(*)::int from ${listings} l where l.owner_id = ${users.id} and l.shop_id is null and l.status <> 'hidden')`,
+      points: sql<number>`(select count(*)::int from ${shops} s where s.owner_id = "users"."id" and s.status <> 'hidden')`,
+      listings: sql<number>`(select count(*)::int from ${listings} l where l.owner_id = "users"."id" and l.shop_id is null and l.status <> 'hidden')`,
     })
     .from(users)
     .where(and(eq(users.isMaster, true), isNull(users.deletedAt)))
