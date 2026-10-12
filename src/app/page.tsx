@@ -22,7 +22,7 @@ import { NeighborCircles } from "@/components/neighbor-circles";
 import { NeighborNearby, TodayOnPoints } from "@/components/magnets";
 import { HomeFreshFilters } from "@/components/home-fresh-filters";
 import { RingOnRise, UnreadBadge } from "@/components/unread-badge";
-import { Flag, IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
+import { IconBell, IconChevronDown, IconPin, IconSearch, IconSliders } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { useNotices } from "@/lib/notices";
 
@@ -227,11 +227,7 @@ export default function FeedPage() {
         ) : (
           <ListingGrid listings={listings} onFav={onFav} />
         )}
-
-        <div className="mt-4 flex items-center gap-[7px] pb-1.5 text-xs text-muted">
-          <Flag />
-          {t.country} · сом
-        </div>
+        <div className="pb-1.5" />
       </div>
     </PhoneShell>
   );

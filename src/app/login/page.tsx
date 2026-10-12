@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
-import { Flag } from "@/components/icons";
 import { BrandMark } from "@/components/brand";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
@@ -276,10 +275,6 @@ function LoginInner() {
         </div>
         <div className="mt-8">
           <BrandMark size={40} wordClass="text-[32px] leading-none text-ink" />
-          <div className="mt-3 flex w-fit items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1">
-            <Flag size={16} />
-            <span className="text-xs font-semibold text-ink">{t.country}</span>
-          </div>
         </div>
         <div className="mt-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-accent-dark">{t.eyebrow}</div>
         <h1 className="mt-5 font-display text-[26px] font-bold leading-[1.12] tracking-[-0.01em] text-ink">{t.slogan}</h1>
