@@ -151,7 +151,7 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
     <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1" data-testid={`point-field-${field}`}>
       <div className="flex items-center justify-between">
         <button type="button" onClick={back} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </button>
         <span className="min-w-0 truncate px-2 font-display text-[15px] font-bold">{shop.name}</span>
         <span className="w-9" />

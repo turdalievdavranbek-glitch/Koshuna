@@ -18,7 +18,7 @@ export function PlayBadge({ compact }: { compact?: boolean }) {
   const size = compact ? "h-7 w-7" : "h-9 w-9";
   return (
     <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <span className={`flex ${size} items-center justify-center rounded-full bg-[rgba(23,20,15,.72)] pl-0.5 text-white`}>
+      <span className={`flex ${size} items-center justify-center rounded-full bg-[rgba(42,37,80,.72)] pl-0.5 text-white`}>
         ▶
       </span>
     </span>
@@ -29,7 +29,7 @@ export function VoiceBadge({ compact }: { compact?: boolean }) {
   const size = compact ? "h-7 w-7" : "h-9 w-9";
   return (
     <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <span className={`flex ${size} items-end justify-center gap-0.5 rounded-full bg-[rgba(23,20,15,.72)] pb-2`}>
+      <span className={`flex ${size} items-end justify-center gap-0.5 rounded-full bg-[rgba(42,37,80,.72)] pb-2`}>
         <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 6 : 8 }} />
         <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 11 : 14 }} />
         <span className="w-[2px] rounded-full bg-white" style={{ height: compact ? 8 : 10 }} />
@@ -59,7 +59,7 @@ export function ListingThumb({
   return (
     <div
       className={`relative ${round ? "rounded-full p-[2.5px]" : ""} ${className ?? ""}`}
-      style={round ? { background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" } : undefined}
+      style={round ? { background: "linear-gradient(145deg, #7C5CFF 0%, #2A2550 78%)" } : undefined}
     >
       <div className={`relative aspect-square overflow-hidden bg-chip ${inner}`}>
         {playInline && video && listing.videoUrl ? (

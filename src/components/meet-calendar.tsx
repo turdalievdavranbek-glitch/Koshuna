@@ -61,8 +61,8 @@ export function MeetDayCalendar({ value, onChange }: Props) {
               onClick={() => onChange(key)}
               className="h-10 text-[13px] font-semibold"
               style={{
-                color: past ? "#C9BBA8" : selected ? "#F7F3EC" : "#17140F",
-                background: selected ? "#17140F" : "transparent",
+                color: past ? "#C9BBA8" : selected ? "#F6F4FF" : "#2A2550",
+                background: selected ? "#2A2550" : "transparent",
                 borderRadius: 999,
               }}
             >

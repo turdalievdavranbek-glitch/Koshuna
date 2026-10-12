@@ -94,7 +94,7 @@ export function ListingVideoViewer({
       >
         <ReelVideo listing={listing} active preloadNext={false} sound={sound} onToggleSound={toggleSound} />
         {blocked ? <VideoSoundHint onTap={soundOn} /> : null}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.8)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(42,37,80,.45)] via-transparent to-[rgba(42,37,80,.8)]" />
         <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
           <button
             type="button"
@@ -103,7 +103,7 @@ export function ListingVideoViewer({
             onClick={onClose}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/92"
           >
-            <IconBack size={17} color="#17140F" />
+            <IconBack size={17} color="#2A2550" />
           </button>
           <button
             type="button"

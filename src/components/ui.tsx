@@ -56,8 +56,8 @@ export function Chip({
   pressed?: boolean;
   truncate?: boolean;
 }) {
-  const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
-  const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
+  const bg = active ? (accent ? "#7C5CFF" : "#6D4CF5") : "#FFFFFF";
+  const color = active ? "#FFFFFF" : "#2A2550";
   const pad =
     size === "xs"
       ? "px-2 py-[3px] text-[10px]"
@@ -72,11 +72,11 @@ export function Chip({
       onClick={onClick}
       data-testid={testId}
       aria-pressed={pressed}
-      className={`${truncate ? "min-w-[4.5rem] max-w-full shrink overflow-hidden text-left" : "shrink-0 whitespace-nowrap"} rounded-full font-semibold ${pad} ${className ?? ""}`}
+      className={`${truncate ? "min-w-[4.5rem] max-w-full shrink overflow-hidden text-left" : "shrink-0 whitespace-nowrap"} rounded-full font-semibold ${active ? "clay-chip-on" : "clay-chip"} ${pad} ${className ?? ""}`}
       style={{
         background: bg,
         color,
-        border: active ? "none" : "1px solid #E4DCCE",
+        border: active ? "none" : "1px solid #E3DEF7",
       }}
     >
       {truncate ? <span className="block truncate">{children}</span> : children}
@@ -92,7 +92,7 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
       aria-checked={on}
       onClick={onChange}
       className="relative h-[27px] w-[46px] shrink-0 rounded-full"
-      style={{ background: on ? "#B8452F" : "#DCD3C4" }}
+      style={{ background: on ? "#7C5CFF" : "#D9D3F5" }}
     >
       <span
         className="absolute top-[3px] h-[21px] w-[21px] rounded-full bg-white"
@@ -172,12 +172,12 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
         {video ? (
           <div
             className="rounded-full p-[2.5px]"
-            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+            style={{ background: "linear-gradient(145deg, #7C5CFF 0%, #2A2550 78%)" }}
           >
             <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
               <Photo src={listing.photos[0]} alt={title} />
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(23,20,15,.72)] pl-0.5 text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(42,37,80,.72)] pl-0.5 text-white">
                   ▶
                 </span>
               </span>
@@ -187,7 +187,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           <Photo src={listing.photos[0]} alt={title} />
         )}
         {!video ? (
-          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(42,37,80,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
@@ -200,7 +200,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           }}
           className="absolute right-2.5 top-2.5 flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white/92"
         >
-          <IconHeart size={16} color={isFav(listing.id) ? "#B8452F" : "#17140F"} filled={isFav(listing.id)} />
+          <IconHeart size={16} color={isFav(listing.id) ? "#7C5CFF" : "#2A2550"} filled={isFav(listing.id)} />
         </span>
         ) : null}
       </div>
@@ -264,7 +264,7 @@ export function ListingRow({
         {video ? (
           <div
             className="rounded-full p-[2px]"
-            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+            style={{ background: "linear-gradient(145deg, #7C5CFF 0%, #2A2550 78%)" }}
           >
             <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
               <Photo src={listing.photos[0]} alt={title} />
@@ -282,7 +282,7 @@ export function ListingRow({
               </span>
             ) : null}
             {overlay ? (
-              <span className="absolute inset-0 flex items-center justify-center bg-[rgba(23,20,15,.42)] text-[11px] font-bold tracking-wide text-screen">
+              <span className="absolute inset-0 flex items-center justify-center bg-[rgba(42,37,80,.42)] text-[11px] font-bold tracking-wide text-screen">
                 {overlay}
               </span>
             ) : null}
@@ -308,11 +308,11 @@ export function ListingRow({
       </div>
       {heart ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#B8452F" />
+          <IconHeart size={18} filled color="#7C5CFF" />
         </div>
       ) : FEATURES.cart && isFav(listing.id) ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#B8452F" />
+          <IconHeart size={18} filled color="#7C5CFF" />
         </div>
       ) : null}
     </button>
@@ -447,8 +447,8 @@ export function LangSwitch({ size = "md" }: { size?: "md" | "sm" }) {
           onClick={() => setLang(code)}
           className={sm ? "h-7 min-w-0 flex-1 rounded-full text-[11px] font-bold leading-none" : "rounded-full px-2.5 py-1.5 text-[11px] font-semibold"}
           style={{
-            background: lang === code ? "#17140F" : "transparent",
-            color: lang === code ? "#F7F3EC" : "#6E6558",
+            background: lang === code ? "#2A2550" : "transparent",
+            color: lang === code ? "#F6F4FF" : "#6F6B8F",
           }}
         >
           {LANG_LABEL[code].short}
@@ -473,5 +473,5 @@ export function MapSketch() {
 }
 
 export function IconPinTiny() {
-  return <IconPin size={14} color="#B8452F" />;
+  return <IconPin size={14} color="#7C5CFF" />;
 }

@@ -71,18 +71,18 @@ export function MyListings({ limit }: { limit?: number }) {
                     background: item.underReview
                       ? "#F6E3D4"
                       : item.status === "promoted" || item.status === "reserved"
-                        ? "#F3E0D9"
+                        ? "#ECE6FF"
                         : item.status === "closed"
                           ? "#E4EFE9"
                           : item.status === "draft" || item.status === "withdrawn"
-                            ? "#EFE8DB"
+                            ? "#EEEAFB"
                             : "#E4EFE9",
                     color: item.underReview
-                      ? "#17140F"
+                      ? "#2A2550"
                       : item.status === "promoted" || item.status === "reserved"
-                        ? "#8E3423"
+                        ? "#5A3FD6"
                         : item.status === "draft" || item.status === "withdrawn"
-                          ? "#6E6558"
+                          ? "#6F6B8F"
                           : "#2A6B57",
                   }}
                 >

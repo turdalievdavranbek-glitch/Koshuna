@@ -96,7 +96,7 @@ function ReelSlide({
       ) : (
         <Photo src={listing.photos[0]} alt={title} className="absolute inset-0" />
       )}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(42,37,80,.45)] via-transparent to-[rgba(42,37,80,.78)]" />
       {/* Tap anywhere on the photo or video opens the listing details (sound has its own button). */}
       <Link href={openHref} aria-label={t.reelOpen} data-testid="reel-open-area" className="absolute inset-0" />
       {video && active && blocked ? <VideoSoundHint onTap={soundOn} /> : null}
@@ -108,7 +108,7 @@ function ReelSlide({
           onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-white/92"
         >
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </button>
         {video ? (
           <button
@@ -132,7 +132,7 @@ function ReelSlide({
           className="flex flex-col items-center gap-0.5"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/92">
-            <IconLike size={20} color={reaction === "like" ? "#2A6B57" : "#17140F"} filled={reaction === "like"} />
+            <IconLike size={20} color={reaction === "like" ? "#2A6B57" : "#2A2550"} filled={reaction === "like"} />
           </span>
           <span className="text-[12px] font-semibold text-white tabular-nums">{likes}</span>
         </button>
@@ -234,7 +234,7 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
         onToggleSound={toggleSound}
       />
       {active && blocked ? <VideoSoundHint onTap={soundOn} /> : null}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(23,20,15,.45)] via-transparent to-[rgba(23,20,15,.78)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(42,37,80,.45)] via-transparent to-[rgba(42,37,80,.78)]" />
       <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <button
           type="button"
@@ -243,7 +243,7 @@ function PinnedReelSlide({ pinned, active, onVisible }: { pinned: PinnedCircle; 
           onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-white/92"
         >
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </button>
         <button type="button" onClick={toggleSound} className="rounded-full bg-white/92 px-3 py-1.5 text-[12px] font-semibold text-ink">
           {sound ? t.reelSoundOn : t.reelSoundOff}
@@ -366,7 +366,7 @@ export default function ReelsPage() {
               onClick={() => goBack(router, "/")}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/92"
             >
-              <IconBack size={16} color="#17140F" />
+              <IconBack size={16} color="#2A2550" />
             </button>
             <p className="mt-6 text-[15px] leading-[1.4]">{t.homeCirclesEmpty}</p>
           </div>

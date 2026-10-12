@@ -119,7 +119,7 @@ export default function LocationPage() {
           onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </button>
         <h1 className="font-display text-[17px] font-bold text-ink">{t.location}</h1>
         <span className="w-9" />
@@ -127,7 +127,7 @@ export default function LocationPage() {
 
       <div className="px-5">
         <div className="flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
-          <IconSearch size={17} color="#A79C8C" />
+          <IconSearch size={17} color="#A19DBD" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -146,7 +146,7 @@ export default function LocationPage() {
             className="mb-4 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-tint">
-              <IconLocate size={18} color="#B8452F" />
+              <IconLocate size={18} color="#7C5CFF" />
             </span>
             <span className="flex-1">
               <span className="block text-[15px] font-semibold text-ink">{t.locationGeo}</span>

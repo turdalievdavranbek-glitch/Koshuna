@@ -111,7 +111,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
         aria-label={t.share}
       >
-        <IconShare size={17} color="#17140F" />
+        <IconShare size={17} color="#2A2550" />
       </button>
     ) : (
       <button
@@ -127,7 +127,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
     <>
       {control}
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
           <div
             className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:rounded-[24px]"
             onClick={(event) => event.stopPropagation()}

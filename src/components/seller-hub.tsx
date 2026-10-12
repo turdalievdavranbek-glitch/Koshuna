@@ -38,14 +38,14 @@ export function SellerHub({ highlight }: { highlight?: SellerChannel }) {
               onClick={() => router.push(`/from/${id}`)}
               className="flex flex-col items-center gap-1 rounded-[14px] px-1 py-2"
               style={{
-                background: on ? "#17140F" : glow ? "#F3E0D9" : "#FFFDF8",
-                border: glow && !on ? "1.5px solid #B8452F" : "1px solid #E4DCCE",
+                background: on ? "#2A2550" : glow ? "#ECE6FF" : "#FFFDF8",
+                border: glow && !on ? "1.5px solid #7C5CFF" : "1px solid #E3DEF7",
               }}
             >
               <span className="flex h-7 w-7 items-center justify-center">{ICONS[id]}</span>
               <span
                 className="text-[9px] font-semibold leading-tight"
-                style={{ color: on ? "#F7F3EC" : "#17140F" }}
+                style={{ color: on ? "#F6F4FF" : "#2A2550" }}
               >
                 {t.authMethods[id]}
               </span>

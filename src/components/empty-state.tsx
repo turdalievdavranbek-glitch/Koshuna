@@ -33,7 +33,7 @@ export function EmptyState({
   return (
     <div className="mt-8 rounded-[18px] border border-line bg-surface p-6 text-center">
       <div className="mb-3 flex justify-center">
-        <Icon size={40} color="#A79C8C" />
+        <Icon size={40} color="#A19DBD" />
       </div>
       <div className="text-[15px] font-semibold text-ink">{heading}</div>
       {quiet ? null : <p className="mt-2 text-[13px] text-muted">{hint}</p>}

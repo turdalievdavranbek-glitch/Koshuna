@@ -41,7 +41,7 @@ export function SectionList({
               {row.label}
             </span>
             {row.active ? (
-              <IconCheck size={16} color="#B8452F" />
+              <IconCheck size={16} color="#7C5CFF" />
             ) : (
               <span className="text-[17px] leading-none text-muted-2">›</span>
             )}

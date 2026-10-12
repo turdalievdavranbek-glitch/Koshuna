@@ -34,9 +34,9 @@ export function LayoutSwitch() {
             title={o.label}
             onClick={() => setListingLayout(o.id)}
             className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-            style={{ background: on ? "#17140F" : "transparent" }}
+            style={{ background: on ? "#2A2550" : "transparent" }}
           >
-            <IconCols size={16} count={o.count} color={on ? "#F7F3EC" : "#6E6558"} />
+            <IconCols size={16} count={o.count} color={on ? "#F6F4FF" : "#6F6B8F"} />
           </button>
         );
       })}
@@ -65,12 +65,12 @@ function ListingCard({
     <button
       type="button"
       onClick={() => router.push(`/listing/${listing.id}`)}
-      className={`text-left ${video ? "" : `overflow-hidden border border-line bg-surface ${radius}`}`}
+      className={`text-left ${video ? "" : `clay-card overflow-hidden border border-line bg-surface ${radius}`}`}
     >
       <div className={`relative ${video ? (layout === "large" ? "px-8 pt-3" : layout === "medium" ? "px-3 pt-2" : "px-1 pt-1") : ""}`}>
         <ListingThumb listing={listing} alt={title} compact={layout !== "large"} />
         {!video && layout !== "small" ? (
-          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(23,20,15,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
+          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(42,37,80,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
@@ -96,7 +96,7 @@ function ListingCard({
             }}
             className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/92"
           >
-            <IconHeart size={15} color={saved ? "#B8452F" : "#17140F"} filled={saved} />
+            <IconHeart size={15} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
           </span>
         ) : null}
       </div>

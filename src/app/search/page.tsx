@@ -119,8 +119,8 @@ export default function SearchPage() {
     <PhoneShell tab>
       <BrowseColumns>
       <div className="shrink-0 px-5 pt-2">
-        <div className="flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
-          <IconSearch size={17} color="#A79C8C" />
+        <div className="clay-card flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
+          <IconSearch size={17} color="#A19DBD" />
           <input
             type="search"
             autoFocus
@@ -138,7 +138,7 @@ export default function SearchPage() {
             data-testid="search-filters"
             className="flex h-9 w-9 shrink-0 items-center justify-center desk:hidden"
           >
-            <IconSliders size={17} color="#17140F" />
+            <IconSliders size={17} color="#2A2550" />
           </button>
         </div>
         <div className="mt-2">

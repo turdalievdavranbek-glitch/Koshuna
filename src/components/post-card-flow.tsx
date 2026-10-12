@@ -208,7 +208,7 @@ export function CardPost({ card }: { card: string }) {
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
           >
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
             {t.backLeave}
           </button>
           <span className="font-display text-[16px] font-bold text-ink">{t.newListing}</span>
@@ -216,7 +216,7 @@ export function CardPost({ card }: { card: string }) {
         </div>
         <div className="mt-3.5 flex items-center gap-2">
           {bars.map((on, i) => (
-            <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#B8452F" : "#E4DCCE" }} />
+            <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#7C5CFF" : "#E3DEF7" }} />
           ))}
           <span className="ml-1 text-xs font-semibold text-muted">
             {step === 1
@@ -254,8 +254,8 @@ export function CardPost({ card }: { card: string }) {
                   onClick={() => setDraft({ serviceMode: "place", serviceArea: undefined })}
                   className="rounded-2xl border px-4 py-3.5 text-left"
                   style={{
-                    borderColor: draft.serviceMode === "place" ? "#B8452F" : "#E4DCCE",
-                    background: draft.serviceMode === "place" ? "#FFF7F0" : "#FFFFFF",
+                    borderColor: draft.serviceMode === "place" ? "#7C5CFF" : "#E3DEF7",
+                    background: draft.serviceMode === "place" ? "#FFFFFF" : "#FFFFFF",
                   }}
                 >
                   <div className="text-[15px] font-semibold text-ink">{t.serviceModePlace}</div>
@@ -267,8 +267,8 @@ export function CardPost({ card }: { card: string }) {
                   onClick={() => setDraft({ serviceMode: "mobile", address: "", lat: undefined, lng: undefined })}
                   className="rounded-2xl border px-4 py-3.5 text-left"
                   style={{
-                    borderColor: draft.serviceMode === "mobile" ? "#B8452F" : "#E4DCCE",
-                    background: draft.serviceMode === "mobile" ? "#FFF7F0" : "#FFFFFF",
+                    borderColor: draft.serviceMode === "mobile" ? "#7C5CFF" : "#E3DEF7",
+                    background: draft.serviceMode === "mobile" ? "#FFFFFF" : "#FFFFFF",
                   }}
                 >
                   <div className="text-[15px] font-semibold text-ink">{t.serviceModeMobile}</div>
@@ -825,12 +825,12 @@ export function CardPost({ card }: { card: string }) {
               style={{
                 background:
                   (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
-                    ? "#DCD3C4"
-                    : "#B8452F",
+                    ? "#D9D3F5"
+                    : "#7C5CFF",
                 color:
                   (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
-                    ? "#6E6558"
-                    : "#FFF7F0",
+                    ? "#6F6B8F"
+                    : "#FFFFFF",
               }}
             >
               {publishing ? t.postPublishing : t.publish}

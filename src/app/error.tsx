@@ -20,7 +20,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
             reset();
             window.location.reload();
           }}
-          style={{ height: 46, padding: "0 22px", borderRadius: 16, border: 0, background: "#B8452F", color: "#FFF7F0", fontSize: 15, fontWeight: 600 }}
+          style={{ height: 46, padding: "0 22px", borderRadius: 16, border: 0, background: "#7C5CFF", color: "#FFFFFF", fontSize: 15, fontWeight: 600 }}
         >
           Обновить / Жаңыртуу
         </button>

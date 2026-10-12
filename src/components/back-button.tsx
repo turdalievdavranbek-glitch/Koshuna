@@ -16,7 +16,7 @@ export function ScreenBack({ fallback }: { fallback: string }) {
       onClick={() => goBack(router, fallback)}
       className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
     >
-      <IconBack size={16} color="#17140F" />
+      <IconBack size={16} color="#2A2550" />
     </button>
   );
 }

@@ -114,7 +114,7 @@ export default function FromChannelPage() {
           onClick={() => goBack(router, "/")}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
         >
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#2A2550" />
         </button>
         <div className="mt-5 flex items-center gap-2.5">
           {ICONS[channel]}
@@ -137,8 +137,8 @@ export default function FromChannelPage() {
             onClick={attach}
             className="shadow-btn mt-3 flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold"
             style={{
-              background: linked ? "#2A6B57" : "#B8452F",
-              color: "#FFF7F0",
+              background: linked ? "#2A6B57" : "#7C5CFF",
+              color: "#FFFFFF",
             }}
           >
             {linked ? t.channelLinked : t.channelLink}

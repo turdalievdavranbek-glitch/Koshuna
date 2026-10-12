@@ -39,7 +39,7 @@ export default function NewShopPage() {
             className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
             aria-label={t.backLeave}
           >
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
           </button>
           <span className="font-display text-[16px] font-bold">{t.pointFormTitle}</span>
           <span className="w-9" />

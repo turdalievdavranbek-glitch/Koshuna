@@ -14,10 +14,10 @@ export function BusinessPost() {
   if (!user) return null;
   const points = shopsOf(shops, user);
   const benefits = [
-    { icon: <IconPin size={16} color="#B8452F" />, text: t.pointOffer1 },
-    { icon: <IconCheck size={16} color="#B8452F" />, text: t.pointOffer2 },
-    { icon: <IconCamera size={16} color="#B8452F" />, text: t.pointOffer3 },
-    { icon: <IconBag size={16} color="#B8452F" />, text: t.pointOffer4 },
+    { icon: <IconPin size={16} color="#7C5CFF" />, text: t.pointOffer1 },
+    { icon: <IconCheck size={16} color="#7C5CFF" />, text: t.pointOffer2 },
+    { icon: <IconCamera size={16} color="#7C5CFF" />, text: t.pointOffer3 },
+    { icon: <IconBag size={16} color="#7C5CFF" />, text: t.pointOffer4 },
   ];
   return (
     <PhoneShell>
@@ -30,7 +30,7 @@ export function BusinessPost() {
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold"
             aria-label={t.backLeave}
           >
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#2A2550" />
             {t.backLeave}
           </button>
           <span className="font-display text-[16px] font-bold">{t.postWhere}</span>

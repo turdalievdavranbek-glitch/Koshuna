@@ -23,7 +23,7 @@ export function DeleteCardDialog({
   }, [open, onCancel]);
   if (!open) return null;
   return (
-    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(23,20,15,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="card-delete-dialog">
+    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(42,37,80,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="card-delete-dialog">
       <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
         <div className="font-display text-[20px] font-bold text-ink">{t.cardDeleteTitle}</div>
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.cardDeleteText}</p>
@@ -82,7 +82,7 @@ export function CardMenu({
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(23,20,15,.45)] desk:items-center desk:p-4"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4"
           onClick={() => setOpen(false)}
           data-testid="card-menu-sheet"
         >
