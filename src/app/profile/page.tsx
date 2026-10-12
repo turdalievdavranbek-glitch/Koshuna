@@ -17,7 +17,7 @@ import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
 import { LANGS, type AuthMethod } from "@/lib/types";
 import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
-import { Flag, IconVerified } from "@/components/icons";
+import { IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
@@ -284,15 +284,6 @@ export default function ProfilePage() {
           />
           <Row label={t.privacyPolicy} value={<a href="/privacy" className="text-sm font-semibold text-accent">›</a>} />
           <Row label={t.termsOfUse} value={<a href="/terms" className="text-sm font-semibold text-accent">›</a>} />
-          <Row
-            label={t.countryRow}
-            value={
-              <span className="flex items-center gap-[7px] text-sm text-muted">
-                <Flag />
-                {t.country} · сом
-              </span>
-            }
-          />
           <Row
             label={t.notifications}
             value={
