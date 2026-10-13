@@ -6,6 +6,7 @@ import { adminAreaById, adminAreaLabel } from "@/lib/admin-areas";
 import { api } from "@/lib/api/client";
 import { buyRequestAmount, type BuyRequestRow } from "@/lib/buy-request";
 import { useApp } from "@/lib/store";
+import { shopKindLabel } from "@/lib/shop-copy";
 
 function placeLabel(row: BuyRequestRow, lang: string, oblasts: Record<string, string>): string {
   const area = adminAreaById(row.district);
@@ -42,7 +43,7 @@ function RequestCard({
       <div className="text-[15px] font-semibold leading-[1.35] text-ink">{row.buyerName?.trim() || row.text}</div>
       {row.buyerName ? <div className="mt-0.5 text-[14px] leading-[1.35] text-ink">{row.text}</div> : null}
       <div className="mt-1 text-[12px] leading-[1.4] text-muted">
-        {[t.shopCats[row.category] ?? row.category, amount, place, dayLabel(row.deadline, lang), row.needsDelivery ? t.buyRequestWithDelivery : t.buyRequestNoDelivery]
+        {[row.kind ? `${t.shopCats[row.category] ?? row.category} › ${shopKindLabel(t, row.kind)}` : (t.shopCats[row.category] ?? row.category), amount, place, dayLabel(row.deadline, lang), row.needsDelivery ? t.buyRequestWithDelivery : t.buyRequestNoDelivery]
           .filter(Boolean)
           .join(" · ")}
       </div>

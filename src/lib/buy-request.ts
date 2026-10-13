@@ -1,10 +1,17 @@
 import { adminAreaById } from "./admin-areas";
 import { DISTRICTS } from "./data";
 import { oblastOfCity, type OblastId } from "./places";
-import { NEW_POINT_GROUPS } from "./shops";
+import { NEW_POINT_GROUPS, POINT_HIDDEN_KINDS } from "./shops";
+import { SHOP_KINDS, type ShopCategory } from "./types";
 
 /** Goods a point can sell. Service-only groups stay on the «Услуги» card. */
 export const BUY_CATEGORIES = NEW_POINT_GROUPS;
+
+/** Subcategories a buyer picks after the group: the same kinds the point wizard stores. Empty = skip the step. */
+export function buyRequestKinds(category: string): string[] {
+  const list = (SHOP_KINDS as Record<string, readonly string[]>)[category as ShopCategory] ?? [];
+  return list.filter((id) => !(POINT_HIDDEN_KINDS as readonly string[]).includes(id));
+}
 
 export type BuyRequestStatus = "open" | "found" | "closed";
 
@@ -114,6 +121,7 @@ export type BuyRequestRow = {
   createdAt: string;
   buyerName?: string;
   shopId?: string;
+  kind?: string | null;
 };
 
 /** Oblast of a point: official district first, then the city the point saved. */
@@ -126,11 +134,24 @@ export function oblastOfPoint(city: string | null | undefined, district: string 
   return row ? oblastOfCity(row.city) : undefined;
 }
 
-export function pointMatchesRequest(
-  point: { city: string; district?: string | null; category: string; extraCategories?: string[] | null },
-  request: { category: string; oblast: string },
-): boolean {
+type MatchPoint = { city: string; district?: string | null; category: string; extraCategories?: string[] | null; kinds?: string[] | null };
+type MatchRequest = { category: string; oblast: string; kind?: string | null };
+
+/** Same oblast and the group among the point's categories (no subcategory check). */
+export function pointMatchesRequest(point: MatchPoint, request: { category: string; oblast: string }): boolean {
   const cats = [point.category, ...(point.extraCategories ?? [])];
   if (!cats.includes(request.category)) return false;
   return oblastOfPoint(point.city, point.district) === request.oblast;
+}
+
+/**
+ * Who gets a request. With a subcategory: points in the oblast whose kinds include it.
+ * When none match exactly, points of that main category with no kinds set get it as a fallback.
+ */
+export function routeRequestToPoints<P extends MatchPoint>(points: P[], request: MatchRequest): P[] {
+  const local = points.filter((point) => pointMatchesRequest(point, request));
+  if (!request.kind) return local;
+  const exact = local.filter((point) => (point.kinds ?? []).includes(request.kind as string));
+  if (exact.length) return exact;
+  return local.filter((point) => !(point.kinds ?? []).length && point.category === request.category);
 }

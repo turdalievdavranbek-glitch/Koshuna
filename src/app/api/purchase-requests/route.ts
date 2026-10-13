@@ -15,6 +15,7 @@ export async function POST(req: Request) {
   if (limited) return limited;
   const body = await readJson<{
     category?: string;
+    kind?: string;
     text?: string;
     quantity?: number;
     unit?: string;
