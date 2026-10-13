@@ -28,7 +28,7 @@ export default function RestaurantQuickPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
             <IconBack size={16} color="#2A2550" />
           </button>
           <span className="max-w-[240px] truncate font-display text-[16px] font-bold">{t.restaurantQuickCta}</span>

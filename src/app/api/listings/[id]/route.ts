@@ -109,6 +109,8 @@ async function save(req: Request, id: string, patch: Body | null, mode: "put" | 
   if (!existing[0] && !merged.shopId && !user.phone) return json({ error: "phone-required" }, 400);
   if (merged.status && !isListingStatus(merged.status)) return json({ error: "bad-status" }, 400);
   if (!merged.status) merged.status = "active";
+  // No paid promotion yet: only an already promoted listing keeps the status.
+  if (merged.status === "promoted" && existing[0]?.status !== "promoted") merged.status = "active";
   const urls = listingMediaUrls(merged);
   const mediaError = mediaUrlError(urls);
   if (mediaError) return json({ error: mediaError }, 400);

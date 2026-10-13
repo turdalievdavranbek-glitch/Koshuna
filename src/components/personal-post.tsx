@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -410,10 +411,12 @@ export function PersonalPost() {
                 <Toggle on={draft.neighborPledge !== false} onChange={() => setDraft({ neighborPledge: draft.neighborPledge === false })} />
               </div>
             )}
-            <div className="flex items-center justify-between rounded-[18px] bg-ink p-4 text-screen">
-              <span className="font-display text-[17px] font-bold">{t.promote}</span>
-              <Toggle on={draft.promote} onChange={() => setDraft({ promote: !draft.promote })} />
-            </div>
+            {FEATURES.promote ? (
+              <div className="flex items-center justify-between rounded-[18px] bg-ink p-4 text-screen">
+                <span className="font-display text-[17px] font-bold">{t.promote}</span>
+                <Toggle on={draft.promote} onChange={() => setDraft({ promote: !draft.promote })} />
+              </div>
+            ) : null}
           </div>
         ) : null}
         {draft.savedAt && unfinished ? (

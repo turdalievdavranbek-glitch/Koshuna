@@ -137,7 +137,7 @@ export default function FeedPage() {
         <NeighborNearby />
         <TodayOnPoints />
 
-        {promoted.length > 0 ? <div className="mt-[22px]">
+        {FEATURES.homePromoted && promoted.length > 0 ? <div className="mt-[22px]">
           <div className="flex items-center gap-[7px]">
             <span className="font-display text-[17px] font-bold text-ink">{t.promoted}</span>
             <span className="rounded-md bg-accent-tint px-[7px] py-0.5 text-[10px] font-bold tracking-wide text-accent-dark">

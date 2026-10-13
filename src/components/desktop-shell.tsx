@@ -207,11 +207,7 @@ export function DesktopFooter() {
           <a href={PLAY} target="_blank" rel="noreferrer" className="font-semibold text-accent">
             {t.deskDownload}
           </a>
-        ) : (
-          <span>
-            {t.deskDownload}: {t.deskPlaySoon}
-          </span>
-        )}
+        ) : null}
         <span className="ml-auto">© Коңшу</span>
       </div>
     </footer>

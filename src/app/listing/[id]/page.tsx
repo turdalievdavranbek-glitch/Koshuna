@@ -736,7 +736,7 @@ export default function ListingPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push("/selling")}
+              onClick={() => router.push("/profile")}
               className="flex h-[54px] flex-1 items-center justify-center rounded-2xl bg-accent text-base font-semibold text-accent-on"
             >
               {t.sideDesk}

@@ -1612,7 +1612,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         user: liveUser,
         dealerProfiles: state.dealerProfiles,
         untitled: t.draft,
-        status: d.editing && d.editStatus && d.editStatus !== "draft" ? d.editStatus : d.promote ? "promoted" : "active",
+        status: d.editing && d.editStatus && d.editStatus !== "draft" ? d.editStatus : d.promote && FEATURES.promote ? "promoted" : "active",
       });
       // Editing keeps counters, dates and moderation flags of the original listing.
       const original = d.editing

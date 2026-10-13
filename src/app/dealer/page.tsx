@@ -45,7 +45,7 @@ export default function DealerCabinetPage() {
     return (
       <PhoneShell>
         <div className="px-5 pt-1">
-          <ScreenBack fallback="/selling" />
+          <ScreenBack fallback="/profile" />
           <p className="mt-4 text-muted">{t.applyDealer}</p>
           <button type="button" onClick={() => router.push("/partner?kind=dealer")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.partnerApplyTitle}
@@ -59,7 +59,7 @@ export default function DealerCabinetPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
             <IconBack size={16} color="#2A2550" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.dealerCabinet}</h1>

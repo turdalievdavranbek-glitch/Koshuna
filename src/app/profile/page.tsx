@@ -214,7 +214,7 @@ export default function ProfilePage() {
             </span>
           </div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.trustLead}</p>
-          {user.method === "sms" && !user.cardLinked ? (
+          {FEATURES.cardLink && user.method === "sms" && !user.cardLinked ? (
             <button
               type="button"
               onClick={() => router.push("/card")}

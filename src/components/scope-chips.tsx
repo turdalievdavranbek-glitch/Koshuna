@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { effectiveScope, hasPlaceFilter, nearDecision, nearPatch } from "@/lib/filter";
+import { effectiveScope, nearDecision, nearPatch } from "@/lib/filter";
 import { locate, type LocateError } from "@/lib/locate";
 import { clearPlace } from "@/lib/places";
 import { useApp } from "@/lib/store";
@@ -85,8 +85,7 @@ export function ScopeChips() {
 }
 
 export function NearEmptyState() {
-  const { t, filters, setFilters, setCity } = useApp();
-  const place = hasPlaceFilter(filters);
+  const { t, setFilters, setCity } = useApp();
   const pickAll = () => {
     const next = clearPlace();
     setCity(next.city);
@@ -99,7 +98,6 @@ export function NearEmptyState() {
       hint={t.nearEmptyHint}
       extra={
         <>
-          {place ? <button type="button" onClick={() => setFilters({ scope: "area" })} className="h-11 rounded-[12px] bg-accent px-4 text-[13px] font-semibold text-accent-on">{t.scopeArea}</button> : null}
           <button type="button" onClick={pickAll} className="text-[13px] font-semibold text-accent">{t.scopeAll}</button>
         </>
       }
