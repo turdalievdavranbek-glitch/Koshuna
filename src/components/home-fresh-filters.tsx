@@ -123,7 +123,7 @@ export function HomeFreshFilters() {
         <SmChip active={!section} onClick={() => pickSection(null)}>
           {t.freshAll}
         </SmChip>
-        {HOME_SECTIONS.filter(isSectionVisible).map((id) => (
+        {HOME_SECTIONS.filter((id) => isSectionVisible(id) && (id !== "vacancies" || FEATURES.vacanciesOnHome)).map((id) => (
           <SmChip key={id} active={section === id} onClick={() => pickSection(section === id ? null : id)}>
             {id === "shops" ? t.freshShops : id === "restaurants" ? t.freshFood : t.sectionNames[id]}
           </SmChip>
