@@ -122,8 +122,17 @@ export function MessageInbox() {
                   onClick={() => router.push(`/chat/${row.id}`)}
                   className={`flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-3 text-left${open ? " desk:bg-chip" : ""}`}
                 >
-                  <div className="h-12 w-12 overflow-hidden rounded-[10px] bg-chip">
-                    {row.photo ? <Photo src={row.photo} alt="" /> : null}
+                  <div className="relative h-12 w-12 shrink-0">
+                    <div className="h-12 w-12 overflow-hidden rounded-[10px] bg-chip">
+                      {row.photo ? <Photo src={row.photo} alt="" /> : null}
+                    </div>
+                    {row.peerOnline ? (
+                      <span
+                        data-testid="inbox-online"
+                        aria-label={t.presenceOnline}
+                        className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#2BB673]"
+                      />
+                    ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">

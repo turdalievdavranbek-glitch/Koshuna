@@ -201,6 +201,10 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
   if (Date.now() - seen > HOUR_MS) {
     await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, hit.session.id));
   }
+  // Presence («в сети»): at most one write per user per minute.
+  if (Date.now() - (hit.user.lastSeenAt?.getTime() ?? 0) > 60_000) {
+    await db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, hit.user.id));
+  }
   const method = await latestMethod(hit.user.id);
   if (process.env.AUTH_DEMO_ENABLED !== "true" && method === "demo") return null;
   return {

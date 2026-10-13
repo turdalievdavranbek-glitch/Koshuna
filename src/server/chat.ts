@@ -5,6 +5,7 @@ import { CHAT_REACTIONS, type ChatDetail, type ChatLine, type ChatThread } from 
 import { getDb } from "./db";
 import { blocks, listings, messageReactions, messages, purchaseRequests, shops, threads, users } from "./db/schema";
 import { bindNoticePushes, saveNotice } from "./notices";
+import { clearTyping, isTyping, markTyping, medianReplyMs } from "./presence";
 
 const TEXT_MAX = 2000;
 const OPEN = new Set(["active", "promoted", "reserved"]);
@@ -174,7 +175,7 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
   const requestIds = [...new Set(rows.map((row) => row.requestId).filter((id): id is string => Boolean(id)))];
   const personIds = [...new Set(rows.flatMap((row) => [row.buyerId, row.sellerId]))];
   const [people, cards, asks] = await Promise.all([
-    db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, personIds)),
+    db.select({ id: users.id, name: users.name, lastSeenAt: users.lastSeenAt }).from(users).where(inArray(users.id, personIds)),
     listingIds.length
       ? db
           .select({
@@ -199,6 +200,7 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
       : Promise.resolve([]),
   ]);
   const names = new Map(people.map((row) => [row.id, holdPersonName(row.name)]));
+  const seenAt = new Map(people.map((row) => [row.id, row.lastSeenAt?.getTime() ?? 0]));
   const cardsById = new Map(cards.map((row) => [row.id, row]));
   const askById = new Map(asks.map((row) => [row.id, row]));
   let unread = 0;
@@ -218,6 +220,7 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
       photo: card ? photoOf(card.coverUrl, card.photos) : null,
       peerId,
       peerName: names.get(peerId) ?? "",
+      peerOnline: Date.now() - (seenAt.get(peerId) ?? 0) < 2 * 60_000,
       role: row.sellerId === userId ? "sell" : "buy",
       preview: (row.preview ?? "").trim(),
       lastMessageAt: (row.lastMessageAt ?? row.createdAt).toISOString(),
@@ -254,7 +257,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
       .where(eq(messages.threadId, thread.id))
       .orderBy(desc(messages.createdAt))
       .limit(200),
-    db.select({ name: users.name }).from(users).where(eq(users.id, peerId)).limit(1),
+    db.select({ name: users.name, lastSeenAt: users.lastSeenAt }).from(users).where(eq(users.id, peerId)).limit(1),
     thread.listingId
       ? db
           .select({ title: listings.title, coverUrl: listings.coverUrl, photos: listings.photos, section: listings.section })
@@ -314,7 +317,18 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     blocked,
     section: listing?.section ?? null,
     messages: shown,
+    peerLastSeenAt: person[0]?.lastSeenAt?.toISOString() ?? null,
+    peerTyping: isTyping(thread.id, peerId),
+    peerReplyMs: await medianReplyMs(peerId).catch(() => null),
   };
+}
+
+/** «печатает…» signal from a participant (in memory, ~6 s). */
+export async function touchTyping(userId: string, threadId: string): Promise<{ ok: true } | Fail> {
+  const thread = await loadParticipant(userId, threadId);
+  if (!thread) return { error: "not-found", status: 404 };
+  markTyping(thread.id, userId);
+  return { ok: true };
 }
 
 export async function sendChat(userId: string, threadId: string, raw: string): Promise<{ message: ChatLine } | Fail> {
@@ -338,6 +352,7 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
       .limit(1);
     if (blocked[0]) return { error: "blocked", status: 403 };
 
+    clearTyping(thread.id, userId);
     const now = new Date();
     const inserted = await tx
       .insert(messages)

@@ -8,6 +8,7 @@ import { takeChatDraft } from "@/lib/chat-draft";
 import { buyRequestChatTitle } from "@/lib/buy-request";
 import { CHAT_REACTIONS, type ChatDetail, type ChatLine } from "@/lib/chat";
 import { EmojiPanel } from "@/components/emoji-panel";
+import { presenceLabel, replyBucket } from "@/lib/presence";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { isDbUserId } from "@/lib/phone";
@@ -41,6 +42,13 @@ export default function ChatPage() {
   const hold = useRef<number | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typingSent = useRef(0);
+  const signalTyping = useCallback(() => {
+    const now = Date.now();
+    if (!id || now - typingSent.current < 3000) return;
+    typingSent.current = now;
+    void api(`/api/threads/${encodeURIComponent(id)}/typing`, { method: "POST" });
+  }, [id]);
 
   useEffect(() => {
     if (!menuFor) return;
@@ -246,6 +254,9 @@ export default function ChatPage() {
 
   const title = buyRequestChatTitle(detail.title, detail.requestQuantity, detail.requestUnit, t.buyUnits) || t.chatListingGone;
   const peer = detail.peerName || t.holdNoName;
+  const presence = presenceLabel(detail.peerLastSeenAt, t);
+  const bucket = replyBucket(detail.peerReplyMs);
+  const reply = bucket ? t.replyBuckets[bucket] : "";
 
   return (
     <PhoneShell focus>
@@ -272,6 +283,14 @@ export default function ChatPage() {
               <span className="truncate text-base font-semibold text-ink">{peer}</span>
               <MasterBadge userId={detail.peerId} />
             </span>
+            {detail.peerTyping ? (
+              <span data-testid="chat-typing" className="block truncate text-[12px] font-semibold text-accent">{t.typingNow}</span>
+            ) : presence ? (
+              <span data-testid="chat-presence" className={`block truncate text-[12px] ${presence === t.presenceOnline ? "font-semibold text-success" : "text-muted"}`}>
+                {presence}
+              </span>
+            ) : null}
+            {reply ? <span data-testid="chat-reply-time" className="block truncate text-[11px] text-muted-2">{t.replyUsually(reply)}</span> : null}
           </button>
         </div>
         <button
@@ -424,7 +443,10 @@ export default function ChatPage() {
               ref={inputRef}
               value={text}
               data-testid="chat-input"
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (e.target.value.trim() && !editing) signalTyping();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void send();
               }}
