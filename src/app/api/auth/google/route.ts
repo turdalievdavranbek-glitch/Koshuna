@@ -3,8 +3,7 @@ import { GoogleAuthError, googleWebClientId, verifyGoogleIdToken } from "@/serve
 import { readCookie, signInWithIdentity } from "@/server/auth";
 import { json, readJson } from "@/server/http";
 import { publicUser } from "@/server/mappers";
-import { clientIp } from "@/server/telegram";
-import { limitOr429 } from "@/server/rate-limit";
+import { limitOr429, limiterIp } from "@/server/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
   const audience = googleWebClientId();
   if (!audience) return json({ ok: false, error: "not-configured" }, 503, { "cache-control": "no-store" });
 
-  const limited = limitOr429(`google:${clientIp(req)}`, 30, 10 * 60_000);
+  const limited = limitOr429(`google:${limiterIp(req)}`, 30, 10 * 60_000);
   if (limited) return limited;
 
   const origin = req.headers.get("origin");

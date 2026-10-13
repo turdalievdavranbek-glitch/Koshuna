@@ -28,3 +28,11 @@ export function limitOr429(key: string, max: number, windowMs: number): NextResp
   if (hit(key, max, windowMs)) return null;
   return json({ ok: false, error: "rate" }, 429, { "Retry-After": String(Math.ceil(windowMs / 1000)), "cache-control": "no-store" });
 }
+
+/** nginx sets X-Real-IP to the real peer; X-Forwarded-For's first hop can be spoofed by the client. */
+export function limiterIp(req: Request): string {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real.slice(0, 80);
+  const fwd = req.headers.get("x-forwarded-for")?.split(",").pop()?.trim();
+  return fwd ? fwd.slice(0, 80) : "unknown";
+}
