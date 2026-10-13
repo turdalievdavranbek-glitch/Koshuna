@@ -397,7 +397,6 @@ export default function ListingPage() {
                 {isFav(listing.id) ? t.cartIn : t.cartAdd}
               </button>
             )}
-            <ShareButton listing={listing} />
           </div>
           <PlayBanner />
           </div>
