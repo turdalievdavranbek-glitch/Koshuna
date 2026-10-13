@@ -10,7 +10,8 @@ export const FEATURES = {
   developers: false,      // застройщики (/developers/*, /developer, partner kind=developer, card=developer)
   complexes: false,       // ЖК (/complexes/*)
   dealers: false,         // автосалоны (/dealers/*, /dealer, partner kind=dealer, card=dealer, dealer badge on listing)
-  vacancies: false,       // вакансии (section "vacancies")
+  vacancies: true,        // вакансии (section "vacancies"): posting choice, search/filters, /section/vacancies
+  vacanciesOnHome: false, // simple-mode home: no «Работа» chip on the home screen
   stays: false,           // отели / посуточно (section "stays")
   goLookMeet: false,      // «Еду смотреть / Встретимся» (GoLookCard + MeetDealBlock)
   honesty: false,         // звёзды честности (HonestyCard «Честность», 1–5 ★)

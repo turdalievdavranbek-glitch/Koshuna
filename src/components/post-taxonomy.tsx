@@ -166,7 +166,7 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
       {draft.section === "vacancies" ? (
         <>
           <SectionList
-            title={t.jobTypes.full ? t.category : t.category}
+            title={t.jobTypeTitle}
             rows={JOB_TYPES.map((id) => ({
               id,
               label: t.jobTypes[id],
@@ -175,7 +175,7 @@ export function PostTaxonomy({ draft, onPatch, onTaxonomyReady }: Props) {
             }))}
           />
           <SectionList
-            title={t.category}
+            title={t.jobSphereTitle}
             rows={JOB_SPHERES.map((id) => ({
               id,
               label: t.jobSpheres[id],

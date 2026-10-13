@@ -404,7 +404,7 @@ export function CardPost({ card }: { card: string }) {
                     </Field>
                   </div>
                   <div className="flex-1">
-                    <Field label={draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                    <Field label={draft.section === "vacancies" ? t.salaryField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                       <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
                     </Field>
                   </div>
@@ -446,7 +446,7 @@ export function CardPost({ card }: { card: string }) {
               ) : null}
               <PostTaxonomy draft={draft} onPatch={setDraft} onTaxonomyReady={setTaxonomyReady} />
               {bizCard ? (
-                <Field label={entryCard === "cafe" ? t.avgCheckField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+                <Field label={entryCard === "cafe" ? t.avgCheckField : draft.section === "vacancies" ? t.salaryField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                   <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
                 </Field>
               ) : null}
