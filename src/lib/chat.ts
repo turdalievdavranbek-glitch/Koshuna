@@ -13,6 +13,8 @@ export type ChatThread = {
   preview: string;
   lastMessageAt: string | null;
   unread: number;
+  /** Seen within the last 2 minutes. */
+  peerOnline?: boolean;
   requestQuantity?: string | null;
   requestUnit?: string | null;
 };
@@ -44,6 +46,11 @@ export type ChatDetail = {
   /** Listing section, so a service chat offers service quick replies. */
   section?: string | null;
   messages: ChatLine[];
+  /** Presence: last signed-in activity of the other person (ISO). */
+  peerLastSeenAt?: string | null;
+  peerTyping?: boolean;
+  /** Median reply time over 30 days (ms); null = too little data. */
+  peerReplyMs?: number | null;
   requestQuantity?: string | null;
   requestUnit?: string | null;
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePresenceHeartbeat } from "@/lib/presence";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { pushOverlay, removeOverlay } from "@/lib/native-back";
@@ -204,7 +205,8 @@ export function PhoneShell({
   /** Focused full-screen flow (wizards, post form, chat): no bottom tab bar and no «+». */
   focus?: boolean;
 }) {
-  const { t, online } = useApp();
+  const { t, online, user } = useApp();
+  usePresenceHeartbeat(user?.id);
   const path = usePathname();
   const [scrollHidden, setHidden] = useState(false);
   const keyboard = useKeyboardOpen();
