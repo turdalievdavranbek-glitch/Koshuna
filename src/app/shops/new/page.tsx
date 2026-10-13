@@ -32,7 +32,7 @@ export default function NewShopPage() {
           <button
             type="button"
             onClick={() => {
-              const run = () => goBack(router, "/selling");
+              const run = () => goBack(router, "/profile");
               if (askLeave(run)) return;
               run();
             }}

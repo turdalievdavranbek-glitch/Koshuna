@@ -283,15 +283,6 @@ function LoginInner() {
         <div className="mx-auto mt-6 flex w-full max-w-[360px] flex-col items-center gap-3">
           <div className="w-full" data-testid="google-login">
             {error ? <p className="mb-2 text-[13px] leading-[1.45] text-accent">{error}</p> : null}
-            {phase === "soon" ? (
-              <button
-                type="button"
-                disabled
-                className="flex h-10 w-full items-center justify-center rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-muted"
-              >
-                {t.loginSoon}
-              </button>
-            ) : null}
             {phase === "webview" ? <p className="text-[13px] leading-[1.45] text-muted">{t.loginOpenInBrowser}</p> : null}
             {native && phase !== "soon" && phase !== "webview" ? (
               <button type="button" onClick={onNative} disabled={busy || phase === "loading"} className={authBtn}>

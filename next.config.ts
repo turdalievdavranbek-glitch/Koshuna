@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/otp", destination: "/login", permanent: false },
       { source: "/password", destination: "/login", permanent: false },
+      { source: "/selling", destination: "/profile", permanent: false },
     ];
   },
   async rewrites() {

@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -589,7 +590,7 @@ export function CardPost({ card }: { card: string }) {
               )}
             </div>
 
-            {bizCard || serviceCard ? null : (
+            {bizCard || serviceCard || !FEATURES.promote ? null : (
             <div className="rounded-[18px] bg-ink p-4">
               <div className="flex items-center justify-between">
                 <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
@@ -647,7 +648,7 @@ export function CardPost({ card }: { card: string }) {
                 }
                 setError("");
                 setSide("sell");
-                router.push("/selling");
+                router.push("/profile");
               }}
               className="h-[54px] rounded-2xl border border-line bg-white px-5 text-[15px] font-semibold text-ink"
             >

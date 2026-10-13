@@ -29,7 +29,7 @@ function PartnerApplyInner() {
     return (
       <PhoneShell>
         <div className="px-5 pt-1">
-          <ScreenBack fallback="/selling" />
+          <ScreenBack fallback="/profile" />
           <button type="button" onClick={() => { setPendingPath("/partner"); router.push("/login"); }} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent font-semibold text-accent-on">
             {t.loginCta}
           </button>
@@ -61,7 +61,7 @@ function PartnerApplyInner() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+          <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
             <IconBack size={16} color="#2A2550" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.partnerApplyTitle}</h1>

@@ -91,13 +91,6 @@ export default function SellingPage() {
         <div className="mt-2.5">
           <PointList shops={shopsOf(shops, user)} actions />
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/partner?kind=realtor")}
-          className="mt-2.5 flex h-12 w-full items-center rounded-2xl border border-line bg-white px-4 text-left text-[15px] font-semibold text-ink"
-        >
-          {t.applyRealtor}
-        </button>
         {FEATURES.developers ? (
           <button
             type="button"

@@ -39,7 +39,7 @@ export function PointTransfer({ shop }: { shop: Shop }) {
       return;
     }
     resync();
-    router.replace("/selling");
+    router.replace("/profile");
   };
 
   if (!open) {
