@@ -11,12 +11,13 @@ import { shopPublicUrl } from "@/lib/shop-share";
 import { renderStoriesCard, shareFileSupported } from "@/lib/stories-card";
 import { useApp } from "@/lib/store";
 import type { Listing, Shop } from "@/lib/types";
+import { Capacitor } from "@capacitor/core";
 import { IconSend, IconShare } from "./icons";
 
 type Props = {
   listing?: Listing;
   shop?: Shop;
-  variant?: "icon" | "button" | "bare";
+  variant?: "icon" | "button" | "bare" | "overlay";
   /** Share the site itself (https://koshuna.ru), not a listing. */
   appTitle?: string;
 };
@@ -26,6 +27,8 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
+  // Stories card does not work inside the Android app until the final native build.
+  const androidApp = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 
   const sharingApp = Boolean(appTitle) && !listing && !shop;
   const url = listing ? listingPublicUrl(listing.id) : shop ? shopPublicUrl(shop.id) : sharingApp ? SITE_ORIGIN : "";
@@ -104,7 +107,18 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   };
 
   const control =
-    variant === "bare" ? (
+    variant === "overlay" ? (
+      <button
+        type="button"
+        onClick={() => void share()}
+        data-testid="share-overlay"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(20,16,40,.38)] backdrop-blur-[2px] active:scale-95"
+        aria-label={t.share}
+        title={t.share}
+      >
+        <IconSend size={22} color="#FFFFFF" className="drop-shadow-[0_1px_3px_rgba(0,0,0,.55)]" />
+      </button>
+    ) : variant === "bare" ? (
       <button
         type="button"
         onClick={() => void share()}
@@ -165,7 +179,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
               <button type="button" onClick={() => void copy()} className="h-12 rounded-2xl border border-line text-[15px] font-semibold text-ink">
                 {t.shareCopyLink}
               </button>
-              {listing ? (
+              {listing && !androidApp ? (
                 <button
                   type="button"
                   disabled={busy}

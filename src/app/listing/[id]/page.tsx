@@ -32,7 +32,7 @@ import { listingEditHref } from "@/lib/listing-edit";
 import { isAdminUser } from "@/lib/partners";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
-import { DoubleTapLike, ListingSocial } from "@/components/listing-social";
+import { DoubleTapLike, ListingMediaActions, ListingSocial } from "@/components/listing-social";
 import { ShareButton } from "@/components/share-button";
 import { ListingContactRow } from "@/components/listing-contact-row";
 import { BlockAuthorButton, BlockedAuthorNotice } from "@/components/block-author";
@@ -244,6 +244,7 @@ export default function ListingPage() {
               </button>
             </>
           ) : null}
+          <ListingMediaActions listing={listing} />
           <div className="absolute left-[18px] right-[18px] top-[12px] z-10 flex items-center justify-between">
             <button
               type="button"
