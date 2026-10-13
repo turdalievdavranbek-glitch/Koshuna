@@ -20,7 +20,8 @@ export const FEATURES = {
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
   ownerVoice: false,     // Голос хозяина: hidden until speech-to-text works (owner 08.10). Code stays.
   /** Owner 2026-10-10 «упростить»: hidden, not deleted. Server APIs and data stay. */
-  purchaseRequests: false, // «Заявки на закупку»: «+» choice, Кабинет «Мои заявки» / incoming, /post?type=request
+  purchaseRequests: true, // «Заявки на закупку»: Кабинет «Заявка на закупку» / «Мои заявки» / incoming, /post?type=request
+  purchaseRequestsInPostMenu: false, // owner 2026-10-13: entry only in Кабинет, not in «+»
   holds: false,           // «Отложи мне» / «Записаться» on listings + Кабинет holds inbox
   cart: false,            // «Корзина» tab, header icon and add-to-cart buttons/hearts (tab slot → «Сообщения»)
   pointSetupHints: false, // owner checklist on the point page + «Мои точки» hint line

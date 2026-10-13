@@ -136,9 +136,14 @@ export function MyBuyRequests() {
         type="button"
         data-testid="buy-request-new"
         onClick={() => router.push("/post?type=request")}
-        className="mt-3 h-[52px] w-full rounded-2xl border border-accent text-[15px] font-semibold text-accent"
+        className="clay-card mt-3 flex w-full items-center gap-3 rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
       >
-        {t.buyRequestNew}
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-tint text-[20px]">🛒</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-ink">{t.postRequest}</span>
+          <span className="mt-0.5 block text-[12px] leading-[1.35] text-muted">{t.postRequestHint}</span>
+        </span>
+        <span className="text-[18px] text-muted-2">›</span>
       </button>
       {!ready ? null : rows.length === 0 ? (
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.buyRequestMineEmpty}</p>
