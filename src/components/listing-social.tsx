@@ -105,16 +105,13 @@ export function DoubleTapLike({ listingId, children, className }: { listingId: s
   );
 }
 
-export function ListingSocial({ listing, className }: { listing: Listing; className?: string }) {
-  const { t, lang, isFav, toggleFav, user } = useApp();
-  const [sheet, setSheet] = useState(false);
-  const { liked, likes, toggle, gate } = useListingLike(listing.id);
-  const saved = isFav(listing.id);
-  const mine = Boolean(user && listing.ownerId === user.id);
-
+/** Reels-style ♡ + count and ➤ share, stacked on the media bottom-right. */
+export function ListingMediaActions({ listing, className }: { listing: Listing; className?: string }) {
+  const { t } = useApp();
+  const { liked, likes, toggle } = useListingLike(listing.id);
   return (
-    <div className={className ?? "mt-6"}>
-      <div className="flex items-center gap-1">
+    <div className={`absolute right-3 z-10 flex flex-col items-center gap-2 ${className ?? "bottom-14"}`}>
+      <div className="flex flex-col items-center">
         <button
           type="button"
           onClick={toggle}
@@ -122,14 +119,31 @@ export function ListingSocial({ listing, className }: { listing: Listing; classN
           aria-label={t.likeLabel}
           aria-pressed={liked}
           title={t.likeLabel}
-          className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(20,16,40,.38)] backdrop-blur-[2px] active:scale-95"
         >
           <span key={liked ? "on" : "off"} className={liked ? "like-bump" : ""}>
-            <IconHeart size={25} color={liked ? "#FF3B6B" : "#2A2550"} filled={liked} />
+            <IconHeart size={24} color={liked ? "#FF3B6B" : "#FFFFFF"} filled={liked} className="drop-shadow-[0_1px_3px_rgba(0,0,0,.55)]" />
           </span>
         </button>
+        <span className="mt-0.5 text-[12px] font-bold tabular-nums text-white [text-shadow:0_1px_3px_rgba(0,0,0,.7)]">{likes}</span>
+      </div>
+      <ShareButton listing={listing} variant="overlay" />
+    </div>
+  );
+}
+
+export function ListingSocial({ listing, className }: { listing: Listing; className?: string }) {
+  const { t, lang, isFav, toggleFav, user } = useApp();
+  const [sheet, setSheet] = useState(false);
+  const { gate } = useListingLike(listing.id);
+  const saved = isFav(listing.id);
+  const mine = Boolean(user && listing.ownerId === user.id);
+  if (mine && !FEATURES.comments) return null;
+
+  return (
+    <div className={className ?? "mt-6"}>
+      <div className="flex items-center gap-1">
         {FEATURES.comments ? <CommentsButton listingId={listing.id} onOpen={() => setSheet(true)} /> : null}
-        <ShareButton listing={listing} variant="bare" />
         <span className="flex-1" />
         {mine ? null : (
           <button
@@ -144,11 +158,10 @@ export function ListingSocial({ listing, className }: { listing: Listing; classN
             className="flex h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-semibold text-ink active:scale-95"
           >
             <IconBookmark size={23} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
-            <span className="hidden desk:inline">{saved ? t.savedLabel : t.saveLabel}</span>
+            <span>{saved ? t.savedLabel : t.saveLabel}</span>
           </button>
         )}
       </div>
-      <div className="px-1 text-[14px] font-bold text-ink">{t.likesCount(likes)}</div>
       {FEATURES.comments && sheet ? (
         <CommentsSheet listingId={listing.id} title={lang === "ky" ? listing.titleKy || listing.title : listing.title} onClose={() => setSheet(false)} />
       ) : null}
