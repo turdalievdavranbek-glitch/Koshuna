@@ -240,16 +240,12 @@ export default function ShopDetailPage() {
           <TodayOnPoint shopId={shop.id} />
         </div>
 
-        <div className="mt-4 rounded-[16px] border border-line bg-white p-4 desk:col-span-4 desk:col-start-6 desk:row-start-1 desk:mt-0">
-          <div className="text-[13px] font-semibold text-ink">
-            {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : [cityLabel, shop.address?.trim()].filter(Boolean).join(", ")}
+        {deliveryLine || shop.hoursNote ? (
+          <div className="mt-4 rounded-[16px] border border-line bg-white p-4 desk:col-span-4 desk:col-start-6 desk:row-start-1 desk:mt-0">
+            {deliveryLine ? <div className="text-[12px] text-muted">{deliveryLine}</div> : null}
+            {shop.hoursNote ? <div className={`${deliveryLine ? "mt-1 " : ""}text-[12px] text-muted`}>{shop.hoursNote}</div> : null}
           </div>
-          {deliveryLine ? <div className="mt-1 text-[12px] text-muted">{deliveryLine}</div> : null}
-          {open === true ? <div className="mt-1 text-[12px] font-bold text-success">{t.shopOpenNow}</div> : null}
-          {open === false ? <div className="mt-1 text-[12px] font-bold text-muted">{t.shopClosedNow}</div> : null}
-          {shop.hoursNote ? <div className="mt-1 text-[12px] text-muted">{shop.hoursNote}</div> : null}
-          {hoursLine ? <div className="mt-1 text-[12px] text-muted">{hoursLine}</div> : null}
-        </div>
+        ) : null}
         </div>
         {shop.lat != null && shop.lng != null ? (
           <div className="mt-3">
