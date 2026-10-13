@@ -319,3 +319,25 @@ export function sectionIcon(id: string, color = "#7C5CFF", size = 19) {
   const Cmp = map[id] ?? IconHome;
   return <Cmp size={size} color={color} />;
 }
+export function IconBookmark(p: P & { filled?: boolean }) {
+  const { filled, ...rest } = p;
+  return (
+    <svg
+      {...base(rest)}
+      fill={filled ? (p.color ?? "#7C5CFF") : "none"}
+      stroke={p.color ?? "currentColor"}
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    >
+      <path d="M4.4 2.6h9.2v12.8L9 12.2l-4.6 3.2z" />
+    </svg>
+  );
+}
+export function IconSend(p: P) {
+  return (
+    <svg {...base(p)} fill="none" stroke={p.color ?? "currentColor"} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M15.6 2.4 2.4 7.6l5.4 2.2 2.2 5.6z" />
+      <path d="M15.6 2.4 7.8 9.8" />
+    </svg>
+  );
+}

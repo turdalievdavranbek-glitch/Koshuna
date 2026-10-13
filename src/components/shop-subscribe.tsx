@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { useApp } from "@/lib/store";
 
-export function ShopSubscribe({ shopId, mine }: { shopId: string; mine: boolean }) {
+export function ShopSubscribe({ shopId, mine, onCount, hideCount }: { shopId: string; mine: boolean; onCount?: (n: number) => void; hideCount?: boolean }) {
   const { t, user, setPendingPath } = useApp();
   const router = useRouter();
   const [count, setCount] = useState<number | null>(null);
@@ -24,6 +24,10 @@ export function ShopSubscribe({ shopId, mine }: { shopId: string; mine: boolean 
       cancel = true;
     };
   }, [shopId, user?.id]);
+
+  useEffect(() => {
+    if (count != null) onCount?.(count);
+  }, [count, onCount]);
 
   const label = count == null ? "" : count <= 0 ? t.followersNone : t.followersCount(count);
 
@@ -81,7 +85,7 @@ export function ShopSubscribe({ shopId, mine }: { shopId: string; mine: boolean 
             {t.subscribe}
           </button>
         )}
-        <span className="text-[13px] font-semibold text-muted">{label}</span>
+        {hideCount ? null : <span className="text-[13px] font-semibold text-muted">{label}</span>}
       </div>
       {ask ? (
         <div className="mt-2 rounded-[16px] border border-line bg-white p-3">

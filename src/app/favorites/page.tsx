@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
@@ -21,7 +22,7 @@ export default function FavoritesPage() {
   return (
     <PhoneShell tab>
       <div className="px-5 pt-2">
-        <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.fav}</h1>
+        <h1 className="font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{FEATURES.cart ? t.fav : t.savedTitle}</h1>
       </div>
       <div className="sc mt-4 min-h-0 flex-1 overflow-y-auto px-5 pb-6">
         {showEmpty ? (
