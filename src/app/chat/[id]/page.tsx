@@ -6,7 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { takeChatDraft } from "@/lib/chat-draft";
 import { buyRequestChatTitle } from "@/lib/buy-request";
-import type { ChatDetail, ChatLine } from "@/lib/chat";
+import { CHAT_REACTIONS, type ChatDetail, type ChatLine } from "@/lib/chat";
+import { EmojiPanel } from "@/components/emoji-panel";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { isDbUserId } from "@/lib/phone";
@@ -38,6 +39,8 @@ export default function ChatPage() {
   const [menuFor, setMenuFor] = useState<ChatLine | null>(null);
   const [editing, setEditing] = useState<ChatLine | null>(null);
   const hold = useRef<number | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!menuFor) return;
@@ -141,6 +144,58 @@ export default function ChatPage() {
       setEditing(null);
       setText("");
     }
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const el = inputRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const stop = el?.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + emoji + text.slice(stop);
+    setText(next);
+    const caret = start + emoji.length;
+    window.requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(caret, caret);
+    });
+  };
+
+  const react = async (line: ChatLine, emoji: string) => {
+    const prev = line.myReaction ?? null;
+    const next = prev === emoji ? null : emoji;
+    putLine({ ...line, myReaction: next });
+    const res = await api<{ messageId: string; myReaction: string | null }>(`${msgPath(line.id)}/reaction`, {
+      method: "PUT",
+      json: { emoji: next },
+    });
+    if (!res.ok || !res.data) {
+      putLine({ ...line, myReaction: prev });
+      setSendError(t.chatEditFailed);
+      return;
+    }
+    putLine({ ...line, myReaction: res.data.myReaction });
+  };
+
+  const badge = (m: ChatLine) => {
+    const list = [m.peerReaction, m.myReaction].filter((x): x is string => Boolean(x));
+    if (!list.length) return null;
+    return (
+      <button
+        type="button"
+        data-testid="chat-reaction-badge"
+        aria-label={t.chatReact}
+        onClick={() => setMenuFor(m)}
+        className={`relative z-[1] -mt-2 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-0.5 text-[13px] leading-none shadow-[0_2px_6px_rgba(90,63,214,.18)] ${m.mine ? "mr-2" : "ml-2"}`}
+      >
+        {list[0] === list[1] ? (
+          <>
+            {list[0]}
+            <span className="text-[11px] font-semibold text-muted">2</span>
+          </>
+        ) : (
+          list.join("")
+        )}
+      </button>
+    );
   };
 
   const holdStart = (line: ChatLine) => {
@@ -264,6 +319,7 @@ export default function ChatPage() {
               >
                 ⋯
               </button>
+              <div className="flex min-w-0 flex-col items-end">
               <div
                 data-testid="chat-msg-mine"
                 className="min-w-0 select-none rounded-[18px_18px_6px_18px] bg-ink px-3.5 py-2.5"
@@ -284,11 +340,33 @@ export default function ChatPage() {
                 <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div>
                 <div className="mt-1 text-right text-[11px] text-[rgba(247,243,236,.6)]">{when}</div>
               </div>
+              {badge(m)}
+              </div>
             </div>
           ) : (
-            <div key={m.id} className="max-w-[78%] self-start rounded-[18px_18px_18px_6px] border border-line bg-white px-3.5 py-2.5">
-              <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div>
-              <div className="mt-1 text-right text-[11px] text-muted-2">{when}</div>
+            <div key={m.id} className="flex max-w-[78%] flex-col items-start self-start">
+              <div
+                data-testid="chat-msg-peer"
+                className="select-none rounded-[18px_18px_18px_6px] border border-line bg-white px-3.5 py-2.5"
+                style={{ WebkitTouchCallout: "none" }}
+                onPointerDown={() => holdStart(m)}
+                onPointerUp={holdStop}
+                onPointerLeave={holdStop}
+                onPointerCancel={holdStop}
+                onPointerMove={(e) => {
+                  if (Math.abs(e.movementX) + Math.abs(e.movementY) > 6) holdStop();
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  holdStop();
+                  setMenuFor(m);
+                }}
+                onDoubleClick={() => void react(m, "❤️")}
+              >
+                <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div>
+                <div className="mt-1 text-right text-[11px] text-muted-2">{when}</div>
+              </div>
+              {badge(m)}
             </div>
           );
         })}
@@ -329,8 +407,21 @@ export default function ChatPage() {
               </button>
             </div>
           ) : null}
-          <div className="flex items-center gap-2.5 border-t border-line bg-white px-4 pb-[26px] pt-2.5">
+          {emojiOpen ? <EmojiPanel onPick={insertEmoji} /> : null}
+          <div className="flex items-center gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
+            <button
+              type="button"
+              data-testid="chat-emoji"
+              aria-label={t.emojiOpen}
+              aria-pressed={emojiOpen}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setEmojiOpen((v) => !v)}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[22px] leading-none ${emojiOpen ? "bg-accent-tint" : ""}`}
+            >
+              😊
+            </button>
             <input
+              ref={inputRef}
               value={text}
               data-testid="chat-input"
               onChange={(e) => setText(e.target.value)}
@@ -369,7 +460,28 @@ export default function ChatPage() {
             style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
             onClick={(event) => event.stopPropagation()}
           >
+            <div className="mx-1 mb-2 flex items-center justify-between rounded-full border border-line bg-screen px-2 py-1.5" data-testid="chat-react-bar" aria-label={t.chatReact}>
+              {CHAT_REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  aria-pressed={menuFor.myReaction === emoji}
+                  onClick={() => {
+                    const line = menuFor;
+                    setMenuFor(null);
+                    void react(line, emoji);
+                  }}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full text-[26px] leading-none transition-transform active:scale-125 ${
+                    menuFor.myReaction === emoji ? "bg-accent-tint ring-2 ring-accent" : ""
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
             <p className="truncate px-4 pb-2 text-[13px] text-muted">{menuFor.text}</p>
+            {menuFor.mine ? (
+            <>
             <button
               type="button"
               data-testid="chat-msg-edit"
@@ -395,6 +507,8 @@ export default function ChatPage() {
             >
               {t.cardDelete}
             </button>
+            </>
+            ) : null}
             <button
               type="button"
               onClick={() => setMenuFor(null)}
