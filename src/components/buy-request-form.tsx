@@ -4,17 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminAreaById, adminAreaLabel, areasOfOblast } from "@/lib/admin-areas";
 import { api } from "@/lib/api/client";
-import { BUY_CATEGORIES, BUY_UNIT_DEFAULT, BUY_UNITS, parseBuyQuantity, readBuyQuantityInput, todayBishkek, type BuyUnit } from "@/lib/buy-request";
+import { buyRequestKinds, BUY_CATEGORIES, BUY_UNIT_DEFAULT, BUY_UNITS, parseBuyQuantity, readBuyQuantityInput, todayBishkek, type BuyUnit } from "@/lib/buy-request";
 import { OBLASTS } from "@/lib/places";
 import { useApp } from "@/lib/store";
 import { ScreenBack } from "@/components/back-button";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
+import { shopKindLabel } from "@/lib/shop-copy";
 
 export function BuyRequestForm() {
   const { t, lang } = useApp();
   const router = useRouter();
   const [category, setCategory] = useState("");
+  const [kind, setKind] = useState("");
+  const kinds = buyRequestKinds(category);
   const [text, setText] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState<BuyUnit>(BUY_UNIT_DEFAULT);
@@ -32,6 +35,10 @@ export function BuyRequestForm() {
     if (busy) return;
     if (!category) {
       setError(t.buyRequestCatErr);
+      return;
+    }
+    if (kinds.length && !kinds.includes(kind)) {
+      setError(t.buyRequestKindErr);
       return;
     }
     if (!text.trim()) {
@@ -55,7 +62,7 @@ export function BuyRequestForm() {
     setError("");
     void api("/api/purchase-requests", {
       method: "POST",
-      json: { category, text: text.trim(), quantity: parsed.quantity, unit, district, deadline, needsDelivery: delivery },
+      json: { category, kind: kinds.length ? kind : undefined, text: text.trim(), quantity: parsed.quantity, unit, district, deadline, needsDelivery: delivery },
     }).then((res) => {
       setBusy(false);
       if (!res.ok) {
@@ -89,12 +96,31 @@ export function BuyRequestForm() {
               <div className="text-[13px] font-semibold text-ink">{t.category}</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {BUY_CATEGORIES.map((id) => (
-                  <Chip key={id} active={category === id} onClick={() => setCategory(id)}>
+                  <Chip
+                    key={id}
+                    active={category === id}
+                    onClick={() => {
+                      if (id !== category) setKind("");
+                      setCategory(id);
+                    }}
+                  >
                     {t.shopCats[id] ?? id}
                   </Chip>
                 ))}
               </div>
             </div>
+            {kinds.length ? (
+              <div data-testid="buy-request-kind">
+                <div className="text-[13px] font-semibold text-ink">{t.buyRequestKind}</div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {kinds.map((id) => (
+                    <Chip key={id} active={kind === id} onClick={() => setKind(id)}>
+                      {shopKindLabel(t, id)}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <Field label={t.buyRequestNeed}>
               <Input value={text} onChange={setText} placeholder={t.buyRequestNeedPh} />
             </Field>

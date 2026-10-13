@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { adminAreaById } from "@/lib/admin-areas";
-import { BUY_CATEGORIES, formatBuyQuantity, isBuyUnit, pointMatchesRequest, todayBishkek, type BuyRequestRow, type BuyRequestStatus } from "@/lib/buy-request";
+import { BUY_CATEGORIES, buyRequestKinds, formatBuyQuantity, isBuyUnit, routeRequestToPoints, todayBishkek, type BuyRequestRow, type BuyRequestStatus } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
 import { openRequestThread } from "./chat";
 import { getDb } from "./db";
@@ -14,6 +14,12 @@ const OPEN = "open";
 const DELETED = "deleted";
 
 type Fail = { error: string; status: number };
+
+function kindsOf(doc: unknown): string[] {
+  if (!doc || typeof doc !== "object") return [];
+  const list = (doc as { kinds?: unknown }).kinds;
+  return Array.isArray(list) ? list.filter((item): item is string => typeof item === "string") : [];
+}
 
 function extrasOf(doc: unknown): string[] {
   if (!doc || typeof doc !== "object") return [];
@@ -50,11 +56,12 @@ type ShopHit = {
   ownerId: string;
   category: string;
   extraCategories: string[];
+  kinds: string[];
   city: string;
   district: string | null;
 };
 
-async function matchingShops(category: string, oblast: string): Promise<ShopHit[]> {
+async function matchingShops(category: string, oblast: string, kind: string | null): Promise<ShopHit[]> {
   const db = getDb();
   const rows = await db
     .select({
@@ -72,22 +79,23 @@ async function matchingShops(category: string, oblast: string): Promise<ShopHit[
         sql`(${shops.group} = ${category} or jsonb_exists(coalesce(${shops.doc}->'extraCategories', '[]'::jsonb), ${category}))`,
       ),
     );
-  return rows
-    .map((row) => ({
+  const points = rows.map((row) => ({
       id: row.id,
       ownerId: row.ownerId,
       category: row.group,
       extraCategories: extrasOf(row.doc),
+      kinds: kindsOf(row.doc),
       city: row.city,
       district: row.district,
-    }))
-    .filter((row) => pointMatchesRequest(row, { category, oblast }));
+    }));
+  return routeRequestToPoints(points, { category, oblast, kind });
 }
 
 function toRow(
   row: {
     id: string;
     category: string;
+    kind?: string | null;
     text: string;
     quantity: string | null;
     unit: string | null;
@@ -103,6 +111,7 @@ function toRow(
   return {
     id: row.id,
     category: row.category,
+    kind: row.kind ?? null,
     text: row.text,
     quantity: formatBuyQuantity(row.quantity),
     unit: row.unit ?? "",
@@ -119,10 +128,13 @@ function toRow(
 
 export async function createPurchaseRequest(
   buyerId: string,
-  input: { category?: string; text?: string; quantity?: unknown; unit?: unknown; district?: string; deadline?: string; needsDelivery?: unknown },
+  input: { category?: string; kind?: string; text?: string; quantity?: unknown; unit?: unknown; district?: string; deadline?: string; needsDelivery?: unknown },
 ): Promise<{ request: BuyRequestRow } | Fail> {
   const category = (input.category ?? "").trim();
   if (!(BUY_CATEGORIES as readonly string[]).includes(category)) return { error: "category", status: 400 };
+  const kindList = buyRequestKinds(category);
+  const kind = kindList.length ? (input.kind ?? "").trim() : "";
+  if (kindList.length && !kindList.includes(kind)) return { error: "kind", status: 400 };
   const text = (input.text ?? "").trim();
   if (!text || text.length > TEXT_MAX) return { error: "text", status: 400 };
   const quantity = typeof input.quantity === "number" ? input.quantity : Number(String(input.quantity ?? "").trim());
@@ -142,6 +154,7 @@ export async function createPurchaseRequest(
     .values({
       buyerId,
       category,
+      kind: kind || null,
       text,
       quantity: String(quantity),
       unit,
@@ -155,7 +168,7 @@ export async function createPurchaseRequest(
   const row = inserted[0];
   if (!row) return { error: "save", status: 500 };
 
-  const hits = (await matchingShops(category, area.oblast)).filter((shop) => shop.ownerId !== buyerId);
+  const hits = (await matchingShops(category, area.oblast, kind || null)).filter((shop) => shop.ownerId !== buyerId);
   const owners = [...new Set(hits.map((shop) => shop.ownerId))];
   const blocked = await blockedCounterparts(buyerId, owners);
   const recipients = owners.filter((userId) => !blocked.has(userId));
@@ -222,7 +235,8 @@ export async function deletePurchaseRequest(buyerId: string, requestId: string):
 export async function listIncomingPurchaseRequests(userId: string): Promise<BuyRequestRow[]> {
   await closeExpiredPurchaseRequests();
   const db = getDb();
-  const mine = await db
+  // All active points: the kind fallback depends on whether any other point matches exactly.
+  const active = await db
     .select({
       id: shops.id,
       ownerId: shops.ownerId,
@@ -232,20 +246,24 @@ export async function listIncomingPurchaseRequests(userId: string): Promise<BuyR
       doc: shops.doc,
     })
     .from(shops)
-    .where(and(eq(shops.ownerId, userId), eq(shops.status, "active")));
-  const points = mine.map((row) => ({
+    .where(eq(shops.status, "active"));
+  const all = active.map((row) => ({
     id: row.id,
+    ownerId: row.ownerId,
     category: row.group,
     extraCategories: extrasOf(row.doc),
+    kinds: kindsOf(row.doc),
     city: row.city,
     district: row.district,
   }));
+  const points = all.filter((point) => point.ownerId === userId);
   if (!points.length) return [];
 
   const open = await db
     .select({
       id: purchaseRequests.id,
       category: purchaseRequests.category,
+      kind: purchaseRequests.kind,
       text: purchaseRequests.text,
       quantity: purchaseRequests.quantity,
       unit: purchaseRequests.unit,
@@ -263,7 +281,9 @@ export async function listIncomingPurchaseRequests(userId: string): Promise<BuyR
     .limit(100);
 
   const matched = open.flatMap((row) => {
-    const shop = points.find((point) => pointMatchesRequest(point, { category: row.category, oblast: row.city }));
+    const shop = routeRequestToPoints(all, { category: row.category, oblast: row.city, kind: row.kind }).find(
+      (point) => point.ownerId === userId,
+    );
     return shop ? [{ row, shopId: shop.id }] : [];
   });
   if (!matched.length) return [];
@@ -285,7 +305,7 @@ export async function openPurchaseChat(userId: string, requestId: string): Promi
   if (row.buyerId === userId) return { error: "own", status: 403 };
   if (row.status !== OPEN) return { error: "closed", status: 409 };
 
-  const hits = (await matchingShops(row.category, row.city)).filter((shop) => shop.ownerId === userId);
+  const hits = (await matchingShops(row.category, row.city, row.kind ?? null)).filter((shop) => shop.ownerId === userId);
   const shop = hits.find((item) => item.category === row.category) ?? hits[0];
   if (!shop) return { error: "forbidden", status: 403 };
   return openRequestThread(userId, { requestId: row.id, shopId: shop.id, buyerId: row.buyerId });
