@@ -13,7 +13,7 @@ import { listingChipLabel, listingDesc, listingTitle, postedLabel } from "@/lib/
 import { telegramLink } from "@/lib/telegram-username";
 import { useApp } from "@/lib/store";
 import { ScreenBack } from "@/components/back-button";
-import { IconBack, IconChat, IconHeart, IconPin } from "@/components/icons";
+import { IconBack, IconBookmark, IconChat, IconPin } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { ListingLeadForm } from "@/components/listing-lead";
@@ -32,7 +32,7 @@ import { listingEditHref } from "@/lib/listing-edit";
 import { isAdminUser } from "@/lib/partners";
 import { ReportListing } from "@/components/report-listing";
 import { isOwnListing, isOffMarket } from "@/lib/listing-owner";
-import { ListingSocial } from "@/components/listing-social";
+import { DoubleTapLike, ListingSocial } from "@/components/listing-social";
 import { ShareButton } from "@/components/share-button";
 import { ListingContactRow } from "@/components/listing-contact-row";
 import { BlockAuthorButton, BlockedAuthorNotice } from "@/components/block-author";
@@ -221,7 +221,9 @@ export default function ListingPage() {
     <PhoneShell focus>
       <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
         <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? (videoTall ? "min(72vh, 620px)" : 240) : listing.section === "secondhand" ? 300 : 320 }}>
-          <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
+          <DoubleTapLike listingId={listing.id} className="h-full w-full">
+            <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
+          </DoubleTapLike>
           {!isVideoListing(listing) && listing.photos.length > 1 ? (
             <>
               <button
@@ -258,7 +260,7 @@ export default function ListingPage() {
                   onClick={onFav}
                   className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
                 >
-                  <IconHeart size={18} color="#7C5CFF" filled={isFav(listing.id)} />
+                  <IconBookmark size={18} color="#7C5CFF" filled={isFav(listing.id)} />
                 </button>
               )}
             </div>

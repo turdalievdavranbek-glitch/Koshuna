@@ -17,7 +17,7 @@ import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
 import { LANGS, type AuthMethod } from "@/lib/types";
 import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
-import { IconVerified } from "@/components/icons";
+import { IconBookmark, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
@@ -36,7 +36,7 @@ function MethodIcon({ method }: { method: AuthMethod }) {
 }
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops } = useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, favouriteIds } = useApp();
   const router = useRouter();
   const [phoneLater, setPhoneLater] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -173,6 +173,22 @@ export default function ProfilePage() {
                 {chatUnread > 9 ? "9+" : chatUnread}
               </span>
             ) : null}
+            <span className="text-[18px] text-muted-2">›</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="cabinet-saved"
+          onClick={() => router.push("/favorites")}
+          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+            <IconBookmark size={17} color="#7C5CFF" />
+            {t.savedTitle}
+          </span>
+          <span className="flex items-center gap-2">
+            {favouriteIds.length ? <span className="text-[13px] font-semibold text-muted">{favouriteIds.length}</span> : null}
             <span className="text-[18px] text-muted-2">›</span>
           </span>
         </button>

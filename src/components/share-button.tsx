@@ -11,12 +11,12 @@ import { shopPublicUrl } from "@/lib/shop-share";
 import { renderStoriesCard, shareFileSupported } from "@/lib/stories-card";
 import { useApp } from "@/lib/store";
 import type { Listing, Shop } from "@/lib/types";
-import { IconShare } from "./icons";
+import { IconSend, IconShare } from "./icons";
 
 type Props = {
   listing?: Listing;
   shop?: Shop;
-  variant?: "icon" | "button";
+  variant?: "icon" | "button" | "bare";
   /** Share the site itself (https://koshuna.ru), not a listing. */
   appTitle?: string;
 };
@@ -104,7 +104,18 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   };
 
   const control =
-    variant === "icon" ? (
+    variant === "bare" ? (
+      <button
+        type="button"
+        onClick={() => void share()}
+        data-testid="share-bare"
+        className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95"
+        aria-label={t.share}
+        title={t.share}
+      >
+        <IconSend size={23} color="#2A2550" />
+      </button>
+    ) : variant === "icon" ? (
       <button
         type="button"
         onClick={() => void share()}

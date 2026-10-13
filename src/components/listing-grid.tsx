@@ -8,7 +8,7 @@ import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/dat
 import { dropPercent, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
-import { IconCols, IconHeart } from "./icons";
+import { IconBookmark, IconCols } from "./icons";
 import { NeighborMark } from "./neighbor-seal";
 import { ListingThumb, isVideoListing } from "./listing-media";
 import { ListingSocialMeta } from "./listing-social";
@@ -96,7 +96,7 @@ function ListingCard({
             }}
             className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/92"
           >
-            <IconHeart size={15} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
+            <IconBookmark size={15} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
           </span>
         ) : null}
       </div>

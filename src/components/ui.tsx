@@ -9,7 +9,7 @@ import { LANG_LABEL, listingChipLabel, listingTitle, postedLabel } from "@/lib/i
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import { LANGS, type Listing } from "@/lib/types";
-import { IconCheck, IconHeart, IconPin } from "./icons";
+import { IconBookmark, IconCheck, IconPin } from "./icons";
 
 export function Photo({
   src,
@@ -200,7 +200,7 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           }}
           className="absolute right-2.5 top-2.5 flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white/92"
         >
-          <IconHeart size={16} color={isFav(listing.id) ? "#7C5CFF" : "#2A2550"} filled={isFav(listing.id)} />
+          <IconBookmark size={16} color={isFav(listing.id) ? "#7C5CFF" : "#2A2550"} filled={isFav(listing.id)} />
         </span>
         ) : null}
       </div>
@@ -308,11 +308,11 @@ export function ListingRow({
       </div>
       {heart ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#7C5CFF" />
+          <IconBookmark size={18} filled color="#7C5CFF" />
         </div>
       ) : FEATURES.cart && isFav(listing.id) ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#7C5CFF" />
+          <IconBookmark size={18} filled color="#7C5CFF" />
         </div>
       ) : null}
     </button>

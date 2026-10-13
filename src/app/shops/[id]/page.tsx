@@ -29,13 +29,16 @@ import { PointTransfer } from "@/components/point-transfer";
 import { ShopSubscribe } from "@/components/shop-subscribe";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
+import { socialCounts } from "@/lib/reactions";
+import { ListingThumb } from "@/components/listing-media";
 
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, shops, user, allListings, withdrawShop, reportShop, reports, synced, recallShop, isBlocked } = useApp();
+  const { t, lang, shops, user, allListings, reactions, withdrawShop, reportShop, reports, synced, recallShop, isBlocked } = useApp();
   const shop = recallShop(id) ?? shops.find((item) => item.id === id);
   const [playing, setPlaying] = useState(false);
+  const [followers, setFollowers] = useState<number | null>(null);
 
   const mine = shop ? isOwnShop(shop, user) : false;
   const callPhone = shop ? shopCallPhone(shop) : "";
@@ -50,6 +53,9 @@ export default function ShopDetailPage() {
     () => (shop ? allListings.filter((item) => item.shopId === shop.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden") : []),
     [allListings, shop],
   );
+
+  const postCount = linked.length || products.length;
+  const likeSum = useMemo(() => linked.reduce((sum, item) => sum + socialCounts(item.id, reactions, 0).likes, 0), [linked, reactions]);
 
   // No Telegram on the point: fall back to the owner's own Telegram from their profile.
   const [ownerTelegram, setOwnerTelegram] = useState<string | null>(null);
@@ -111,18 +117,41 @@ export default function ShopDetailPage() {
         </div>
 
         <div className="contents desk:mt-3 desk:grid desk:grid-cols-12 desk:items-start desk:gap-4">
-        <div className="mt-3 flex items-center gap-3 desk:col-span-5 desk:row-start-1 desk:mt-0">
-          <button type="button" onClick={() => shop.videoUrl && setPlaying(true)}>
-            <ShopThumb cover={shop.coverUrl} video={shop.videoUrl} />
-          </button>
-          <div className="min-w-0 flex-1">
+        <div className="mt-3 desk:col-span-5 desk:row-start-1 desk:mt-0">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => shop.videoUrl && setPlaying(true)}
+              className="shrink-0 rounded-full bg-[conic-gradient(from_200deg,#7C5CFF,#FF6FB5,#FFB86B,#7C5CFF)] p-[3px]"
+            >
+              <span className="block overflow-hidden rounded-full border-[3px] border-white [&_*]:!rounded-full">
+                <ShopThumb cover={shop.coverUrl} video={shop.videoUrl} />
+              </span>
+            </button>
+            <div className="grid flex-1 grid-cols-3 text-center" data-testid="shop-stats">
+              <div>
+                <div className="font-display text-[18px] font-extrabold text-ink tabular-nums">{postCount}</div>
+                <div className="text-[11px] text-muted">{t.igPosts}</div>
+              </div>
+              <div>
+                <div className="font-display text-[18px] font-extrabold text-ink tabular-nums">{followers ?? "·"}</div>
+                <div className="text-[11px] text-muted">{t.igFollowers}</div>
+              </div>
+              <div>
+                <div className="font-display text-[18px] font-extrabold text-ink tabular-nums">{likeSum}</div>
+                <div className="text-[11px] text-muted">{t.igLikes}</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h1 className="font-display text-[22px] font-bold leading-[1.15] text-ink">{shop.name}</h1>
+              <h1 className="font-display text-[19px] font-bold leading-[1.15] text-ink">{shop.name}</h1>
               <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
               <span>{shop.managedFor?.name || shop.ownerName}</span>
               <MasterBadge userId={shop.ownerId} />
+              <span className="text-muted-2">· {t.shopCats[shop.category]}</span>
             </div>
             {shop.managedFor?.phone ? (
               <div className="mt-1.5 inline-block rounded-md bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink-2">{t.managedBadge}</div>
@@ -132,9 +161,32 @@ export default function ShopDetailPage() {
                 <TrustStars n={starsForUser(user)} size={12} />
               </div>
             ) : null}
-            <div className="mt-1 text-[12px] text-muted-2">{t.shopCats[shop.category]}</div>
             {shop.underReview ? (
               <div className="mt-1.5 inline-block rounded-md bg-[#F6E3D4] px-2 py-0.5 text-[10px] font-bold text-ink">{t.underReview}</div>
+            ) : null}
+            {shop.description ? <p className="mt-1.5 whitespace-pre-line text-[14px] leading-[1.45] text-ink-2">{shop.description}</p> : null}
+            <div className="mt-1 text-[13px] text-ink-2">
+              📍 {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, cityLabel, lang) : [cityLabel, shop.address?.trim()].filter(Boolean).join(", ")}
+            </div>
+            {hoursLine || open != null ? (
+              <div className="mt-0.5 text-[13px] text-ink-2">
+                🕒 {open === true ? <b className="text-success">{t.shopOpenNow}</b> : open === false ? <b className="text-muted">{t.shopClosedNow}</b> : null}
+                {open != null && hoursLine ? " · " : null}
+                {hoursLine}
+              </div>
+            ) : null}
+          </div>
+          <div className="mt-1 flex items-center gap-2 [&>div]:mt-0">
+            <ShopSubscribe shopId={shop.id} mine={mine} onCount={setFollowers} hideCount />
+            {!mine && linked[0] ? (
+              <button
+                type="button"
+                data-testid="shop-write"
+                onClick={() => router.push(`/chat/open/${linked[0].id}`)}
+                className="mt-3 h-11 flex-1 rounded-2xl border border-line bg-white px-4 text-[14px] font-semibold text-ink"
+              >
+                {t.igWrite}
+              </button>
             ) : null}
           </div>
         </div>
@@ -162,11 +214,6 @@ export default function ShopDetailPage() {
 
         {mine && FEATURES.pointSetupHints ? <PointChecklist shop={shop} /> : null}
 
-        {shop.description ? <p className="mt-3 text-[15px] leading-[1.55] text-ink-2 desk:col-span-12">{shop.description}</p> : null}
-
-        <div className="desk:col-span-12">
-          <ShopSubscribe shopId={shop.id} mine={mine} />
-        </div>
         <div className="desk:col-span-12">
           <PlayBanner />
         </div>
@@ -267,15 +314,19 @@ export default function ShopDetailPage() {
         {linked.length ? (
           <div className="mt-5">
             <Eyebrow>{t.shopMoreFrom}</Eyebrow>
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-[3px] overflow-hidden rounded-[14px] desk:grid-cols-4" data-testid="shop-grid">
               {linked.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => router.push(`/listing/${item.id}`)}
-                  className="rounded-[16px] border border-line bg-white px-3 py-3 text-left text-[14px] font-semibold"
+                  className="relative aspect-square overflow-hidden bg-surface [&_img]:h-full [&_img]:w-full [&_img]:object-cover"
+                  aria-label={item.title}
                 >
-                  {item.title} · {formatSom(item.price)} сом
+                  <ListingThumb listing={item} alt={item.title} compact className="!h-full !w-full" />
+                  <span className="absolute bottom-1 left-1 rounded-md bg-[rgba(42,37,80,.72)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {formatSom(item.price)} сом
+                  </span>
                 </button>
               ))}
             </div>
