@@ -3,6 +3,7 @@ import { getDb } from "@/server/db";
 import { listings, reactions } from "@/server/db/schema";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { NextResponse } from "next/server";
+import { limitOr429 } from "@/server/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (blocked) return blocked;
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
+  const limited = limitOr429(`react:${user.id}`, 60, 60_000) ?? limitOr429(`react-hour:${user.id}`, 600, 3_600_000);
+  if (limited) return limited;
   const { id } = await ctx.params;
   const body = await readJson<{ value?: "like" | "dislike" | null }>(req);
   if (!body) return json({ error: "bad-json" }, 400);

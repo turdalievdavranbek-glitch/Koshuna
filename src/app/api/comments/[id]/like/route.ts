@@ -1,5 +1,6 @@
 import { toggleCommentLike } from "@/server/comments";
 import { guardCsrf, json, requireUser } from "@/server/http";
+import { limitOr429 } from "@/server/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -15,6 +16,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (blocked) return blocked;
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
+  const limited = limitOr429(`clike:${user.id}`, 60, 60_000);
+  if (limited) return limited;
   const { id } = await ctx.params;
   if (!UUID.test(id)) return json({ error: "not-found" }, 404);
   const result = await toggleCommentLike(user.id, id);

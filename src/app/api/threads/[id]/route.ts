@@ -2,6 +2,7 @@ import { sealChat } from "@/lib/chat";
 import { readChat, sendChat } from "@/server/chat";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { NextResponse } from "next/server";
+import { limitOr429 } from "@/server/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (blocked) return blocked;
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
+  const limited = limitOr429(`msg-min:${user.id}`, 30, 60_000) ?? limitOr429(`msg-hour:${user.id}`, 400, 3_600_000);
+  if (limited) return limited;
   const { id } = await ctx.params;
   const body = await readJson<{ text?: string }>(req);
   const result = await sendChat(user.id, id, body?.text ?? "");
