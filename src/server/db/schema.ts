@@ -488,6 +488,22 @@ export const messages = pgTable(
   (t) => [check("messages_kind", sql`${t.kind} in ('text','voice','system')`)],
 );
 
+/** One emoji reaction per user per chat message (Instagram-style). */
+export const messageReactions = pgTable(
+  "message_reactions",
+  {
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: "message_reactions_pk", columns: [t.messageId, t.userId] })],
+);
+
 export const reservations = pgTable(
   "reservations",
   {

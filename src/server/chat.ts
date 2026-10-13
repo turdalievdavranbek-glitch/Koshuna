@@ -1,9 +1,9 @@
 import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { formatBuyQuantity } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
-import type { ChatDetail, ChatLine, ChatThread } from "@/lib/chat";
+import { CHAT_REACTIONS, type ChatDetail, type ChatLine, type ChatThread } from "@/lib/chat";
 import { getDb } from "./db";
-import { blocks, listings, messages, purchaseRequests, shops, threads, users } from "./db/schema";
+import { blocks, listings, messageReactions, messages, purchaseRequests, shops, threads, users } from "./db/schema";
 import { bindNoticePushes, saveNotice } from "./notices";
 
 const TEXT_MAX = 2000;
@@ -287,6 +287,19 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
       editedAt: row.deletedAt ? null : (row.editedAt?.toISOString() ?? null),
       deleted: Boolean(row.deletedAt),
     }));
+  if (shown.length) {
+    const rows = await db
+      .select({ messageId: messageReactions.messageId, userId: messageReactions.userId, emoji: messageReactions.emoji })
+      .from(messageReactions)
+      .where(inArray(messageReactions.messageId, shown.map((row) => row.id)));
+    const byId = new Map(shown.map((row) => [row.id, row]));
+    for (const row of rows) {
+      const line = byId.get(row.messageId);
+      if (!line || line.deleted) continue;
+      if (row.userId === userId) line.myReaction = row.emoji;
+      else line.peerReaction = row.emoji;
+    }
+  }
   const listing = card[0];
   const request = listing ? undefined : ask[0];
   return {
@@ -429,4 +442,40 @@ export async function deleteChatMessage(userId: string, threadId: string, messag
   const row = rows[0];
   if (!row) return { error: "forbidden", status: 403 };
   return { message: { id: row.id, mine: true, text: "", createdAt: row.createdAt.toISOString(), editedAt: null, deleted: true } };
+}
+
+/** Either participant reacts to a message in the thread. Same emoji again (or null) removes it. */
+export async function setMessageReaction(
+  userId: string,
+  threadId: string,
+  messageId: string,
+  emoji: string | null,
+): Promise<{ messageId: string; myReaction: string | null } | Fail> {
+  if (emoji !== null && !(CHAT_REACTIONS as readonly string[]).includes(emoji)) return { error: "bad-emoji", status: 400 };
+  const db = getDb();
+  const thread = await loadParticipant(userId, threadId);
+  if (!thread) return { error: "not-found", status: 404 };
+  const found = await db
+    .select({ id: messages.id, deletedAt: messages.deletedAt })
+    .from(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.threadId, thread.id)))
+    .limit(1);
+  if (!found[0] || found[0].deletedAt) return { error: "not-found", status: 404 };
+  const peerId = thread.buyerId === userId ? thread.sellerId : thread.buyerId;
+  if (await pairBlocked(userId, peerId)) return { error: "blocked", status: 403 };
+  const prev = await db
+    .select({ emoji: messageReactions.emoji })
+    .from(messageReactions)
+    .where(and(eq(messageReactions.messageId, messageId), eq(messageReactions.userId, userId)))
+    .limit(1);
+  const next = emoji === null || prev[0]?.emoji === emoji ? null : emoji;
+  if (next === null) {
+    await db.delete(messageReactions).where(and(eq(messageReactions.messageId, messageId), eq(messageReactions.userId, userId)));
+  } else {
+    await db
+      .insert(messageReactions)
+      .values({ messageId, userId, emoji: next })
+      .onConflictDoUpdate({ target: [messageReactions.messageId, messageReactions.userId], set: { emoji: next, createdAt: new Date() } });
+  }
+  return { messageId, myReaction: next };
 }

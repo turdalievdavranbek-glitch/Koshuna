@@ -25,7 +25,13 @@ export type ChatLine = {
   createdAt: string;
   editedAt?: string | null;
   deleted?: boolean;
+  /** Instagram-style reactions: one per person. */
+  myReaction?: string | null;
+  peerReaction?: string | null;
 };
+
+/** Quick reaction bar on a long press. */
+export const CHAT_REACTIONS = ["❤️", "😂", "👍", "😮", "😢", "🙏"] as const;
 
 export type ChatDetail = {
   id: string;
