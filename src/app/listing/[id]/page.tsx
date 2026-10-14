@@ -473,7 +473,7 @@ export default function ListingPage() {
           ) : null}
           {listing.utilitiesNote ? <div className="mt-1 text-[13px] text-muted-2">{t.utilities}</div> : null}
 
-          {personal ? <NeighborCard listing={listing} /> : null}
+          {personal && FEATURES.neighborFilter ? <NeighborCard listing={listing} /> : null}
           {!mine && (listing.sellerType === "realtor" || listing.sellerType === "dealer") ? <ListingLeadForm listing={listing} /> : null}
           {FEATURES.goLookMeet && personal && !off && !reserved && !mine ? <GoLookCard listing={listing} /> : null}
           {personal ? <VoiceNote listing={listing} /> : null}
