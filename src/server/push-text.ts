@@ -19,6 +19,7 @@ type Copy = {
   moved: (title: string, to: string) => string;
   transferred: (point: string, from: string) => string;
   promoterOn: string;
+  feedback: (title: string) => string;
   promoterOff: string;
   generic: string;
 };
@@ -38,6 +39,7 @@ const COPY: Record<PushLang, Copy> = {
     comment: (name, title) => (title ? `${name} прокомментировал «${title}»` : `${name} оставил комментарий`),
     moved: (title, to) => `Раздел вашего объявления «${title}» изменён на «${to}»`,
     transferred: (point, from) => (from ? `${from} передал вам точку «${point}»` : `Вам передали точку «${point}»`),
+    feedback: (title) => (title ? `Новое обращение: «${title}»` : "Новое обращение в поддержку"),
     promoterOn: "Вам назначена роль «Промоутер»",
     promoterOff: "Роль «Промоутер» с вашего аккаунта снята",
     generic: "Новость в Коңшу",
@@ -56,6 +58,7 @@ const COPY: Record<PushLang, Copy> = {
     comment: (name, title) => (title ? `${name} «${title}» жарнамасына пикир жазды` : `${name} пикир жазды`),
     moved: (title, to) => `«${title}» жарнамаңыздын бөлүмү «${to}» болуп өзгөртүлдү`,
     transferred: (point, from) => (from ? `${from} сизге «${point}» түйүнүн өткөрүп берди` : `Сизге «${point}» түйүнү өткөрүлүп берилди`),
+    feedback: (title) => (title ? `Жаңы кайрылуу: «${title}»` : "Колдоого жаңы кайрылуу"),
     promoterOn: "Сизге «Промоутер» ролу берилди",
     promoterOff: "Аккаунтуңуздан «Промоутер» ролу алынды",
     generic: "Коңшудагы жаңылык",
@@ -92,6 +95,7 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
   else if (input.textKey === "notifStillActual") body = copy.still;
   else if (input.textKey === "notifBuyRequest") body = copy.buy(title);
   else if (input.textKey === "notifComment") body = copy.comment(name, title);
+  else if (input.textKey === "notifFeedback") body = copy.feedback(title);
   else if (input.textKey === "notifPromoterOn") body = copy.promoterOn;
   else if (input.textKey === "notifPromoterOff") body = copy.promoterOff;
   else if (input.textKey === "notifShopTransferred") body = copy.transferred(title, (input.name ?? "").trim());

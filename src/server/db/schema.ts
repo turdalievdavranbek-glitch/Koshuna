@@ -556,3 +556,18 @@ export const purchaseOffers = pgTable("purchase_offers", {
   price: bigint("price", { mode: "number" }),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
+
+export const feedback = pgTable("feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  text: text("text").notNull().default(""),
+  topic: text("topic"),
+  contact: text("contact"),
+  pageUrl: text("page_url"),
+  platform: text("platform"),
+  appVersion: text("app_version"),
+  photoData: text("photo_data"),
+  voiceData: text("voice_data"),
+  status: text("status").notNull().default("new"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
