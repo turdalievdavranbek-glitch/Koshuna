@@ -12,7 +12,8 @@ import { BlockAuthorButton, BlockedAuthorNotice, ReportAuthorButton } from "@/co
 import { IconBack, IconVerified } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
-import { ListingRow, RoundBtn } from "@/components/ui";
+import { RoundBtn } from "@/components/ui";
+import { ListingGrid } from "@/components/listing-grid";
 
 const VISIBLE = new Set(["active", "promoted", "reserved"]);
 
@@ -77,10 +78,8 @@ export default function OwnerPage() {
           </div>
           <h2 className="mt-6 font-display text-[19px] font-bold text-ink">{t.ownerPublic}</h2>
         </div>
-        <div className="sc mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-5">
-          {listings.map((item) => (
-            <ListingRow key={item.id} listing={item} />
-          ))}
+        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+          <ListingGrid listings={listings} columns="browse" />
         </div>
       </PhoneShell>
     );
@@ -134,10 +133,8 @@ export default function OwnerPage() {
         {blocked ? null : <h2 className="mt-6 font-display text-[19px] font-bold text-ink">{t.ownerPublic}</h2>}
       </div>
       {blocked ? null : (
-        <div className="sc mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-5">
-          {listings.map((item) => (
-            <ListingRow key={item.id} listing={item} />
-          ))}
+        <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+          <ListingGrid listings={listings} columns="browse" />
         </div>
       )}
     </PhoneShell>
