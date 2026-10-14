@@ -89,6 +89,14 @@ export default function AdminPage() {
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+        <button
+          type="button"
+          onClick={() => router.push("/admin/feedback")}
+          className="mb-3 flex w-full items-center justify-between rounded-[16px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.feedbackAdminTitle}</span>
+          <span className="text-[18px] text-muted-2">›</span>
+        </button>
         <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2">
           {items === null ? null : items.length === 0 ? (
             <p className="text-[13px] text-muted">{t.moderationEmpty}</p>

@@ -262,6 +262,7 @@ export async function deliverPush(job: NoticePush): Promise<void> {
     threadId: job.threadId,
     requestId: job.requestId,
     listingId: job.listingId,
+    textKey: job.textKey,
   });
 
   const tokens = await db

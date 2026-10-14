@@ -1,5 +1,6 @@
 "use client";
 
+import { openFeedback } from "@/components/feedback";
 import { PromoterAdmin } from "@/components/promoter-admin";
 import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
@@ -191,6 +192,15 @@ export default function ProfilePage() {
             {favouriteIds.length ? <span className="text-[13px] font-semibold text-muted">{favouriteIds.length}</span> : null}
             <span className="text-[18px] text-muted-2">›</span>
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={openFeedback}
+          className="mt-2.5 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.feedbackEntry}</span>
+          <span className="text-[18px] text-muted-2">›</span>
         </button>
 
         {isAdminUser(user) ? (

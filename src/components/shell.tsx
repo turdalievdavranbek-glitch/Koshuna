@@ -11,6 +11,7 @@ import { PostChoices } from "./post-choice";
 import { IconBag, IconChat, IconHome, IconPlus, IconSearch, IconUser } from "./icons";
 import { FEATURES } from "@/lib/features";
 import { UploadStatus } from "./upload-status";
+import { FeedbackLauncher } from "./feedback";
 import { UnreadBadge } from "./unread-badge";
 import { useChatUnread } from "@/lib/chat-unread";
 
@@ -306,6 +307,7 @@ export function PhoneShell({
             )}
           </div>
         )}
+        <FeedbackLauncher showBubble={!reels && !keyboard && !path.startsWith("/chat/") && !path.startsWith("/admin")} lifted={focus} />
       </div>
     </div>
   );

@@ -10,7 +10,9 @@ export function pushPathForNotice(input: {
   threadId?: string | null;
   requestId?: string | null;
   listingId?: string | null;
+  textKey?: string | null;
 }): string {
+  if (input.textKey === "notifFeedback") return "/admin/feedback";
   if (input.threadId && isDbUserId(input.threadId)) return `/chat/${input.threadId}`;
   if (input.requestId && isDbUserId(input.requestId)) return "/requests";
   if (input.listingId && LISTING_ID.test(input.listingId)) return `/listing/${input.listingId}`;
