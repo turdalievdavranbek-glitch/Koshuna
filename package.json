@@ -30,10 +30,12 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capawesome/capacitor-apple-sign-in": "^0.1.4",
     "@capawesome/capacitor-google-sign-in": "^0.1.4",
+    "@types/nodemailer": "^8.0.2",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",
     "leaflet": "^1.9.4",
     "next": "^15.5.25",
+    "nodemailer": "^7.0.13",
     "postgres": "^3.4.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

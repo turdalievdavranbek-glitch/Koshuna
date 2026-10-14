@@ -1,7 +1,9 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { feedback, users } from "./db/schema";
-import { bindNoticePushes, saveNotices } from "./notices";
+import { sendMail } from "./mail";
+
+const FEEDBACK_EMAIL = "turdalievdavranbek@gmail.com";
 
 export const FEEDBACK_TOPICS = ["publish", "bug", "idea", "other"] as const;
 const MAX_TEXT = 4000;
@@ -41,24 +43,33 @@ export async function createFeedback(userId: string | null, input: FeedbackInput
   if (!text && !photo && !voice && !topic) return { error: "empty" };
   const platform = str(input.platform, 20);
   const db = getDb();
-  await bindNoticePushes(async () => {
-    await db.insert(feedback).values({
-      userId,
-      text,
-      topic,
-      contact: str(input.contact, 200) || null,
-      pageUrl: str(input.pageUrl, 500) || null,
-      platform: ["android", "ios", "web"].includes(platform) ? platform : "web",
-      appVersion: str(input.appVersion, 40) || null,
-      photoData: photo,
-      voiceData: voice,
-    });
-    const admins = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true));
-    const title = (text || topic || "").replace(/\s+/g, " ").slice(0, 80);
-    await saveNotices(
-      db,
-      admins.map((row) => ({ userId: row.id, type: "feedback", textKey: "notifFeedback", params: { title } })),
-    );
+  const contact = str(input.contact, 200) || null;
+  const pageUrl = str(input.pageUrl, 500) || null;
+  const appVersion = str(input.appVersion, 40) || null;
+  const plat = ["android", "ios", "web"].includes(platform) ? platform : "web";
+  const [row] = await db
+    .insert(feedback)
+    .values({ userId, text, topic, contact, pageUrl, platform: plat, appVersion, photoData: photo, voiceData: voice })
+    .returning({ id: feedback.id });
+  const who = userId
+    ? (await db.select({ name: users.name, phone: users.phone, email: users.email }).from(users).where(eq(users.id, userId)).limit(1))[0]
+    : undefined;
+  const attachments: Array<{ filename: string; path: string }> = [];
+  if (photo) attachments.push({ filename: "photo.jpg", path: photo });
+  if (voice) attachments.push({ filename: voice.includes("mp4") ? "voice.m4a" : "voice.webm", path: voice });
+  const body = [
+    text || "(без текста)",
+    "",
+    `Тема: ${topic ?? "—"}`,
+    `Контакт: ${contact ?? "—"}`,
+    `Пользователь: ${userId ? `${who?.name ?? ""} ${who?.phone ?? ""} ${who?.email ?? ""} (id ${userId})` : "гость"}`,
+    `Страница: ${pageUrl ?? "—"}`,
+    `Платформа: ${plat}${appVersion ? ` ${appVersion}` : ""}`,
+    `Обращение: ${row?.id ?? ""}`,
+  ].join("\n");
+  const subject = `Коңшу — обратная связь: ${(text || topic || "без текста").replace(/\s+/g, " ").slice(0, 60)}`;
+  void sendMail({ to: FEEDBACK_EMAIL, subject, text: body, attachments }).catch((err) => {
+    console.error("feedback mail", err instanceof Error ? err.message : "failed");
   });
   return { ok: true };
 }
