@@ -105,7 +105,7 @@ function FeedbackSheet({ onClose }: { onClose: () => void }) {
   const path = usePathname();
   const [text, setText] = useState("");
   const [topic, setTopic] = useState<string>("");
-  const [contact, setContact] = useState(() => user?.phone || user?.email || "");
+  const [contact, setContact] = useState(() => user?.email || user?.phone || "");
   const [photo, setPhoto] = useState<string | null>(null);
   const [voice, setVoice] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
