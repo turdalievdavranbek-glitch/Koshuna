@@ -28,11 +28,14 @@ export function PlaceCascade({
   onPlace,
   landmark,
   onLandmark,
+  hideGeo = false,
 }: {
   place: PointPlace;
   onPlace: (next: PointPlace) => void;
   landmark: string;
   onLandmark: (text: string) => void;
+  /** The parent already shows its own geolocation button. */
+  hideGeo?: boolean;
 }) {
   const { t, lang } = useApp();
   const resolved = resolvePointPlace(place);
@@ -88,6 +91,7 @@ export function PlaceCascade({
 
   return (
     <div data-testid="place-cascade">
+      {hideGeo ? null : (
       <button
         type="button"
         data-testid="point-locate"
@@ -97,13 +101,14 @@ export function PlaceCascade({
       >
         {t.pointQuickGeo}
       </button>
+      )}
       {geoError ? (
         <div className="mt-2">
           <GeoError error={geoError} compact onRetry={() => void locatePin()} />
         </div>
       ) : null}
 
-      <div className="mt-4 text-[14px] font-semibold text-ink">1. {t.placeOblast}</div>
+      <div className={`${hideGeo ? "" : "mt-4 "}text-[14px] font-semibold text-ink`}>1. {t.placeOblast}</div>
       <div data-testid="place-oblasts" className="mt-2 flex flex-wrap gap-2">
         {pointOblasts().map((id) => (
           <Chip key={id} testId={`place-oblast-${id}`} active={oblast === id} onClick={() => pickOblast(id)}>
