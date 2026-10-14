@@ -28,6 +28,7 @@ import { writeLastCategory } from "@/lib/category-suggest";
 import { normalizePhoneInput } from "@/lib/phone";
 import { hasShopHours } from "@/lib/shops";
 import { GeoError } from "@/components/geo-error";
+import { ManualAddress } from "@/components/manual-address";
 import { IconBack } from "@/components/icons";
 import { showsNeighborPledge } from "@/lib/neighbor";
 import { draftUnfinished } from "@/lib/draft-media";
@@ -52,6 +53,7 @@ export function CardPost({ card }: { card: string }) {
   const [entryCard, setEntryCard] = useState<string | null>(card);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState<LocateError | null>(null);
+  const [manual, setManual] = useState(false);
   const [hoursAsk, setHoursAsk] = useState(false);
 
   const locateDraft = () => {
@@ -62,8 +64,10 @@ export function CardPost({ card }: { card: string }) {
       setGeoBusy(false);
       if (!res.ok) {
         setGeoError(res.error);
+        setManual(true);
         return;
       }
+      setManual(false);
       const spot = spotForFix(res.lat, res.lng);
       setDraft({ lat: res.lat, lng: res.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.name });
     });
@@ -420,6 +424,7 @@ export function CardPost({ card }: { card: string }) {
                 {geoBusy ? t.locationGeoBusy : t.locationGeo}
               </button>
               {geoError ? <GeoError compact error={geoError} onRetry={locateDraft} /> : null}
+              <ManualAddress draft={draft} onPatch={setDraft} open={manual} onOpen={setManual} />
               {bizCard ? (
                 <Field label={t.mapPoint}>
                   <p className="mb-2 text-[12px] leading-[1.4] text-muted">{t.mapPointHint}</p>

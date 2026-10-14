@@ -20,6 +20,9 @@ import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Toggle } from "@/components/ui";
 import { PostTaxonomy } from "@/components/post-taxonomy";
 import { GeoError } from "@/components/geo-error";
+import { adminAreaById } from "@/lib/admin-areas";
+import { pointAreaLabel } from "@/lib/point-place";
+import { ManualAddress } from "@/components/manual-address";
 import { IconBack } from "@/components/icons";
 import { CategoryChips } from "@/components/category-chips";
 import { LeaveDialog } from "@/components/leave-dialog";
@@ -32,7 +35,7 @@ const GisMap = dynamic(() => import("@/components/gis-map").then((m) => m.GisMap
 const AUTO_UNIT = new Set(["rent", "stays", "vacancies", "car-rental"]);
 
 export function PersonalPost() {
-  const { t, user, draft, setDraft, publishDraft, clearPostedDraft, city, setLeaveGuard, discardDraft, updateProfile } = useApp();
+  const { t, lang, user, draft, setDraft, publishDraft, clearPostedDraft, city, setLeaveGuard, discardDraft, updateProfile } = useApp();
   const router = useRouter();
   const [error, setError] = useState("");
   const [limit, setLimit] = useState(false);
@@ -41,6 +44,11 @@ export function PersonalPost() {
   const [leave, setLeave] = useState<null | { proceed: () => void }>(null);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState<LocateError | null>(null);
+  const [manual, setManual] = useState(false);
+  const districtName = (value: string) => {
+    const area = adminAreaById(value);
+    return area ? pointAreaLabel(area, lang) : value;
+  };
   const [busy, setBusy] = useState(false);
   const [sectionHint, setSectionHint] = useState(false);
   const leaveBack = useRef<() => void>(() => undefined);
@@ -106,8 +114,10 @@ export function PersonalPost() {
       setGeoBusy(false);
       if (!res.ok) {
         setGeoError(res.error);
+        setManual(true);
         return;
       }
+      setManual(false);
       const spot = spotForFix(res.lat, res.lng);
       setDraft({ lat: res.lat, lng: res.lng, ...(spot.city ? { city: spot.city } : {}), district: spot.district?.name });
     });
@@ -302,12 +312,13 @@ export function PersonalPost() {
         </label>
         <p className="mt-3 text-[14px] text-ink">
           📍 {t.cities[draft.city] || draft.city}
-          {draft.district ? `, ${draft.district}` : ""}
+          {draft.district ? `, ${districtName(draft.district)}` : ""}
         </p>
         <button type="button" disabled={geoBusy} onClick={locateDraft} className="mt-2 h-11 w-full rounded-[14px] border border-line bg-white text-[13px] font-semibold">
           {geoBusy ? t.locationGeoBusy : t.locationGeo}
         </button>
         {geoError ? <GeoError compact error={geoError} onRetry={locateDraft} /> : null}
+        <ManualAddress draft={draft} onPatch={setDraft} open={manual} onOpen={setManual} />
         {needIdentity ? (
           <div className="mt-4 flex flex-col gap-3">
             <Field label={t.nameField}>
