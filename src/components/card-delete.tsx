@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
 
@@ -22,8 +23,11 @@ export function DeleteCardDialog({
     return () => removeOverlay("card-delete");
   }, [open, onCancel]);
   if (!open) return null;
-  return (
-    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(42,37,80,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="card-delete-dialog">
+  // Portal to the app frame: inside a scrolled/positioned desktop column the absolute overlay landed off-screen,
+  // so «Удалить» looked dead.
+  const host = typeof document !== "undefined" ? document.getElementById("konshu-phone") ?? document.body : null;
+  const dialog = (
+    <div className="absolute inset-0 z-[60] desk:fixed flex items-end bg-[rgba(42,37,80,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="card-delete-dialog">
       <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
         <div className="font-display text-[20px] font-bold text-ink">{t.cardDeleteTitle}</div>
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.cardDeleteText}</p>
@@ -42,6 +46,7 @@ export function DeleteCardDialog({
       </div>
     </div>
   );
+  return host ? createPortal(dialog, host) : dialog;
 }
 
 export type CardMenuItem = { label: string; onClick: () => void; testId?: string };

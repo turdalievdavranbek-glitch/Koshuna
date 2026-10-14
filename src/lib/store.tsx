@@ -1650,7 +1650,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     updateListing: (id, patch) => {
       const current = state.extraListings.find((item) => item.id === id) ?? state.feed.find((item) => item.id === id);
-      const own = Boolean(current && (state.extraListings.some((item) => item.id === id) || current.ownerId === state.user?.id));
+      const own = current
+        ? state.extraListings.some((item) => item.id === id) || current.ownerId === state.user?.id
+        : Boolean(state.user);
       let shopToPush: Shop | null = null;
       update((s) => {
         let extraListings = s.extraListings;
@@ -2033,7 +2035,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       if (!user) return { error: "auth" };
       const current = state.extraListings.find((item) => item.id === id) ?? state.feed.find((item) => item.id === id);
-      const own = Boolean(
+      // A listing opened by link may not be in the local feed: let the server check ownership.
+      const own = !current || Boolean(
         current &&
           (current.ownerId === user.id ||
             state.extraListings.some((item) => item.id === id) ||

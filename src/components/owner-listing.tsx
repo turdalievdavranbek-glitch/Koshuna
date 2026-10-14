@@ -1,18 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { formatSom } from "@/lib/data";
+import { useState } from "react";
 import { stageOf } from "@/lib/listing-owner";
 import { offerWhen } from "@/lib/meet";
-import { parseDraftPrice } from "@/lib/market";
 import { listingEditHref } from "@/lib/listing-edit";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
 import { DeleteCardDialog } from "./card-delete";
-import { CategoryChips } from "./category-chips";
-import { Chip, Field, Input } from "./ui";
-import type { DraftListing } from "@/lib/types";
+import { Chip } from "./ui";
 
 export function ListingStageBanner({ listing }: { listing: Listing }) {
   const { t, lang, meetDeals } = useApp();
@@ -53,76 +49,14 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
   );
 }
 
-function listingAsDraft(listing: Listing): DraftListing {
-  return {
-    section: listing.section,
-    kind: listing.section === "rent" || listing.section === "stays" ? "rent" : "goods",
-    title: listing.title,
-    city: listing.city,
-    price: listing.price ? String(listing.price) : "",
-    rooms: "",
-    area: "",
-    name: "",
-    phone: "",
-    description: listing.description || "",
-    promote: listing.status === "promoted",
-    category: listing.category,
-    goodsKind: listing.goodsKind,
-    animalGroup: listing.animalGroup,
-    animalKind: listing.animalKind,
-    carMake: listing.carMake,
-    techBrand: listing.techBrand,
-    categoryLocked: true,
-  };
-}
-
 export function OwnerListingTools({ listing }: { listing: Listing }) {
   const { t, updateListing, clearMeetDeal, deleteListing, editListingToDraft } = useApp();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(listing.title);
-  const [description, setDescription] = useState(listing.description || "");
-  const [price, setPrice] = useState(listing.price ? String(listing.price) : "");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const withdrawn = listing.status === "withdrawn";
-
-  useEffect(() => {
-    setTitle(listing.title);
-    setDescription(listing.description || "");
-    setPrice(listing.price ? String(listing.price) : "");
-  }, [listing.id, listing.title, listing.description, listing.price]);
-
-  const saveEdit = () => {
-    const nextTitle = title.trim();
-    if (!nextTitle) {
-      setError(t.postNeedTitle);
-      setNote("");
-      return;
-    }
-    const next = parseDraftPrice(price);
-    if (!next) {
-      setError(t.priceNeed);
-      setNote("");
-      return;
-    }
-    setError("");
-    const patch: Partial<Listing> = {
-      title: nextTitle,
-      titleKy: nextTitle,
-      titleEn: nextTitle,
-      description: description.trim(),
-      descriptionKy: description.trim(),
-      descriptionEn: description.trim(),
-      price: next,
-    };
-    if (next < listing.price) patch.previousPrice = listing.price;
-    if (next >= listing.price) patch.previousPrice = listing.previousPrice && listing.previousPrice > next ? listing.previousPrice : undefined;
-    updateListing(listing.id, patch);
-    setNote(t.priceSaved);
-  };
 
   const markClosed = (kind: "sold" | "rented") => {
     setError("");
@@ -159,9 +93,6 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
         {t.edit}
       </button>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Chip active={editing} accent={editing} onClick={() => setEditing((value) => !value)}>
-          {t.ownerEdit}
-        </Chip>
         {listing.section === "rent" ? (
           <>
             <Chip active={listing.closedKind === "sold"} accent={listing.closedKind === "sold"} onClick={() => markClosed("sold")}>
@@ -182,49 +113,6 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
           <Chip onClick={withdraw}>{t.ownerWithdraw}</Chip>
         )}
       </div>
-      {editing ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <CategoryChips
-            draft={listingAsDraft(listing)}
-            personal={!listing.shopId}
-            autoApply={false}
-            onPatch={(patch) =>
-              updateListing(listing.id, {
-                section: patch.section ?? listing.section,
-                category: patch.category,
-                goodsKind: patch.goodsKind,
-                animalGroup: patch.animalGroup,
-                animalKind: patch.animalKind,
-                carMake: patch.carMake,
-                techBrand: patch.techBrand,
-              })
-            }
-          />
-          <Field label={t.editTitle}>
-            <Input value={title} onChange={setTitle} />
-          </Field>
-          <Field label={t.description}>
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={4}
-              className="w-full rounded-[14px] border border-line bg-white px-3.5 py-3 text-[15px] text-ink outline-none"
-            />
-          </Field>
-          <Field label={t.priceEdit}>
-            <div className="flex gap-2">
-              <Input value={price} onChange={setPrice} placeholder={formatSom(listing.price)} />
-              <button
-                type="button"
-                onClick={saveEdit}
-                className="h-[50px] shrink-0 rounded-[14px] bg-ink px-3.5 text-[13px] font-semibold text-screen"
-              >
-                {t.priceSave}
-              </button>
-            </div>
-          </Field>
-        </div>
-      ) : null}
       {error ? <p className="mt-2 text-[13px] text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
       <button
