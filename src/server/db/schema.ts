@@ -563,6 +563,7 @@ export const feedback = pgTable("feedback", {
   text: text("text").notNull().default(""),
   topic: text("topic"),
   contact: text("contact"),
+  userEmail: text("user_email"),
   pageUrl: text("page_url"),
   platform: text("platform"),
   appVersion: text("app_version"),

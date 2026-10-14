@@ -47,13 +47,14 @@ export async function createFeedback(userId: string | null, input: FeedbackInput
   const pageUrl = str(input.pageUrl, 500) || null;
   const appVersion = str(input.appVersion, 40) || null;
   const plat = ["android", "ios", "web"].includes(platform) ? platform : "web";
-  const [row] = await db
-    .insert(feedback)
-    .values({ userId, text, topic, contact, pageUrl, platform: plat, appVersion, photoData: photo, voiceData: voice })
-    .returning({ id: feedback.id });
   const who = userId
     ? (await db.select({ name: users.name, phone: users.phone, email: users.email }).from(users).where(eq(users.id, userId)).limit(1))[0]
     : undefined;
+  const userEmail = who?.email || null;
+  const [row] = await db
+    .insert(feedback)
+    .values({ userId, text, topic, contact, userEmail, pageUrl, platform: plat, appVersion, photoData: photo, voiceData: voice })
+    .returning({ id: feedback.id });
   const attachments: Array<{ filename: string; path: string }> = [];
   if (photo) attachments.push({ filename: "photo.jpg", path: photo });
   if (voice) attachments.push({ filename: voice.includes("mp4") ? "voice.m4a" : "voice.webm", path: voice });
@@ -62,6 +63,7 @@ export async function createFeedback(userId: string | null, input: FeedbackInput
     "",
     `Тема: ${topic ?? "—"}`,
     `Контакт: ${contact ?? "—"}`,
+    `Email аккаунта: ${userEmail ?? "—"}`,
     `Пользователь: ${userId ? `${who?.name ?? ""} ${who?.phone ?? ""} ${who?.email ?? ""} (id ${userId})` : "гость"}`,
     `Страница: ${pageUrl ?? "—"}`,
     `Платформа: ${plat}${appVersion ? ` ${appVersion}` : ""}`,
@@ -83,6 +85,7 @@ export async function listFeedback() {
       text: feedback.text,
       topic: feedback.topic,
       contact: feedback.contact,
+      userEmail: feedback.userEmail,
       pageUrl: feedback.pageUrl,
       platform: feedback.platform,
       appVersion: feedback.appVersion,

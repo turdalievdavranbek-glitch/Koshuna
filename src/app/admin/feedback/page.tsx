@@ -15,6 +15,7 @@ type Item = {
   text: string;
   topic: string | null;
   contact: string | null;
+  userEmail: string | null;
   pageUrl: string | null;
   platform: string | null;
   appVersion: string | null;
@@ -117,6 +118,7 @@ export default function AdminFeedbackPage() {
                       t.feedbackGuest
                     )}
                     {item.contact ? ` · ${item.contact}` : ""}
+                    {item.userEmail && item.userEmail !== item.contact ? ` · ${item.userEmail}` : ""}
                   </div>
                   <div className="break-all">
                     {item.platform || "web"}
