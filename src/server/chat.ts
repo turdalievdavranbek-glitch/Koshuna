@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { formatBuyQuantity } from "@/lib/buy-request";
 import { holdPersonName } from "@/lib/public-name";
 import { CHAT_REACTIONS, type ChatDetail, type ChatLine, type ChatThread } from "@/lib/chat";
@@ -155,18 +155,26 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
         where messages.thread_id = threads.id
           and messages.sender_id <> ${userId}::uuid
           and messages.read_at is null
+          and messages.created_at > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)
       )`,
       preview: sql<string | null>`(
         select messages.text from messages
         where messages.thread_id = threads.id
           and messages.kind = 'text'
           and messages.deleted_at is null
+          and messages.created_at > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)
         order by messages.created_at desc
         limit 1
       )`,
     })
     .from(threads)
-    .where(or(eq(threads.buyerId, userId), eq(threads.sellerId, userId)))
+    .where(
+      and(
+        or(eq(threads.buyerId, userId), eq(threads.sellerId, userId)),
+        // Hidden after «Удалить переписку» until a newer message arrives.
+        sql`coalesce(${threads.lastMessageAt}, ${threads.createdAt}) > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)`,
+      ),
+    )
     .orderBy(sql`coalesce(${threads.lastMessageAt}, ${threads.createdAt}) desc`)
     .limit(50);
   if (!rows.length) return { threads: [], unread: 0 };
@@ -242,6 +250,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
   const thread = await loadParticipant(userId, threadId);
   if (!thread) return { error: "not-found", status: 404 };
   const peerId = thread.buyerId === userId ? thread.sellerId : thread.buyerId;
+  const clearedAt = thread.buyerId === userId ? thread.buyerClearedAt : thread.sellerClearedAt;
   const [lines, person, card, ask, blocked] = await Promise.all([
     db
       .select({
@@ -254,7 +263,11 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
         deletedAt: messages.deletedAt,
       })
       .from(messages)
-      .where(eq(messages.threadId, thread.id))
+      .where(
+        clearedAt
+          ? and(eq(messages.threadId, thread.id), gt(messages.createdAt, clearedAt))
+          : eq(messages.threadId, thread.id),
+      )
       .orderBy(desc(messages.createdAt))
       .limit(200),
     db.select({ name: users.name, lastSeenAt: users.lastSeenAt }).from(users).where(eq(users.id, peerId)).limit(1),
@@ -321,6 +334,18 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     peerTyping: isTyping(thread.id, peerId),
     peerReplyMs: await medianReplyMs(peerId).catch(() => null),
   };
+}
+
+/** «Удалить переписку» for this user only: the other participant keeps the whole chat. */
+export async function clearChatForUser(userId: string, threadId: string): Promise<{ ok: true } | Fail> {
+  const thread = await loadParticipant(userId, threadId);
+  if (!thread) return { error: "not-found", status: 404 };
+  const now = new Date();
+  await getDb()
+    .update(threads)
+    .set(thread.buyerId === userId ? { buyerClearedAt: now } : { sellerClearedAt: now })
+    .where(eq(threads.id, thread.id));
+  return { ok: true };
 }
 
 /** «печатает…» signal from a participant (in memory, ~6 s). */
