@@ -102,7 +102,7 @@ function ListingCard({
       </div>
       <div className={`${pad} ${video ? "flex flex-col items-center text-center" : ""}`}>
         {video && layout !== "small" ? (
-          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.videoListing}</div>
+          <div className="badge-yellow mb-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]">{t.videoListing}</div>
         ) : null}
         <Price listing={listing} compact={layout !== "large"} />
         <div

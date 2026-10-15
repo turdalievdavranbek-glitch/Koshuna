@@ -42,7 +42,7 @@ export function MasterBadge({ userId, on }: { userId?: string | null; on?: boole
   const show = on ?? Boolean(userId && ids.has(userId));
   if (!show) return null;
   return (
-    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success px-2 py-0.5 text-[10px] font-bold text-white" title={t.masterAccount}>
+    <span className="inline-flex shrink-0 items-center gap-0.5 badge-yellow rounded-full px-2 py-0.5 text-[10px] font-bold" title={t.masterAccount}>
       ✔ {t.masterBadge}
     </span>
   );

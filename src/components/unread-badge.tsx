@@ -27,7 +27,7 @@ export function UnreadBadge({ count, testId, className = "", small }: { count: n
       data-testid={testId}
       aria-hidden
       className={`unread-badge pointer-events-none absolute z-[1] flex items-center justify-center rounded-full bg-[#E0242B] font-bold leading-none text-white ${
-        small ? "h-[14px] min-w-[14px] px-[3px] text-[9px] ring-[1.5px] ring-white" : "h-[18px] min-w-[18px] px-1 text-[11px] ring-2 ring-white"
+        small ? "h-[14px] min-w-[14px] px-[3px] text-[9px] ring-[1.5px] ring-[#FFE600]" : "h-[18px] min-w-[18px] px-1 text-[11px] ring-2 ring-[#FFE600]"
       } ${rise ? "unread-pop" : ""} ${className}`}
     >
       {badgeText(count)}
