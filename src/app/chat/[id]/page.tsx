@@ -104,7 +104,7 @@ export default function ChatPage() {
       <PhoneShell focus>
         <div className="p-6">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
-            <IconBack size={18} color="#2A2550" />
+            <IconBack size={18} color="#18181B" />
           </button>
           <p className="mt-4">{missing ? t.emptyInbox : ""}</p>
         </div>
@@ -192,7 +192,7 @@ export default function ChatPage() {
         data-testid="chat-reaction-badge"
         aria-label={t.chatReact}
         onClick={() => setMenuFor(m)}
-        className={`relative z-[1] -mt-2 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-0.5 text-[13px] leading-none shadow-[0_2px_6px_rgba(90,63,214,.18)] ${m.mine ? "mr-2" : "ml-2"}`}
+        className={`relative z-[1] -mt-2 flex items-center gap-0.5 rounded-full border border-line bg-white px-1.5 py-0.5 text-[13px] leading-none shadow-[0_2px_6px_rgba(176,20,26,.18)] ${m.mine ? "mr-2" : "ml-2"}`}
       >
         {list[0] === list[1] ? (
           <>
@@ -270,7 +270,7 @@ export default function ChatPage() {
       <div className="shrink-0 border-b border-line bg-white">
         <div className="flex items-center gap-3 px-4 pb-3 pt-1.5">
           <button type="button" aria-label={t.backLeave} onClick={() => goBack(router, "/messages")}>
-            <IconBack size={18} color="#2A2550" />
+            <IconBack size={18} color="#18181B" />
           </button>
           <button
             type="button"
@@ -357,7 +357,7 @@ export default function ChatPage() {
                 }}
               >
                 <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div>
-                <div className="mt-1 text-right text-[11px] text-[rgba(247,243,236,.6)]">{when}</div>
+                <div className="mt-1 text-right text-[11px] text-[rgba(245,245,247,.6)]">{when}</div>
               </div>
               {badge(m)}
               </div>
@@ -472,7 +472,7 @@ export default function ChatPage() {
       </div>
       {menuFor ? (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(24,24,27,.45)] desk:items-center desk:p-4"
           onClick={() => setMenuFor(null)}
           data-testid="chat-msg-sheet"
         >

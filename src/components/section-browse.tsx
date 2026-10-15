@@ -323,7 +323,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
               onClick={goBack}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
             >
-              <IconBack size={16} color="#2A2550" />
+              <IconBack size={16} color="#18181B" />
             </button>
             <h1 className="max-w-[240px] truncate font-display text-[17px] font-bold text-ink">
               {state.title(t)}
@@ -385,11 +385,11 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
             className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
             aria-label={t.feed}
           >
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="max-w-[240px] truncate font-display text-lg font-bold text-ink">{state.title(t)}</h1>
           <button type="button" onClick={() => router.push("/filters")} aria-label={t.filters} className="desk:hidden">
-            <IconSliders size={17} color="#2A2550" />
+            <IconSliders size={17} color="#18181B" />
           </button>
         </div>
         <div className="mt-1">
@@ -399,7 +399,7 @@ export function SectionBrowse({ id, path }: { id: SectionId; path: string[] }) {
           <ScopeChips />
         </div>
         <div className="mt-3 flex h-12 items-center gap-2.5 rounded-2xl border border-line bg-surface px-4">
-          <IconSearch size={17} color="#A19DBD" />
+          <IconSearch size={17} color="#A1A1AA" />
           <input
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}

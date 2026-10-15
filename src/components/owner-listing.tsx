@@ -36,12 +36,12 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
     <div
       className="mt-3 rounded-[16px] px-3.5 py-3"
       style={{
-        background: stage === "reserved" ? "#ECE6FF" : stage === "closed" ? "#E4EFE9" : "#EEEAFB",
+        background: stage === "reserved" ? "#FDE8E8" : stage === "closed" ? "#E4EFE9" : "#F1F1F4",
       }}
     >
       <div
         className="text-[13px] font-bold leading-[1.4]"
-        style={{ color: stage === "closed" ? "#245046" : stage === "reserved" ? "#5A3FD6" : "#6F6B8F" }}
+        style={{ color: stage === "closed" ? "#245046" : stage === "reserved" ? "#B0141A" : "#61616B" }}
       >
         {text}
       </div>

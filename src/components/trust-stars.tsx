@@ -5,7 +5,7 @@ import { useApp } from "@/lib/store";
 import type { AuthMethod } from "@/lib/types";
 
 function Star({ filled, size, onDark }: { filled: boolean; size: number; onDark?: boolean }) {
-  const on = onDark ? "#FFFFFF" : "#7C5CFF";
+  const on = onDark ? "#FFFFFF" : "#E31E24";
   const off = onDark ? "rgba(255,247,240,.4)" : "#C9BBA8";
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden>
@@ -58,7 +58,7 @@ export function SellerStarsBadge({
   const n = starsForListing(listing, extraListings, user);
   return (
     <span
-      className={`pointer-events-none z-[1] flex items-center rounded-full bg-[rgba(42,37,80,.72)] ${
+      className={`pointer-events-none z-[1] flex items-center rounded-full bg-[rgba(24,24,27,.72)] ${
         placed ? "relative" : "absolute"
       } ${
         compact && !placed ? "bottom-1.5 right-1.5 px-1 py-[3px]" : placed ? "px-1.5 py-1" : "bottom-2 right-2 px-1.5 py-1"

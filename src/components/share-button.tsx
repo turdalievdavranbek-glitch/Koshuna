@@ -112,7 +112,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         type="button"
         onClick={() => void share()}
         data-testid="share-overlay"
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(20,16,40,.38)] backdrop-blur-[2px] active:scale-95"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(9,9,11,.38)] backdrop-blur-[2px] active:scale-95"
         aria-label={t.share}
         title={t.share}
       >
@@ -127,7 +127,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         aria-label={t.share}
         title={t.share}
       >
-        <IconSend size={23} color="#2A2550" />
+        <IconSend size={23} color="#18181B" />
       </button>
     ) : variant === "icon" ? (
       <button
@@ -136,7 +136,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
         aria-label={t.share}
       >
-        <IconShare size={17} color="#2A2550" />
+        <IconShare size={17} color="#18181B" />
       </button>
     ) : (
       <button
@@ -152,7 +152,7 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
     <>
       {control}
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(24,24,27,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
           <div
             className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:rounded-[24px]"
             onClick={(event) => event.stopPropagation()}

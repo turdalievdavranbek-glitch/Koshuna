@@ -60,7 +60,7 @@ function LiveVideoBox({
       ) : null}
       {recording ? (
         <div data-testid="post-live-timer" className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
-          <div className="rounded-full bg-[rgba(42,37,80,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
+          <div className="rounded-full bg-[rgba(24,24,27,.75)] px-3 py-1 text-[15px] font-bold text-white tabular-nums">
             <span style={{ color: "#E8112D" }}>●</span>{" "}
             {limit - elapsed <= 10 ? (
               <span style={{ color: "#E8112D" }}>{clock(Math.max(0, Math.ceil(limit - elapsed)))}</span>
@@ -521,7 +521,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                 data-testid="post-stop"
                 onClick={() => stopRec()}
                 className="h-12 w-full rounded-[12px] text-[15px] font-semibold"
-                style={{ background: "#7C5CFF", color: "#F6F4FF" }}
+                style={{ background: "#E31E24", color: "#F5F5F7" }}
               >
                 {t.mediaStop}
               </button>
@@ -719,7 +719,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                   type="button"
                   onClick={() => (recording ? stopRec() : startRec("video"))}
                   className="h-11 flex-1 rounded-[12px] text-[13px] font-semibold"
-                  style={{ background: recording ? "#7C5CFF" : "#2A2550", color: "#F6F4FF" }}
+                  style={{ background: recording ? "#E31E24" : "#18181B", color: "#F5F5F7" }}
                 >
                   {recording ? t.mediaStop : t.mediaRecord}
                 </button>
@@ -775,7 +775,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               }}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4]"
             >
-              <IconImage size={22} color="#6F6B8F" />
+              <IconImage size={22} color="#61616B" />
               <span className="text-[11px] font-semibold text-muted">{t.gallery}</span>
             </button>
           </div>
@@ -792,7 +792,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
               {draft.photo ? <Photo src={draft.photo} alt="" fit="contain" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
-              <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(42,37,80,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
+              <span className="absolute bottom-1.5 left-1.5 rounded bg-[rgba(24,24,27,.75)] px-1.5 py-0.5 text-[10px] font-bold text-screen">
                 {t.mainPhoto}
               </span>
             </button>
@@ -801,7 +801,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               onClick={() => cameraRef.current?.click()}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
             >
-              <IconCamera size={22} color="#7C5CFF" />
+              <IconCamera size={22} color="#E31E24" />
               <span className="text-[11px] font-semibold text-accent-dark">{t.camera}</span>
             </button>
             <button
@@ -809,7 +809,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               onClick={() => galleryRef.current?.click()}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
             >
-              <IconImage size={22} color="#6F6B8F" />
+              <IconImage size={22} color="#61616B" />
               <span className="text-[11px] font-semibold text-muted">{t.postGallery}</span>
             </button>
           </div>

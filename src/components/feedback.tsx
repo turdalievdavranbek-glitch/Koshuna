@@ -89,7 +89,7 @@ export function FeedbackLauncher({ showBubble, lifted = false }: { showBubble: b
           aria-label={t.feedbackEntry}
           title={t.feedbackEntry}
           onClick={() => setOpen(true)}
-          className="absolute left-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white/90 text-muted shadow-[0_4px_14px_rgba(42,37,80,.12)] backdrop-blur desk:fixed desk:bottom-4 desk:left-6"
+          className="absolute left-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white/90 text-muted shadow-[0_4px_14px_rgba(24,24,27,.12)] backdrop-blur desk:fixed desk:bottom-4 desk:left-6"
           style={{ bottom: lifted ? "88px" : "calc(var(--tabbar-h, 0px) + 12px)" }}
         >
           <BubbleIcon />
@@ -175,7 +175,7 @@ function FeedbackSheet({ onClose }: { onClose: () => void }) {
   const empty = !text.trim() && !topic && !photo && !voice;
 
   return (
-    <div className="absolute inset-0 z-50 flex items-end bg-[rgba(42,37,80,.45)] desk:fixed desk:items-center desk:justify-center desk:p-4" onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-end bg-[rgba(24,24,27,.45)] desk:fixed desk:items-center desk:justify-center desk:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-label={t.feedbackEntry}

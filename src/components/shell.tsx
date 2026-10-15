@@ -70,10 +70,10 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
       className="flex flex-1 flex-col items-center gap-1 pt-2"
     >
       <span className="relative flex">
-        <Icon size={21} color={active ? "#7C5CFF" : "#A19DBD"} />
+        <Icon size={21} color={active ? "#E31E24" : "#A1A1AA"} />
         <UnreadBadge count={badge} testId={`${testId}-badge`} className="-top-2 -right-3" />
       </span>
-      <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#7C5CFF" : "#A19DBD" }}>
+      <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#E31E24" : "#A1A1AA" }}>
         {label}
       </span>
     </button>
@@ -114,7 +114,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
         : item("/messages", "tab-messages", t.inbox, IconChat, chatOn, chatUnread)}
       {item("/profile", "tab-profile", t.sideDesk, IconUser, profileOn, FEATURES.cart ? chatUnread : 0)}
       {sheet ? (
-        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(42,37,80,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
+        <div className="absolute inset-0 z-40 flex items-end bg-[rgba(24,24,27,.45)] desk:items-center desk:justify-center desk:p-4" data-testid="post-sheet" onClick={() => setSheet(false)}>
           <div className="w-full rounded-t-[24px] bg-screen px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
             <div className="font-display text-[20px] font-bold text-ink">{t.postChoiceTitle}</div>
             <div className="mt-3">
@@ -272,7 +272,7 @@ export function PhoneShell({
       <div
         ref={phoneRef}
         id="konshu-phone"
-        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(42,37,80,.14)] desk:h-full desk:max-h-[100dvh] desk:w-full desk:max-w-none desk:rounded-none desk:border-0 desk:shadow-none"
+        className="relative flex h-full max-h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-screen md:h-[min(844px,calc(100dvh-48px))] md:max-h-[min(844px,calc(100dvh-48px))] md:max-w-[390px] md:rounded-[42px] md:border md:border-line md:shadow-[0_26px_64px_rgba(24,24,27,.14)] desk:h-full desk:max-h-[100dvh] desk:w-full desk:max-w-none desk:rounded-none desk:border-0 desk:shadow-none"
         style={{ "--tabbar-h": hidden ? "0px" : "78px" } as CSSProperties}
       >
         <DesktopHeader />

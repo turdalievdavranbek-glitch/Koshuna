@@ -107,13 +107,13 @@ export default function ProfilePage() {
                 <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
               ) : null}
               {hasRole(user, "realtor") ? (
-                <span className="rounded-full bg-[#ECE6FF] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
+                <span className="rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
               ) : null}
               {FEATURES.developers && hasRole(user, "developer") ? (
                 <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
               {FEATURES.dealers && hasRole(user, "dealer") ? (
-                <span className="rounded-full bg-[#ECE6FF] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
+                <span className="rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
               ) : null}
             </div>
             {FEATURES.accountStars ? (
@@ -185,7 +185,7 @@ export default function ProfilePage() {
           className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
         >
           <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
-            <IconBookmark size={17} color="#7C5CFF" />
+            <IconBookmark size={17} color="#E31E24" />
             {t.savedTitle}
           </span>
           <span className="flex items-center gap-2">
@@ -399,7 +399,7 @@ function AccountDeleteDialog({
   }, [open, onCancel]);
   if (!open) return null;
   return (
-    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(42,37,80,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="delete-account-dialog">
+    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(24,24,27,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="delete-account-dialog">
       <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
         <div className="font-display text-[20px] font-bold text-ink">{t.deleteAccountAsk}</div>
         <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.deleteAccountText}</p>

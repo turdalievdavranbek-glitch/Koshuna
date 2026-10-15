@@ -221,7 +221,7 @@ export function PersonalPost() {
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
           >
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
             {t.backLeave}
           </button>
           <span className="font-display text-[16px] font-bold text-ink">{t.newListing}</span>

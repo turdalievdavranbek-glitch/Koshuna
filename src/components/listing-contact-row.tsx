@@ -35,7 +35,7 @@ export function ListingContactRow({
           onClick={onCallGate}
           className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
         >
-          <IconPhone size={19} color="#F6F4FF" />
+          <IconPhone size={19} color="#F5F5F7" />
           {callLabel}
         </a>
       ) : null}
@@ -48,7 +48,7 @@ export function ListingContactRow({
           aria-label="WhatsApp"
           className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success"
         >
-          <IconWa size={19} color="#F6F4FF" />
+          <IconWa size={19} color="#F5F5F7" />
         </a>
       ) : null}
       {telegramHref ? (
@@ -59,7 +59,7 @@ export function ListingContactRow({
           aria-label="Telegram"
           className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl border border-line bg-white"
         >
-          <IconTg size={19} color="#2A2550" />
+          <IconTg size={19} color="#18181B" />
         </a>
       ) : null}
       <button

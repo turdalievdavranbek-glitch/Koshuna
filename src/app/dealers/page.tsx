@@ -25,7 +25,7 @@ export default function DealersPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/section/cars")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.dealersTitle}</h1>
           <span className="w-9" />
@@ -48,7 +48,7 @@ export default function DealersPage() {
                   className="rounded-[18px] border border-line bg-white px-3.5 py-3.5 text-left"
                 >
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="rounded-md bg-[#ECE6FF] px-2 py-0.5 text-[10px] font-bold text-accent-dark">
+                    <span className="rounded-md bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">
                       {row.verified ? t.dealerVerified : t.dealerBadge}
                     </span>
                   </div>

@@ -27,7 +27,7 @@ export function CommentsButton({
     return (
       <button type="button" data-testid="comments-open" aria-label={t.comments} onClick={onOpen} className="flex flex-col items-center gap-0.5">
         <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/92">
-          <IconChat size={19} color="#2A2550" />
+          <IconChat size={19} color="#18181B" />
         </span>
         <span className="text-[12px] font-semibold text-white tabular-nums">{count}</span>
       </button>
@@ -41,7 +41,7 @@ export function CommentsButton({
       onClick={onOpen}
       className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border border-line bg-white text-[14px] font-semibold text-ink"
     >
-      <IconChat size={17} color="#2A2550" />
+      <IconChat size={17} color="#18181B" />
       {count}
     </button>
   );
@@ -235,7 +235,7 @@ export function CommentsSheet({ listingId, title, onClose }: { listingId: string
             aria-pressed={row.liked}
             onClick={() => void like(row)}
             className="inline-flex items-center gap-1"
-            style={{ color: row.liked ? "#7C5CFF" : undefined }}
+            style={{ color: row.liked ? "#E31E24" : undefined }}
           >
             {row.liked ? "♥" : "♡"} {row.likes}
           </button>
@@ -250,7 +250,7 @@ export function CommentsSheet({ listingId, title, onClose }: { listingId: string
   );
 
   return (
-    <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4" onClick={onClose} data-testid="comments-sheet">
+    <div className="fixed inset-0 z-[85] flex items-end justify-center bg-[rgba(24,24,27,.45)] desk:items-center desk:p-4" onClick={onClose} data-testid="comments-sheet">
       <div
         role="dialog"
         aria-label={t.comments}
@@ -355,7 +355,7 @@ export function CommentsSheet({ listingId, title, onClose }: { listingId: string
       </div>
 
       {menu ? (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(42,37,80,.35)] desk:items-center desk:p-4" onClick={(e) => { e.stopPropagation(); setMenu(null); }}>
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(24,24,27,.35)] desk:items-center desk:p-4" onClick={(e) => { e.stopPropagation(); setMenu(null); }}>
           <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-3 pb-6 pt-3 desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
             {menu.mine ? (
               <button
@@ -424,7 +424,7 @@ export function CommentsSheet({ listingId, title, onClose }: { listingId: string
       ) : null}
 
       {reportFor ? (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(42,37,80,.35)] desk:items-center desk:p-4" onClick={(e) => { e.stopPropagation(); setReportFor(null); }}>
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(24,24,27,.35)] desk:items-center desk:p-4" onClick={(e) => { e.stopPropagation(); setReportFor(null); }}>
           <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-4 pb-6 pt-4 desk:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
             <div className="font-display text-[17px] font-bold text-ink">{t.commentReportTitle}</div>
             <div className="mt-3 flex flex-col gap-1.5">

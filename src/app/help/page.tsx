@@ -14,7 +14,7 @@ export default function HelpPage() {
     <PhoneShell>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
-          <IconBack size={16} color="#2A2550" />
+          <IconBack size={16} color="#18181B" />
         </RoundBtn>
         <h1 className="mt-5 font-display text-[28px] font-extrabold tracking-[-0.02em] text-ink">{t.helpTitle}</h1>
         <p className="mt-4 text-[15px] leading-[1.6] text-ink-2">{t.helpBody}</p>
