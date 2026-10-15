@@ -251,7 +251,7 @@ export default function ListingPage() {
               onClick={() => goBack(router, "/")}
               className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
             >
-              <IconBack size={17} color="#2A2550" />
+              <IconBack size={17} color="#18181B" />
             </button>
             <div className="flex gap-2">
               <ShareButton listing={listing} variant="icon" />
@@ -261,7 +261,7 @@ export default function ListingPage() {
                   onClick={onFav}
                   className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/94"
                 >
-                  <IconBookmark size={18} color="#7C5CFF" filled={isFav(listing.id)} />
+                  <IconBookmark size={18} color="#E31E24" filled={isFav(listing.id)} />
                 </button>
               )}
             </div>
@@ -273,7 +273,7 @@ export default function ListingPage() {
           ) : (
             <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2">
               {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
-              <span className="rounded-full bg-[rgba(42,37,80,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
+              <span className="rounded-full bg-[rgba(24,24,27,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
                 {photo + 1} / {listing.photos.length}
               </span>
             </span>
@@ -288,7 +288,7 @@ export default function ListingPage() {
                 type="button"
                 onClick={() => setPhoto(i)}
                 className="h-[60px] w-[60px] overflow-hidden rounded-xl"
-                style={{ border: i === photo ? "2px solid #7C5CFF" : "1px solid #E3DEF7" }}
+                style={{ border: i === photo ? "2px solid #E31E24" : "1px solid #E4E4E9" }}
               >
                 <Photo src={src} alt="" />
               </button>
@@ -308,7 +308,7 @@ export default function ListingPage() {
                 type="button"
                 onClick={() => setPhoto(i)}
                 className="h-[72px] w-[72px] overflow-hidden rounded-xl"
-                style={{ border: i === photo ? "2px solid #7C5CFF" : "1px solid #E3DEF7" }}
+                style={{ border: i === photo ? "2px solid #E31E24" : "1px solid #E4E4E9" }}
               >
                 <Photo src={src} alt="" />
               </button>
@@ -354,7 +354,7 @@ export default function ListingPage() {
           </div>
           <PriceHonest listing={listing} />
           <div className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-            <IconPin size={14} color="#7C5CFF" />
+            <IconPin size={14} color="#E31E24" />
             {listing.district ? `${t.cities[listing.city]}, ${listing.district}` : `${t.cities[listing.city]} · ${postedLabel(listing, t)}`}
             <span className="text-muted-2" data-testid="listing-views">
               · {viewsNow ?? listing.views ?? 0} {t.views}
@@ -525,7 +525,7 @@ export default function ListingPage() {
                 <div
                   key={row.label}
                   className="flex justify-between px-4 py-3.5 text-sm"
-                  style={{ borderTop: i ? "1px solid #EEEAFB" : undefined }}
+                  style={{ borderTop: i ? "1px solid #F1F1F4" : undefined }}
                 >
                   <span className="text-muted">{t.spec[row.label] ?? row.label}</span>
                   <span className="font-semibold text-ink">{row.value}</span>
@@ -629,7 +629,7 @@ export default function ListingPage() {
             >
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-full font-display text-xl font-bold text-screen"
-                style={{ background: owner.color === "ink" ? "#2A2550" : "#5A3FD6" }}
+                style={{ background: owner.color === "ink" ? "#18181B" : "#B0141A" }}
               >
                 {owner.initial}
               </div>
@@ -721,7 +721,7 @@ export default function ListingPage() {
 
       <div
         data-testid="listing-contact"
-        className="absolute inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-[rgba(247,243,236,.96)] px-5 pt-3.5 desk:hidden"
+        className="absolute inset-x-0 bottom-0 z-20 flex gap-2 border-t border-line bg-[rgba(245,245,247,.96)] px-5 pt-3.5 desk:hidden"
         style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
       >
         {mine ? (
@@ -731,7 +731,7 @@ export default function ListingPage() {
               onClick={() => router.push("/messages")}
               className="shadow-btn flex h-[54px] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-base font-semibold text-screen"
             >
-              <IconChat size={18} color="#F6F4FF" />
+              <IconChat size={18} color="#F5F5F7" />
               {t.inbox}
             </button>
             <button

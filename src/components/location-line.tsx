@@ -55,10 +55,10 @@ export function LocationLine({ className }: { className?: string }) {
       onClick={() => openLocationPicker(router, path || "/")}
       className={`mx-auto flex max-w-[320px] items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink ${className ?? ""}`}
     >
-      <IconPin size={14} color="#7C5CFF" />
+      <IconPin size={14} color="#E31E24" />
       <span className="truncate">{label}</span>
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-chip" aria-hidden>
-        <IconChevronDown size={14} color="#2A2550" />
+        <IconChevronDown size={14} color="#18181B" />
       </span>
     </button>
   );

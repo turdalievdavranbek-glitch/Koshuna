@@ -47,15 +47,15 @@ export function PostTypePicker({
                   setOpen(false);
                 }}
                 className={`flex w-full items-center gap-3 px-3 py-[10px] text-left ${i ? "border-t border-line" : ""}`}
-                style={{ background: on ? "#2A2550" : "#FFFFFF" }}
+                style={{ background: on ? "#18181B" : "#FFFFFF" }}
               >
                 <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px] bg-[#eee8dc]">
                   <img src={s.art} alt="" className="h-full w-full object-cover" />
                 </span>
-                <span className="flex-1 text-[15px] font-semibold" style={{ color: on ? "#F6F4FF" : "#2A2550" }} data-testid={`section-${s.id}`}>
+                <span className="flex-1 text-[15px] font-semibold" style={{ color: on ? "#F5F5F7" : "#18181B" }} data-testid={`section-${s.id}`}>
                   {s.id === "shops" ? t.sectionNames.shops : t.sectionNames[s.id]}
                 </span>
-                {on ? <IconCheck size={16} color="#F6F4FF" /> : <span className="text-muted-2">›</span>}
+                {on ? <IconCheck size={16} color="#F5F5F7" /> : <span className="text-muted-2">›</span>}
               </button>
             );
           })}

@@ -91,7 +91,7 @@ export default function DeveloperCabinetPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.developerCabinet}</h1>
           <span className="w-9" />

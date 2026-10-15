@@ -34,7 +34,7 @@ export default function FiltersPage() {
           onClick={() => goBack(router, "/search")}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface"
         >
-          <IconBack size={16} color="#2A2550" />
+          <IconBack size={16} color="#18181B" />
         </button>
         <span className="min-w-0 truncate font-display text-lg font-bold text-ink">{t.filters}</span>
         <button type="button" onClick={resetFilters} className="shrink-0 text-sm font-semibold text-accent" data-testid="filters-reset">
@@ -59,7 +59,7 @@ export default function FiltersPage() {
           className="flex h-[54px] w-14 items-center justify-center rounded-2xl border border-line bg-white"
           aria-label={t.saveSearch}
         >
-          <IconHeart size={19} color="#2A2550" />
+          <IconHeart size={19} color="#18181B" />
         </button>
         <button
           type="button"

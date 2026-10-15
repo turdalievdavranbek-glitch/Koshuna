@@ -213,7 +213,7 @@ export function CardPost({ card }: { card: string }) {
             className="flex items-center gap-1 rounded-full border border-line bg-surface py-1.5 pl-2 pr-3 text-[13px] font-semibold text-ink"
             aria-label={t.backLeave}
           >
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
             {t.backLeave}
           </button>
           <span className="font-display text-[16px] font-bold text-ink">{t.newListing}</span>
@@ -221,7 +221,7 @@ export function CardPost({ card }: { card: string }) {
         </div>
         <div className="mt-3.5 flex items-center gap-2">
           {bars.map((on, i) => (
-            <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#7C5CFF" : "#E3DEF7" }} />
+            <span key={i} className="h-1 flex-1 rounded-full" style={{ background: on ? "#E31E24" : "#E4E4E9" }} />
           ))}
           <span className="ml-1 text-xs font-semibold text-muted">
             {step === 1
@@ -259,7 +259,7 @@ export function CardPost({ card }: { card: string }) {
                   onClick={() => setDraft({ serviceMode: "place", serviceArea: undefined })}
                   className="rounded-2xl border px-4 py-3.5 text-left"
                   style={{
-                    borderColor: draft.serviceMode === "place" ? "#7C5CFF" : "#E3DEF7",
+                    borderColor: draft.serviceMode === "place" ? "#E31E24" : "#E4E4E9",
                     background: draft.serviceMode === "place" ? "#FFFFFF" : "#FFFFFF",
                   }}
                 >
@@ -272,7 +272,7 @@ export function CardPost({ card }: { card: string }) {
                   onClick={() => setDraft({ serviceMode: "mobile", address: "", lat: undefined, lng: undefined })}
                   className="rounded-2xl border px-4 py-3.5 text-left"
                   style={{
-                    borderColor: draft.serviceMode === "mobile" ? "#7C5CFF" : "#E3DEF7",
+                    borderColor: draft.serviceMode === "mobile" ? "#E31E24" : "#E4E4E9",
                     background: draft.serviceMode === "mobile" ? "#FFFFFF" : "#FFFFFF",
                   }}
                 >
@@ -601,7 +601,7 @@ export function CardPost({ card }: { card: string }) {
                 <span className="font-display text-[17px] font-bold text-screen">{t.promote}</span>
                 <Toggle on={draft.promote} onChange={() => setDraft({ promote: !draft.promote })} />
               </div>
-              <p className="mt-2 text-[13px] leading-[1.5] text-[rgba(247,243,236,.72)]">{t.promoteHint}</p>
+              <p className="mt-2 text-[13px] leading-[1.5] text-[rgba(245,245,247,.72)]">{t.promoteHint}</p>
             </div>
             )}
             {error ? <p className="text-[13px] text-accent">{error}</p> : null}
@@ -831,11 +831,11 @@ export function CardPost({ card }: { card: string }) {
               style={{
                 background:
                   (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
-                    ? "#D9D3F5"
-                    : "#7C5CFF",
+                    ? "#D4D4DA"
+                    : "#E31E24",
                 color:
                   (draft.mediaKind === "video" || draft.mediaKind === "voice") && !draft.aiConfirmed
-                    ? "#6F6B8F"
+                    ? "#61616B"
                     : "#FFFFFF",
               }}
             >

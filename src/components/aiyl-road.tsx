@@ -17,7 +17,7 @@ export function AiylRoad({ listing }: { listing: Listing }) {
   return (
     <div className="mt-3 flex items-start gap-3 rounded-[18px] border border-line bg-white p-4">
       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip">
-        <IconPin size={16} color="#7C5CFF" />
+        <IconPin size={16} color="#E31E24" />
       </span>
       <div>
         <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.aiyl}</div>

@@ -137,7 +137,7 @@ export function CategoryChips({
                 data-selected={selected ? "true" : "false"}
                 onClick={() => onPatch({ ...draftFromPick(draft, pick, true), sectionPicked: true })}
                 className="rounded-full px-3 py-1.5 text-[13px] font-semibold"
-                style={{ background: selected ? "#7C5CFF" : "#EEEAFB", color: selected ? "#FFFFFF" : "#2A2550" }}
+                style={{ background: selected ? "#E31E24" : "#F1F1F4", color: selected ? "#FFFFFF" : "#18181B" }}
               >
                 {selected ? "✓ " : ""}
                 {categoryChipLabel(pick, t)}
@@ -193,7 +193,7 @@ export function CategoryChips({
               data-selected={selected ? "true" : "false"}
               onClick={() => onPatch(draftFromPick(draft, pick, true))}
               className="rounded-full px-3 py-1.5 text-[13px] font-semibold"
-              style={{ background: selected ? "#7C5CFF" : "#EEEAFB", color: selected ? "#FFFFFF" : "#2A2550" }}
+              style={{ background: selected ? "#E31E24" : "#F1F1F4", color: selected ? "#FFFFFF" : "#18181B" }}
             >
               {selected ? "✓ " : ""}
               {label}

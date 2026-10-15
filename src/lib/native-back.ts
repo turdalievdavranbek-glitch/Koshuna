@@ -99,8 +99,8 @@ export function showExitToast(text: string): void {
     el.style.zIndex = "80";
     el.style.padding = "12px 16px";
     el.style.borderRadius = "14px";
-    el.style.background = "#2A2550";
-    el.style.color = "#F6F4FF";
+    el.style.background = "#18181B";
+    el.style.color = "#F5F5F7";
     el.style.textAlign = "center";
     el.style.fontSize = "14px";
     el.style.fontWeight = "600";

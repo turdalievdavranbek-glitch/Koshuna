@@ -145,7 +145,7 @@ export default function MapPage() {
             onClick={() => router.push("/filters")}
             className="shadow-float flex h-12 flex-1 items-center gap-2.5 rounded-2xl bg-white px-4"
           >
-            <IconSearch size={17} color="#A19DBD" />
+            <IconSearch size={17} color="#A1A1AA" />
             <span className="truncate text-[15px] text-ink">
               {filters.locLabel ?? `${t.cities[cityId]} · ${t.mapEyebrow}`}
             </span>
@@ -155,7 +155,7 @@ export default function MapPage() {
             onClick={() => router.push("/filters")}
             className="shadow-float flex h-12 w-12 items-center justify-center rounded-2xl bg-white"
           >
-            <IconSliders size={17} color="#2A2550" />
+            <IconSliders size={17} color="#18181B" />
           </button>
         </div>
 
@@ -194,9 +194,9 @@ export default function MapPage() {
                       onClick={() => applyPoint(d.lat, d.lng, districtLabel(d, lang))}
                       className="shrink-0 rounded-full px-3.5 py-2 text-[13px] font-semibold"
                       style={{
-                        background: active ? "#2A2550" : "#FFFFFF",
-                        color: active ? "#F6F4FF" : "#2A2550",
-                        border: active ? "none" : "1px solid #E3DEF7",
+                        background: active ? "#18181B" : "#FFFFFF",
+                        color: active ? "#F5F5F7" : "#18181B",
+                        border: active ? "none" : "1px solid #E4E4E9",
                       }}
                     >
                       {districtLabel(d, lang)}
@@ -212,14 +212,14 @@ export default function MapPage() {
               className="shadow-float absolute right-4 top-[58px] z-10 flex h-11 items-center justify-center rounded-[14px] bg-white px-3"
               aria-label={geoBusy ? t.locationGeoBusy : t.pickOnMap}
             >
-              {geoBusy ? <span className="text-[12px] font-semibold text-ink">{t.locationGeoBusy}</span> : <IconLocate size={18} color="#2A2550" />}
+              {geoBusy ? <span className="text-[12px] font-semibold text-ink">{t.locationGeoBusy}</span> : <IconLocate size={18} color="#18181B" />}
             </button>
             <div className="absolute bottom-[168px] left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full bg-white p-1 shadow-float">
               <button
                 type="button"
                 onClick={() => setMode("map")}
                 className="rounded-full px-4 py-2 text-[13px] font-semibold"
-                style={{ background: "#2A2550", color: "#F6F4FF" }}
+                style={{ background: "#18181B", color: "#F5F5F7" }}
               >
                 {t.mapMode}
               </button>
@@ -243,7 +243,7 @@ export default function MapPage() {
         ) : null}
 
         {mode === "map" ? (
-          <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] bg-screen px-5 pb-3 pt-2.5 shadow-[0_-10px_30px_rgba(42,37,80,.14)]">
+          <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] bg-screen px-5 pb-3 pt-2.5 shadow-[0_-10px_30px_rgba(24,24,27,.14)]">
             <span className="mx-auto mb-3 block h-1 w-11 rounded-full bg-toggle-off" />
             <p className="mb-2 text-[12px] text-muted">{t.mapPickHint}</p>
             {pick ? (

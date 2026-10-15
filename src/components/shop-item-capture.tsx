@@ -747,7 +747,7 @@ export function ShopItemCapture({
                     <img src={row.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
                   ) : (
                     <div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-chip">
-                      <IconCamera size={18} color="#A19DBD" />
+                      <IconCamera size={18} color="#A1A1AA" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -880,7 +880,7 @@ export function ShopItemCapture({
                 type="button"
                 onClick={() => (recording ? void stopVoice() : void startVoice())}
                 className="mt-2 h-11 w-full rounded-2xl text-[13px] font-semibold"
-                style={{ background: recording ? "#7C5CFF" : "#2A2550", color: "#F6F4FF" }}
+                style={{ background: recording ? "#E31E24" : "#18181B", color: "#F5F5F7" }}
               >
                 {recording ? t.mediaStop : t.mediaVoiceRec}
               </button>
@@ -894,7 +894,7 @@ export function ShopItemCapture({
                 type="button"
                 onClick={() => (recording ? void stopVideo() : void startVideo())}
                 className="mt-3 h-11 w-full rounded-2xl text-[13px] font-semibold"
-                style={{ background: recording ? "#7C5CFF" : "#2A2550", color: "#F6F4FF" }}
+                style={{ background: recording ? "#E31E24" : "#18181B", color: "#F5F5F7" }}
               >
                 {recording ? t.mediaStop : t.mediaRecord}
               </button>

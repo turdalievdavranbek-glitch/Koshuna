@@ -55,8 +55,8 @@ export function MarketRangeCard({
           className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-white"
           style={{
             left: `${marker}%`,
-            background: fit === "in" ? "#2A6B57" : "#7C5CFF",
-            boxShadow: "0 2px 6px rgba(42,37,80,.2)",
+            background: fit === "in" ? "#2A6B57" : "#E31E24",
+            boxShadow: "0 2px 6px rgba(24,24,27,.2)",
           }}
         />
       </div>
@@ -67,7 +67,7 @@ export function MarketRangeCard({
       </div>
       <p
         className="mt-3 text-[13px] leading-[1.45]"
-        style={{ color: fit === "in" ? "#245046" : "#5A3FD6" }}
+        style={{ color: fit === "in" ? "#245046" : "#B0141A" }}
       >
         {fitText}
       </p>

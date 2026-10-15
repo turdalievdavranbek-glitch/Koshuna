@@ -34,9 +34,9 @@ export function LayoutSwitch() {
             title={o.label}
             onClick={() => setListingLayout(o.id)}
             className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-            style={{ background: on ? "#2A2550" : "transparent" }}
+            style={{ background: on ? "#18181B" : "transparent" }}
           >
-            <IconCols size={16} count={o.count} color={on ? "#F6F4FF" : "#6F6B8F"} />
+            <IconCols size={16} count={o.count} color={on ? "#F5F5F7" : "#61616B"} />
           </button>
         );
       })}
@@ -70,7 +70,7 @@ function ListingCard({
       <div className={`relative ${video ? (layout === "large" ? "px-8 pt-3" : layout === "medium" ? "px-3 pt-2" : "px-1 pt-1") : ""}`}>
         <ListingThumb listing={listing} alt={title} compact={layout !== "large"} />
         {!video && layout !== "small" ? (
-          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(42,37,80,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
+          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(24,24,27,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
@@ -96,7 +96,7 @@ function ListingCard({
             }}
             className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/92"
           >
-            <IconBookmark size={15} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
+            <IconBookmark size={15} color={saved ? "#E31E24" : "#18181B"} filled={saved} />
           </span>
         ) : null}
       </div>

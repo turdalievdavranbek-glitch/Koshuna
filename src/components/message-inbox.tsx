@@ -45,7 +45,7 @@ export function MessageInbox() {
     return (
       <div className="px-5 pt-2">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
-          <IconBack size={16} color="#2A2550" />
+          <IconBack size={16} color="#18181B" />
         </RoundBtn>
         <h1 className="mt-4 font-display text-[28px] font-extrabold text-ink">{t.inbox}</h1>
         <p className="mt-3 text-[15px] text-muted">{t.emptyInboxHint}</p>
@@ -71,7 +71,7 @@ export function MessageInbox() {
     <>
       <div className="flex items-center gap-3 px-5 pt-1">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/profile")}>
-          <IconBack size={16} color="#2A2550" />
+          <IconBack size={16} color="#18181B" />
         </RoundBtn>
         <h1 className="font-display text-[22px] font-bold text-ink">{t.inbox}</h1>
       </div>
@@ -93,8 +93,8 @@ export function MessageInbox() {
                 className="flex-1 rounded-[11px] py-2 text-center text-[13px] font-semibold"
                 style={{
                   background: on ? "#FFFFFF" : "transparent",
-                  color: on ? "#2A2550" : "#6F6B8F",
-                  boxShadow: on ? "0 1px 3px rgba(42,37,80,.08)" : "none",
+                  color: on ? "#18181B" : "#61616B",
+                  boxShadow: on ? "0 1px 3px rgba(24,24,27,.08)" : "none",
                 }}
               >
                 {label}
@@ -145,8 +145,8 @@ export function MessageInbox() {
                       <span
                         className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
                         style={{
-                          background: row.role === "sell" ? "#ECE6FF" : "#E4EFE9",
-                          color: row.role === "sell" ? "#5A3FD6" : "#2A6B57",
+                          background: row.role === "sell" ? "#FDE8E8" : "#E4EFE9",
+                          color: row.role === "sell" ? "#B0141A" : "#2A6B57",
                         }}
                       >
                         {row.role === "sell" ? t.threadAsSell : t.threadAsBuy}

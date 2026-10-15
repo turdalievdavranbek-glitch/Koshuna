@@ -56,12 +56,12 @@ export default function OwnerPage() {
       <PhoneShell>
         <div className="px-5 pt-1">
           <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/")}>
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
           </RoundBtn>
           <div className="mt-5 flex items-center gap-3.5">
             <div
               className="flex h-16 w-16 items-center justify-center rounded-full font-display text-[26px] font-bold text-screen"
-              style={{ background: demo.color === "ink" ? "#2A2550" : "#5A3FD6" }}
+              style={{ background: demo.color === "ink" ? "#18181B" : "#B0141A" }}
             >
               {demo.initial}
             </div>
@@ -106,7 +106,7 @@ export default function OwnerPage() {
     <PhoneShell>
       <div className="px-5 pt-1">
         <RoundBtn label={t.backLeave} onClick={() => goBack(router, "/")}>
-          <IconBack size={16} color="#2A2550" />
+          <IconBack size={16} color="#18181B" />
         </RoundBtn>
         <div className="mt-5 flex items-center gap-3.5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">

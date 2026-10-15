@@ -35,12 +35,12 @@ export function ListingSocialMeta({
       }`}
     >
       <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconHeart size={icon} color="#6F6B8F" />
+        <IconHeart size={icon} color="#61616B" />
         <span className="tabular-nums">{likes}</span>
       </span>
       {FEATURES.comments ? (
         <span className="inline-flex min-w-0 items-center gap-0.5">
-          <IconChat size={icon} color="#6F6B8F" />
+          <IconChat size={icon} color="#61616B" />
           <span className="tabular-nums">{comments}</span>
         </span>
       ) : null}
@@ -96,7 +96,7 @@ export function DoubleTapLike({ listingId, children, className }: { listingId: s
       {children}
       {pop ? (
         <div key={pop} aria-hidden className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-          <div className="heart-pop drop-shadow-[0_6px_18px_rgba(124,92,255,.55)]">
+          <div className="heart-pop drop-shadow-[0_6px_18px_rgba(227,30,36,.55)]">
             <IconHeart size={96} filled color="#FF3B6B" />
           </div>
         </div>
@@ -119,7 +119,7 @@ export function ListingMediaActions({ listing, className }: { listing: Listing; 
           aria-label={t.likeLabel}
           aria-pressed={liked}
           title={t.likeLabel}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(20,16,40,.38)] backdrop-blur-[2px] active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(9,9,11,.38)] backdrop-blur-[2px] active:scale-95"
         >
           <span key={liked ? "on" : "off"} className={liked ? "like-bump" : ""}>
             <IconHeart size={24} color={liked ? "#FF3B6B" : "#FFFFFF"} filled={liked} className="drop-shadow-[0_1px_3px_rgba(0,0,0,.55)]" />
@@ -157,7 +157,7 @@ export function ListingSocial({ listing, className }: { listing: Listing; classN
             title={saved ? t.savedLabel : t.saveLabel}
             className="flex h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-semibold text-ink active:scale-95"
           >
-            <IconBookmark size={23} color={saved ? "#7C5CFF" : "#2A2550"} filled={saved} />
+            <IconBookmark size={23} color={saved ? "#E31E24" : "#18181B"} filled={saved} />
             <span>{saved ? t.savedLabel : t.saveLabel}</span>
           </button>
         )}

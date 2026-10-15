@@ -112,7 +112,7 @@ export function HomeFreshFilters() {
         className="mb-2 flex max-w-full items-center gap-1 text-left text-[11px] font-semibold text-muted"
         data-testid="fresh-location"
       >
-        <IconPin size={12} color="#7C5CFF" />
+        <IconPin size={12} color="#E31E24" />
         <span className="truncate">
           {shownLocationLabel(lang, city, filters, t)}
         </span>
@@ -316,13 +316,13 @@ export function HomeFreshFilters() {
               <button
                 type="button"
                 aria-label={t.freshClose}
-                className="fixed inset-0 z-[60] cursor-default bg-[rgba(42,37,80,.25)] desk:bg-transparent"
+                className="fixed inset-0 z-[60] cursor-default bg-[rgba(24,24,27,.25)] desk:bg-transparent"
                 onClick={() => setSortOpen(false)}
               />
               <div
                 role="menu"
                 data-testid="fresh-sort-menu"
-                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(42,37,80,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:min-w-[220px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(42,37,80,.14)]"
+                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(24,24,27,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:min-w-[220px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(24,24,27,.14)]"
               >
                 <div className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-[0.08em] text-muted desk:hidden">{t.sort}</div>
                 {(
@@ -346,7 +346,7 @@ export function HomeFreshFilters() {
                     className="flex h-12 w-full items-center justify-between gap-3 rounded-[12px] px-3 text-left text-[15px] font-semibold text-ink hover:bg-chip desk:h-10 desk:text-[14px]"
                   >
                     {label}
-                    {sortNow === id ? <IconCheck size={16} color="#7C5CFF" /> : null}
+                    {sortNow === id ? <IconCheck size={16} color="#E31E24" /> : null}
                   </button>
                 ))}
               </div>
@@ -366,7 +366,7 @@ export function HomeFreshFilters() {
               toggles ? "border-ink bg-ink text-screen" : "border-line bg-surface text-ink"
             }`}
           >
-            <IconSliders size={12} color={toggles ? "#F6F4FF" : "#2A2550"} />
+            <IconSliders size={12} color={toggles ? "#F5F5F7" : "#18181B"} />
             {t.filters}
             {toggles ? <span className="ml-0.5">· {toggles}</span> : null}
           </button>
@@ -376,12 +376,12 @@ export function HomeFreshFilters() {
               <button
                 type="button"
                 aria-label={t.freshClose}
-                className="fixed inset-0 z-[60] cursor-default bg-[rgba(42,37,80,.25)] desk:bg-transparent"
+                className="fixed inset-0 z-[60] cursor-default bg-[rgba(24,24,27,.25)] desk:bg-transparent"
                 onClick={() => setPanel(false)}
               />
               <div
                 data-testid="fresh-filters-panel"
-                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(42,37,80,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:w-[260px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(42,37,80,.14)]"
+                className="fixed inset-x-0 bottom-0 z-[61] rounded-t-[22px] border border-line bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_32px_rgba(24,24,27,.16)] desk:absolute desk:inset-x-auto desk:bottom-auto desk:left-0 desk:top-9 desk:w-[260px] desk:rounded-[16px] desk:p-1.5 desk:shadow-[0_12px_32px_rgba(24,24,27,.14)]"
               >
                 <div className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-[0.08em] text-muted desk:hidden">{t.filters}</div>
                 {(

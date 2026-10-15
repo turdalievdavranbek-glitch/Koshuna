@@ -38,8 +38,8 @@ export function ReportListing({ listing, returnTo, sheet }: { listing: Listing; 
             onClick={() => setPicked(id)}
             className="rounded-[14px] px-3.5 py-3 text-left text-[14px] font-semibold"
             style={{
-              background: picked === id ? "#2A2550" : "#F6F4FF",
-              color: picked === id ? "#F6F4FF" : "#2A2550",
+              background: picked === id ? "#18181B" : "#F5F5F7",
+              color: picked === id ? "#F5F5F7" : "#18181B",
             }}
           >
             {t.reportReasons[id]}
@@ -78,7 +78,7 @@ export function ReportListing({ listing, returnTo, sheet }: { listing: Listing; 
         {t.report}
       </button>
       {open && sheet ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(42,37,80,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(24,24,27,.45)] desk:items-center desk:p-4" onClick={() => setOpen(false)}>
           <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
             {reasons}
             <button type="button" onClick={() => setOpen(false)} className="mt-2 h-12 w-full text-[15px] font-semibold text-muted">

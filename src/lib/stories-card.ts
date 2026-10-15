@@ -1,7 +1,7 @@
 const W = 1080;
 const H = 1920;
 const PHOTO_H = Math.round(H * 0.65);
-const BG = "#F6F4FF";
+const BG = "#F5F5F7";
 
 function sameOriginSrc(src: string) {
   return (
@@ -164,7 +164,7 @@ export async function renderStoriesCard(input: {
     }
   }
   if (!drewPhoto) {
-    ctx.fillStyle = "#EEEAFB";
+    ctx.fillStyle = "#F1F1F4";
     ctx.fillRect(0, 0, W, PHOTO_H);
   }
 
@@ -172,7 +172,7 @@ export async function renderStoriesCard(input: {
   ctx.fillStyle = BG;
   ctx.fillRect(0, PHOTO_H, W, H - PHOTO_H);
   ctx.textBaseline = "top";
-  ctx.fillStyle = "#2A2550";
+  ctx.fillStyle = "#18181B";
   ctx.font = "700 64px Manrope, ui-sans-serif, system-ui, sans-serif";
   const titleLines = wrapLines(ctx, input.title, W - pad * 2, 2);
   let y = PHOTO_H + 56;
@@ -180,10 +180,10 @@ export async function renderStoriesCard(input: {
     ctx.fillText(line, pad, y);
     y += 78;
   }
-  ctx.fillStyle = "#7C5CFF";
+  ctx.fillStyle = "#E31E24";
   ctx.font = "800 68px Manrope, ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(input.price, pad, y + 16);
-  ctx.fillStyle = "#6F6B8F";
+  ctx.fillStyle = "#61616B";
   ctx.font = "600 40px Manrope, ui-sans-serif, system-ui, sans-serif";
   const place = wrapLines(ctx, input.place, W - pad * 2, 2);
   let py = y + 108;
@@ -200,7 +200,7 @@ export async function renderStoriesCard(input: {
   } catch {
     /* strip still names the site */
   }
-  ctx.fillStyle = "#2A2550";
+  ctx.fillStyle = "#18181B";
   ctx.font = "700 44px Manrope, ui-sans-serif, system-ui, sans-serif";
   ctx.textBaseline = "middle";
   ctx.fillText("koshuna.ru", pad + logoSize + 28, logoY + logoSize / 2);

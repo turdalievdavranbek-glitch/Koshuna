@@ -110,7 +110,7 @@ export default function ShopDetailPage() {
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => goBack(router, "/shops")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface" aria-label={t.backLeave}>
-            <IconBack size={16} color="#2A2550" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <span className="font-display text-[15px] font-bold">{t.shopCard}</span>
           <span className="w-9" />
@@ -122,7 +122,7 @@ export default function ShopDetailPage() {
             <button
               type="button"
               onClick={() => shop.videoUrl && setPlaying(true)}
-              className="shrink-0 rounded-full bg-[conic-gradient(from_200deg,#7C5CFF,#FF6FB5,#FFB86B,#7C5CFF)] p-[3px]"
+              className="shrink-0 rounded-full bg-[conic-gradient(from_200deg,#E31E24,#FF6FB5,#FFB86B,#E31E24)] p-[3px]"
             >
               <span className="block overflow-hidden rounded-full border-[3px] border-white [&_*]:!rounded-full">
                 <ShopThumb cover={shop.coverUrl} video={shop.videoUrl} />
@@ -232,7 +232,7 @@ export default function ShopDetailPage() {
           ) : null}
           {telegramHref ? (
             <a href={telegramHref} target="_blank" rel="noreferrer" aria-label="Telegram" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl border border-line bg-white">
-              <IconTg size={18} color="#2A2550" />
+              <IconTg size={18} color="#18181B" />
             </a>
           ) : null}
         </div>
@@ -320,7 +320,7 @@ export default function ShopDetailPage() {
                   aria-label={item.title}
                 >
                   <ListingThumb listing={item} alt={item.title} compact className="!h-full !w-full" />
-                  <span className="absolute bottom-1 left-1 rounded-md bg-[rgba(42,37,80,.72)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  <span className="absolute bottom-1 left-1 rounded-md bg-[rgba(24,24,27,.72)] px-1.5 py-0.5 text-[10px] font-bold text-white">
                     {formatSom(item.price)} сом
                   </span>
                 </button>

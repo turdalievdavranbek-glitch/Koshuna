@@ -67,7 +67,7 @@ export function FiltersPanel() {
       <div data-testid="filters-scroll" className="sc flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-5 pb-5">
         <div
           className="flex h-12 min-w-0 items-center gap-2.5 rounded-2xl bg-white px-4"
-          style={{ border: `1px solid ${filters.query ? "#2A2550" : "#E3DEF7"}` }}
+          style={{ border: `1px solid ${filters.query ? "#18181B" : "#E4E4E9"}` }}
         >
           <input
             value={filters.query}
@@ -89,15 +89,15 @@ export function FiltersPanel() {
               type="button"
               onClick={() => setFilters(patchForSection("shops", filters))}
               className="flex w-full min-w-0 items-center gap-3 px-3 py-[10px] text-left"
-              style={{ background: isShops ? "#2A2550" : "#FFFFFF" }}
+              style={{ background: isShops ? "#18181B" : "#FFFFFF" }}
             >
               <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
                 <img src={SHOP_ART} alt="" className="h-full w-full object-cover" />
               </span>
-              <span className="min-w-0 flex-1 text-[15px] font-semibold" style={{ color: isShops ? "#F6F4FF" : "#2A2550" }}>
+              <span className="min-w-0 flex-1 text-[15px] font-semibold" style={{ color: isShops ? "#F5F5F7" : "#18181B" }}>
                 {t.sectionNames.shops}
               </span>
-              <span style={{ color: isShops ? "rgba(247,243,236,.45)" : "#A19DBD" }}>›</span>
+              <span style={{ color: isShops ? "rgba(245,245,247,.45)" : "#A1A1AA" }}>›</span>
             </button>
             {SECTIONS.filter((s) => isSectionVisible(s.id)).map((s) => {
               const on = filters.section === s.id;
@@ -108,7 +108,7 @@ export function FiltersPanel() {
                   onClick={() => openSection(s.id)}
                   className="flex w-full min-w-0 items-center gap-3 border-t border-line px-3 py-[10px] text-left"
                   style={{
-                    background: on ? "#2A2550" : "#FFFFFF",
+                    background: on ? "#18181B" : "#FFFFFF",
                   }}
                 >
                   <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-[#eee8dc]">
@@ -116,11 +116,11 @@ export function FiltersPanel() {
                   </span>
                   <span
                     className="min-w-0 flex-1 text-[15px] font-semibold"
-                    style={{ color: on ? "#F6F4FF" : "#2A2550" }}
+                    style={{ color: on ? "#F5F5F7" : "#18181B" }}
                   >
                     {t.sectionNames[s.id]}
                   </span>
-                  <span style={{ color: on ? "rgba(247,243,236,.45)" : "#A19DBD" }}>›</span>
+                  <span style={{ color: on ? "rgba(245,245,247,.45)" : "#A1A1AA" }}>›</span>
                 </button>
               );
             })}
@@ -342,9 +342,9 @@ export function FiltersPanel() {
                 onClick={() => setFilters({ sort: id })}
                 className="box-border max-w-full min-w-0 rounded-xl px-3.5 py-[11px] text-center text-sm font-semibold"
                 style={{
-                  background: filters.sort === id ? "#2A2550" : "#FFFFFF",
-                  color: filters.sort === id ? "#F6F4FF" : "#2A2550",
-                  border: filters.sort === id ? "none" : "1px solid #E3DEF7",
+                  background: filters.sort === id ? "#18181B" : "#FFFFFF",
+                  color: filters.sort === id ? "#F5F5F7" : "#18181B",
+                  border: filters.sort === id ? "none" : "1px solid #E4E4E9",
                 }}
               >
                 {label}
