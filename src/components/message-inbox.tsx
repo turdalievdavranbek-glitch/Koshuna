@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { buyRequestChatTitle } from "@/lib/buy-request";
@@ -12,6 +12,7 @@ import { enableNativePush } from "@/lib/native-push";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { Photo, RoundBtn } from "@/components/ui";
+import { ChatDeleteFlow } from "@/components/chat-delete";
 
 /** Thread list. Same markup the messages screen used; the wide layout places it in the left pane. */
 export function MessageInbox() {
@@ -21,6 +22,10 @@ export function MessageInbox() {
   const [tab, setTab] = useState<"all" | ChatRole>("all");
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const pressTimer = useRef<number | null>(null);
+  const pressed = useRef(false);
+  const closeMenu = useCallback(() => setMenuId(null), []);
 
   const load = useCallback(async () => {
     const res = await api<{ threads?: ChatThread[] }>("/api/me/threads");
@@ -116,11 +121,34 @@ export function MessageInbox() {
               const title = buyRequestChatTitle(row.title, row.requestQuantity, row.requestUnit, t.buyUnits);
               const open = path === `/chat/${row.id}`;
               return (
+                <div key={row.id} className="group relative">
                 <button
-                  key={row.id}
                   type="button"
-                  onClick={() => router.push(`/chat/${row.id}`)}
-                  className={`flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-3 text-left${open ? " desk:bg-chip" : ""}`}
+                  onClick={() => {
+                    if (pressed.current) {
+                      pressed.current = false;
+                      return;
+                    }
+                    router.push(`/chat/${row.id}`);
+                  }}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setMenuId(row.id);
+                  }}
+                  onTouchStart={() => {
+                    pressed.current = false;
+                    pressTimer.current = window.setTimeout(() => {
+                      pressed.current = true;
+                      setMenuId(row.id);
+                    }, 550);
+                  }}
+                  onTouchMove={() => {
+                    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+                  }}
+                  onTouchEnd={() => {
+                    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-[18px] border border-line bg-white p-3 text-left desk:pr-12${open ? " desk:bg-chip" : ""}`}
                 >
                   <div className="relative h-12 w-12 shrink-0">
                     <div className="h-12 w-12 overflow-hidden rounded-[10px] bg-chip">
@@ -161,11 +189,35 @@ export function MessageInbox() {
                     </span>
                   ) : null}
                 </button>
+                <button
+                  type="button"
+                  aria-label={t.chatDeleteThread}
+                  title={t.chatDeleteThread}
+                  data-testid="inbox-row-menu"
+                  onClick={() => setMenuId(row.id)}
+                  className="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[18px] font-bold text-muted hover:bg-chip desk:flex"
+                >
+                  ⋯
+                </button>
+                </div>
               );
             })}
           </div>
         )}
       </div>
+      {menuId ? (
+        <ChatDeleteFlow
+          threadId={menuId}
+          open
+          onClose={closeMenu}
+          onDone={() => {
+            const gone = menuId;
+            setThreads((rows) => rows.filter((row) => row.id !== gone));
+            if (path === `/chat/${gone}`) router.push("/messages");
+            void load();
+          }}
+        />
+      ) : null}
     </>
   );
 }

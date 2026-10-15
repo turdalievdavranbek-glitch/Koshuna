@@ -457,6 +457,9 @@ export const threads = pgTable(
       .references(() => users.id),
     requestId: uuid("request_id"),
     lastMessageAt: ts("last_message_at"),
+    /** «Удалить переписку» is per user: messages up to this moment are hidden for that side only. */
+    buyerClearedAt: ts("buyer_cleared_at"),
+    sellerClearedAt: ts("seller_cleared_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
   (t) => [

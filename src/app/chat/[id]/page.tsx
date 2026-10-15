@@ -16,6 +16,7 @@ import { enableNativePush } from "@/lib/native-push";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
 import { MessageInbox } from "@/components/message-inbox";
+import { ChatDeleteFlow } from "@/components/chat-delete";
 import { PhoneShell } from "@/components/shell";
 import { Photo } from "@/components/ui";
 import { useDesk } from "@/lib/desk";
@@ -38,6 +39,8 @@ export default function ChatPage() {
   const seen = useRef(0);
   // Own message actions: long-press (phone) or «⋯» on hover (desktop) opens a sheet.
   const [menuFor, setMenuFor] = useState<ChatLine | null>(null);
+  const [threadMenu, setThreadMenu] = useState(false);
+  const closeThreadMenu = useCallback(() => setThreadMenu(false), []);
   const [editing, setEditing] = useState<ChatLine | null>(null);
   const hold = useRef<number | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -292,6 +295,16 @@ export default function ChatPage() {
             ) : null}
             {reply ? <span data-testid="chat-reply-time" className="block truncate text-[11px] text-muted-2">{t.replyUsually(reply)}</span> : null}
           </button>
+          <button
+            type="button"
+            aria-label={t.chatMenu}
+            data-testid="chat-header-menu"
+            onClick={() => setThreadMenu(true)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[20px] font-bold leading-none text-ink"
+          >
+            ⋯
+          </button>
+          <ChatDeleteFlow threadId={detail.id} open={threadMenu} onClose={closeThreadMenu} onDone={() => router.replace("/messages")} />
         </div>
         <button
           type="button"
