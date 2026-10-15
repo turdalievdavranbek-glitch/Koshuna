@@ -67,7 +67,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
       type="button"
       onClick={() => go(href)}
       data-testid={testId}
-      className="flex flex-1 flex-col items-center gap-1 pt-2"
+      className="relative flex flex-1 flex-col items-center gap-1 pt-2"
     >
       <span className="relative flex">
         <Icon size={21} color={active ? "#E31E24" : "#A1A1AA"} />
@@ -76,6 +76,7 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
       <span className="text-[11px] font-semibold leading-tight" style={{ color: active ? "#E31E24" : "#A1A1AA" }}>
         {label}
       </span>
+      <span aria-hidden className={`absolute top-0 h-[3px] w-6 rounded-full ${active ? "bg-[#FFE600] shadow-[0_0_0_1px_#FFD000]" : "bg-transparent"}`} />
     </button>
   );
 

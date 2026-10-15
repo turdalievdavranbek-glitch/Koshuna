@@ -322,15 +322,15 @@ export default function ListingPage() {
         <div className="px-5 pt-5 desk:contents">
           <div className="desk:sticky desk:top-4 desk:z-10 desk:col-start-2 desk:row-start-1 desk:row-end-[-1] desk:self-start desk:rounded-[20px] desk:border desk:border-line desk:bg-surface desk:p-5">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-chip px-[11px] py-1 text-xs font-semibold text-muted">
+            <span className="badge-yellow rounded-full px-[11px] py-1 text-xs font-semibold">
               {listingChipLabel(listing, t)}
             </span>
             {personal ? <NeighborMark listing={listing} /> : null}
             {isVideoListing(listing) ? (
-              <span className="rounded-full bg-ink px-[11px] py-1 text-xs font-semibold text-screen">{t.videoListing}</span>
+              <span className="badge-yellow rounded-full px-[11px] py-1 text-xs font-bold">{t.videoListing}</span>
             ) : null}
             {listing.condition ? (
-              <span className="rounded-full bg-success-tint px-[11px] py-1 text-xs font-bold text-success">
+              <span className={`rounded-full px-[11px] py-1 text-xs font-bold ${listing.condition === "like-new" ? "badge-yellow" : "bg-success-tint text-success"}`}>
                 {t.conditions[listing.condition]}
               </span>
             ) : listing.shopId || isDbUserId(listing.ownerId) || !FEATURES.demoMedia ? null : (

@@ -130,7 +130,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
     return (
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-ink">
+          <span className={`font-display text-[32px] font-extrabold tracking-[-0.02em] text-ink ${empty && !amount ? "" : "price-mark"}`}>
             {amount ?? empty ?? `${formatSom(listing.price)} сом`}
           </span>
           {unit && !amount ? <span className="text-sm text-muted">{unit}</span> : null}
@@ -142,7 +142,7 @@ export function Price({ listing, large, compact }: { listing: Listing; large?: b
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
-        <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
+        <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"} ${empty && !amount ? "" : "price-mark"}`}>
           {amount ?? empty ?? (
             <>
               {formatSom(listing.price)} {compact ? "" : "сом"}

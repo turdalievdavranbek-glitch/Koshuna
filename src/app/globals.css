@@ -106,6 +106,25 @@ button {
   box-shadow: 0 5px 0 #b0141a, 0 10px 16px rgba(24,24,27, 0.10);
 }
 
+/* R3 yellow accents: badges, price marker, selected-chip ring. Dark text only on yellow. */
+.badge-yellow {
+  background: #ffe600;
+  color: #18181b;
+  border: 1px solid #ffd000;
+}
+
+.price-mark {
+  background: linear-gradient(180deg, transparent 58%, #ffe600 58%, #ffe600 90%, transparent 90%);
+  padding: 0 3px;
+  margin: 0 -3px;
+  border-radius: 3px;
+}
+
+.clay-chip-on {
+  outline: 2px solid #ffd000;
+  outline-offset: 1px;
+}
+
 .clay-plus {
   background: radial-gradient(circle at 35% 28%, #ff4148, #e31e24 60%, #b0141a);
   outline: 3px solid #ffe600;
