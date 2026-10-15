@@ -1,19 +1,37 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { dropAmount, dropPercent, hasPriceDrop, listingHasPrice } from "@/lib/deal";
+import { hasPriceDrop, listingHasPrice } from "@/lib/deal";
 import { applyFilters } from "@/lib/filter";
-import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { LANG_LABEL, listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import { LANGS, type Listing } from "@/lib/types";
-import { IconCheck, IconHeart, IconPin } from "./icons";
+import { IconBookmark, IconCheck, IconPin } from "./icons";
 
-export function Photo({ src, alt, className }: { src: string; alt: string; className?: string }) {
+export function Photo({
+  src,
+  alt,
+  className,
+  fit = "cover",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  /** "contain" shows the whole photo (upload previews); "cover" fills the frame (cards). */
+  fit?: "cover" | "contain";
+}) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className={`h-full w-full object-cover ${className ?? ""}`} />
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      className={`h-full w-full ${fit === "contain" ? "bg-chip object-contain" : "object-cover"} ${className ?? ""}`}
+    />
   );
 }
 
@@ -24,29 +42,44 @@ export function Chip({
   accent,
   className,
   size = "md",
+  testId,
+  pressed,
+  truncate,
 }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   accent?: boolean;
   className?: string;
-  size?: "md" | "sm" | "xs";
+  size?: "md" | "sm" | "xs" | "compact";
+  testId?: string;
+  pressed?: boolean;
+  truncate?: boolean;
 }) {
-  const bg = active ? (accent ? "#B8452F" : "#17140F") : "#FFFFFF";
-  const color = active ? (accent ? "#FFF7F0" : "#F7F3EC") : "#17140F";
-  const pad = size === "xs" ? "px-2 py-[3px] text-[10px]" : size === "sm" ? "px-[11px] py-[5px] text-[11px]" : "px-[15px] py-2 text-[13px]";
+  const bg = active ? (accent ? "#E31E24" : "#C8191F") : "#FFFFFF";
+  const color = active ? "#FFFFFF" : "#18181B";
+  const pad =
+    size === "xs"
+      ? "px-2 py-[3px] text-[10px]"
+      : size === "sm"
+        ? "px-[11px] py-[5px] text-[11px]"
+        : size === "compact"
+          ? "px-2.5 py-1.5 text-[12px]"
+          : "px-[15px] py-2 text-[13px]";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full font-semibold ${pad} ${className ?? ""}`}
+      data-testid={testId}
+      aria-pressed={pressed}
+      className={`${truncate ? "min-w-[4.5rem] max-w-full shrink overflow-hidden text-left" : "shrink-0 whitespace-nowrap"} rounded-full font-semibold ${active ? "clay-chip-on" : "clay-chip"} ${pad} ${className ?? ""}`}
       style={{
         background: bg,
         color,
-        border: active ? "none" : "1px solid #E4DCCE",
+        border: active ? "none" : "1px solid #E4E4E9",
       }}
     >
-      {children}
+      {truncate ? <span className="block truncate">{children}</span> : children}
     </button>
   );
 }
@@ -59,7 +92,7 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
       aria-checked={on}
       onClick={onChange}
       className="relative h-[27px] w-[46px] shrink-0 rounded-full"
-      style={{ background: on ? "#B8452F" : "#DCD3C4" }}
+      style={{ background: on ? "#E31E24" : "#D4D4DA" }}
     >
       <span
         className="absolute top-[3px] h-[21px] w-[21px] rounded-full bg-white"
@@ -69,76 +102,63 @@ export function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) 
   );
 }
 
+function priceLabel(listing: Listing, ask: string, negotiable: string) {
+  if (listingHasPrice(listing)) return null;
+  if (!listing.shopId && !listing.shopProductId) return negotiable;
+  return ask;
+}
+
 export function Price({ listing, large, compact }: { listing: Listing; large?: boolean; compact?: boolean }) {
   const { t } = useApp();
-  const unit = listing.unit ? t.units[listing.unit] : "";
+  if (listing.section === "restaurants" && listing.price === 0) return null;
+  const unit = listing.unit && listingHasPrice(listing) ? t.units[listing.unit] : "";
   const dropped = hasPriceDrop(listing);
-  const amount = listingHasPrice(listing) ? `${formatSom(listing.price)}` : t.shopAskPrice;
+  const empty = priceLabel(listing, t.shopAskPrice, t.priceNegotiable);
+  const from = listing.section === "services" && listing.priceFrom === true && listingHasPrice(listing);
+  const amount = from ? t.priceFromSom(formatSom(listing.price)) : null;
+  const promo = listing.section === "services" ? null : dropped && listing.previousPrice ? (
+    <div className={`flex items-center gap-1.5 ${large ? "mt-1" : compact ? "mt-0.5" : "mt-1"}`}>
+      <span className={`text-muted-2 line-through ${large ? "text-sm" : compact ? "text-[10px]" : "text-xs"}`}>
+        {formatSom(listing.previousPrice)}{large ? " сом" : ""}
+      </span>
+      <span className={`rounded-md bg-success-tint font-bold text-success ${large ? "px-1.5 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]"}`}>
+        {t.priceDropped}
+      </span>
+    </div>
+  ) : null;
   if (large) {
     return (
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-[32px] font-extrabold tracking-[-0.02em] text-accent">
-            {listingHasPrice(listing) ? `${amount} KGS` : amount}
+          <span className={`font-display text-[32px] font-extrabold tracking-[-0.02em] text-ink ${empty && !amount ? "" : "price-mark"}`}>
+            {amount ?? empty ?? `${formatSom(listing.price)} сом`}
           </span>
-          {listingHasPrice(listing) && unit ? <span className="text-sm text-muted">{unit}</span> : null}
+          {unit && !amount ? <span className="text-sm text-muted">{unit}</span> : null}
         </div>
-        {dropped && listing.previousPrice ? (
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-sm text-muted-2 line-through">{formatSom(listing.previousPrice)} KGS</span>
-            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[11px] font-bold text-success">
-              −{formatSom(dropAmount(listing))}
-            </span>
-          </div>
-        ) : null}
+        {promo}
       </div>
     );
   }
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
-        <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"}`}>
-          {listingHasPrice(listing) ? (
+        <span className={`font-display font-bold tracking-[-0.01em] text-ink ${compact ? "text-[19px]" : "text-[21px]"} ${empty && !amount ? "" : "price-mark"}`}>
+          {amount ?? empty ?? (
             <>
-              {formatSom(listing.price)} {compact ? "" : "KGS"}
-              {compact && listing.unit === "month" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.perMonthShort}</span>
-              ) : compact && listing.unit === "night" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.units.night}</span>
-              ) : compact && listing.unit === "day" ? (
-                <span className="ml-1 text-xs font-medium text-muted">{t.units.day}</span>
-              ) : compact ? (
-                <span className="ml-1 text-[11px] font-medium text-muted">KGS</span>
-              ) : null}
+              {formatSom(listing.price)} {compact ? "" : "сом"}
+              {unit ? <span className="ml-1 text-xs font-medium text-muted">{unit}</span> : null}
+              {compact && !unit ? <span className="ml-1 text-[11px] font-medium text-muted">сом</span> : null}
             </>
-          ) : (
-            amount
           )}
         </span>
-        {!compact && listing.unit === "month" ? <span className="text-xs text-muted">{t.perMonth}</span> : null}
-        {!compact && listing.unit === "night" ? <span className="text-xs text-muted">{t.units.night}</span> : null}
-        {!compact && listing.unit === "day" ? <span className="text-xs text-muted">{t.units.day}</span> : null}
       </div>
-      {dropped && listing.previousPrice ? (
-        <div className={`flex items-center gap-1.5 ${compact ? "mt-0.5" : "mt-1"}`}>
-          <span className={`text-muted-2 line-through ${compact ? "text-[10px]" : "text-xs"}`}>
-            {formatSom(listing.previousPrice)}
-          </span>
-          {compact ? (
-            <span className="text-[10px] font-bold text-success">−{dropPercent(listing)}%</span>
-          ) : (
-            <span className="rounded-md bg-success-tint px-1.5 py-0.5 text-[10px] font-bold text-success">
-              {t.priceDropped}
-            </span>
-          )}
-        </div>
-      ) : null}
+      {promo}
     </div>
   );
 }
 
 export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () => void }) {
-  const { t, lang, isFav, user } = useApp();
+  const { t, lang, isFav } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const video = isVideoListing(listing);
@@ -152,12 +172,12 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
         {video ? (
           <div
             className="rounded-full p-[2.5px]"
-            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+            style={{ background: "linear-gradient(145deg, #E31E24 0%, #18181B 78%)" }}
           >
             <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
               <Photo src={listing.photos[0]} alt={title} />
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(23,20,15,.72)] pl-0.5 text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(24,24,27,.72)] pl-0.5 text-white">
                   ▶
                 </span>
               </span>
@@ -167,10 +187,11 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           <Photo src={listing.photos[0]} alt={title} />
         )}
         {!video ? (
-          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(23,20,15,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-[rgba(24,24,27,.72)] px-2.5 py-1 text-[11px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
+        {FEATURES.cart ? (
         <span
           role="button"
           onClick={(e) => {
@@ -179,8 +200,9 @@ export function ListingHero({ listing, onFav }: { listing: Listing; onFav?: () =
           }}
           className="absolute right-2.5 top-2.5 flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white/92"
         >
-          <IconHeart size={16} color={user && isFav(listing.id) ? "#B8452F" : "#17140F"} filled={Boolean(user && isFav(listing.id))} />
+          <IconBookmark size={16} color={isFav(listing.id) ? "#E31E24" : "#18181B"} filled={isFav(listing.id)} />
         </span>
+        ) : null}
       </div>
       <div className={`px-[15px] pb-[15px] pt-[13px] ${video ? "text-center" : ""}`}>
         <Price listing={listing} />
@@ -226,7 +248,7 @@ export function ListingRow({
   heart?: boolean;
   dim?: boolean;
 }) {
-  const { t, lang, isFav, user } = useApp();
+  const { t, lang, isFav } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
   const cat = listingChipLabel(listing, t);
@@ -242,7 +264,7 @@ export function ListingRow({
         {video ? (
           <div
             className="rounded-full p-[2px]"
-            style={{ background: "linear-gradient(145deg, #B8452F 0%, #17140F 78%)" }}
+            style={{ background: "linear-gradient(145deg, #E31E24 0%, #18181B 78%)" }}
           >
             <div className="relative aspect-square overflow-hidden rounded-full bg-chip">
               <Photo src={listing.photos[0]} alt={title} />
@@ -256,11 +278,11 @@ export function ListingRow({
             <Photo src={listing.photos[0]} alt={title} />
             {hasPriceDrop(listing) ? (
               <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[10px] font-bold text-screen">
-                −{formatSom(dropAmount(listing))}
+                {t.priceDropped}
               </span>
             ) : null}
             {overlay ? (
-              <span className="absolute inset-0 flex items-center justify-center bg-[rgba(23,20,15,.42)] text-[11px] font-bold tracking-wide text-screen">
+              <span className="absolute inset-0 flex items-center justify-center bg-[rgba(24,24,27,.42)] text-[11px] font-bold tracking-wide text-screen">
                 {overlay}
               </span>
             ) : null}
@@ -286,11 +308,11 @@ export function ListingRow({
       </div>
       {heart ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#B8452F" />
+          <IconBookmark size={18} filled color="#E31E24" />
         </div>
-      ) : user && isFav(listing.id) ? (
+      ) : FEATURES.cart && isFav(listing.id) ? (
         <div className="pr-3 pt-3">
-          <IconHeart size={18} filled color="#B8452F" />
+          <IconBookmark size={18} filled color="#E31E24" />
         </div>
       ) : null}
     </button>
@@ -302,11 +324,12 @@ export function useFiltered() {
   return applyFilters(allListings, filters, city);
 }
 
-export function RoundBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+export function RoundBtn({ children, onClick, label }: { children: React.ReactNode; onClick?: () => void; label?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface"
     >
       {children}
@@ -335,19 +358,25 @@ export function Input({
   placeholder,
   type = "text",
   disabled,
+  testId,
+  inputMode,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
   disabled?: boolean;
+  testId?: string;
+  inputMode?: "numeric" | "decimal" | "text" | "tel";
 }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value}
       placeholder={placeholder}
       disabled={disabled}
+      data-testid={testId}
       onChange={(e) => onChange(e.target.value)}
       className="h-[50px] w-full rounded-[14px] border border-line bg-surface px-[15px] text-[15px] text-ink outline-none placeholder:text-muted-2 disabled:bg-chip disabled:text-muted"
     />
@@ -406,22 +435,23 @@ export function CityPicker({
   );
 }
 
-export function LangSwitch() {
+export function LangSwitch({ size = "md" }: { size?: "md" | "sm" }) {
   const { lang, setLang } = useApp();
+  const sm = size === "sm";
   return (
-    <div className="flex gap-1 self-end rounded-full bg-chip p-1">
+    <div className={sm ? "flex h-8 w-16 shrink-0 items-center rounded-full bg-chip p-0.5" : "flex gap-1 self-end rounded-full bg-chip p-1"}>
       {LANGS.map((code) => (
         <button
           key={code}
           type="button"
           onClick={() => setLang(code)}
-          className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold"
+          className={sm ? "h-7 min-w-0 flex-1 rounded-full text-[11px] font-bold leading-none" : "rounded-full px-2.5 py-1.5 text-[11px] font-semibold"}
           style={{
-            background: lang === code ? "#17140F" : "transparent",
-            color: lang === code ? "#F7F3EC" : "#6E6558",
+            background: lang === code ? "#18181B" : "transparent",
+            color: lang === code ? "#F5F5F7" : "#61616B",
           }}
         >
-          {code.toUpperCase()}
+          {LANG_LABEL[code].short}
         </button>
       ))}
     </div>
@@ -443,5 +473,5 @@ export function MapSketch() {
 }
 
 export function IconPinTiny() {
-  return <IconPin size={14} color="#B8452F" />;
+  return <IconPin size={14} color="#E31E24" />;
 }

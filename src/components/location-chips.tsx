@@ -1,6 +1,7 @@
 "use client";
 
 import { CITIES, DISTRICTS, settlementsForCity, settlementLabel } from "@/lib/data";
+import { hasPlaceFilter } from "@/lib/filter";
 import { districtLabel } from "@/lib/geo";
 import { useApp } from "@/lib/store";
 import { Chip, Eyebrow } from "@/components/ui";
@@ -12,6 +13,9 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
     cityId === "all" ? [...DISTRICTS] : DISTRICTS.filter((d) => d.city === cityId);
   const settlements = settlementsForCity(cityId);
 
+  const scopeAfter = (patch: { city?: string; oblast?: string; settlement?: string; locLabel?: string | null }) =>
+    hasPlaceFilter({ ...filters, ...patch }) || city !== "all" ? "area" : "all";
+
   const pickCity = (id: string) => {
     const keep =
       id !== "all" && DISTRICTS.some((d) => d.city === id && districtLabel(d, lang) === filters.locLabel);
@@ -22,13 +26,15 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
       locLat: keep ? filters.locLat : null,
       locLng: keep ? filters.locLng : null,
       locLabel: keep ? filters.locLabel : null,
+      scope: "area",
     });
   };
 
   const pickDistrict = (d: (typeof DISTRICTS)[number]) => {
     const label = districtLabel(d, lang);
     if (filters.locLabel === label) {
-      setFilters({ locLat: null, locLng: null, locLabel: null, settlement: "any" });
+      const patch = { locLat: null, locLng: null, locLabel: null, settlement: "any" };
+      setFilters({ ...patch, scope: scopeAfter(patch) });
       return;
     }
     setCity(d.city);
@@ -38,13 +44,15 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
       locLabel: label,
       settlement: "any",
       aiylOnly: false,
+      scope: "area",
     });
   };
 
   const pickSettlement = (s: ReturnType<typeof settlementsForCity>[number]) => {
     const label = settlementLabel(s, lang);
     if (filters.settlement === s.id) {
-      setFilters({ settlement: "any", aiylOnly: false, locLat: null, locLng: null, locLabel: null });
+      const patch = { settlement: "any", aiylOnly: false, locLat: null, locLng: null, locLabel: null };
+      setFilters({ ...patch, scope: scopeAfter(patch) });
       return;
     }
     setCity(s.city);
@@ -54,6 +62,7 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
       locLat: s.lat,
       locLng: s.lng,
       locLabel: label,
+      scope: "area",
     });
   };
 
@@ -72,15 +81,16 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
           <div className="flex flex-wrap gap-2">
             <Chip
               active={filters.aiylOnly && filters.settlement === "any"}
-              onClick={() =>
-                setFilters({
+              onClick={() => {
+                const patch = {
                   aiylOnly: !(filters.aiylOnly && filters.settlement === "any"),
                   settlement: "any",
                   locLat: null,
                   locLng: null,
                   locLabel: null,
-                })
-              }
+                };
+                setFilters({ ...patch, scope: scopeAfter(patch) });
+              }}
             >
               {t.bridgeAiyl}
             </Chip>
@@ -96,7 +106,10 @@ export function LocationChips({ labeled }: { labeled?: boolean }) {
         <div className="mt-2.5 flex flex-wrap gap-2">
           <Chip
             active={!filters.locLabel && filters.settlement === "any"}
-            onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null, settlement: "any" })}
+            onClick={() => {
+              const patch = { locLat: null, locLng: null, locLabel: null, settlement: "any" };
+              setFilters({ ...patch, scope: scopeAfter(patch) });
+            }}
           >
             {t.any}
           </Chip>

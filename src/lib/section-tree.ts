@@ -2,12 +2,17 @@ import {
   ANIMAL_GROUPS,
   CATEGORIES,
   CONSTRUCTION_CATEGORIES,
+  PHARMACY_SHOP_HREF,
   PROPERTY_TYPES,
   RESTAURANT_CATEGORIES,
   SERVICE_CATEGORIES,
+  SERVICE_GROUPS,
+  SERVICE_TOP,
   animalKindsOf,
   goodsKindsOf,
+  isServiceGroup,
   isTechCategory,
+  serviceGroupOf,
   techBrandsOf,
   techModelsOf,
 } from "./data";
@@ -40,6 +45,7 @@ export type BranchOption = {
   id: string;
   label: (t: Dict) => string;
   hasChildren: boolean;
+  href?: string;
 };
 
 export type BranchState = {
@@ -53,8 +59,8 @@ export type BranchState = {
   eyebrow: (t: Dict) => string;
 };
 
-function option(id: string, label: (t: Dict) => string, hasChildren: boolean): BranchOption {
-  return { id, label, hasChildren };
+function option(id: string, label: (t: Dict) => string, hasChildren: boolean, href?: string): BranchOption {
+  return { id, label, hasChildren, href };
 }
 
 function inList(id: string, list: readonly string[]) {
@@ -109,8 +115,8 @@ function secondhand(path: string[]): BranchState | null {
       parentPath: [],
       options: kindOptions,
       patch: catPatch,
-      isPicker: true,
-      showFeed: false,
+      isPicker: kinds.length > 0,
+      showFeed: kinds.length === 0,
       eyebrow: (t) => (isTechCategory(cat) ? t.equipmentType : t.itemType),
     };
   }
@@ -333,6 +339,19 @@ function cars(path: string[]): BranchState | null {
   const models = vehicleModelsOf(make, group, type);
   const makePatch: Partial<Filters> = { ...typePatch, carMake: make };
 
+  if (path.length === 3 && !models.length) {
+    return {
+      ok: true,
+      title: (t) => t.carMakes[make] ?? make,
+      parentPath: [group, type],
+      options: [],
+      patch: makePatch,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.carMake,
+    };
+  }
+
   if (path.length === 3) {
     return {
       ok: true,
@@ -520,7 +539,7 @@ function rent(path: string[]): BranchState | null {
 function animals(path: string[]): BranchState | null {
   const base: Partial<Filters> = { section: "animals", animalGroup: "any", animalKind: "any" };
   const groups = ANIMAL_GROUPS.map((id) =>
-    option(id, (t) => (id === "pets" ? t.animalPets : t.animalFarm), animalKindsOf(id).length > 0),
+    option(id, (t) => t.animalGroups[id] ?? id, animalKindsOf(id).length > 0),
   );
 
   if (!path.length) {
@@ -544,7 +563,7 @@ function animals(path: string[]): BranchState | null {
   if (path.length === 1) {
     return {
       ok: true,
-      title: (t) => (group === "pets" ? t.animalPets : t.animalFarm),
+      title: (t) => t.animalGroups[group] ?? group,
       parentPath: [],
       options: kinds.map((id) => option(id, (t) => t.animalKinds[id], false)),
       patch: groupPatch,
@@ -558,7 +577,7 @@ function animals(path: string[]): BranchState | null {
     if (path.length !== 2) return null;
     return {
       ok: true,
-      title: (t) => (group === "pets" ? t.animalPets : t.animalFarm),
+      title: (t) => t.animalGroups[group] ?? group,
       parentPath: [group],
       options: [],
       patch: groupPatch,
@@ -580,6 +599,86 @@ function animals(path: string[]): BranchState | null {
     showFeed: true,
     eyebrow: (t) => t.animalKindLabel,
   };
+}
+
+function services(path: string[]): BranchState | null {
+  const base: Partial<Filters> = { section: "services", category: null };
+  const top = SERVICE_TOP.map((id) => option(id, (t) => t.cats[id] ?? id, isServiceGroup(id)));
+
+  if (!path.length) {
+    return {
+      ok: true,
+      title: (t) => t.sectionNames.services,
+      parentPath: [],
+      options: top,
+      patch: base,
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.category,
+    };
+  }
+
+  const head = path[0];
+  if (isServiceGroup(head)) {
+    const leaves = SERVICE_GROUPS[head];
+    const groupPatch: Partial<Filters> = { ...base, category: head };
+    if (path.length === 1) {
+      const options = leaves.map((id) => option(id, (t) => t.cats[id] ?? id, false));
+      if (head === "svc-health") {
+        options.push(option("health-pharmacy", (t) => t.servicePharmacies, false, PHARMACY_SHOP_HREF));
+      }
+      return {
+        ok: true,
+        title: (t) => t.cats[head] ?? head,
+        parentPath: [],
+        options,
+        patch: groupPatch,
+        isPicker: true,
+        showFeed: false,
+        eyebrow: (t) => t.category,
+      };
+    }
+    if (path[1] === BRANCH_ALL) {
+      if (path.length !== 2) return null;
+      return {
+        ok: true,
+        title: (t) => t.cats[head] ?? head,
+        parentPath: [head],
+        options: [],
+        patch: groupPatch,
+        isPicker: false,
+        showFeed: true,
+        eyebrow: (t) => t.category,
+      };
+    }
+    const leaf = path[1];
+    if (path.length !== 2 || !(leaves as readonly string[]).includes(leaf)) return null;
+    return {
+      ok: true,
+      title: (t) => t.cats[leaf] ?? leaf,
+      parentPath: [head],
+      options: [],
+      patch: { ...base, category: leaf },
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.category,
+    };
+  }
+
+  if (path.length === 1 && inList(head, SERVICE_CATEGORIES) && !isServiceGroup(head)) {
+    const group = serviceGroupOf(head);
+    return {
+      ok: true,
+      title: (t) => t.cats[head] ?? head,
+      parentPath: group ? [group] : [],
+      options: [],
+      patch: { ...base, category: head },
+      isPicker: false,
+      showFeed: true,
+      eyebrow: (t) => t.category,
+    };
+  }
+  return null;
 }
 
 function flatCats(
@@ -758,7 +857,7 @@ export function resolveBranch(section: SectionId, path: string[]): BranchState |
     case "animals":
       return animals(path);
     case "services":
-      return flatCats("services", SERVICE_CATEGORIES, (t) => t.category, path);
+      return services(path);
     case "construction":
       return flatCats("construction", CONSTRUCTION_CATEGORIES, (t) => t.category, path);
     case "restaurants":
@@ -817,7 +916,15 @@ export function pathFromFilters(filters: Filters): string[] {
     if (!filters.animalKind || filters.animalKind === "any") return [filters.animalGroup];
     return [filters.animalGroup, filters.animalKind];
   }
-  if (section === "services" || section === "construction" || section === "restaurants") {
+  if (section === "services") {
+    const cat = filters.category;
+    if (!cat) return [];
+    if (isServiceGroup(cat)) return [cat, BRANCH_ALL];
+    const group = serviceGroupOf(cat);
+    if (group) return [group, cat];
+    return [cat];
+  }
+  if (section === "construction" || section === "restaurants") {
     if (!filters.category) return [];
     return [filters.category];
   }
@@ -880,6 +987,7 @@ export function sectionFeedReset(id: SectionId): Partial<Filters> {
     vehicleGroup: "any",
     jobType: "any",
     priceDroppedOnly: false,
+    postedWithin: "any",
     videoOnly: false,
   };
 }

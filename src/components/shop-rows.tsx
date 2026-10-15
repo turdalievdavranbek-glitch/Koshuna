@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { Shop } from "@/lib/types";
 import { ShopThumb } from "./shop-thumb";
 
 export function ShopRows({ shops }: { shops: Shop[] }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const router = useRouter();
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2.5 desk:grid desk:grid-cols-2 min-[1280px]:desk:grid-cols-3">
       {shops.map((shop) => (
         <button
           key={shop.id}
@@ -31,7 +32,12 @@ export function ShopRows({ shops }: { shops: Shop[] }) {
               {" · "}
               {t.cities[shop.city]}
             </div>
-            <div className="mt-0.5 truncate text-[12px] text-muted-2">{shop.address}</div>
+            <div className="mt-0.5 truncate text-[12px] text-muted-2">
+              {shopHasPointPlace(shop) ? shopPlaceHeadline(shop, t.cities[shop.city] || shop.city, lang) : shop.address}
+            </div>
+            {shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine) ? (
+              <div className="mt-0.5 truncate text-[12px] text-muted">{shopDeliveryLine(shop, t.pointDeliveryFreeLine, t.pointDeliveryPaidLine)}</div>
+            ) : null}
           </div>
         </button>
       ))}

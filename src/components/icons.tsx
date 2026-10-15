@@ -129,8 +129,8 @@ export function IconHeart(p: P & { filled?: boolean }) {
   return (
     <svg
       {...base(rest)}
-      fill={filled ? (p.color ?? "#B8452F") : "none"}
-      stroke={p.color ?? (filled ? "#B8452F" : "currentColor")}
+      fill={filled ? (p.color ?? "#E31E24") : "none"}
+      stroke={p.color ?? (filled ? "#E31E24" : "currentColor")}
       strokeWidth={filled ? 1.4 : 1.6}
       strokeLinecap="round"
     >
@@ -246,7 +246,7 @@ export function IconDislike(p: P & { filled?: boolean }) {
   return (
     <svg
       {...base(rest)}
-      fill={filled ? (p.color ?? "#B8452F") : "none"}
+      fill={filled ? (p.color ?? "#E31E24") : "none"}
       stroke={p.color ?? "currentColor"}
       strokeWidth="1.5"
       strokeLinecap="round"
@@ -301,7 +301,7 @@ export function Flag({ className, size = 18 }: { className?: string; size?: numb
   return <BrandLogo size={size} className={className} />;
 }
 
-export function sectionIcon(id: string, color = "#B8452F", size = 19) {
+export function sectionIcon(id: string, color = "#E31E24", size = 19) {
   const map: Record<string, (p: P) => ReactNode> = {
     rent: IconHome,
     secondhand: IconBag,
@@ -318,4 +318,26 @@ export function sectionIcon(id: string, color = "#B8452F", size = 19) {
   };
   const Cmp = map[id] ?? IconHome;
   return <Cmp size={size} color={color} />;
+}
+export function IconBookmark(p: P & { filled?: boolean }) {
+  const { filled, ...rest } = p;
+  return (
+    <svg
+      {...base(rest)}
+      fill={filled ? (p.color ?? "#E31E24") : "none"}
+      stroke={p.color ?? "currentColor"}
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    >
+      <path d="M4.4 2.6h9.2v12.8L9 12.2l-4.6 3.2z" />
+    </svg>
+  );
+}
+export function IconSend(p: P) {
+  return (
+    <svg {...base(p)} fill="none" stroke={p.color ?? "currentColor"} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M15.6 2.4 2.4 7.6l5.4 2.2 2.2 5.6z" />
+      <path d="M15.6 2.4 7.8 9.8" />
+    </svg>
+  );
 }

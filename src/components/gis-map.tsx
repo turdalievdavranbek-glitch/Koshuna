@@ -3,6 +3,11 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { MAP_TILE_2GIS, MAP_TILE_OSM, mapTileConfig } from "@/lib/geo";
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] ?? ch);
+}
 
 export type GisMarker = {
   id: string;
@@ -52,11 +57,13 @@ export function GisMap({
       touchZoom: interactive,
       attributionControl: true,
     });
-    L.tileLayer("https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}", {
-      subdomains: "0123",
-      attribution: '&copy; <a href="https://2gis.kg" target="_blank" rel="noreferrer">2ГИС</a>',
-      maxZoom: 18,
+    const tiles = mapTileConfig();
+    L.tileLayer(tiles.url, {
+      ...(tiles.subdomains ? { subdomains: tiles.subdomains } : {}),
+      attribution: escapeHtml(tiles.attribution),
+      maxZoom: tiles.maxZoom,
     }).addTo(map);
+    map.attributionControl?.setPrefix(false);
     if (interactive) {
       map.zoomControl.setPosition("bottomright");
     }
@@ -87,7 +94,7 @@ export function GisMap({
       const marker = L.circleMarker([m.lat, m.lng], {
         radius: m.active ? 10 : 7,
         color: "#FFFFFF",
-        fillColor: m.active ? "#B8452F" : "#17140F",
+        fillColor: m.active ? "#E31E24" : "#18181B",
         fillOpacity: 1,
         weight: 2,
       });
@@ -108,12 +115,19 @@ export function GisMap({
     if (!pick) return;
     const icon = L.divIcon({
       className: "",
-      html: `<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#B8452F;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 4px 10px rgba(23,20,15,.28)"></div>`,
+      html: `<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#E31E24;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 4px 10px rgba(24,24,27,.28)"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 18],
     });
     pickRef.current = L.marker([pick.lat, pick.lng], { icon, interactive: false }).addTo(map);
   }, [pick]);
 
-  return <div ref={ref} className={`h-full w-full${interactive ? "" : " pointer-events-none"}`} />;
+  return (
+    <div
+      ref={ref}
+      data-tile-2gis={MAP_TILE_2GIS}
+      data-tile-osm={MAP_TILE_OSM}
+      className={`relative isolate h-full w-full${interactive ? "" : " pointer-events-none"}`}
+    />
+  );
 }

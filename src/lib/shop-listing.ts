@@ -1,4 +1,5 @@
 import { listingHasPrice } from "./deal";
+import { applySectionMove, type SectionMove } from "./section-move";
 import { displayPhotoForProduct } from "./shop-photos";
 import { listingSectionForShop } from "./shops";
 import type { AuthMethod, Listing, ListingStatus, Shop, ShopProduct, User } from "./types";
@@ -28,6 +29,7 @@ export function postedAgoFrom(iso?: string, now = Date.now()): string {
 }
 
 function listingStatusForProduct(shop: Shop, product: ShopProduct, prev?: Listing): ListingStatus {
+  if (shop.status === "hidden" || prev?.status === "hidden") return "hidden";
   if (product.published === false) return "withdrawn";
   if (shop.status === "withdrawn") return "withdrawn";
   if (prev?.status === "reserved" || prev?.status === "promoted" || prev?.status === "closed") return prev.status;
@@ -53,7 +55,8 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
         : undefined;
   const photo = displayPhotoForProduct(product, shop.coverUrl || "/sections/shops.jpg");
   const id = prev?.id || product.listingId || listingIdForProduct(product.id);
-  return {
+  const moved = product.adminSection;
+  const base: Listing = {
     id,
     section: mapped.section,
     category: mapped.category,
@@ -71,7 +74,8 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     description: product.description || product.title,
     descriptionKy: product.description || product.title,
     descriptionEn: product.description || product.title,
-    ownerId: prev?.ownerId || "aida",
+    // Point products belong to the point owner. "aida" (a demo id) made other people's point products unmessageable.
+    ownerId: prev?.ownerId || shop.ownerId || "aida",
     sellerName: shop.name,
     sellerMethod: user?.method ?? prev?.sellerMethod,
     sellerCardLinked: user?.cardLinked ?? prev?.sellerCardLinked,
@@ -92,7 +96,11 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     mediaKind: product.videoUrl ? "video" : "photos",
     videoUrl: product.videoUrl,
     reservedBy: prev?.reservedBy,
+    underReview: shop.underReview === true || prev?.underReview === true,
+    managedPoint: shop.managedFor?.phone ? true : undefined,
   };
+  // Admin «Сменить раздел» wins over the section derived from the point's category.
+  return moved ? (applySectionMove(base as unknown as Record<string, unknown>, moved as SectionMove) as unknown as Listing) : base;
 }
 
 export function syncProductListing(extra: Listing[], shop: Shop, product: ShopProduct, user: User | null): Listing[] {

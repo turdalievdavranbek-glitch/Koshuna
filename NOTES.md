@@ -1,6 +1,6 @@
 # Koshuna — tiles checkpoint (host without Cursor)
 
-App is a Next.js App Router site plus a Capacitor Android WebView that loads the live tunnel.
+App is a Next.js App Router site plus a Capacitor Android WebView. The shell loads `https://koshuna.ru`. Owner console steps (Firebase, keystore, OAuth, APK link) are in `android/OWNER-SETUP.md`.
 
 ## Run the site
 
@@ -13,17 +13,9 @@ npx next start -H 0.0.0.0 -p 43123
 
 Dev (`npm run dev`) works for local edits. Prefer `next start` on 43123 so there is no Next Issues overlay.
 
-## Public tunnel (phone / APK)
+## Production site
 
-Point Cloudflare to port 43123. Preferred hostname:
-
-`https://arg-cell-bedford-postcards.trycloudflare.com`
-
-If the hostname changes, set it in `capacitor.config.ts` → `server.url` and rebuild **one** APK.
-
-```bash
-cloudflared tunnel --url http://127.0.0.1:43123
-```
+`https://koshuna.ru` → nginx → `next start` on port 43123. The Android shell uses that HTTPS URL. Cleartext is off.
 
 ## Auth (demo)
 
@@ -39,16 +31,17 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 
-Output: `android/app/build/outputs/apk/debug/app-debug.apk`
+Debug output: `android/app/build/outputs/apk/debug/app-debug.apk`
 
-WebView needs CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION. Camera/mic/location hardware is `required=false`. Runtime prompt + WebView geolocation grant.
+Release (needs the upload keystore from `android/OWNER-SETUP.md`):
 
-## APK download (this VM)
+```bash
+cd android && ./gradlew assembleRelease
+```
 
-Serve `/opt/cursor/artifacts` on :8765 and tunnel that port. File name: `Koshuna-tiles-checkpoint.apk`
+Copy the signed file to `public/download/koshuna.apk` so the site serves `https://koshuna.ru/download/koshuna.apk`.
 
-Last APK: 6034410 bytes, sha256 `b1dbf648dc9f73e7bb4bd97ae89f2857fda7ae8d631118a2420829909b900847`
-Download: https://penguin-blacks-bars-threatening.trycloudflare.com/Koshuna-tiles-checkpoint.apk
+WebView still requests CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, and on Android 13+ POST_NOTIFICATIONS. Camera, mic, and location hardware stay `required=false`. Runtime prompt + WebView geolocation grant. WebView debugging is on only in debug builds.
 
 ## What still needs a real server
 

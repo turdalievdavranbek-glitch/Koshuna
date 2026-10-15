@@ -192,7 +192,7 @@ function ProductRow({
             {t.shopNoPrice}
           </Chip>
         </div>
-        <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}</div>
+        <div className="mt-1 text-[12px] text-muted">{product.price != null ? `${formatSom(product.price)} сом` : t.shopAskPrice}</div>
       </div>
       <div className="mt-2">
         <div className="text-[12px] font-semibold text-muted">{t.shopPromo}</div>

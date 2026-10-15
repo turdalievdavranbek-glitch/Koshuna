@@ -40,7 +40,7 @@ function Sheet({
   const layer = usePhoneLayer();
   if (!layer) return null;
   return createPortal(
-    <div className="absolute inset-0 z-40 flex flex-col justify-end bg-[rgba(23,20,15,.38)]">
+    <div className="absolute inset-0 z-40 flex flex-col justify-end bg-[rgba(24,24,27,.38)]">
       <button type="button" className="h-full w-full" aria-label="close" onClick={onClose} />
       <div className="max-h-[82%] overflow-y-auto rounded-t-[22px] bg-white px-4 pb-6 pt-3">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
@@ -158,7 +158,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
     if (!needUser() || !deal.offer) return;
     const when = offerWhen(deal.offer, lang);
     const place = `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`;
-    const title = `Koshuna · ${listingTitle(listing, lang)}`;
+    const title = `Коңшу · ${listingTitle(listing, lang)}`;
     const details = `${when} · ${place}`;
     const { start, end } = meetEventTimes(deal.offer);
     downloadMeetIcs(
@@ -181,7 +181,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
   const cal =
     deal.phase === "agreed" && deal.offer
       ? googleCalUrl({
-          title: `Koshuna · ${listingTitle(listing, lang)}`,
+          title: `Коңшу · ${listingTitle(listing, lang)}`,
           place: `${t.meetupSpots[deal.offer.spot]}, ${t.cities[listing.city]}`,
           details: `${offerWhen(deal.offer, lang)} · ${t.meetupSpots[deal.offer.spot]}`,
           ...meetEventTimes(deal.offer),
@@ -217,11 +217,11 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
       {deal.offer && deal.phase !== "wait-buyer" ? (
         <div
           className="mt-3 rounded-[14px] px-3.5 py-3"
-          style={{ background: deal.phase === "agreed" ? "#E4EFE9" : deal.phase === "declined" ? "#EFE8DB" : "#F3E0D9" }}
+          style={{ background: deal.phase === "agreed" ? "#E4EFE9" : deal.phase === "declined" ? "#F1F1F4" : "#FDE8E8" }}
         >
           <div
             className="text-[13px] font-bold leading-[1.4]"
-            style={{ color: deal.phase === "agreed" ? "#245046" : deal.phase === "declined" ? "#6E6558" : "#8E3423" }}
+            style={{ color: deal.phase === "agreed" ? "#245046" : deal.phase === "declined" ? "#61616B" : "#B0141A" }}
           >
             {deal.phase === "agreed"
               ? t.meetAgreed(offerWhen(deal.offer, lang), t.meetupSpots[deal.offer.spot])
@@ -318,7 +318,7 @@ export function MeetDealBlock({ listing, mine }: { listing: Listing; mine: boole
           ) : null}
 
           {deal.buyerLeft && travel ? (
-            <div className="mt-3 rounded-[14px] bg-[#F3E0D9] px-3.5 py-3">
+            <div className="mt-3 rounded-[14px] bg-[#FDE8E8] px-3.5 py-3">
               <div className="text-[13px] font-bold leading-[1.4] text-accent-dark">
                 {party === "seller" ? t.meetLeftSeller(reservedBy.name) : t.meetLeftBuyer}
               </div>

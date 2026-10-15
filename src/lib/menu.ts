@@ -38,7 +38,7 @@ export function mineRestaurants(
   shops: Pick<Shop, "id" | "ownerPhone">[] = [],
 ): Listing[] {
   return mineListings(all, extra, user, shops).filter(
-    (item) => item.section === "restaurants" && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed",
+    (item) => item.section === "restaurants" && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden",
   );
 }
 
