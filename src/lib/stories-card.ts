@@ -106,6 +106,27 @@ async function videoFrame(src: string): Promise<HTMLVideoElement | null> {
   }
 }
 
+/** Draws a QR code (white plate, dark modules) with its top-left plate corner at (x, y). */
+async function drawQr(ctx: CanvasRenderingContext2D, url: string, x: number, y: number, plate: number) {
+  const { default: qrcode } = await import("qrcode-generator");
+  const qr = qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+  const count = qr.getModuleCount();
+  const margin = 20;
+  const cell = Math.floor((plate - margin * 2) / count);
+  const size = cell * count;
+  const off = Math.floor((plate - size) / 2);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x, y, plate, plate);
+  ctx.fillStyle = "#18181B";
+  for (let r = 0; r < count; r += 1) {
+    for (let c = 0; c < count; c += 1) {
+      if (qr.isDark(r, c)) ctx.fillRect(x + off + c * cell, y + off + r * cell, cell, cell);
+    }
+  }
+}
+
 function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("blob"))), "image/jpeg", 0.9);
@@ -127,6 +148,8 @@ export async function renderStoriesCard(input: {
   title: string;
   price: string;
   place: string;
+  /** Listing link: drawn as a QR code in the bottom-right corner. */
+  url?: string;
 }): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -185,7 +208,8 @@ export async function renderStoriesCard(input: {
   ctx.fillText(input.price, pad, y + 16);
   ctx.fillStyle = "#61616B";
   ctx.font = "600 40px Manrope, ui-sans-serif, system-ui, sans-serif";
-  const place = wrapLines(ctx, input.place, W - pad * 2, 2);
+  const qrPlate = 300;
+  const place = wrapLines(ctx, input.place, input.url ? W - pad * 2 - qrPlate - 24 : W - pad * 2, 2);
   let py = y + 108;
   for (const line of place) {
     ctx.fillText(line, pad, py);
@@ -199,6 +223,13 @@ export async function renderStoriesCard(input: {
     ctx.drawImage(logo, pad, logoY, logoSize, logoSize);
   } catch {
     /* strip still names the site */
+  }
+  if (input.url) {
+    try {
+      await drawQr(ctx, input.url, W - pad - qrPlate, H - 72 - qrPlate, qrPlate);
+    } catch {
+      /* card still names the site */
+    }
   }
   ctx.fillStyle = "#18181B";
   ctx.font = "700 44px Manrope, ui-sans-serif, system-ui, sans-serif";

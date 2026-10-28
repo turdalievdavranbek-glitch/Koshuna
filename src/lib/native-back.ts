@@ -8,7 +8,15 @@
  * Back within 2 s exits. The draft stays in local storage either way.
  */
 
-export type BackDecision = "close-overlay" | "leave-dialog" | "history" | "toast-exit" | "exit" | "minimize" | "noop";
+export type BackDecision =
+  | "close-overlay"
+  | "leave-dialog"
+  | "history"
+  | "go-home"
+  | "toast-exit"
+  | "exit"
+  | "minimize"
+  | "noop";
 
 export const EXIT_WINDOW_MS = 2000;
 export const EXIT_TOAST_RU = "Нажмите ещё раз, чтобы выйти";
@@ -38,6 +46,7 @@ export function decideHardwareBack(input: {
   overlayOpen: boolean;
   leaveGuard: boolean;
   canGoBack: boolean;
+  /** true on the root screen, false elsewhere, undefined when unknown. */
   atHome?: boolean;
   exitArmed?: boolean;
 }): BackDecision {
@@ -46,7 +55,8 @@ export function decideHardwareBack(input: {
   if (input.leaveGuard) return "leave-dialog";
   if (input.atHome) return input.exitArmed ? "exit" : "toast-exit";
   if (input.canGoBack) return "history";
-  return "minimize";
+  // Not on the root screen and no history (deep link, push open): go to the root instead of closing the app.
+  return input.atHome === false ? "go-home" : "minimize";
 }
 
 type Overlay = { id: string; close: () => void };
@@ -152,6 +162,11 @@ export async function attachNativeBack(deps: BackDeps): Promise<"wired" | "noop"
     if (decision === "history") {
       armedUntil = 0;
       window.history.back();
+      return;
+    }
+    if (decision === "go-home") {
+      armedUntil = 0;
+      window.location.assign("/");
       return;
     }
     if (decision === "toast-exit") {

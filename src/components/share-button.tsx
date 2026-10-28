@@ -8,6 +8,7 @@ import { SITE_ORIGIN } from "@/lib/open-graph";
 import { cardShareText, listingPlace, listingPublicUrl } from "@/lib/share";
 import { shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
 import { shopPublicUrl } from "@/lib/shop-share";
+import { nativeShareAvailable, nativeShareFilesAvailable, nativeShareImage, nativeShareLink } from "@/lib/native-share";
 import { renderStoriesCard, shareFileSupported } from "@/lib/stories-card";
 import { useApp } from "@/lib/store";
 import type { Listing, Shop } from "@/lib/types";
@@ -27,8 +28,9 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
-  // Stories card does not work inside the Android app until the final native build.
-  const androidApp = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  // Old Android APKs (before 1.4) have no native Share/Filesystem plugins: the Stories card stays hidden there.
+  const androidApp =
+    Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android" && !nativeShareFilesAvailable();
 
   const sharingApp = Boolean(appTitle) && !listing && !shop;
   const url = listing ? listingPublicUrl(listing.id) : shop ? shopPublicUrl(shop.id) : sharingApp ? SITE_ORIGIN : "";
@@ -51,6 +53,9 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   };
 
   const share = async () => {
+    if (nativeShareAvailable()) {
+      if (await nativeShareLink({ title, text, url })) return;
+    }
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
         await navigator.share({ title, text, url });
@@ -81,7 +86,15 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
         title,
         price,
         place: storiesPlace || t.cities[listing.city] || "",
+        url,
       });
+      if (nativeShareFilesAvailable()) {
+        const done = await nativeShareImage({ blob, fileName: `koshuna-${listing.id}.jpg`, title, text: url });
+        if (done) {
+          setOpen(false);
+          return;
+        }
+      }
       const file = new File([blob], `koshuna-${listing.id}.jpg`, { type: "image/jpeg" });
       if (shareFileSupported() && navigator.share) {
         try {

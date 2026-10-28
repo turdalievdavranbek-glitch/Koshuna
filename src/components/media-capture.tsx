@@ -103,6 +103,8 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   const heardRef = useRef("");
   const autoMicFor = useRef<string | null>(null);
   const [recording, setRecording] = useState(false);
+  // Which camera the next video recording opens. Chosen before pressing record (the stream is not switched mid-recording).
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
   const [recMode, setRecMode] = useState<"video" | "audio" | null>(null);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
@@ -302,7 +304,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       halted.current = false;
       const stream = await navigator.mediaDevices.getUserMedia(
         mode === "video"
-          ? { video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }, audio: true }
+          ? { video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }, audio: true }
           : { audio: true },
       );
       if (halted.current || !alive.current) {
@@ -507,6 +509,19 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     setBusy("");
   };
 
+
+  const facingToggle = (
+    <button
+      type="button"
+      data-testid="post-flip-camera"
+      onClick={() => setFacing((cur) => (cur === "environment" ? "user" : "environment"))}
+      className="h-11 rounded-[12px] border border-line bg-white px-3 text-[13px] font-semibold text-ink"
+      aria-label={t.mediaCamFlip}
+    >
+      🔄 {facing === "environment" ? t.mediaCamBack : t.mediaCamFront}
+    </button>
+  );
+
   if (variant === "personal") {
     const hasMedia = Boolean(draft.videoUrl || draft.photo);
     const liveVideo = recording && recMode === "video";
@@ -565,6 +580,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                 {t.postPhoto}
               </button>
             </div>
+            {facingToggle}
             <button
               type="button"
               data-testid="post-gallery"
@@ -723,6 +739,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                 >
                   {recording ? t.mediaStop : t.mediaRecord}
                 </button>
+                {!recording ? facingToggle : null}
                 <button
                   type="button"
                   onClick={() => {
