@@ -42,7 +42,6 @@ import { HonestyCard } from "@/components/honesty-card";
 import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
-import { ListingVideoViewer } from "@/components/listing-video-viewer";
 import { reportListingView } from "@/lib/listing-view";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
@@ -75,10 +74,10 @@ export default function ListingPage() {
     autoVideo.current = videoId;
     // Coming from /reels the person already watched it and asked for the details.
     if (new URLSearchParams(window.location.search).get("from") === "reels") return;
-    setVideoOpen(true);
-  }, [videoId]);
+    // replace (not push): Back from the feed goes to the screen before this listing, not into a loop.
+    router.replace(`/reels?id=${encodeURIComponent(videoId)}&v=1`);
+  }, [videoId, router]);
   const [photo, setPhoto] = useState(0);
-  const [videoOpen, setVideoOpen] = useState(false);
   // Phone videos are mostly vertical; a landscape clip switches the box back to a short one.
   const [videoTall, setVideoTall] = useState(true);
   const [toast, setToast] = useState("");
@@ -222,7 +221,7 @@ export default function ListingPage() {
       <div className="sc relative min-h-0 flex-1 overflow-y-auto desk:grid desk:grid-cols-[minmax(0,3fr)_minmax(280px,2fr)] desk:items-start desk:gap-x-8 desk:gap-y-3">
         <div className="relative bg-ink desk:col-start-1 desk:row-start-1 desk:overflow-hidden desk:rounded-[20px] desk:!h-[min(70vh,640px)]" style={{ height: isVideoListing(listing) ? (videoTall ? "min(72vh, 620px)" : 240) : listing.section === "secondhand" ? 300 : 320 }}>
           <DoubleTapLike listingId={listing.id} className="h-full w-full">
-            <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => setVideoOpen(true)} onAspect={setVideoTall} />
+            <ListingHero listing={listing} photo={photo} title={title} onOpenVideo={() => router.push(`/reels?id=${encodeURIComponent(listing.id)}&v=1`)} onAspect={setVideoTall} />
           </DoubleTapLike>
           {!isVideoListing(listing) && listing.photos.length > 1 ? (
             <>
@@ -777,21 +776,6 @@ export default function ListingPage() {
         <div className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-screen">
           {toast}
         </div>
-      ) : null}
-      {videoOpen && isVideoListing(listing) && listing.videoUrl ? (
-        <ListingVideoViewer
-          listing={listing}
-          title={title}
-          onClose={() => setVideoOpen(false)}
-          onWrite={
-            mine
-              ? undefined
-              : () => {
-                  setVideoOpen(false);
-                  onWrite();
-                }
-          }
-        />
       ) : null}
     </PhoneShell>
   );

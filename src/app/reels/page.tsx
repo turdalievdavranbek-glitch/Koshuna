@@ -12,6 +12,8 @@ import { Photo } from "@/components/ui";
 import { circleScopeFrom, listingInCircleScope, reelsFeed } from "@/lib/circles";
 import { formatSom } from "@/lib/data";
 import { listingHasPrice } from "@/lib/deal";
+import { isOwnListing } from "@/lib/listing-owner";
+import { isDbUserId } from "@/lib/phone";
 import { goBack } from "@/lib/go-back";
 import { listingTitle } from "@/lib/i18n";
 import { PINNED_REEL_ID, pinnedMedia, pinnedTitle, type PinnedCircle } from "@/lib/pinned-circle";
@@ -42,7 +44,7 @@ function ReelSlide({
   preloadNext: boolean;
   onVisible: () => void;
 }) {
-  const { t, lang, user, setPendingPath, reactionOf, setReaction, reactions } = useApp();
+  const { t, lang, user, setPendingPath, reactionOf, setReaction, reactions, extraListings, shops } = useApp();
   const router = useRouter();
   const rootRef = useRef<HTMLElement>(null);
   const { sound, blocked, toggle: toggleSound, turnOn: soundOn } = useVideoSound();
@@ -54,6 +56,25 @@ function ReelSlide({
   const reaction = reactionOf(listing.id);
   const likes = socialCounts(listing.id, reactions, 0).likes;
   const openHref = `/listing/${listing.id}?from=reels`;
+  const mine = isOwnListing(listing, extraListings, user, shops);
+  const [toast, setToast] = useState("");
+
+  // Same action as «Написать» on the listing page: sign in first, then the in-app chat with the seller.
+  // (Call / WhatsApp for promoter listings stay on the listing page; the in-app chat is always available here.)
+  const write = () => {
+    const path = `/chat/open/${listing.id}`;
+    if (!user) {
+      setPendingPath(path);
+      router.push("/login");
+      return;
+    }
+    if (!isDbUserId(listing.ownerId)) {
+      setToast(t.chatNoSeller);
+      window.setTimeout(() => setToast(""), 1800);
+      return;
+    }
+    router.push(path);
+  };
 
   useEffect(() => {
     if (active && listing.id !== PINNED_REEL_ID) void reportListingView(listing.id);
@@ -144,9 +165,30 @@ function ReelSlide({
         <div className="truncate font-display text-[22px] font-bold text-white">{title}</div>
         <div className="mt-1 text-[16px] font-semibold text-white">{price}</div>
         <div className="mt-0.5 truncate text-[13px] text-white/85">{place}</div>
-        <Link href={openHref} data-testid="reel-open" className="mt-3 inline-flex h-11 items-center rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-on">
-          {t.reelOpen}
-        </Link>
+        {toast ? <p className="mt-2 text-[13px] font-semibold text-white">{toast}</p> : null}
+        <div className="mt-3 flex items-center gap-2">
+          {mine ? null : (
+            <button
+              type="button"
+              data-testid="reel-write"
+              onClick={write}
+              className="inline-flex h-11 items-center rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-on"
+            >
+              {t.write}
+            </button>
+          )}
+          <Link
+            href={openHref}
+            data-testid="reel-open"
+            className={
+              mine
+                ? "inline-flex h-11 items-center rounded-2xl bg-accent px-4 text-[15px] font-semibold text-accent-on"
+                : "inline-flex h-11 items-center rounded-2xl bg-white/92 px-4 text-[15px] font-semibold text-ink"
+            }
+          >
+            {t.reelOpen}
+          </Link>
+        </div>
         <div className="mt-2">
           <ReportListing listing={listing} sheet returnTo={`/reels?id=${encodeURIComponent(listing.id)}`} />
         </div>
@@ -265,6 +307,7 @@ export default function ReelsPage() {
   const params = useSearchParams();
   const router = useRouter();
   const startId = params.get("id") || "";
+  const videoFeed = params.get("v") === "1";
   const { t, city, filters, allListings, shops } = useApp();
   const circles = useCircleList();
   const { pinned } = usePinnedCircle();
@@ -279,11 +322,19 @@ export default function ReelsPage() {
   const feed = useMemo(() => {
     const region = listingsForSearch(allListings, shops).filter((item) => listingInCircleScope(item, scope));
     const openedPin = startId === PINNED_REEL_ID;
-    const listings = reelsFeed(openedPin ? "" : startId, circles, region);
+    let listings = reelsFeed(openedPin ? "" : startId, circles, region);
+    if (videoFeed) {
+      // Opened from a video listing: only videos, the opened one first (even if it is outside the circle scope).
+      listings = listings.filter((item) => isVideoListing(item) && Boolean(item.videoUrl));
+      const opened = allListings.find((item) => item.id === startId);
+      if (opened && isVideoListing(opened) && opened.videoUrl && !listings.some((item) => item.id === opened.id)) {
+        listings = [opened, ...listings];
+      }
+    }
     const rows: FeedRow[] = listings.map((listing) => ({ kind: "listing", listing }));
     if (pinned && openedPin) return [{ kind: "pinned" as const, pinned }, ...rows];
     return rows;
-  }, [allListings, circles, pinned, scope, shops, startId]);
+  }, [allListings, circles, pinned, scope, shops, startId, videoFeed]);
 
   useEffect(() => {
     setShown(BATCH);
