@@ -32,16 +32,178 @@ function clock(total: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+type LivePipe = {
+  canvas: HTMLCanvasElement;
+  video: HTMLVideoElement;
+  timer: number;
+  mic: MediaStreamTrack | null;
+  track: MediaStreamTrack;
+  canvasStream: MediaStream;
+  facing: "environment" | "user";
+  frozen: HTMLCanvasElement | null;
+  switching: boolean;
+};
+
+const LIVE_FPS = 30;
+const LIVE_MAX_SIDE = 1280;
+
+function liveSwitchSupported(): boolean {
+  return typeof HTMLCanvasElement !== "undefined" && typeof HTMLCanvasElement.prototype.captureStream === "function";
+}
+
+function openVideoTrack(facing: "environment" | "user"): Promise<MediaStreamTrack> {
+  return navigator.mediaDevices
+    .getUserMedia({
+      video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } },
+      audio: false,
+    })
+    .then((stream) => {
+      const track = stream.getVideoTracks()[0];
+      if (!track) {
+        stream.getTracks().forEach((row) => row.stop());
+        throw new Error("no-video-track");
+      }
+      return track;
+    });
+}
+
+/** Resolves true once the hidden <video> has a decoded frame (size known), false after the timeout. */
+function videoReady(video: HTMLVideoElement, ms = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      video.removeEventListener("loadeddata", check);
+      video.removeEventListener("playing", check);
+      resolve(ok);
+    };
+    const check = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) finish(true);
+    };
+    const timer = window.setTimeout(() => finish(video.videoWidth > 0), ms);
+    video.addEventListener("loadeddata", check);
+    video.addEventListener("playing", check);
+    check();
+  });
+}
+
+function drawCover(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, sh: number, cw: number, ch: number) {
+  if (!sw || !sh) return;
+  const scale = Math.max(cw / sw, ch / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  ctx.drawImage(src, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+}
+
+/**
+ * Canvas pipeline for switching cameras without breaking the recording: frames of a hidden <video> are drawn
+ * on a fixed-size canvas, MediaRecorder records canvas.captureStream() plus the one microphone track.
+ * Returns null when anything fails: the caller then records the camera stream directly (no live switch).
+ */
+async function buildLivePipe(camera: MediaStream, facing: "environment" | "user"): Promise<{ pipe: LivePipe; recStream: MediaStream } | null> {
+  const track = camera.getVideoTracks()[0];
+  if (!track || !liveSwitchSupported()) return null;
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute("aria-hidden", "true");
+  video.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;";
+  document.body.appendChild(video);
+  const dropVideo = () => {
+    video.srcObject = null;
+    video.remove();
+  };
+  try {
+    video.srcObject = new MediaStream([track]);
+    await video.play().catch(() => undefined);
+    if (!(await videoReady(video))) {
+      dropVideo();
+      return null;
+    }
+    const ratio = Math.min(1, LIVE_MAX_SIDE / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    // The canvas size is fixed by the first camera for the whole recording.
+    canvas.width = Math.max(2, Math.round((video.videoWidth * ratio) / 2) * 2);
+    canvas.height = Math.max(2, Math.round((video.videoHeight * ratio) / 2) * 2);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      dropVideo();
+      return null;
+    }
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawCover(ctx, video, video.videoWidth, video.videoHeight, canvas.width, canvas.height);
+    const canvasStream = canvas.captureStream(LIVE_FPS);
+    if (!canvasStream.getVideoTracks().length) {
+      dropVideo();
+      return null;
+    }
+    const mic = camera.getAudioTracks()[0] ?? null;
+    const recStream = new MediaStream([...canvasStream.getVideoTracks(), ...(mic ? [mic] : [])]);
+    const pipe: LivePipe = {
+      canvas,
+      video,
+      timer: 0,
+      mic,
+      track,
+      canvasStream,
+      facing,
+      frozen: null,
+      switching: false,
+    };
+    pipe.timer = window.setInterval(() => {
+      if (pipe.switching && pipe.frozen) {
+        ctx.drawImage(pipe.frozen, 0, 0);
+        return;
+      }
+      drawCover(ctx, pipe.video, pipe.video.videoWidth, pipe.video.videoHeight, canvas.width, canvas.height);
+    }, Math.round(1000 / LIVE_FPS));
+    return { pipe, recStream };
+  } catch {
+    dropVideo();
+    return null;
+  }
+}
+
+function teardownPipe(pipe: LivePipe | null) {
+  if (!pipe) return;
+  window.clearInterval(pipe.timer);
+  try {
+    pipe.track.stop();
+  } catch {
+    /* already stopped */
+  }
+  try {
+    pipe.mic?.stop();
+  } catch {
+    /* already stopped */
+  }
+  pipe.canvasStream.getTracks().forEach((row) => {
+    try {
+      row.stop();
+    } catch {
+      /* already stopped */
+    }
+  });
+  pipe.video.srcObject = null;
+  pipe.video.remove();
+}
+
 function LiveVideoBox({
   videoRef,
   elapsed,
   recording,
   placeholder,
+  mirror,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   elapsed: number;
   recording: boolean;
   placeholder?: string;
+  /** Front camera preview is mirrored like a selfie; the recording itself is not mirrored. */
+  mirror?: boolean;
 }) {
   const limit = videoMaxSeconds();
   return (
@@ -52,6 +214,7 @@ function LiveVideoBox({
         playsInline
         data-testid="post-live-video"
         className="aspect-[9/16] max-h-[280px] w-full bg-ink object-cover"
+        style={mirror ? { transform: "scaleX(-1)" } : undefined}
       />
       {placeholder ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-[14px] font-semibold text-screen">
@@ -105,6 +268,9 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   const [recording, setRecording] = useState(false);
   // Which camera the next video recording opens. Chosen before pressing record (the stream is not switched mid-recording).
   const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const pipeRef = useRef<LivePipe | null>(null);
+  const [liveSwitch, setLiveSwitch] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [recMode, setRecMode] = useState<"video" | "audio" | null>(null);
   const [busy, setBusy] = useState("");
   const [live, setLive] = useState("");
@@ -129,6 +295,10 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     if (preview instanceof MediaStream && preview !== streamRef.current) streams.push(preview);
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    teardownPipe(pipeRef.current);
+    pipeRef.current = null;
+    setLiveSwitch(false);
+    setSwitching(false);
     for (const stream of streams) {
       stream.getTracks().forEach((track) => {
         try {
@@ -285,6 +455,71 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   };
   stopRecRef.current = stopRec;
 
+  /** Switch front/back camera while recording: the recording (canvas stream + the same microphone) is not touched. */
+  const switchLive = async () => {
+    const pipe = pipeRef.current;
+    if (!pipe || pipe.switching || halted.current || !alive.current) return;
+    pipe.switching = true;
+    setSwitching(true);
+    const ctx = pipe.canvas.getContext("2d");
+    if (ctx) {
+      // Keep feeding the last frame while the new camera opens, so the video does not stall.
+      const frozen = document.createElement("canvas");
+      frozen.width = pipe.canvas.width;
+      frozen.height = pipe.canvas.height;
+      frozen.getContext("2d")?.drawImage(pipe.canvas, 0, 0);
+      pipe.frozen = frozen;
+    }
+    const previous = pipe.facing;
+    const wanted: "environment" | "user" = previous === "user" ? "environment" : "user";
+    try {
+      pipe.track.stop();
+    } catch {
+      /* already stopped */
+    }
+    let next: MediaStreamTrack | null = null;
+    let nextFacing = wanted;
+    try {
+      next = await openVideoTrack(wanted);
+    } catch {
+      try {
+        next = await openVideoTrack(previous);
+        nextFacing = previous;
+      } catch {
+        next = null;
+      }
+    }
+    if (halted.current || !alive.current || pipeRef.current !== pipe) {
+      next?.stop();
+      return;
+    }
+    if (!next) {
+      // Both cameras refused: keep what was recorded so far.
+      stopRec();
+      setBusy(t.mediaCamFail);
+      return;
+    }
+    pipe.video.srcObject = new MediaStream([next]);
+    await pipe.video.play().catch(() => undefined);
+    await videoReady(pipe.video);
+    if (halted.current || !alive.current || pipeRef.current !== pipe) {
+      next.stop();
+      return;
+    }
+    pipe.track = next;
+    pipe.facing = nextFacing;
+    const preview = new MediaStream([next]);
+    streamRef.current = preview;
+    if (videoRef.current) {
+      videoRef.current.srcObject = preview;
+      void videoRef.current.play().catch(() => undefined);
+    }
+    pipe.frozen = null;
+    pipe.switching = false;
+    setFacing(nextFacing);
+    setSwitching(false);
+  };
+
   const startRec = async (mode: "video" | "audio") => {
     setBusy("");
     const personalVideo = variant === "personal" && mode === "video";
@@ -311,9 +546,28 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      streamRef.current = stream;
+      // Video: try the canvas pipeline so the camera can be switched during recording. If it cannot be built,
+      // record the camera stream directly (switching then works only before recording starts).
+      let livePipe: LivePipe | null = null;
+      let recStream: MediaStream = stream;
+      if (mode === "video") {
+        const built = await buildLivePipe(stream, facing);
+        if (halted.current || !alive.current) {
+          teardownPipe(built?.pipe ?? null);
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        if (built) {
+          livePipe = built.pipe;
+          recStream = built.recStream;
+          pipeRef.current = livePipe;
+          setLiveSwitch(true);
+        }
+      }
+      const previewStream = livePipe ? new MediaStream([livePipe.track]) : stream;
+      streamRef.current = previewStream;
       if (videoRef.current && mode === "video") {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject = previewStream;
         await videoRef.current.play().catch(() => undefined);
       }
       if (halted.current || !alive.current) {
@@ -323,7 +577,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       const mime = recorderMime(mode === "video" ? "video" : "audio");
       let rec: MediaRecorder;
       try {
-        rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions(mode === "video" ? "video" : "audio") });
+        rec = new MediaRecorder(recStream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions(mode === "video" ? "video" : "audio") });
       } catch {
         releaseTracks();
         if (personalVideo) {
@@ -341,6 +595,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
         const wallSec = recStartedAt.current ? (Date.now() - recStartedAt.current) / 1000 : 0;
         const limit = mode === "video" ? videoMaxSeconds() : voiceMaxSeconds();
         const wall = clampWall(wallSec, limit, autoStopped.current);
+        teardownPipe(livePipe);
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunks.current, { type: rec.mimeType || (mode === "video" ? "video/webm" : "audio/webm") });
         const url = keepBlob(mode === "video" ? "video" : "voice", blob);
@@ -510,12 +765,17 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
   };
 
 
+  const liveVideoRec = recording && recMode === "video";
   const facingToggle = (
     <button
       type="button"
       data-testid="post-flip-camera"
-      onClick={() => setFacing((cur) => (cur === "environment" ? "user" : "environment"))}
-      className="h-11 rounded-[12px] border border-line bg-white px-3 text-[13px] font-semibold text-ink"
+      disabled={recording && (!liveVideoRec || !liveSwitch || switching)}
+      onClick={() => {
+        if (recording) void switchLive();
+        else setFacing((cur) => (cur === "environment" ? "user" : "environment"));
+      }}
+      className="h-11 rounded-[12px] border border-line bg-white px-3 text-[13px] font-semibold text-ink disabled:opacity-40"
       aria-label={t.mediaCamFlip}
     >
       🔄 {facing === "environment" ? t.mediaCamBack : t.mediaCamFront}
@@ -529,13 +789,14 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
       <div>
         {liveVideo ? (
           <div className="overflow-hidden rounded-[16px] border border-line bg-ink">
-            <LiveVideoBox videoRef={videoRef} elapsed={elapsed} recording />
-            <div className="bg-white p-3">
+            <LiveVideoBox videoRef={videoRef} elapsed={elapsed} recording mirror={facing === "user"} />
+            <div className="flex gap-2 bg-white p-3">
+              {facingToggle}
               <button
                 type="button"
                 data-testid="post-stop"
                 onClick={() => stopRec()}
-                className="h-12 w-full rounded-[12px] text-[15px] font-semibold"
+                className="h-12 flex-1 rounded-[12px] text-[15px] font-semibold"
                 style={{ background: "#E31E24", color: "#F5F5F7" }}
               >
                 {t.mediaStop}
@@ -693,6 +954,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               videoRef={videoRef}
               elapsed={elapsed}
               recording={recording && recMode === "video"}
+              mirror={recording && recMode === "video" && facing === "user"}
               placeholder={emptyText && !draft.videoUrl && !(recording && recMode === "video") ? emptyText : undefined}
             />
           )}
@@ -739,7 +1001,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                 >
                   {recording ? t.mediaStop : t.mediaRecord}
                 </button>
-                {!recording ? facingToggle : null}
+                {facingToggle}
                 <button
                   type="button"
                   onClick={() => {
