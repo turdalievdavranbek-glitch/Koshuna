@@ -53,6 +53,11 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
   };
 
   const share = async () => {
+    // Listing in the Android app: open our sheet first (it has «Stories с QR»); the system share sheet is one of its items.
+    if (listing && nativeShareFilesAvailable()) {
+      setOpen(true);
+      return;
+    }
     if (nativeShareAvailable()) {
       if (await nativeShareLink({ title, text, url })) return;
     }
@@ -189,6 +194,19 @@ export function ShareButton({ listing, shop, variant = "button", appTitle }: Pro
               >
                 {t.shareTg}
               </a>
+              {nativeShareAvailable() ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void nativeShareLink({ title, text, url }).then((done) => {
+                      if (done) setOpen(false);
+                    });
+                  }}
+                  className="h-12 rounded-2xl border border-line text-[15px] font-semibold text-ink"
+                >
+                  {t.shareOther}
+                </button>
+              ) : null}
               <button type="button" onClick={() => void copy()} className="h-12 rounded-2xl border border-line text-[15px] font-semibold text-ink">
                 {t.shareCopyLink}
               </button>
