@@ -26,7 +26,7 @@ export function hasChannel(user: User | null | undefined, channel: SellerChannel
 /** Sample posts as they arrive from each channel — classified the same way as speech. */
 export const CHANNEL_DEMO_POST: Record<SellerChannel, string> = {
   instagram:
-    "Продаю кожаный диван, Ош, восемнадцать тысяч пятьсот сом. Самовывоз, поможем спустить. Предоплату не прошу. Полное объявление в Koshuna.",
+    "Продаю кожаный диван, Ош, восемнадцать тысяч пятьсот сом. Самовывоз, поможем спустить. Предоплату не прошу. Полное объявление в Коңшу.",
   facebook:
     "Продам кожаный диван, Ош. 18 500 сом. Самовывоз, поможем спустить. Я хозяин, предоплату не прошу.",
   telegram:

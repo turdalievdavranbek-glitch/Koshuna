@@ -45,7 +45,7 @@ export function MarketRangeCard({
       <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.marketHint}</p>
       <div className="mt-3 font-display text-[22px] font-bold leading-[1.15] text-ink">
         {formatSom(band.min)} – {formatSom(band.max)}
-        <span className="ml-1 text-[13px] font-semibold text-muted">KGS{unit}</span>
+        <span className="ml-1 text-[13px] font-semibold text-muted">сом{unit}</span>
       </div>
       <p className="mt-1 text-[12px] text-muted">
         {t.marketCount(band.count)} · {scopeText}
@@ -55,8 +55,8 @@ export function MarketRangeCard({
           className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-white"
           style={{
             left: `${marker}%`,
-            background: fit === "in" ? "#2A6B57" : "#B8452F",
-            boxShadow: "0 2px 6px rgba(23,20,15,.2)",
+            background: fit === "in" ? "#2A6B57" : "#E31E24",
+            boxShadow: "0 2px 6px rgba(24,24,27,.2)",
           }}
         />
       </div>
@@ -67,7 +67,7 @@ export function MarketRangeCard({
       </div>
       <p
         className="mt-3 text-[13px] leading-[1.45]"
-        style={{ color: fit === "in" ? "#245046" : "#8E3423" }}
+        style={{ color: fit === "in" ? "#245046" : "#B0141A" }}
       >
         {fitText}
       </p>

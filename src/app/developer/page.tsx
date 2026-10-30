@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatSom } from "@/lib/data";
 import { COMPLEX_AMENITIES, COMPLEX_CLASSES, COMPLEX_STAGES, hasRole, type ComplexAmenity } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
@@ -41,8 +42,9 @@ export default function DeveloperCabinetPage() {
   if (!hasRole(user, "developer") || !profile) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <p className="text-muted">{t.applyDeveloper}</p>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/profile" />
+          <p className="mt-4 text-muted">{t.applyDeveloper}</p>
           <button type="button" onClick={() => router.push("/partner?kind=developer")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.partnerApplyTitle}
           </button>
@@ -88,8 +90,8 @@ export default function DeveloperCabinetPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#17140F" />
+          <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.developerCabinet}</h1>
           <span className="w-9" />

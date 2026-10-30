@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { FEATURES } from "@/lib/features";
 import { socialCounts } from "@/lib/reactions";
 import { useApp } from "@/lib/store";
 import type { Listing } from "@/lib/types";
-import { IconChat, IconDislike, IconLike } from "@/components/icons";
-import { Eyebrow } from "@/components/ui";
+import { useCommentCount } from "@/lib/comment-counts";
+import { IconBookmark, IconChat, IconHeart } from "@/components/icons";
+import { ShareButton } from "@/components/share-button";
+import { CommentsButton, CommentsSheet } from "@/components/listing-comments";
 
 export function ListingSocialMeta({
   listingId,
@@ -17,8 +20,9 @@ export function ListingSocialMeta({
   size?: "sm" | "md" | "lg";
   align?: "start" | "center";
 }) {
-  const { commentsOf, reactions } = useApp();
-  const { likes, dislikes, comments } = socialCounts(listingId, reactions, commentsOf(listingId).length);
+  const { reactions } = useApp();
+  const commentCount = useCommentCount(listingId);
+  const { likes, comments } = socialCounts(listingId, reactions, FEATURES.comments ? commentCount : 0);
   const icon = size === "sm" ? 11 : size === "lg" ? 14 : 12;
   const text = size === "sm" ? "text-[9px]" : size === "lg" ? "text-[12px]" : "text-[11px]";
   const gap = size === "sm" ? "gap-1.5" : "gap-2.5";
@@ -31,128 +35,136 @@ export function ListingSocialMeta({
       }`}
     >
       <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconLike size={icon} color="#6E6558" />
+        <IconHeart size={icon} color="#61616B" />
         <span className="tabular-nums">{likes}</span>
       </span>
-      <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconDislike size={icon} color="#6E6558" />
-        <span className="tabular-nums">{dislikes}</span>
-      </span>
-      <span className="inline-flex min-w-0 items-center gap-0.5">
-        <IconChat size={icon} color="#6E6558" />
-        <span className="tabular-nums">{comments}</span>
-      </span>
+      {FEATURES.comments ? (
+        <span className="inline-flex min-w-0 items-center gap-0.5">
+          <IconChat size={icon} color="#61616B" />
+          <span className="tabular-nums">{comments}</span>
+        </span>
+      ) : null}
     </div>
   );
 }
 
-export function ListingSocial({ listing }: { listing: Listing }) {
-  const { t, user, setPendingPath, reactionOf, setReaction, commentsOf, addComment, reactions } = useApp();
+/** Single ♡ like (old 👍 = like; old 👎 data kept but not shown). */
+export function useListingLike(listingId: string) {
+  const { user, setPendingPath, reactionOf, setReaction, reactions } = useApp();
   const router = useRouter();
-  const [text, setText] = useState("");
-
-  const reaction = reactionOf(listing.id);
-  const comments = commentsOf(listing.id);
-  const { likes, dislikes } = socialCounts(listing.id, reactions, comments.length);
-
-  const gate = () => {
-    if (!user) {
-      setPendingPath(`/listing/${listing.id}`);
-      router.push("/login");
-      return false;
-    }
+  const liked = reactionOf(listingId) === "like";
+  const { likes } = socialCounts(listingId, reactions, 0);
+  const gate = useCallback(() => {
+    if (user) return true;
+    setPendingPath(`/listing/${listingId}`);
+    router.push("/login");
+    return false;
+  }, [user, setPendingPath, router, listingId]);
+  const toggle = useCallback(() => {
+    if (!gate()) return;
+    setReaction(listingId, "like");
+  }, [gate, setReaction, listingId]);
+  /** Double-tap: only ever turns the like on. */
+  const likeOn = useCallback(() => {
+    if (!gate()) return false;
+    if (!liked) setReaction(listingId, "like");
     return true;
-  };
+  }, [gate, liked, setReaction, listingId]);
+  return { liked, likes, toggle, likeOn, gate };
+}
 
-  const react = (value: "like" | "dislike") => {
-    if (!gate()) return;
-    setReaction(listing.id, value);
+/** Wraps the listing photo/video: double-tap = like with a heart pop. */
+export function DoubleTapLike({ listingId, children, className }: { listingId: string; children: ReactNode; className?: string }) {
+  const { likeOn } = useListingLike(listingId);
+  const [pop, setPop] = useState(0);
+  const lastTap = useRef(0);
+  const fire = () => {
+    if (likeOn()) setPop((n) => n + 1);
   };
-
-  const submit = () => {
-    if (!gate()) return;
-    if (addComment(listing.id, text)) setText("");
-  };
-
   return (
-    <div className="mt-6">
-      <div className="flex items-center gap-2">
+    <div
+      className={`relative ${className ?? ""}`}
+      onTouchEnd={() => {
+        const now = Date.now();
+        if (now - lastTap.current < 300) {
+          lastTap.current = 0;
+          fire();
+        } else lastTap.current = now;
+      }}
+      onDoubleClick={fire}
+    >
+      {children}
+      {pop ? (
+        <div key={pop} aria-hidden className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <div className="heart-pop drop-shadow-[0_6px_18px_rgba(227,30,36,.55)]">
+            <IconHeart size={96} filled color="#FF3B6B" />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Reels-style ♡ + count and ➤ share, stacked on the media bottom-right. */
+export function ListingMediaActions({ listing, className }: { listing: Listing; className?: string }) {
+  const { t } = useApp();
+  const { liked, likes, toggle } = useListingLike(listing.id);
+  return (
+    <div className={`absolute right-3 z-10 flex flex-col items-center gap-2 ${className ?? "bottom-14"}`}>
+      <div className="flex flex-col items-center">
         <button
           type="button"
-          onClick={() => react("like")}
+          onClick={toggle}
           data-testid="react-like"
           aria-label={t.likeLabel}
-          aria-pressed={reaction === "like"}
+          aria-pressed={liked}
           title={t.likeLabel}
-          className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
-            reaction === "like" ? "border-success bg-success-tint text-success" : "border-line bg-white text-ink"
-          }`}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(9,9,11,.38)] backdrop-blur-[2px] active:scale-95"
         >
-          <IconLike size={18} color={reaction === "like" ? "#2A6B57" : "#17140F"} filled={reaction === "like"} />
-          {likes}
+          <span key={liked ? "on" : "off"} className={liked ? "like-bump" : ""}>
+            <IconHeart size={24} color={liked ? "#FF3B6B" : "#FFFFFF"} filled={liked} className="drop-shadow-[0_1px_3px_rgba(0,0,0,.55)]" />
+          </span>
         </button>
-        <button
-          type="button"
-          onClick={() => react("dislike")}
-          data-testid="react-dislike"
-          aria-label={t.dislikeLabel}
-          aria-pressed={reaction === "dislike"}
-          title={t.dislikeLabel}
-          className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold ${
-            reaction === "dislike" ? "border-accent bg-accent-tint text-accent" : "border-line bg-white text-ink"
-          }`}
-        >
-          <IconDislike size={18} color={reaction === "dislike" ? "#B8452F" : "#17140F"} filled={reaction === "dislike"} />
-          {dislikes}
-        </button>
-        <div className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] border border-line bg-white text-[14px] font-semibold text-ink">
-          <IconChat size={17} color="#17140F" />
-          {comments.length}
-        </div>
+        <span className="mt-0.5 text-[12px] font-bold tabular-nums text-white [text-shadow:0_1px_3px_rgba(0,0,0,.7)]">{likes}</span>
       </div>
+      <ShareButton listing={listing} variant="overlay" />
+    </div>
+  );
+}
 
-      <div className="mt-5">
-        <Eyebrow>{t.comments}</Eyebrow>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-            }}
-            placeholder={t.commentPlaceholder}
-            className="h-11 flex-1 rounded-[14px] border border-line bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-muted-2"
-          />
+export function ListingSocial({ listing, className }: { listing: Listing; className?: string }) {
+  const { t, lang, isFav, toggleFav, user } = useApp();
+  const [sheet, setSheet] = useState(false);
+  const { gate } = useListingLike(listing.id);
+  const saved = isFav(listing.id);
+  const mine = Boolean(user && listing.ownerId === user.id);
+  if (mine && !FEATURES.comments) return null;
+
+  return (
+    <div className={className ?? "mt-6"}>
+      <div className="flex items-center gap-1">
+        {FEATURES.comments ? <CommentsButton listingId={listing.id} onOpen={() => setSheet(true)} /> : null}
+        <span className="flex-1" />
+        {mine ? null : (
           <button
             type="button"
-            onClick={submit}
-            className="h-11 shrink-0 rounded-[14px] bg-accent px-4 text-[14px] font-semibold text-accent-on"
+            onClick={() => {
+              if (gate()) toggleFav(listing.id);
+            }}
+            data-testid="save-listing"
+            aria-label={saved ? t.savedLabel : t.saveLabel}
+            aria-pressed={saved}
+            title={saved ? t.savedLabel : t.saveLabel}
+            className="flex h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-semibold text-ink active:scale-95"
           >
-            {t.commentSend}
+            <IconBookmark size={23} color={saved ? "#E31E24" : "#18181B"} filled={saved} />
+            <span>{saved ? t.savedLabel : t.saveLabel}</span>
           </button>
-        </div>
-
-        {comments.length ? (
-          <div className="mt-4 flex flex-col gap-3">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink font-display text-[15px] font-bold text-screen">
-                  {comment.author.slice(0, 1)}
-                </div>
-                <div className="flex-1 rounded-[14px] border border-line bg-white px-3.5 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-semibold text-ink">{comment.author}</span>
-                    <span className="shrink-0 text-[11px] text-muted-2">{comment.time}</span>
-                  </div>
-                  <p className="mt-1 text-[14px] leading-[1.45] text-ink-2">{comment.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-[13px] text-muted">{t.commentsEmpty}</p>
         )}
       </div>
+      {FEATURES.comments && sheet ? (
+        <CommentsSheet listingId={listing.id} title={lang === "ky" ? listing.titleKy || listing.title : listing.title} onClose={() => setSheet(false)} />
+      ) : null}
     </div>
   );
 }

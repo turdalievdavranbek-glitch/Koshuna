@@ -2,7 +2,128 @@ export const VEHICLE_GROUPS = ["passenger", "special"] as const;
 export type VehicleGroup = (typeof VEHICLE_GROUPS)[number];
 
 export const PASSENGER_TYPES = ["sedan", "crossover", "suv", "pickup", "wagon"] as const;
-export const SPECIAL_TYPES = ["excavator", "backhoe", "bulldozer", "loader", "crane", "dump", "tractor"] as const;
+export const SPECIAL_TYPES = ["excavator", "backhoe", "bulldozer", "loader", "crane", "dump", "truck", "tractor"] as const;
+
+/** Passenger makes in KG/CIS popularity order. A make with no model row is still a final choice. */
+export const PASSENGER_MAKES = [
+  "toyota",
+  "hyundai",
+  "mercedes",
+  "bmw",
+  "lexus",
+  "kia",
+  "honda",
+  "volkswagen",
+  "nissan",
+  "mitsubishi",
+  "audi",
+  "chevrolet",
+  "daewoo",
+  "lada",
+  "gaz",
+  "uaz",
+  "ford",
+  "mazda",
+  "subaru",
+  "suzuki",
+  "skoda",
+  "renault",
+  "peugeot",
+  "opel",
+  "volvo",
+  "land-rover",
+  "porsche",
+  "infiniti",
+  "acura",
+  "jeep",
+  "dodge",
+  "chrysler",
+  "cadillac",
+  "lincoln",
+  "tesla",
+  "byd",
+  "geely",
+  "chery",
+  "haval",
+  "great-wall",
+  "changan",
+  "faw",
+  "dongfeng",
+  "jac",
+  "lifan",
+  "brilliance",
+  "mg",
+  "genesis",
+  "ssangyong",
+  "isuzu",
+  "fiat",
+  "alfa-romeo",
+  "citroen",
+  "seat",
+  "mini",
+  "jaguar",
+  "bentley",
+  "rolls-royce",
+  "maserati",
+  "ferrari",
+  "lamborghini",
+  "bugatti",
+  "mclaren",
+  "aston-martin",
+  "hummer",
+  "pontiac",
+  "saturn",
+  "buick",
+  "gmc",
+  "ram",
+  "scion",
+  "dacia",
+  "saab",
+  "rover",
+  "smart",
+  "daihatsu",
+  "proton",
+  "perodua",
+  "tata",
+  "mahindra",
+  "iran-khodro",
+  "zotye",
+  "dfsk",
+  "zeekr",
+  "li-auto",
+  "nio",
+  "voyah",
+  "tank",
+  "exeed",
+  "omoda",
+  "jaecoo",
+  "hongqi",
+  "wuling",
+  "baojun",
+  "bestune",
+  "jetour",
+  "soueast",
+] as const;
+
+/** Howo is sinotruk, not a separate make. */
+export const TRUCK_MAKES = [
+  "sinotruk",
+  "kamaz",
+  "maz",
+  "shacman",
+  "foton",
+  "man",
+  "scania",
+  "iveco",
+  "hino",
+  "daf",
+  "renault-trucks",
+  "mercedes-trucks",
+  "volvo-trucks",
+  "belaz",
+] as const;
+
+export const MAKE_PREVIEW = 20;
 
 export type TransportRow = {
   group: VehicleGroup;
@@ -66,6 +187,67 @@ export const TRANSPORT_ROWS: TransportRow[] = [
   { group: "passenger", type: "suv", make: "lada", model: "niva" },
   { group: "passenger", type: "crossover", make: "renault", model: "duster" },
   { group: "passenger", type: "sedan", make: "renault", model: "logan" },
+  { group: "passenger", type: "crossover", make: "toyota", model: "highlander" },
+  { group: "passenger", type: "wagon", make: "toyota", model: "alphard" },
+  { group: "passenger", type: "sedan", make: "hyundai", model: "accent" },
+  { group: "passenger", type: "sedan", make: "mercedes", model: "s-class" },
+  { group: "passenger", type: "crossover", make: "mercedes", model: "glc" },
+  { group: "passenger", type: "suv", make: "mercedes", model: "g-class" },
+  { group: "passenger", type: "sedan", make: "bmw", model: "5-series" },
+  { group: "passenger", type: "sedan", make: "bmw", model: "7-series" },
+  { group: "passenger", type: "crossover", make: "bmw", model: "x3" },
+  { group: "passenger", type: "suv", make: "lexus", model: "gx" },
+  { group: "passenger", type: "crossover", make: "kia", model: "seltos" },
+  { group: "passenger", type: "wagon", make: "honda", model: "fit" },
+  { group: "passenger", type: "wagon", make: "honda", model: "odyssey" },
+  { group: "passenger", type: "sedan", make: "volkswagen", model: "jetta" },
+  { group: "passenger", type: "suv", make: "volkswagen", model: "touareg" },
+  { group: "passenger", type: "wagon", make: "volkswagen", model: "golf" },
+  { group: "passenger", type: "sedan", make: "nissan", model: "teana" },
+  { group: "passenger", type: "pickup", make: "mitsubishi", model: "l200" },
+  { group: "passenger", type: "sedan", make: "mitsubishi", model: "lancer" },
+  { group: "passenger", type: "sedan", make: "audi", model: "a6" },
+  { group: "passenger", type: "crossover", make: "audi", model: "q7" },
+  { group: "passenger", type: "sedan", make: "chevrolet", model: "malibu" },
+  { group: "passenger", type: "crossover", make: "chevrolet", model: "captiva" },
+  { group: "passenger", type: "crossover", make: "chevrolet", model: "tracker" },
+  { group: "passenger", type: "sedan", make: "chevrolet", model: "nexia" },
+  { group: "passenger", type: "sedan", make: "daewoo", model: "gentra" },
+  { group: "passenger", type: "wagon", make: "daewoo", model: "matiz" },
+  { group: "passenger", type: "sedan", make: "daewoo", model: "lanos" },
+  { group: "passenger", type: "wagon", make: "lada", model: "largus" },
+  { group: "passenger", type: "suv", make: "uaz", model: "patriot" },
+  { group: "passenger", type: "suv", make: "uaz", model: "hunter" },
+  { group: "passenger", type: "pickup", make: "uaz", model: "uaz-pickup" },
+  { group: "passenger", type: "wagon", make: "uaz", model: "bukhanka" },
+  { group: "passenger", type: "sedan", make: "ford", model: "focus" },
+  { group: "passenger", type: "suv", make: "ford", model: "explorer" },
+  { group: "passenger", type: "crossover", make: "ford", model: "kuga" },
+  { group: "passenger", type: "pickup", make: "ford", model: "ranger" },
+  { group: "passenger", type: "sedan", make: "mazda", model: "mazda-3" },
+  { group: "passenger", type: "crossover", make: "mazda", model: "cx-30" },
+  { group: "passenger", type: "sedan", make: "subaru", model: "legacy" },
+  { group: "passenger", type: "crossover", make: "subaru", model: "xv" },
+  { group: "passenger", type: "sedan", make: "byd", model: "han" },
+  { group: "passenger", type: "sedan", make: "byd", model: "qin" },
+  { group: "passenger", type: "crossover", make: "byd", model: "song-plus" },
+  { group: "passenger", type: "crossover", make: "byd", model: "tang" },
+  { group: "passenger", type: "crossover", make: "geely", model: "monjaro" },
+  { group: "passenger", type: "crossover", make: "geely", model: "coolray" },
+  { group: "passenger", type: "crossover", make: "geely", model: "atlas" },
+  { group: "passenger", type: "sedan", make: "geely", model: "emgrand" },
+  { group: "passenger", type: "crossover", make: "chery", model: "tiggo-7" },
+  { group: "passenger", type: "crossover", make: "chery", model: "tiggo-8" },
+  { group: "passenger", type: "crossover", make: "chery", model: "tiggo-4" },
+  { group: "passenger", type: "sedan", make: "chery", model: "arrizo" },
+  { group: "passenger", type: "crossover", make: "haval", model: "jolion" },
+  { group: "passenger", type: "crossover", make: "haval", model: "h6" },
+  { group: "passenger", type: "crossover", make: "haval", model: "dargo" },
+  { group: "passenger", type: "suv", make: "haval", model: "h9" },
+  { group: "passenger", type: "crossover", make: "changan", model: "cs55" },
+  { group: "passenger", type: "crossover", make: "changan", model: "cs75" },
+  { group: "passenger", type: "crossover", make: "changan", model: "cs35" },
+  { group: "passenger", type: "sedan", make: "changan", model: "uni-v" },
   { group: "special", type: "excavator", make: "caterpillar", model: "320d" },
   { group: "special", type: "excavator", make: "komatsu", model: "pc200" },
   { group: "special", type: "excavator", make: "hitachi", model: "zx200" },
@@ -113,7 +295,7 @@ export function vehicleTypesOf(group: string | null | undefined): readonly strin
   return [];
 }
 
-export function vehicleMakesOf(group?: string | null, type?: string | null): string[] {
+function makesFromRows(group?: string | null, type?: string | null): string[] {
   return unique(
     TRANSPORT_ROWS.filter((row) => {
       if (group && group !== "any" && row.group !== group) return false;
@@ -121,6 +303,36 @@ export function vehicleMakesOf(group?: string | null, type?: string | null): str
       return true;
     }).map((row) => row.make),
   );
+}
+
+export function vehicleMakesOf(group?: string | null, type?: string | null): string[] {
+  const noGroup = !group || group === "any";
+  const noType = !type || type === "any";
+  if (group === "passenger") return [...PASSENGER_MAKES];
+  if (group === "special" && type === "truck") return [...TRUCK_MAKES];
+  if (group === "special" && !noType) return makesFromRows(group, type);
+  if (group === "special" && noType) return unique([...makesFromRows(group), ...TRUCK_MAKES]);
+  if (noGroup) return unique([...PASSENGER_MAKES, ...makesFromRows(), ...TRUCK_MAKES]);
+  return makesFromRows(group, type);
+}
+
+export function makeListView(
+  makes: readonly string[],
+  opts: { expanded?: boolean; selected?: string | null; labelOf?: (id: string) => string } = {},
+): { ids: string[]; showAll: boolean; total: number } {
+  const total = makes.length;
+  const top = makes.slice(0, MAKE_PREVIEW);
+  const selected = opts.selected && opts.selected !== "any" ? opts.selected : null;
+  const selectedOutside = !!selected && makes.includes(selected) && !top.includes(selected);
+  if (opts.expanded || selectedOutside || total <= MAKE_PREVIEW) {
+    const rest = makes.slice(MAKE_PREVIEW).slice().sort((a, b) => {
+      const la = opts.labelOf?.(a) ?? a;
+      const lb = opts.labelOf?.(b) ?? b;
+      return la.localeCompare(lb, "ru") || a.localeCompare(b);
+    });
+    return { ids: [...top, ...rest], showAll: false, total };
+  }
+  return { ids: [...top], showAll: true, total };
 }
 
 export function vehicleModelsOf(make?: string | null, group?: string | null, type?: string | null): string[] {
@@ -156,7 +368,13 @@ const MAKE_ALIASES: Record<string, string[]> = {
   daewoo: ["daewoo", "дэу", "деу"],
   volkswagen: ["volkswagen", "фольксваген", "vw"],
   bmw: ["bmw", "бмв"],
-  mercedes: ["mercedes", "мерседес", "mercedes-benz"],
+  mercedes: ["mercedes", "мерседес", "мерс", "mercedes-benz"],
+  byd: ["byd", "бид", "бyd"],
+  geely: ["geely", "джили"],
+  chery: ["chery", "черри", "чери"],
+  haval: ["haval", "хавал", "хавейл"],
+  gaz: ["gaz", "газ"],
+  uaz: ["uaz", "уаз"],
   audi: ["audi", "ауди"],
   lada: ["lada", "лада", "ваз"],
   renault: ["renault", "рено"],
@@ -198,6 +416,7 @@ const TYPE_ALIASES: Record<string, string[]> = {
   crane: ["кран", "автокран"],
   dump: ["самосвал", "dump"],
   tractor: ["трактор", "tractor"],
+  truck: ["грузовик", "грузовики", "truck"],
 };
 
 function aliasKeys(id: string, extra?: string[]) {

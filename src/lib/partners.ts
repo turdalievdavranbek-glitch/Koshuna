@@ -188,10 +188,19 @@ export function hasRole(user: User | null | undefined, role: PartnerRole): boole
 }
 
 export function isAdminUser(user: User | null | undefined): boolean {
-  if (!user) return false;
-  if (hasRole(user, "admin")) return true;
-  const digits = (user.phone ?? "").replace(/\D/g, "");
-  return digits.endsWith("555123456") || user.name === "Аида";
+  return hasRole(user, "admin");
+}
+
+/** Admin bit returned by the server on the signed-in user. The screen only shows the link; actions are checked again in the database. */
+export function serverAdminFlag(user: { roles?: readonly string[] | null } | null | undefined): boolean {
+  return Boolean(user?.roles?.includes("admin"));
+}
+
+/** Built-in demo partners. A typed phone must not inherit these roles. */
+const SEEDED_PARTNER_IDS = new Set(["dev-azat", "dealer-bishkek-motors"]);
+
+export function isSeededPartnerProfile(row: { id?: string }): boolean {
+  return Boolean(row.id && SEEDED_PARTNER_IDS.has(row.id));
 }
 
 export function phoneDigitsMatch(a: string, b: string): boolean {
@@ -206,15 +215,17 @@ export function phoneDigitsMatch(a: string, b: string): boolean {
 export function rolesForPhone(
   phone: string,
   isAdmin: boolean,
-  realtorProfiles: Array<{ userPhone: string }>,
-  developerProfiles: Array<{ userPhone: string }>,
-  dealerProfiles: Array<{ userPhone: string }> = [],
+  realtorProfiles: Array<{ id?: string; userPhone: string }>,
+  developerProfiles: Array<{ id?: string; userPhone: string }>,
+  dealerProfiles: Array<{ id?: string; userPhone: string }> = [],
 ): PartnerRole[] {
   const roles: PartnerRole[] = [];
   if (isAdmin) roles.push("admin");
-  if (realtorProfiles.some((row) => phoneDigitsMatch(row.userPhone, phone))) roles.push("realtor");
-  if (developerProfiles.some((row) => phoneDigitsMatch(row.userPhone, phone))) roles.push("developer");
-  if (dealerProfiles.some((row) => phoneDigitsMatch(row.userPhone, phone))) roles.push("dealer");
+  const hit = (rows: Array<{ id?: string; userPhone: string }>) =>
+    rows.some((row) => !isSeededPartnerProfile(row) && phoneDigitsMatch(row.userPhone, phone));
+  if (hit(realtorProfiles)) roles.push("realtor");
+  if (hit(developerProfiles)) roles.push("developer");
+  if (hit(dealerProfiles)) roles.push("dealer");
   return roles;
 }
 

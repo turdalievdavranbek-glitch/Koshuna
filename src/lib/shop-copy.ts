@@ -26,12 +26,20 @@ export function shopErrorText(t: Dict, code?: string): string {
       return t.shopVideoSize;
     case "video-duration":
       return t.shopVideoTime;
+    case "bad-mime":
+      return t.videoBadFormat;
     case "network":
       return t.shopNetwork;
     case "reuse":
       return t.shopItemReuseMax;
     case "need-transcript":
       return t.shopAiNeedSpeech;
+    case "pharmacy-only":
+      return t.pharmacyOnly;
+    case "bad-category":
+      return t.badCategory;
+    case "daily-limit":
+      return `${t.dailyLimitLead} ${t.dailyLimitLink}`;
     default:
       return t.shopError;
   }

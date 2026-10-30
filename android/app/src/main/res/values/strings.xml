@@ -1,7 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Koshuna</string>
-    <string name="title_activity_main">Koshuna</string>
+    <string name="app_name">Коңшу</string>
+    <string name="title_activity_main">Коңшу</string>
+    <string name="app_name_latin">Konshu</string>
     <string name="package_name">com.koshuna.app</string>
     <string name="custom_url_scheme">com.koshuna.app</string>
+    <string name="default_notification_channel_id">messages</string>
+    <string name="default_notification_channel_name">Сообщения</string>
+    <string name="default_notification_channel_description">Новые сообщения и уведомления Коңшу</string>
 </resources>

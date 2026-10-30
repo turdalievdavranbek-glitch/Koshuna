@@ -2,21 +2,22 @@ import type { ListingReaction, User } from "./types";
 
 export type ReactionsByVoter = Record<string, Record<string, ListingReaction>>;
 
-function hash(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    h = (h * 31 + id.charCodeAt(i)) >>> 0;
+const serverCounts = new Map<string, { likes: number; dislikes: number }>();
+
+/** Server totals for everyone except the current viewer. The viewer's own reaction is added in socialCounts. */
+export function setServerCounts(map: Record<string, { likes: number; dislikes: number }>) {
+  serverCounts.clear();
+  for (const [id, counts] of Object.entries(map)) {
+    serverCounts.set(id, { likes: counts?.likes || 0, dislikes: counts?.dislikes || 0 });
   }
-  return h;
 }
 
-// Stable, seeded base counts so sample listings feel alive without a backend.
 export function baseLikes(id: string): number {
-  return 4 + (hash(id) % 46);
+  return serverCounts.get(id)?.likes ?? 0;
 }
 
 export function baseDislikes(id: string): number {
-  return hash(`${id}:d`) % 5;
+  return serverCounts.get(id)?.dislikes ?? 0;
 }
 
 export function isListingReaction(value: unknown): value is ListingReaction {

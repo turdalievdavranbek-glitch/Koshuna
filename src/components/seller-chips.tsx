@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { AUTO_SELLER_KINDS, SELLER_KINDS } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { Chip, Eyebrow } from "@/components/ui";
@@ -12,7 +13,9 @@ export function SellerKindChips({
   variant?: "realty" | "auto";
 }) {
   const { t, filters, setFilters } = useApp();
-  const kinds = variant === "auto" ? AUTO_SELLER_KINDS : SELLER_KINDS;
+  const kinds = (variant === "auto" ? AUTO_SELLER_KINDS : SELLER_KINDS).filter(
+    (id) => id !== "neighbor" || FEATURES.neighborFilter,
+  );
   const labelOf = (id: (typeof kinds)[number]) => {
     if (id === "any") return t.sellerAll;
     if (id === "neighbor") return t.fromNeighbor;

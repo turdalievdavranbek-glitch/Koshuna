@@ -1,33 +1,73 @@
 "use client";
 
-import Link from "next/link";
+import { openFeedback } from "@/components/feedback";
+import { PromoterAdmin } from "@/components/promoter-admin";
+import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
-import { mineListings, threadSide } from "@/lib/listing-owner";
+import { useEffect, useState } from "react";
+import { mineListings } from "@/lib/listing-owner";
 import { shopsOf, userHasShopBadge } from "@/lib/shops";
-import { hasRole } from "@/lib/partners";
+import { hasRole, isAdminUser } from "@/lib/partners";
+import { FEATURES } from "@/lib/features";
+import { helpWhatsAppUrl } from "@/lib/help";
+import { LANG_LABEL } from "@/lib/i18n";
 import { starsForUser } from "@/lib/trust";
+import { formatPhoneDisplay } from "@/lib/phone";
+import { api } from "@/lib/api/client";
+import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
-import { LANGS } from "@/lib/types";
-import { Flag, IconVerified } from "@/components/icons";
+import { LANGS, type AuthMethod } from "@/lib/types";
+import { BrandGoogle, BrandTelegram } from "@/components/auth-brands";
+import { IconBookmark, IconVerified } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { LangSwitch } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
-import { SellerHub } from "@/components/seller-hub";
-import { SellerEntryCards } from "@/components/seller-entry-cards";
-import { SideSwitch } from "@/components/side-switch";
+import { PointList } from "@/components/point-rows";
 import { MyListings } from "@/components/my-listings";
-import { KonshuBridges } from "@/components/konshu-bridges";
+import { HoldInbox } from "@/components/hold-inbox";
+import { IncomingBuyRequests, MyBuyRequests } from "@/components/buy-requests";
+import { SubscriptionList } from "@/components/subscription-list";
+
+const PHONE_LATER = "konshu.phoneLater";
+
+function MethodIcon({ method }: { method: AuthMethod }) {
+  if (method === "google") return <BrandGoogle size={14} />;
+  if (method === "telegram") return <BrandTelegram size={14} />;
+  return null;
+}
 
 export default function ProfilePage() {
-  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, side, threads } =
-    useApp();
+  const { t, lang, user, logout, extraListings, allListings, setLang, notificationsOn, setNotificationsOn, shops, favouriteIds } = useApp();
   const router = useRouter();
+  const [phoneLater, setPhoneLater] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  useEffect(() => {
+    setPhoneLater(localStorage.getItem(PHONE_LATER) === "1");
+  }, [user?.phone]);
+  useEffect(() => {
+    if (!user?.id) {
+      setChatUnread(0);
+      return;
+    }
+    let cancel = false;
+    const pull = () => {
+      void api<{ unread?: number }>("/api/me/threads").then((res) => {
+        if (!cancel && res.ok) setChatUnread(res.data?.unread ?? 0);
+      });
+    };
+    pull();
+    const timer = window.setInterval(pull, 8000);
+    return () => {
+      cancel = true;
+      window.clearInterval(timer);
+    };
+  }, [user?.id]);
   const stars = starsForUser(user);
-  const selling = side === "sell";
   const mine = mineListings(allListings, extraListings, user, shops);
-  const inboxCount = user
-    ? threads.filter((th) => (selling ? threadSide(th, extraListings, user) === "sell" : threadSide(th, extraListings, user) === "buy")).length
-    : 0;
+  const points = shopsOf(shops, user);
 
   if (!user) {
     return (
@@ -35,9 +75,6 @@ export default function ProfilePage() {
         <div className="flex flex-1 flex-col px-5 pt-4">
           <h1 className="font-display text-[28px] font-extrabold text-ink">{t.profile}</h1>
           <p className="mt-2 text-[15px] leading-[1.5] text-muted">{t.guestSideHint}</p>
-          <div className="mt-5">
-            <SideSwitch />
-          </div>
           <button
             type="button"
             onClick={() => router.push("/login")}
@@ -45,9 +82,6 @@ export default function ProfilePage() {
           >
             {t.loginCta}
           </button>
-          <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-            <KonshuBridges />
-          </div>
           <div className="mt-8 rounded-[18px] border border-line bg-white p-4">
             <div className="mb-3 text-[13px] font-semibold text-ink">{t.language}</div>
             <LangSwitch />
@@ -60,57 +94,134 @@ export default function ProfilePage() {
   return (
     <PhoneShell tab>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-2">
-        <SideSwitch />
-
-        <div className="mt-5 flex items-center gap-3.5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">
+        <div className="relative mt-3 flex items-center gap-3.5 rounded-[18px] border border-line bg-white py-3.5 pl-3.5 pr-12 shadow-[0_6px_18px_rgba(17,17,17,0.06)]">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E31E24] to-[#B8161B] font-display text-[24px] font-bold text-white shadow-[0_4px_10px_rgba(227,30,36,0.3)] ring-2 ring-[#FFD23F]">
             {user.name.slice(0, 1)}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
-              {user.verified ? <IconVerified size={17} /> : null}
-              {selling && userHasShopBadge(shops, user) ? (
-                <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="min-w-0 truncate font-display text-[20px] font-extrabold leading-tight tracking-[-0.01em] text-ink">{user.name}</span>
+              {user.verified ? <IconVerified size={16} /> : null}
+              <MasterBadge userId={user.id} on={user.master || undefined} />
+              {userHasShopBadge(shops, user) ? (
+                <span className="shrink-0 rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-bold text-[#8A6A00]">{t.shopBadge}</span>
               ) : null}
               {hasRole(user, "realtor") ? (
-                <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
+                <span className="shrink-0 rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
               ) : null}
-              {hasRole(user, "developer") ? (
-                <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
+              {FEATURES.developers && hasRole(user, "developer") ? (
+                <span className="shrink-0 rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
-              {hasRole(user, "dealer") ? (
-                <span className="rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
+              {FEATURES.dealers && hasRole(user, "dealer") ? (
+                <span className="shrink-0 rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
               ) : null}
             </div>
-            <div className="mt-1">
-              <TrustStars n={stars} size={15} />
-            </div>
-            <div className="mt-0.5 text-[13px] text-muted">
-              {user.email || user.phone}
-              {user.method ? ` · ${t.signedInVia} ${t.authMethods[user.method]}` : null}
-            </div>
+            {FEATURES.accountStars ? (
+              <div className="mt-0.5">
+                <TrustStars n={stars} size={14} />
+              </div>
+            ) : null}
+            {user.email || user.phone ? (
+              <div className="mt-0.5 truncate whitespace-nowrap text-[12.5px] text-muted">
+                {[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}
+              </div>
+            ) : null}
+            {user.method ? (
+              <div className="mt-0.5 flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted-2">
+                <MethodIcon method={user.method} />
+                <span className="truncate">{t.signedInVia} {t.authMethods[user.method]}</span>
+              </div>
+            ) : null}
           </div>
-          <button type="button" className="text-[13px] font-semibold text-accent">
-            {t.edit}
+          <button
+            type="button"
+            aria-label={t.edit}
+            title={t.edit}
+            onClick={() => router.push("/profile/edit")}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-accent shadow-[0_2px_6px_rgba(17,17,17,0.08)] active:scale-95"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
           </button>
         </div>
 
-        {selling ? (
-          <div className="mt-[18px] grid grid-cols-3 gap-2">
-            {[
-              [String(mine.length), t.listingsCount],
-              ["1 284", t.views],
-              ["4,9", t.rating],
-            ].map(([v, l]) => (
-              <div key={l} className="rounded-[14px] border border-line bg-white p-3">
-                <div className="font-display text-xl font-bold text-ink">{v}</div>
-                <div className="mt-0.5 text-[11px] text-muted">{l}</div>
-              </div>
-            ))}
+        {!user.phone && !phoneLater ? (
+          <div className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3">
+            <p className="text-[14px] leading-[1.4] text-ink">{t.addPhoneCard}</p>
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => router.push("/profile/edit")} className="h-10 rounded-xl bg-accent px-4 text-[14px] font-semibold text-accent-on">
+                {t.addPhone}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(PHONE_LATER, "1");
+                  setPhoneLater(true);
+                }}
+                className="h-10 rounded-xl border border-line px-4 text-[14px] font-semibold"
+              >
+                {t.later}
+              </button>
+            </div>
           </div>
         ) : null}
 
+        <button
+          type="button"
+          data-testid="cabinet-messages"
+          onClick={() => router.push("/messages")}
+          className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.inbox}</span>
+          <span className="flex items-center gap-2">
+            {chatUnread > 0 ? (
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#E0242B] px-1.5 text-[12px] font-bold text-white">
+                {chatUnread > 9 ? "9+" : chatUnread}
+              </span>
+            ) : null}
+            <span className="text-[18px] text-muted-2">›</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="cabinet-saved"
+          onClick={() => router.push("/favorites")}
+          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+            <IconBookmark size={17} color="#E31E24" />
+            {t.savedTitle}
+          </span>
+          <span className="flex items-center gap-2">
+            {favouriteIds.length ? <span className="text-[13px] font-semibold text-muted">{favouriteIds.length}</span> : null}
+            <span className="text-[18px] text-muted-2">›</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={openFeedback}
+          className="mt-2.5 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.feedbackEntry}</span>
+          <span className="text-[18px] text-muted-2">›</span>
+        </button>
+
+        {isAdminUser(user) ? (
+          <button
+            type="button"
+            onClick={() => router.push("/admin")}
+            className="mt-2.5 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.adminTitle}</span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        ) : null}
+
+        {FEATURES.accountStars ? (
         <div className="mt-4 rounded-[18px] border border-line bg-white p-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-dark">{t.trustYours}</div>
           <div className="mt-2 flex items-center gap-2">
@@ -120,7 +231,7 @@ export default function ProfilePage() {
             </span>
           </div>
           <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.trustLead}</p>
-          {user.method === "sms" && !user.cardLinked ? (
+          {FEATURES.cardLink && user.method === "sms" && !user.cardLinked ? (
             <button
               type="button"
               onClick={() => router.push("/card")}
@@ -131,65 +242,60 @@ export default function ProfilePage() {
           ) : null}
           {user.cardLinked ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{t.cardOn}</p> : null}
         </div>
+        ) : null}
 
-        <Link
-          href="/messages"
-          className="mt-3 flex items-center justify-between rounded-[18px] border border-line bg-white px-4 py-[15px] text-[15px] text-ink no-underline"
-        >
-          <span>
-            {t.inbox}
-            <span className="mt-0.5 block text-[12px] text-muted">{selling ? t.inboxSell : t.inboxBuy}</span>
-          </span>
-          <span className="text-[13px] font-semibold text-accent">{inboxCount}</span>
-        </Link>
-
-        {selling ? (
-          <>
-            <div className="mt-3">
-              <SellerHub />
-            </div>
-
-            <div className="mt-6 flex items-baseline justify-between">
-              <span className="font-display text-[19px] font-bold text-ink">{t.shopMine}</span>
-              <button type="button" onClick={() => router.push("/shops")} className="text-[13px] font-semibold text-accent">
-                {t.allN(shopsOf(shops, user).length)}
-              </button>
-            </div>
-            <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p>
-            <div className="mt-3">
-              <SellerEntryCards />
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/shops/new")}
-              className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
-            >
-              {t.shopNew}
-            </button>
-
-            <div className="mt-6 flex items-baseline justify-between">
-              <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
-              <button type="button" onClick={() => router.push("/selling")} className="text-[13px] font-semibold text-accent">
-                {t.allN(mine.length)}
-              </button>
-            </div>
-            <div className="mt-3">
-              <MyListings limit={3} />
-            </div>
-          </>
+        <div className="mt-6 flex items-baseline justify-between">
+          <span className="font-display text-[19px] font-bold text-ink">{t.myPoints}</span>
+          <span className="text-[13px] font-semibold text-muted">{points.length}</span>
+        </div>
+        {FEATURES.pointSetupHints ? <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p> : null}
+        {points.length ? (
+          <div className="mt-3">
+            <PointList shops={points} actions open="point" />
+          </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => router.push("/favorites")}
-            className="mt-3 flex h-[54px] w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 text-left"
-          >
-            <span className="text-[15px] font-semibold text-ink">{t.fav}</span>
-            <span className="text-[13px] font-semibold text-accent">›</span>
-          </button>
+          <p className="mt-3 text-[14px] leading-[1.45] text-muted">{t.shopEmptyMine}</p>
         )}
+        <button
+          type="button"
+          onClick={() => router.push("/shops/new")}
+          className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen"
+        >
+          {t.shopNew}
+        </button>
 
-        <div className="mt-6 rounded-[18px] border border-line bg-white p-4">
-          <KonshuBridges />
+        {FEATURES.purchaseRequests ? (
+          <div className="mt-6">
+            <MyBuyRequests />
+          </div>
+        ) : null}
+
+        {FEATURES.purchaseRequests && points.length ? (
+          <div className="mt-6">
+            <IncomingBuyRequests />
+          </div>
+        ) : null}
+
+        {FEATURES.holds ? (
+          <div className="mt-6">
+            <HoldInbox />
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex items-baseline justify-between">
+          <span className="font-display text-[19px] font-bold text-ink">{t.myListings}</span>
+          <span className="text-[13px] font-semibold text-muted">{mine.length}</span>
+        </div>
+        <div className="mt-3" data-testid="cabinet-listings">
+          <PromoterAdmin />
+          <MyListings />
+        </div>
+
+        <div className="mt-6">
+          <span className="font-display text-[19px] font-bold text-ink">{t.mySubscriptions}</span>
+        </div>
+        <div className="mt-3">
+          <SubscriptionList />
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[18px] border border-line bg-white">
@@ -203,21 +309,14 @@ export default function ProfilePage() {
               >
                 {LANGS.map((code) => (
                   <option key={code} value={code}>
-                    {t.langName[code]}
+                    {LANG_LABEL[code].full}
                   </option>
                 ))}
               </select>
             }
           />
-          <Row
-            label={t.countryRow}
-            value={
-              <span className="flex items-center gap-[7px] text-sm text-muted">
-                <Flag />
-                {t.country} · KGS
-              </span>
-            }
-          />
+          <Row label={t.privacyPolicy} value={<a href="/privacy" className="text-sm font-semibold text-accent">›</a>} />
+          <Row label={t.termsOfUse} value={<a href="/terms" className="text-sm font-semibold text-accent">›</a>} />
           <Row
             label={t.notifications}
             value={
@@ -226,19 +325,27 @@ export default function ProfilePage() {
               </button>
             }
           />
-          <Row label={t.verification} value={<span className="text-[13px] font-bold text-success">{t.done}</span>} />
-          <Row
-            label={t.agency}
-            value={
-              <span className="rounded-md bg-accent-tint px-2 py-0.5 text-[11px] font-bold text-accent-dark">
-                {t.try.toUpperCase()}
-              </span>
-            }
-          />
-          <Link href="/help" className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline">
-            {t.help}
+          <a
+            href={helpWhatsAppUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="help-whatsapp"
+            className="flex items-center justify-between border-t border-line-2 px-4 py-[15px] text-[15px] text-ink no-underline"
+          >
+            {t.helpRow}
             <span className="text-xs text-muted-2">›</span>
-          </Link>
+          </a>
+          <button
+            type="button"
+            data-testid="delete-account"
+            onClick={() => {
+              setDeleteError("");
+              setDeleteOpen(true);
+            }}
+            className="w-full border-t border-line-2 px-4 py-[15px] text-left text-[15px] font-semibold text-accent"
+          >
+            {t.deleteAccount}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -251,7 +358,73 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+      <AccountDeleteDialog
+        open={deleteOpen}
+        busy={deleteBusy}
+        error={deleteError}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteOpen(false);
+        }}
+        onConfirm={() => {
+          setDeleteBusy(true);
+          setDeleteError("");
+          void api("/api/me/delete", { method: "POST", json: { source: "app" } }).then((res) => {
+            setDeleteBusy(false);
+            if (!res.ok) {
+              setDeleteError(t.deleteAccountError);
+              return;
+            }
+            setDeleteOpen(false);
+            logout();
+            router.push("/");
+          });
+        }}
+      />
     </PhoneShell>
+  );
+}
+
+function AccountDeleteDialog({
+  open,
+  busy,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  busy: boolean;
+  error: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useApp();
+  useEffect(() => {
+    if (!open) return;
+    pushOverlay("account-delete", onCancel);
+    return () => removeOverlay("account-delete");
+  }, [open, onCancel]);
+  if (!open) return null;
+  return (
+    <div className="absolute inset-0 z-40 flex items-end bg-[rgba(24,24,27,.45)] desk:items-center desk:justify-center desk:p-4" onClick={onCancel} data-testid="delete-account-dialog">
+      <div className="w-full rounded-t-[24px] bg-white px-5 pb-8 pt-5 desk:max-w-[430px] desk:rounded-[24px]" onClick={(event) => event.stopPropagation()}>
+        <div className="font-display text-[20px] font-bold text-ink">{t.deleteAccountAsk}</div>
+        <p className="mt-2 text-[14px] leading-[1.45] text-muted">{t.deleteAccountText}</p>
+        {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+        <button
+          type="button"
+          data-testid="delete-account-confirm"
+          disabled={busy}
+          onClick={onConfirm}
+          className="shadow-btn mt-4 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-semibold text-accent-on disabled:opacity-60"
+        >
+          {t.deleteAccountDo}
+        </button>
+        <button type="button" data-testid="delete-account-cancel" onClick={onCancel} className="mt-2 h-[48px] w-full text-[15px] font-semibold text-muted">
+          {t.deleteAccountCancel}
+        </button>
+      </div>
+    </div>
   );
 }
 
