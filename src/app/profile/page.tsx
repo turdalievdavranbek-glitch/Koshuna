@@ -94,49 +94,56 @@ export default function ProfilePage() {
   return (
     <PhoneShell tab>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-2">
-        <div className="mt-3 flex items-center gap-3.5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-[26px] font-bold text-screen">
+        <div className="relative mt-3 flex items-center gap-3.5 rounded-[18px] border border-line bg-white py-3.5 pl-3.5 pr-12 shadow-[0_6px_18px_rgba(17,17,17,0.06)]">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E31E24] to-[#B8161B] font-display text-[24px] font-bold text-white shadow-[0_4px_10px_rgba(227,30,36,0.3)] ring-2 ring-[#FFD23F]">
             {user.name.slice(0, 1)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate font-display text-[22px] font-bold tracking-[-0.01em] text-ink">{user.name}</span>
-              {user.verified ? <IconVerified size={17} /> : null}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="min-w-0 truncate font-display text-[20px] font-extrabold leading-tight tracking-[-0.01em] text-ink">{user.name}</span>
+              {user.verified ? <IconVerified size={16} /> : null}
               <MasterBadge userId={user.id} on={user.master || undefined} />
               {userHasShopBadge(shops, user) ? (
-                <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
+                <span className="shrink-0 rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-bold text-[#8A6A00]">{t.shopBadge}</span>
               ) : null}
               {hasRole(user, "realtor") ? (
-                <span className="rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
+                <span className="shrink-0 rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.realtorBadge}</span>
               ) : null}
               {FEATURES.developers && hasRole(user, "developer") ? (
-                <span className="rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
+                <span className="shrink-0 rounded-full bg-[#E7F3ED] px-2 py-0.5 text-[10px] font-bold text-success">{t.developerBadge}</span>
               ) : null}
               {FEATURES.dealers && hasRole(user, "dealer") ? (
-                <span className="rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
+                <span className="shrink-0 rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px] font-bold text-accent-dark">{t.dealerBadge}</span>
               ) : null}
             </div>
             {FEATURES.accountStars ? (
-              <div className="mt-1">
-                <TrustStars n={stars} size={15} />
+              <div className="mt-0.5">
+                <TrustStars n={stars} size={14} />
               </div>
             ) : null}
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[13px] text-muted">
-              <span className="min-w-0 break-all">{[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}</span>
-              {user.method ? (
-                <span className="inline-flex items-center gap-1">
-                  <MethodIcon method={user.method} />
-                  {t.signedInVia} {t.authMethods[user.method]}
-                </span>
-              ) : null}
-            </div>
+            {user.email || user.phone ? (
+              <div className="mt-0.5 truncate whitespace-nowrap text-[12.5px] text-muted">
+                {[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}
+              </div>
+            ) : null}
+            {user.method ? (
+              <div className="mt-0.5 flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted-2">
+                <MethodIcon method={user.method} />
+                <span className="truncate">{t.signedInVia} {t.authMethods[user.method]}</span>
+              </div>
+            ) : null}
           </div>
           <button
             type="button"
+            aria-label={t.edit}
+            title={t.edit}
             onClick={() => router.push("/profile/edit")}
-            className="shrink-0 self-start whitespace-nowrap rounded-xl border border-line bg-white px-3 py-1.5 text-[13px] font-semibold text-accent"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-accent shadow-[0_2px_6px_rgba(17,17,17,0.08)] active:scale-95"
           >
-            {t.edit}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
           </button>
         </div>
 
