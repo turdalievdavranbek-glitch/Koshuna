@@ -2043,6 +2043,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
             (current.shopId && isOwnShop(state.shops.find((shop) => shop.id === current.shopId) ?? { ownerPhone: "" }, user))),
       );
       if (!own) return { error: "forbidden" };
+      if (current?.status === "draft") {
+        // Unpublished drafts live only on this device: drop local copy, local media and orphaned uploads.
+        const urls: string[] = [];
+        const walk = (v: unknown) => {
+          if (typeof v === "string") {
+            if (v.includes("/media/")) urls.push(v);
+          } else if (Array.isArray(v)) v.forEach(walk);
+          else if (v && typeof v === "object") Object.values(v).forEach(walk);
+        };
+        walk(current);
+        void releaseRefs(current).catch(() => undefined);
+        if (urls.length) {
+          void authReady
+            .then(() => api(`/api/uploads/discard`, { method: "POST", json: { urls } }))
+            .catch(() => undefined);
+        }
+        update((s) => ({
+          ...s,
+          extraListings: s.extraListings.filter((item) => item.id !== id),
+          feed: s.feed.filter((item) => item.id !== id),
+          draft:
+            s.draft.id === id
+              ? { ...defaultDraft(), name: s.user?.name ?? "", phone: s.user?.phone ?? "", city: s.city || "bishkek" }
+              : s.draft,
+        }));
+        return {};
+      }
       try {
         await authReady;
         const res = await api<{ ok?: boolean; error?: string }>(`/api/listings/${encodeURIComponent(id)}`, { method: "DELETE" });
