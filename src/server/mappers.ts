@@ -27,6 +27,8 @@ export function publicUser(user: SessionUser): User {
     cardLinked: false,
     roles: user.isAdmin ? ["admin"] : undefined,
     master: user.isMaster === true ? true : undefined,
+    courier: user.isCourier === true ? true : undefined,
+    orderBlocked: user.orderBlocked === true ? true : undefined,
   };
 }
 

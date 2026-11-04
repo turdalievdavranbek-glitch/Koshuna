@@ -841,11 +841,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
               method: serverUser.method ?? s.user.method,
               joinedYear: serverUser.joinedYear || s.user.joinedYear,
               roles: rolesForPhone(serverUser.phone || s.user.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+              courier: serverUser.courier,
+              orderBlocked: serverUser.orderBlocked,
             }
           : {
               ...serverUser,
               phone: serverUser.phone || "",
               roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+              courier: serverUser.courier,
+              orderBlocked: serverUser.orderBlocked,
             },
       }));
       void resumeNativePush();
@@ -1225,6 +1229,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           rating: 0,
           views: 0,
           roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+          courier: serverUser.courier,
+          orderBlocked: serverUser.orderBlocked,
         };
         return {
           ...s,
@@ -1294,6 +1300,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           rating: 0,
           views: 0,
           roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
+          courier: serverUser.courier,
+          orderBlocked: serverUser.orderBlocked,
         };
         return {
           ...s,
@@ -1545,6 +1553,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             phone: serverUser.phone || "",
             telegram: serverUser.telegram,
             roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
+            courier: serverUser.courier ?? state.user.courier,
+            orderBlocked: serverUser.orderBlocked ?? state.user.orderBlocked,
           }
         : null;
       if (nextUser) userRef.current = nextUser;

@@ -126,6 +126,10 @@ export type User = {
   roles?: Array<"realtor" | "developer" | "dealer" | "admin">;
   /** «Мастер-аккаунт» (set by an admin). */
   master?: boolean;
+  /** Approved courier. */
+  courier?: boolean;
+  /** Two client refusals. Checkout is closed until an admin opens it. */
+  orderBlocked?: boolean;
 };
 
 export type Owner = {

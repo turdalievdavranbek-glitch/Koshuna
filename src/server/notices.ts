@@ -18,7 +18,15 @@ export type NoticeWrite = {
   type: string;
   listingId?: string | null;
   textKey: string;
-  params?: { name?: string; title?: string; threadId?: string; requestId?: string };
+  params?: {
+    name?: string;
+    title?: string;
+    threadId?: string;
+    requestId?: string;
+    orderId?: string;
+    shopId?: string;
+    audience?: "buyer" | "shop" | "courier";
+  };
   /** The other person. Push is skipped when either side has blocked the other. */
   actorId?: string | null;
   /** Chat only: message preview, or a photo/video label chosen from the recipient's language. */
@@ -79,6 +87,9 @@ export async function saveNotices(db: NoticeDb, inputs: NoticeWrite[]): Promise<
       listingId: input.listingId,
       threadId: input.params?.threadId,
       requestId: input.params?.requestId,
+      orderId: input.params?.orderId,
+      shopId: input.params?.shopId,
+      audience: input.params?.audience,
       actorId: input.actorId,
       name: input.params?.name,
       title: input.params?.title,
@@ -91,18 +102,32 @@ export async function saveNotice(db: NoticeDb, input: NoticeWrite): Promise<void
   await saveNotices(db, [input]);
 }
 
-type NoticeParams = { name?: string; title?: string; threadId?: string; requestId?: string };
+type NoticeParams = {
+  name?: string;
+  title?: string;
+  threadId?: string;
+  requestId?: string;
+  orderId?: string;
+  shopId?: string;
+  audience?: "buyer" | "shop" | "courier";
+};
 
 function readParams(value: unknown): NoticeParams {
   if (!value || typeof value !== "object") return {};
   const row = value as Record<string, unknown>;
   const threadId = typeof row.threadId === "string" && isDbUserId(row.threadId) ? row.threadId : undefined;
   const requestId = typeof row.requestId === "string" && isDbUserId(row.requestId) ? row.requestId : undefined;
+  const orderId = typeof row.orderId === "string" && isDbUserId(row.orderId) ? row.orderId : undefined;
+  const shopId = typeof row.shopId === "string" && /^shop-[A-Za-z0-9-]{8,80}$/.test(row.shopId) ? row.shopId : undefined;
+  const audience = row.audience === "buyer" || row.audience === "shop" || row.audience === "courier" ? row.audience : undefined;
   return {
     name: typeof row.name === "string" ? row.name : undefined,
     title: typeof row.title === "string" ? row.title : undefined,
     threadId,
     requestId,
+    orderId,
+    shopId,
+    audience,
   };
 }
 

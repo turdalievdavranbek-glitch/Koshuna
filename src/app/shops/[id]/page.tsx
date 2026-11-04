@@ -12,6 +12,7 @@ import { isDbUserId } from "@/lib/phone";
 import { api } from "@/lib/api/client";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
+import { ShopCartBar, ShopQty, useShopCart } from "@/components/delivery-shop-buy";
 import { ShopProductsEditor } from "@/components/shop-products";
 import { ShopThumb, ShopVideo } from "@/components/shop-thumb";
 import { Chip, Eyebrow } from "@/components/ui";
@@ -35,12 +36,13 @@ import { ListingThumb } from "@/components/listing-media";
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, lang, shops, user, allListings, reactions, withdrawShop, reportShop, reports, synced, recallShop, isBlocked } = useApp();
+  const { t, lang, shops, user, allListings, reactions, withdrawShop, reportShop, reports, synced, recallShop, isBlocked, setPendingPath } = useApp();
   const shop = recallShop(id) ?? shops.find((item) => item.id === id);
   const [playing, setPlaying] = useState(false);
   const [followers, setFollowers] = useState<number | null>(null);
 
   const mine = shop ? isOwnShop(shop, user) : false;
+  const cart = useShopCart(shop?.id ?? "", Boolean(user && shop && !mine));
   const callPhone = shop ? shopCallPhone(shop) : "";
   const visible = shop ? canSeeShop(shop, user) : false;
   const open = shopOpenNow(shop?.hours, nowInKg());
@@ -298,6 +300,19 @@ export default function ShopDetailPage() {
                         {" · "}
                         {t.shopStockStale} {item.updatedAt.slice(0, 10)}
                       </div>
+                      {!mine && item.price != null && item.stock !== "out" ? (
+                        <ShopQty
+                          qty={cart.qty[item.id] ?? 0}
+                          onChange={(next) => {
+                            if (!user) {
+                              setPendingPath(`/shops/${shop.id}`);
+                              router.push("/login");
+                              return;
+                            }
+                            void cart.change(item.id, next);
+                          }}
+                        />
+                      ) : null}
                       </div>
                     </div>
                   ))}
@@ -333,9 +348,14 @@ export default function ShopDetailPage() {
           <ShareButton shop={shop} />
         </div>
 
+        {!mine ? <ShopCartBar count={cart.count} /> : null}
+
         {mine ? (
           <div className="mt-5">
             <ShopProductsEditor shop={shop} />
+            <button type="button" onClick={() => router.push(`/shops/${shop.id}/orders`)} className="mt-3 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold">
+              {t.deliveryShopOrders}
+            </button>
             <button type="button" onClick={() => router.push(`/shops/${shop.id}/edit`)} className="mt-3 h-12 w-full rounded-2xl bg-ink text-[15px] font-semibold text-screen">
               {t.shopEdit}
             </button>

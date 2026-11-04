@@ -25,6 +25,8 @@ export type SessionUser = {
   method: string;
   isAdmin: boolean;
   isMaster?: boolean;
+  isCourier?: boolean;
+  orderBlocked?: boolean;
 };
 
 export function assertSessionSecret(): string {
@@ -168,6 +170,8 @@ export async function signInWithIdentity(input: {
       method: input.provider,
       isAdmin: row.isAdmin === true,
       isMaster: row.isMaster === true,
+      isCourier: row.isCourier === true,
+      orderBlocked: row.orderBlocked === true,
     },
     cookie,
     isNew: signed.isNew,
@@ -220,6 +224,8 @@ export async function getSessionUser(req: Request): Promise<SessionUser | null> 
     method,
     isAdmin: hit.user.isAdmin === true,
     isMaster: hit.user.isMaster === true,
+    isCourier: hit.user.isCourier === true,
+    orderBlocked: hit.user.orderBlocked === true,
   };
 }
 

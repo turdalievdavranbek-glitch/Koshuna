@@ -1,0 +1,212 @@
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { isCourierTransport, type CourierTransport } from "@/lib/delivery";
+import { isDbUserId } from "@/lib/phone";
+import { getDb } from "./db";
+import { courierApplications, orders, users } from "./db/schema";
+import { releaseAssignedOrders } from "./delivery";
+import { removePrivate } from "./courier-files";
+import { bindNoticePushes, saveNotice } from "./notices";
+
+type Fail = { error: string; status: number };
+
+export type CourierMine = {
+  courier: boolean;
+  online: boolean;
+  blocked: boolean;
+  application: { status: "pending" | "approved" | "revoked"; name: string; phone: string; district: string; transport: CourierTransport } | null;
+};
+
+export async function courierIds(): Promise<string[]> {
+  const rows = await getDb()
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.isCourier, true), isNull(users.deletedAt), isNull(users.bannedAt)))
+    .limit(500);
+  return rows.map((row) => row.id);
+}
+
+export async function myCourier(userId: string): Promise<CourierMine> {
+  const db = getDb();
+  const who = await db
+    .select({ courier: users.isCourier, online: users.courierOnline, blocked: users.orderBlocked })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const app = await db.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
+  const row = app[0];
+  const transport = row && isCourierTransport(row.transport) ? row.transport : null;
+  const status = row?.status === "pending" || row?.status === "approved" || row?.status === "revoked" ? row.status : null;
+  return {
+    courier: who[0]?.courier === true,
+    online: who[0]?.online === true,
+    blocked: who[0]?.blocked === true,
+    application:
+      row && transport && status
+        ? { status, name: row.name, phone: row.phone, district: row.district, transport }
+        : null,
+  };
+}
+
+export async function saveCourierApplication(
+  userId: string,
+  input: { name: string; phone: string; district: string; transport: CourierTransport; passportPath: string; selfiePath: string },
+): Promise<{ ok: true; previous: string[] } | Fail> {
+  const db = getDb();
+  const existing = await db.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
+  if (existing[0]?.status === "approved") return { error: "approved", status: 409 };
+  const previous = existing[0] ? [existing[0].passportPath, existing[0].selfiePath] : [];
+  if (existing[0]) {
+    await db
+      .update(courierApplications)
+      .set({
+        name: input.name,
+        phone: input.phone,
+        district: input.district,
+        transport: input.transport,
+        passportPath: input.passportPath,
+        selfiePath: input.selfiePath,
+        status: "pending",
+        createdAt: new Date(),
+        reviewedAt: null,
+        reviewerId: null,
+      })
+      .where(eq(courierApplications.userId, userId));
+  } else {
+    await db.insert(courierApplications).values({
+      userId,
+      name: input.name,
+      phone: input.phone,
+      district: input.district,
+      transport: input.transport,
+      passportPath: input.passportPath,
+      selfiePath: input.selfiePath,
+      status: "pending",
+    });
+  }
+  return { ok: true, previous };
+}
+
+export async function removeCourierApplication(userId: string): Promise<void> {
+  const db = getDb();
+  const rows = await db.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
+  if (rows[0]) {
+    await removePrivate(rows[0].passportPath);
+    await removePrivate(rows[0].selfiePath);
+    await db.delete(courierApplications).where(eq(courierApplications.userId, userId));
+  }
+  await releaseAssignedOrders(userId);
+}
+
+export type CourierAdminRow = {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  district: string;
+  transport: string;
+  status: string;
+  email: string;
+  createdAt: string;
+};
+
+export async function listCourierApplications(): Promise<CourierAdminRow[]> {
+  const rows = await getDb()
+    .select({
+      id: courierApplications.id,
+      userId: courierApplications.userId,
+      name: courierApplications.name,
+      phone: courierApplications.phone,
+      district: courierApplications.district,
+      transport: courierApplications.transport,
+      status: courierApplications.status,
+      email: users.email,
+      createdAt: courierApplications.createdAt,
+    })
+    .from(courierApplications)
+    .innerJoin(users, eq(courierApplications.userId, users.id))
+    .where(isNull(users.deletedAt))
+    .orderBy(desc(courierApplications.createdAt))
+    .limit(200);
+  return rows.map((row) => ({ ...row, email: row.email ?? "", createdAt: row.createdAt.toISOString() }));
+}
+
+export async function reviewCourier(adminId: string, applicationId: string, approve: boolean): Promise<{ ok: true } | Fail> {
+  if (!isDbUserId(applicationId)) return { error: "not-found", status: 404 };
+  return bindNoticePushes(() =>
+    getDb().transaction(async (tx) => {
+      const rows = await tx.select().from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
+      const app = rows[0];
+      if (!app) return { error: "not-found", status: 404 };
+      if (approve) {
+        if (app.status === "approved") return { ok: true as const };
+        await tx
+          .update(courierApplications)
+          .set({ status: "approved", reviewedAt: new Date(), reviewerId: adminId })
+          .where(eq(courierApplications.id, app.id));
+        await tx.update(users).set({ isCourier: true, updatedAt: new Date() }).where(eq(users.id, app.userId));
+        console.info("[audit] courier", JSON.stringify({ at: new Date().toISOString(), admin: adminId, user: app.userId, on: true }));
+        if (app.userId !== adminId) {
+          await saveNotice(tx, { userId: app.userId, type: "courier", textKey: "notifCourierOn", params: {}, actorId: null });
+        }
+        return { ok: true as const };
+      }
+      if (app.status === "revoked") return { ok: true as const };
+      const busy = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(and(eq(orders.courierId, app.userId), inArray(orders.status, ["assigned", "picked_up"])))
+        .limit(1);
+      if (busy[0]) return { error: "active", status: 409 };
+      await tx
+        .update(courierApplications)
+        .set({ status: "revoked", reviewedAt: new Date(), reviewerId: adminId })
+        .where(eq(courierApplications.id, app.id));
+      await tx.update(users).set({ isCourier: false, courierOnline: false, updatedAt: new Date() }).where(eq(users.id, app.userId));
+      console.info("[audit] courier", JSON.stringify({ at: new Date().toISOString(), admin: adminId, user: app.userId, on: false }));
+      if (app.userId !== adminId) {
+        await saveNotice(tx, { userId: app.userId, type: "courier", textKey: "notifCourierOff", params: {}, actorId: null });
+      }
+      return { ok: true as const };
+    }),
+  );
+}
+
+export async function setCourierOnline(userId: string, on: boolean): Promise<{ ok: true; online: boolean } | Fail> {
+  const db = getDb();
+  const who = await db.select({ courier: users.isCourier }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!who[0]?.courier) return { error: "forbidden", status: 403 };
+  await db.update(users).set({ courierOnline: on, updatedAt: new Date() }).where(eq(users.id, userId));
+  return { ok: true, online: on };
+}
+
+export type BlockedBuyer = { id: string; name: string; email: string; phone: string; refusals: number };
+
+export async function listBlockedBuyers(): Promise<BlockedBuyer[]> {
+  const rows = await getDb()
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone, refusals: users.refusalCount })
+    .from(users)
+    .where(and(eq(users.orderBlocked, true), isNull(users.deletedAt)))
+    .orderBy(desc(users.updatedAt))
+    .limit(200);
+  return rows.map((row) => ({ id: row.id, name: row.name, email: row.email ?? "", phone: row.phone ?? "", refusals: row.refusals }));
+}
+
+export async function unblockBuyer(adminId: string, userId: string): Promise<{ ok: true } | Fail> {
+  if (!isDbUserId(userId)) return { error: "not-found", status: 404 };
+  const db = getDb();
+  const rows = await db
+    .update(users)
+    .set({ orderBlocked: false, refusalCount: 0, updatedAt: new Date() })
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .returning({ id: users.id });
+  if (!rows[0]) return { error: "not-found", status: 404 };
+  console.info("[audit] order-unblock", JSON.stringify({ at: new Date().toISOString(), admin: adminId, user: userId }));
+  return { ok: true };
+}
+
+export async function courierPhotoPath(applicationId: string, kind: "passport" | "selfie"): Promise<string | null> {
+  if (!isDbUserId(applicationId)) return null;
+  const rows = await getDb().select().from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
+  if (!rows[0]) return null;
+  return kind === "passport" ? rows[0].passportPath : rows[0].selfiePath;
+}

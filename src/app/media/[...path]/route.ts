@@ -26,6 +26,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   const root = process.env.MEDIA_DIR;
   if (!root) return new Response("Not found", { status: 404 });
   const parts = (await ctx.params).path ?? [];
+  if (parts[0] === "private" || parts[0] === "couriers") return new Response("Not found", { status: 404 });
   if (!parts.length || parts.some((part) => !part || part === "." || part === ".." || part.includes("/") || part.includes("\\"))) {
     return new Response("Not found", { status: 404 });
   }

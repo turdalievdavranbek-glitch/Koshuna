@@ -65,6 +65,45 @@ const COPY: Record<PushLang, Copy> = {
   },
 };
 
+const ORDER_PUSH: Record<PushLang, Record<string, (title: string) => string>> = {
+  ru: {
+    notifOrderNew: (title) => (title ? `Новый заказ ${title}` : "Новый заказ"),
+    notifOrderAccepted: (title) => (title ? `Заказ ${title} принят` : "Заказ принят"),
+    notifOrderRejected: (title) => (title ? `Заказ ${title} отклонён` : "Заказ отклонён"),
+    notifOrderAssembled: (title) => (title ? `Заказ ${title} собран. Подтвердите его` : "Заказ собран. Подтвердите его"),
+    notifOrderReady: (title) => (title ? `Заказ ${title} подтверждён и ждёт курьера` : "Заказ ждёт курьера"),
+    notifOrderAvailable: (title) => (title ? `Собран заказ ${title}` : "Собран новый заказ"),
+    notifOrderAssigned: (title) => (title ? `Курьер взял заказ ${title}` : "Курьер взял заказ"),
+    notifOrderPaid: (title) => (title ? `Магазин подтвердил оплату по заказу ${title}` : "Магазин подтвердил оплату"),
+    notifOrderPicked: (title) => (title ? `Заказ ${title} в пути` : "Заказ в пути"),
+    notifOrderDelivered: (title) => (title ? `Заказ ${title} доставлен` : "Заказ доставлен"),
+    notifOrderCancelled: (title) => (title ? `Заказ ${title} отменён` : "Заказ отменён"),
+    notifOrderRefused: (title) => (title ? `Клиент отказался от заказа ${title}` : "Клиент отказался от заказа"),
+    notifOrderReturned: (title) => (title ? `Возврат по заказу ${title} подтверждён` : "Возврат подтверждён"),
+    notifOrderBlocked: () => "Заказы закрыты: два отказа",
+    notifCourierOn: () => "Вам назначена роль «Курьер»",
+    notifCourierOff: () => "Роль «Курьер» снята",
+  },
+  ky: {
+    notifOrderNew: (title) => (title ? `Жаңы буйрутма ${title}` : "Жаңы буйрутма"),
+    notifOrderAccepted: (title) => (title ? `${title} буйрутма кабыл алынды` : "Буйрутма кабыл алынды"),
+    notifOrderRejected: (title) => (title ? `${title} буйрутма четке кагылды` : "Буйрутма четке кагылды"),
+    notifOrderAssembled: (title) => (title ? `${title} буйрутма жыйналды. Ырастаңыз` : "Буйрутма жыйналды. Ырастаңыз"),
+    notifOrderReady: (title) => (title ? `${title} ырасталды, курьерди күтөт` : "Буйрутма курьерди күтөт"),
+    notifOrderAvailable: (title) => (title ? `Жыйналган буйрутма ${title}` : "Жыйналган буйрутма"),
+    notifOrderAssigned: (title) => (title ? `Курьер ${title} буйрутманы алды` : "Курьер буйрутманы алды"),
+    notifOrderPaid: (title) => (title ? `Дүкөн ${title} боюнча төлөмдү ырастады` : "Дүкөн төлөмдү ырастады"),
+    notifOrderPicked: (title) => (title ? `${title} жолдо` : "Буйрутма жолдо"),
+    notifOrderDelivered: (title) => (title ? `${title} жеткирилди` : "Буйрутма жеткирилди"),
+    notifOrderCancelled: (title) => (title ? `${title} жокко чыгарылды` : "Буйрутма жокко чыгарылды"),
+    notifOrderRefused: (title) => (title ? `Кардар ${title} буйрутмадан баш тартты` : "Кардар баш тартты"),
+    notifOrderReturned: (title) => (title ? `${title} кайтаруу ырасталды` : "Кайтаруу ырасталды"),
+    notifOrderBlocked: () => "Буйрутма жабык: эки баш тартуу",
+    notifCourierOn: () => "Сизге «Курьер» ролу берилди",
+    notifCourierOff: () => "«Курьер» ролу алынды",
+  },
+};
+
 export type PushCopyInput = {
   textKey: string;
   name?: string;
@@ -88,8 +127,10 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
     const body = (preview || copy.chat(name, title)).slice(0, 100);
     return { title: name.slice(0, 80), body };
   }
+  const orderLine = ORDER_PUSH[lang][input.textKey];
   let body = copy.generic;
-  if (input.textKey === "notifHoldAsked") body = copy.holdAsked(name, title);
+  if (orderLine) body = orderLine(title);
+  else if (input.textKey === "notifHoldAsked") body = copy.holdAsked(name, title);
   else if (input.textKey === "notifHoldYes") body = copy.holdYes(title);
   else if (input.textKey === "notifHoldNo") body = copy.holdNo(title);
   else if (input.textKey === "notifStillActual") body = copy.still;

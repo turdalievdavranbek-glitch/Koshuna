@@ -16,5 +16,21 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifPromoterOff") return t.notifPromoterOff;
   if (row.textKey === "notifShopTransferred") return t.notifShopTransferred(title, (row.params.name ?? "").trim());
   if (row.textKey === "notifSectionMoved") return t.notifSectionMoved(title, (row.params.name ?? "").trim());
+  if (row.textKey === "notifOrderNew") return t.notifOrderNew(title);
+  if (row.textKey === "notifOrderAccepted") return t.notifOrderAccepted(title);
+  if (row.textKey === "notifOrderRejected") return t.notifOrderRejected(title);
+  if (row.textKey === "notifOrderAssembled") return t.notifOrderAssembled(title);
+  if (row.textKey === "notifOrderReady") return t.notifOrderReady(title);
+  if (row.textKey === "notifOrderAvailable") return t.notifOrderAvailable(title);
+  if (row.textKey === "notifOrderAssigned") return t.notifOrderAssigned(title);
+  if (row.textKey === "notifOrderPaid") return t.notifOrderPaid(title);
+  if (row.textKey === "notifOrderPicked") return t.notifOrderPicked(title);
+  if (row.textKey === "notifOrderDelivered") return t.notifOrderDelivered(title);
+  if (row.textKey === "notifOrderCancelled") return t.notifOrderCancelled(title);
+  if (row.textKey === "notifOrderRefused") return t.notifOrderRefused(title);
+  if (row.textKey === "notifOrderReturned") return t.notifOrderReturned(title);
+  if (row.textKey === "notifOrderBlocked") return t.notifOrderBlocked;
+  if (row.textKey === "notifCourierOn") return t.notifCourierOn;
+  if (row.textKey === "notifCourierOff") return t.notifCourierOff;
   return t.notifGeneric;
 }

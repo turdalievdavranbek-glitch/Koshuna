@@ -65,6 +65,12 @@ export default function NotificationsPage() {
             const className = "rounded-[18px] border border-line bg-white px-4 py-3.5";
             const href = row.textKey === "notifFeedback"
               ? "/admin/feedback"
+              : row.params.orderId
+                ? row.params.audience === "courier"
+                  ? "/courier"
+                  : row.params.audience === "shop" && row.params.shopId
+                    ? `/shops/${row.params.shopId}/orders`
+                    : `/orders/${row.params.orderId}`
               : row.params.threadId
               ? `/chat/${row.params.threadId}`
               : row.params.requestId

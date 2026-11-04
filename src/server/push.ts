@@ -24,6 +24,9 @@ export type NoticePush = PushCopyInput & {
   listingId?: string | null;
   threadId?: string | null;
   requestId?: string | null;
+  orderId?: string | null;
+  shopId?: string | null;
+  audience?: "buyer" | "shop" | "courier" | null;
   actorId?: string | null;
 };
 
@@ -263,6 +266,9 @@ export async function deliverPush(job: NoticePush): Promise<void> {
     requestId: job.requestId,
     listingId: job.listingId,
     textKey: job.textKey,
+    orderId: job.orderId,
+    shopId: job.shopId,
+    audience: job.audience,
   });
 
   const tokens = await db

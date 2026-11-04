@@ -39,6 +39,13 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").notNull().default(false),
   /** «Мастер-аккаунт»: set by an admin. May run points for sellers; no personal daily limit. */
   isMaster: boolean("is_master").notNull().default(false),
+  /** Approved courier. Set only when an admin approves the application. */
+  isCourier: boolean("is_courier").notNull().default(false),
+  /** «На линии»: receives a notice when a confirmed order is waiting. */
+  courierOnline: boolean("courier_online").notNull().default(false),
+  /** Two confirmed client refusals. The admin can clear this. */
+  orderBlocked: boolean("order_blocked").notNull().default(false),
+  refusalCount: integer("refusal_count").notNull().default(0),
   /** Presence: touched at most once a minute by any signed-in request. */
   lastSeenAt: ts("last_seen_at"),
   bannedAt: ts("banned_at"),
@@ -559,6 +566,133 @@ export const purchaseOffers = pgTable("purchase_offers", {
   price: bigint("price", { mode: "number" }),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
+
+/** One line per shop product in the buyer's delivery cart. Favourites stay in cart_items. */
+export const deliveryCart = pgTable(
+  "delivery_cart",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    productId: text("product_id").notNull(),
+    qty: integer("qty").notNull(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.shopId, t.productId] }),
+    check("delivery_cart_qty", sql`${t.qty} > 0 and ${t.qty} <= 99`),
+  ],
+);
+
+export const orders = pgTable(
+  "orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    publicNo: integer("public_no").notNull().default(sql`nextval('delivery_order_no')`),
+    buyerId: uuid("buyer_id")
+      .notNull()
+      .references(() => users.id),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    courierId: uuid("courier_id").references(() => users.id),
+    status: text("status").notNull().default("new"),
+    addressText: text("address_text").notNull(),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    phone: text("phone").notNull(),
+    comment: text("comment").notNull().default(""),
+    itemsTotalSom: integer("items_total_som").notNull(),
+    deliveryFeeSom: integer("delivery_fee_som").notNull(),
+    totalSom: integer("total_som").notNull(),
+    distanceKm: doublePrecision("distance_km"),
+    feeFlat: boolean("fee_flat").notNull().default(false),
+    paymentMethod: text("payment_method").notNull().default("cash"),
+    deliveryCode: text("delivery_code").notNull(),
+    codeFails: integer("code_fails").notNull().default(0),
+    /** Buyer «Подтвердить заказ». Couriers do not see the order until this is set. */
+    buyerConfirmedAt: ts("buyer_confirmed_at"),
+    /** Shop confirmed the courier paid for the goods at pickup. */
+    shopPaidAt: ts("shop_paid_at"),
+    cancelReason: text("cancel_reason"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    acceptedAt: ts("accepted_at"),
+    assembledAt: ts("assembled_at"),
+    assignedAt: ts("assigned_at"),
+    pickedAt: ts("picked_at"),
+    deliveredAt: ts("delivered_at"),
+    rejectedAt: ts("rejected_at"),
+    cancelledAt: ts("cancelled_at"),
+    refusedAt: ts("refused_at"),
+    returnedAt: ts("returned_at"),
+  },
+  (t) => [
+    unique("orders_public_no").on(t.publicNo),
+    check(
+      "orders_status",
+      sql`${t.status} in ('new','accepted','assembled','assigned','picked_up','delivered','rejected','cancelled','refused','returned')`,
+    ),
+    check("orders_payment", sql`${t.paymentMethod} = 'cash'`),
+    check("orders_code", sql`${t.deliveryCode} ~ '^[0-9]{4}$'`),
+    check("orders_money", sql`${t.itemsTotalSom} >= 0 and ${t.deliveryFeeSom} >= 0 and ${t.totalSom} >= 0`),
+    index("orders_shop_status_idx").on(t.shopId, t.status),
+    index("orders_buyer_idx").on(t.buyerId, t.createdAt),
+    index("orders_courier_idx").on(t.courierId),
+    uniqueIndex("orders_one_active_courier")
+      .on(t.courierId)
+      .where(sql`${t.courierId} is not null and ${t.status} in ('assigned','picked_up')`),
+  ],
+);
+
+export const orderItems = pgTable(
+  "order_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    listingId: text("listing_id"),
+    productId: text("product_id").notNull(),
+    titleSnapshot: text("title_snapshot").notNull(),
+    priceSomSnapshot: integer("price_som_snapshot").notNull(),
+    qty: integer("qty").notNull(),
+  },
+  (t) => [
+    index("order_items_order_idx").on(t.orderId),
+    check("order_items_qty", sql`${t.qty} > 0 and ${t.qty} <= 99`),
+    check("order_items_price", sql`${t.priceSomSnapshot} >= 0`),
+  ],
+);
+
+/** Passport photos live outside the public media tree. Paths are relative to PRIVATE_MEDIA_DIR. */
+export const courierApplications = pgTable(
+  "courier_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    phone: text("phone").notNull(),
+    district: text("district").notNull(),
+    transport: text("transport").notNull(),
+    passportPath: text("passport_path").notNull(),
+    selfiePath: text("selfie_path").notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    reviewedAt: ts("reviewed_at"),
+    reviewerId: uuid("reviewer_id").references(() => users.id),
+  },
+  (t) => [
+    unique("courier_applications_user").on(t.userId),
+    check("courier_applications_transport", sql`${t.transport} in ('car','moto','walk')`),
+    check("courier_applications_status", sql`${t.status} in ('pending','approved','revoked')`),
+    index("courier_applications_status_idx").on(t.status),
+  ],
+);
 
 export const feedback = pgTable("feedback", {
   id: uuid("id").primaryKey().defaultRandom(),

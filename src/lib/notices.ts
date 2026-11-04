@@ -8,7 +8,15 @@ export type AppNotice = {
   type: string;
   listingId: string | null;
   textKey: string;
-  params: { name?: string; title?: string; threadId?: string; requestId?: string };
+  params: {
+    name?: string;
+    title?: string;
+    threadId?: string;
+    requestId?: string;
+    orderId?: string;
+    shopId?: string;
+    audience?: "buyer" | "shop" | "courier";
+  };
   createdAt: string;
   readAt: string | null;
 };

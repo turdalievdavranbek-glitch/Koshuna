@@ -1,9 +1,11 @@
 import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { CIRCLE_MAX } from "@/lib/circles";
+import { removeCourierApplication } from "./couriers";
 import { getDb } from "./db";
 import {
   accountDeletions,
   cartItems,
+  deliveryCart,
   circlePicks,
   devices,
   listings,
@@ -186,8 +188,10 @@ export async function wipeUser(userId: string) {
     await db.update(listings).set({ status: "hidden", updatedAt: now }).where(inArray(listings.shopId, ownedShops.map((row) => row.id)));
   }
 
+  await removeCourierApplication(userId);
   await db.delete(reactions).where(eq(reactions.userId, userId));
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
+  await db.delete(deliveryCart).where(eq(deliveryCart.userId, userId));
   await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
   await db.delete(devices).where(eq(devices.userId, userId));
   await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
@@ -204,6 +208,8 @@ export async function wipeUser(userId: string) {
       phone: null,
       email: null,
       avatarUrl: null,
+      isCourier: false,
+      courierOnline: false,
       deletedAt: new Date(),
       updatedAt: new Date(),
     })

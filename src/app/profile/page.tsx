@@ -2,6 +2,8 @@
 
 import { openFeedback } from "@/components/feedback";
 import { PromoterAdmin } from "@/components/promoter-admin";
+import { CourierAdmin } from "@/components/courier-admin";
+import { CourierBadge } from "@/components/courier-badge";
 import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -103,6 +105,7 @@ export default function ProfilePage() {
               <span className="min-w-0 truncate font-display text-[20px] font-extrabold leading-tight tracking-[-0.01em] text-ink">{user.name}</span>
               {user.verified ? <IconVerified size={16} /> : null}
               <MasterBadge userId={user.id} on={user.master || undefined} />
+              <CourierBadge userId={user.id} on={user.courier || undefined} />
               {userHasShopBadge(shops, user) ? (
                 <span className="shrink-0 rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-bold text-[#8A6A00]">{t.shopBadge}</span>
               ) : null}
@@ -185,6 +188,35 @@ export default function ProfilePage() {
           </span>
         </button>
 
+        {user.orderBlocked ? (
+          <p className="mt-3 rounded-[14px] border border-line bg-white px-3.5 py-3 text-[14px] leading-[1.4] text-ink">{t.deliveryBlocked}</p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => router.push("/cart")}
+          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.deliveryCart}</span>
+          <span className="text-[18px] text-muted-2">›</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/orders")}
+          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{t.deliveryOrders}</span>
+          <span className="text-[18px] text-muted-2">›</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(user.courier ? "/courier" : "/courier/apply")}
+          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+        >
+          <span className="text-[15px] font-semibold text-ink">{user.courier ? t.deliveryCourierTitle : t.deliveryBecome}</span>
+          <span className="text-[18px] text-muted-2">›</span>
+        </button>
+
         <button
           type="button"
           data-testid="cabinet-saved"
@@ -252,6 +284,21 @@ export default function ProfilePage() {
         {points.length ? (
           <div className="mt-3">
             <PointList shops={points} actions open="point" />
+            <div className="mt-2 flex flex-col gap-2">
+              {points.map((point) => (
+                <button
+                  key={point.id}
+                  type="button"
+                  onClick={() => router.push(`/shops/${point.id}/orders`)}
+                  className="flex w-full items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-3 text-left"
+                >
+                  <span className="min-w-0 truncate text-[14px] font-semibold text-ink">
+                    {t.deliveryShopOrders} · {point.name}
+                  </span>
+                  <span className="text-[18px] text-muted-2">›</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <p className="mt-3 text-[14px] leading-[1.45] text-muted">{t.shopEmptyMine}</p>
@@ -288,6 +335,7 @@ export default function ProfilePage() {
         </div>
         <div className="mt-3" data-testid="cabinet-listings">
           <PromoterAdmin />
+          <CourierAdmin />
           <MyListings />
         </div>
 
