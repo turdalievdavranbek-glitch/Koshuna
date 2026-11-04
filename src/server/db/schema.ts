@@ -43,6 +43,10 @@ export const users = pgTable("users", {
   isCourier: boolean("is_courier").notNull().default(false),
   /** «На линии»: receives a notice when a confirmed order is waiting. */
   courierOnline: boolean("courier_online").notNull().default(false),
+  /** Working city id (CITIES). The courier changes it without a new review. */
+  courierCity: text("courier_city"),
+  /** Working district id (DISTRICTS) inside courier_city. Empty means the whole city. */
+  courierDistrict: text("courier_district"),
   /** Two confirmed client refusals. The admin can clear this. */
   orderBlocked: boolean("order_blocked").notNull().default(false),
   refusalCount: integer("refusal_count").notNull().default(0),

@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { CITIES, DISTRICTS } from "@/lib/data";
 import { isCourierTransport, type CourierTransport } from "@/lib/delivery";
 import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
@@ -13,8 +14,18 @@ export type CourierMine = {
   courier: boolean;
   online: boolean;
   blocked: boolean;
+  city: string | null;
+  district: string | null;
   application: { status: "pending" | "approved" | "revoked"; name: string; phone: string; district: string; transport: CourierTransport } | null;
 };
+
+function isDeliveryCity(value: string): boolean {
+  return value !== "all" && (CITIES as readonly string[]).includes(value);
+}
+
+function districtInCity(districtId: string, city: string): boolean {
+  return DISTRICTS.some((row) => row.id === districtId && row.city === city);
+}
 
 export async function courierIds(): Promise<string[]> {
   const rows = await getDb()
@@ -28,7 +39,13 @@ export async function courierIds(): Promise<string[]> {
 export async function myCourier(userId: string): Promise<CourierMine> {
   const db = getDb();
   const who = await db
-    .select({ courier: users.isCourier, online: users.courierOnline, blocked: users.orderBlocked })
+    .select({
+      courier: users.isCourier,
+      online: users.courierOnline,
+      blocked: users.orderBlocked,
+      city: users.courierCity,
+      district: users.courierDistrict,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -40,6 +57,8 @@ export async function myCourier(userId: string): Promise<CourierMine> {
     courier: who[0]?.courier === true,
     online: who[0]?.online === true,
     blocked: who[0]?.blocked === true,
+    city: who[0]?.city ?? null,
+    district: who[0]?.district ?? null,
     application:
       row && transport && status
         ? { status, name: row.name, phone: row.phone, district: row.district, transport }
@@ -105,6 +124,8 @@ export type CourierAdminRow = {
   district: string;
   transport: string;
   status: string;
+  city: string | null;
+  placeDistrict: string | null;
   email: string;
   createdAt: string;
 };
@@ -119,6 +140,8 @@ export async function listCourierApplications(): Promise<CourierAdminRow[]> {
       district: courierApplications.district,
       transport: courierApplications.transport,
       status: courierApplications.status,
+      city: users.courierCity,
+      placeDistrict: users.courierDistrict,
       email: users.email,
       createdAt: courierApplications.createdAt,
     })
@@ -169,6 +192,26 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
       return { ok: true as const };
     }),
   );
+}
+
+/** Working city and district. Does not touch the application, the badge, or past orders. */
+export async function setCourierPlace(
+  userId: string,
+  city: string,
+  district: string,
+): Promise<{ ok: true; city: string; district: string } | Fail> {
+  const nextCity = city.trim();
+  const nextDistrict = district.trim();
+  if (!isDeliveryCity(nextCity)) return { error: "bad-city", status: 400 };
+  if (nextDistrict && !districtInCity(nextDistrict, nextCity)) return { error: "bad-district", status: 400 };
+  const db = getDb();
+  const who = await db.select({ courier: users.isCourier }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!who[0]?.courier) return { error: "forbidden", status: 403 };
+  await db
+    .update(users)
+    .set({ courierCity: nextCity, courierDistrict: nextDistrict || null, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+  return { ok: true, city: nextCity, district: nextDistrict };
 }
 
 export async function setCourierOnline(userId: string, on: boolean): Promise<{ ok: true; online: boolean } | Fail> {

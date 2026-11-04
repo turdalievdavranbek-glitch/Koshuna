@@ -4,6 +4,7 @@ import { openFeedback } from "@/components/feedback";
 import { PromoterAdmin } from "@/components/promoter-admin";
 import { CourierAdmin } from "@/components/courier-admin";
 import { CourierBadge } from "@/components/courier-badge";
+import { CourierPlace } from "@/components/courier-place";
 import { MasterBadge } from "@/components/master-badge";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -216,6 +217,11 @@ export default function ProfilePage() {
           <span className="text-[15px] font-semibold text-ink">{user.courier ? t.deliveryCourierTitle : t.deliveryBecome}</span>
           <span className="text-[18px] text-muted-2">›</span>
         </button>
+        {user.courier ? (
+          <div className="mt-2">
+            <CourierPlace />
+          </div>
+        ) : null}
 
         <button
           type="button"

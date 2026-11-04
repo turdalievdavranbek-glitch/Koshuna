@@ -7,9 +7,10 @@ import { formatKm, type CourierOffer, type OrderView } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { IconPhone } from "@/components/icons";
+import { CourierPlace } from "@/components/courier-place";
 import { askPoint, deliveryError, GhostBtn, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
 
-type Board = { online: boolean; courier: boolean; active: OrderView | null; available: CourierOffer[] };
+type Board = { online: boolean; courier: boolean; city: string | null; active: OrderView | null; available: CourierOffer[] };
 
 export default function CourierPage() {
   const { t } = useApp();
@@ -20,6 +21,7 @@ export default function CourierPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [placeTick, setPlaceTick] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -41,7 +43,7 @@ export default function CourierPage() {
       cancel = true;
       window.clearInterval(timer);
     };
-  }, [user, point]);
+  }, [user, point, placeTick]);
 
   const online = (on: boolean) => {
     setBusy(true);
@@ -89,6 +91,11 @@ export default function CourierPage() {
         }
       />
       <div className="sc mt-3 min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+        {board?.courier ? (
+          <div className="mb-4">
+            <CourierPlace onChange={() => setPlaceTick((n) => n + 1)} />
+          </div>
+        ) : null}
         {board && !board.courier && !active ? (
           <button type="button" onClick={() => router.push("/courier/apply")} className="w-full rounded-[18px] border border-line bg-white px-4 py-4 text-left">
             <div className="text-[16px] font-extrabold">✔ {t.deliveryBecome}</div>
@@ -159,7 +166,8 @@ export default function CourierPage() {
             {active.status === "refused" ? <p className="mt-3 text-[14px] text-muted">{t.deliveryStatusRefused}</p> : null}
           </section>
         ) : null}
-        {board?.courier && board.online && !active ? (
+        {board?.courier && board.online && !active && !board.city ? <p className="mt-4 text-[14px] text-muted">{t.deliveryNeedPlace}</p> : null}
+        {board?.courier && board.online && !active && board.city ? (
           <div className="mt-5">
             <h2 className="text-[18px] font-extrabold">{t.deliveryNearby}</h2>
             {board.available.length === 0 ? <p className="mt-2 text-[14px] text-muted">{t.deliveryNoOffers}</p> : null}

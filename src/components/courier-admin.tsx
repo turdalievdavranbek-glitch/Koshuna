@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { DISTRICTS } from "@/lib/data";
+import { districtLabel } from "@/lib/geo";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { refreshCourierBadge } from "./courier-badge";
@@ -15,13 +17,15 @@ type CourierApp = {
   transport: string;
   status: string;
   email: string;
+  city?: string | null;
+  placeDistrict?: string | null;
 };
 
 type Blocked = { id: string; name: string; email: string; phone: string; refusals: number };
 
 /** Кабинет, admin only: approve or revoke couriers, and open ordering again after two refusals. */
 export function CourierAdmin() {
-  const { t, user } = useApp();
+  const { t, lang, user } = useApp();
   const admin = isAdminUser(user);
   const [rows, setRows] = useState<CourierApp[] | null>(null);
   const [blocked, setBlocked] = useState<Blocked[] | null>(null);
@@ -60,6 +64,11 @@ export function CourierAdmin() {
   };
 
   const transport = (value: string) => (value === "car" ? t.deliveryCar : value === "moto" ? t.deliveryMoto : t.deliveryWalk);
+  const placeLine = (row: CourierApp) => {
+    const city = row.city ? t.cities[row.city] || row.city : t.deliveryNoCity;
+    const area = DISTRICTS.find((item) => item.id === row.placeDistrict);
+    return area ? `${city} · ${districtLabel(area, lang)}` : city;
+  };
 
   return (
     <div className="mt-5">
@@ -72,6 +81,7 @@ export function CourierAdmin() {
             <div className="text-[12px] text-muted">
               {row.phone} · {row.district} · {transport(row.transport)}
             </div>
+            <div className="text-[12px] font-semibold text-ink">{placeLine(row)}</div>
             <div className="text-[12px] text-muted">{row.email}</div>
             <div className="mt-2 flex gap-2">
               <a href={`/api/admin/couriers/${row.id}/photo?kind=passport`} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-accent">

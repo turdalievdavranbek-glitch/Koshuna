@@ -41,6 +41,13 @@ export function quoteFee(km: number | null): FeeQuote {
   };
 }
 
+/** How far a courier with a GPS fix can be from a shop that also has a fix. */
+export function courierRadiusKm(): number {
+  const raw = Number(process.env.DELIVERY_COURIER_RADIUS_KM);
+  if (!Number.isFinite(raw) || raw <= 0 || raw > 500) return 10;
+  return raw;
+}
+
 export function routeKm(
   shopLat: number | null | undefined,
   shopLng: number | null | undefined,
@@ -625,14 +632,23 @@ export async function courierBoard(
   lang: Lang,
   lat: number | null,
   lng: number | null,
-): Promise<{ online: boolean; courier: boolean; active: OrderView | null; available: CourierOffer[] } | Fail> {
+): Promise<{ online: boolean; courier: boolean; city: string | null; district: string | null; active: OrderView | null; available: CourierOffer[] } | Fail> {
   const db = getDb();
   const who = await db
-    .select({ courier: users.isCourier, online: users.courierOnline, deletedAt: users.deletedAt })
+    .select({
+      courier: users.isCourier,
+      online: users.courierOnline,
+      deletedAt: users.deletedAt,
+      city: users.courierCity,
+      district: users.courierDistrict,
+      lastLat: users.lastLat,
+      lastLng: users.lastLng,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
   if (!who[0] || who[0].deletedAt) return { error: "forbidden", status: 403 };
+  const place = { city: who[0].city, district: who[0].district };
   const activeIds = await db
     .select({ id: orders.id })
     .from(orders)
@@ -642,19 +658,32 @@ export async function courierBoard(
   const activeJoined = await loadJoined(db, activeIds.map((row) => row.id));
   const activeViews = await toViews(db, activeJoined, "courier", lang);
   let available: CourierOffer[] = [];
-  if (who[0].courier && who[0].online && !activeViews.length) {
+  const fix =
+    lat != null && lng != null
+      ? { lat, lng }
+      : who[0].lastLat != null && who[0].lastLng != null && Number.isFinite(who[0].lastLat) && Number.isFinite(who[0].lastLng)
+        ? { lat: who[0].lastLat, lng: who[0].lastLng }
+        : null;
+  if (who[0].courier && who[0].online && who[0].city && !activeViews.length) {
+    const radius = courierRadiusKm();
     const rows = await db
       .select({ order: orders, shop: shops })
       .from(orders)
       .innerJoin(shops, eq(orders.shopId, shops.id))
-      .where(and(eq(orders.status, "assembled"), isNotNull(orders.buyerConfirmedAt), isNull(orders.courierId)))
+      .where(and(eq(orders.status, "assembled"), isNotNull(orders.buyerConfirmedAt), isNull(orders.courierId), eq(shops.city, who[0].city)))
       .orderBy(asc(orders.assembledAt))
-      .limit(30);
+      .limit(40);
     available = rows
-      .filter((row) => row.order.buyerId !== userId && row.shop.ownerId !== userId)
+      .filter((row) => {
+        if (row.order.buyerId === userId || row.shop.ownerId === userId) return false;
+        if (fix && row.shop.lat != null && row.shop.lng != null) {
+          return haversineKm(fix.lat, fix.lng, row.shop.lat, row.shop.lng) <= radius;
+        }
+        return true;
+      })
       .map((row) => {
         const shop = rowToShop(row.shop);
-        const km = routeKm(shop.lat, shop.lng, lat, lng);
+        const km = routeKm(shop.lat, shop.lng, fix?.lat, fix?.lng);
         return {
           id: row.order.id,
           no: row.order.publicNo,
@@ -666,7 +695,7 @@ export async function courierBoard(
         };
       });
   }
-  return { online: who[0].online, courier: who[0].courier, active: activeViews[0] ?? null, available };
+  return { online: who[0].online, courier: who[0].courier, city: place.city, district: place.district, active: activeViews[0] ?? null, available };
 }
 
 /** Drop a courier off an order they have not picked up yet, so another courier can take it. */

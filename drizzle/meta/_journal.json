@@ -113,6 +113,13 @@
       "when": 1793088000000,
       "tag": "0017_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793174400000,
+      "tag": "0018_courier_place",
+      "breakpoints": true
     }
   ]
 }
