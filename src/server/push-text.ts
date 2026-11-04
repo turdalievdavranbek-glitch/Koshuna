@@ -83,6 +83,12 @@ const ORDER_PUSH: Record<PushLang, Record<string, (title: string) => string>> = 
     notifOrderBlocked: () => "Заказы закрыты: два отказа",
     notifCourierOn: () => "Вам назначена роль «Курьер»",
     notifCourierOff: () => "Роль «Курьер» снята",
+    notifOrderShopTimeout: (title) => (title ? `Заказ ${title} отменён: магазин не ответил` : "Заказ отменён: магазин не ответил"),
+    notifOrderNoCourier: (title) => (title ? `Заказ ${title} всё ещё ждёт курьера. Его можно отменить` : "Заказ ждёт курьера. Его можно отменить"),
+    notifOrderReleased: (title) => (title ? `Заказ ${title} снова ждёт курьера` : "Заказ снова ждёт курьера"),
+    notifOrderStale: (title) => (title ? `Заказ ${title} долго в пути. Нужна проверка` : "Заказ долго в пути"),
+    notifOrderCodeLocked: (title) => (title ? `Код заказа ${title} заблокирован` : "Код заказа заблокирован"),
+    notifOrderCode: (title) => (title ? `Код получения: ${title}` : "Код получения"),
   },
   ky: {
     notifOrderNew: (title) => (title ? `Жаңы буйрутма ${title}` : "Жаңы буйрутма"),
@@ -101,6 +107,12 @@ const ORDER_PUSH: Record<PushLang, Record<string, (title: string) => string>> = 
     notifOrderBlocked: () => "Буйрутма жабык: эки баш тартуу",
     notifCourierOn: () => "Сизге «Курьер» ролу берилди",
     notifCourierOff: () => "«Курьер» ролу алынды",
+    notifOrderShopTimeout: (title) => (title ? `${title} жокко чыкты: дүкөн жооп берген жок` : "Буйрутма жокко чыкты: дүкөн жооп берген жок"),
+    notifOrderNoCourier: (title) => (title ? `${title} дагы курьерди күтөт. Жокко чыгарса болот` : "Буйрутма курьерди күтөт"),
+    notifOrderReleased: (title) => (title ? `${title} кайра курьерди күтөт` : "Буйрутма кайра курьерди күтөт"),
+    notifOrderStale: (title) => (title ? `${title} көпкө жолдо. Текшерүү керек` : "Буйрутма көпкө жолдо"),
+    notifOrderCodeLocked: (title) => (title ? `${title} коду бөгөттөлдү` : "Код бөгөттөлдү"),
+    notifOrderCode: (title) => (title ? `Алуу коду: ${title}` : "Алуу коду"),
   },
 };
 

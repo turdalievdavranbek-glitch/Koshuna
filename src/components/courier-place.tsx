@@ -5,6 +5,7 @@ import { api } from "@/lib/api/client";
 import { DISTRICTS } from "@/lib/data";
 import { districtLabel } from "@/lib/geo";
 import { useApp } from "@/lib/store";
+import { deliveryError } from "./delivery-ui";
 import { Chip } from "./ui";
 
 type Mine = { courier?: boolean; city?: string | null; district?: string | null };
@@ -39,7 +40,7 @@ export function CourierPlace({ onChange }: { onChange?: (city: string) => void }
     setError("");
     void api("/api/courier/place", { method: "POST", json: { city: nextCity, district: nextDistrict } }).then((res) => {
       if (!res.ok) {
-        setError(t.deliveryFail);
+        setError(deliveryError(res.error, t));
         return;
       }
       onChange?.(nextCity);

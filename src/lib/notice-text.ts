@@ -32,5 +32,11 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifOrderBlocked") return t.notifOrderBlocked;
   if (row.textKey === "notifCourierOn") return t.notifCourierOn;
   if (row.textKey === "notifCourierOff") return t.notifCourierOff;
+  if (row.textKey === "notifOrderShopTimeout") return t.notifOrderShopTimeout(title);
+  if (row.textKey === "notifOrderNoCourier") return t.notifOrderNoCourier(title);
+  if (row.textKey === "notifOrderReleased") return t.notifOrderReleased(title);
+  if (row.textKey === "notifOrderStale") return t.notifOrderStale(title);
+  if (row.textKey === "notifOrderCodeLocked") return t.notifOrderCodeLocked(title);
+  if (row.textKey === "notifOrderCode") return t.notifOrderCode(title);
   return t.notifGeneric;
 }

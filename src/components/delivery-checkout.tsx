@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api/client";
-import type { CartShop, FeeQuote } from "@/lib/delivery";
+import type { CartProblem, CartShop, FeeQuote } from "@/lib/delivery";
 import { isShopId } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
@@ -25,6 +25,7 @@ export function CheckoutScreen() {
   const [quote, setQuote] = useState<FeeQuote | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [changes, setChanges] = useState<CartProblem[]>([]);
 
   useEffect(() => {
     if (user?.phone) setPhone((prev) => prev || user.phone);
@@ -48,19 +49,20 @@ export function CheckoutScreen() {
     });
   };
 
-  const place = () => {
-    if (!shop || busy) return;
+  const place = (acceptPrices = false) => {
+    if (!shop || busy || shop.closed || quote?.tooFar) return;
     setBusy(true);
     setError("");
-    void api<{ order?: { id: string }; error?: string }>("/api/orders", {
+    void api<{ order?: { id: string }; error?: string; changes?: CartProblem[] }>("/api/orders", {
       method: "POST",
-      json: { shopId, address, phone, comment, lat: point?.lat, lng: point?.lng },
+      json: { shopId, address, phone, comment, lat: point?.lat, lng: point?.lng, acceptPrices },
     }).then((res) => {
       setBusy(false);
       if (res.ok && res.data?.order?.id) {
         router.replace(`/orders/${res.data.order.id}`);
         return;
       }
+      setChanges(Array.isArray(res.data?.changes) ? res.data.changes : []);
       setError(deliveryError(res.data?.error || res.error, t));
     });
   };
@@ -118,10 +120,24 @@ export function CheckoutScreen() {
               {quote ? <p className="mt-2 text-[12px] text-muted">{quote.flat ? t.deliveryNoGeo : t.deliveryFeeHint(quote.baseSom, quote.perKmSom)}</p> : null}
             </section>
 
+            {shop.closed ? <p className="text-[13px] font-semibold text-accent">{t.deliveryShopClosed}</p> : null}
+            {quote?.tooFar ? <p className="text-[13px] font-semibold text-accent">{t.deliveryTooFar}</p> : null}
+            {changes.map((row) => (
+              <p key={`${row.kind}-${row.title}`} className="text-[13px] font-semibold text-accent">
+                {row.title}
+                {row.kind === "price" && row.from != null && row.to != null ? ` · ${t.deliveryWasNow(som(row.from), som(row.to))}` : row.kind === "stock" ? ` · ${t.deliveryStockLow}` : ` · ${t.deliveryGone}`}
+              </p>
+            ))}
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
-            <RedBtn disabled={busy || address.trim().length < 4 || !phone.trim()} onClick={place}>
-              {t.deliveryPlace}
-            </RedBtn>
+            {changes.length && changes.every((row) => row.kind === "price") ? (
+              <RedBtn disabled={busy} onClick={() => place(true)}>
+                {t.deliveryAcceptNewPrice}
+              </RedBtn>
+            ) : (
+              <RedBtn disabled={busy || shop.closed || quote?.tooFar || address.trim().length < 4 || !phone.trim()} onClick={() => place(false)}>
+                {t.deliveryPlace}
+              </RedBtn>
+            )}
           </div>
         ) : null}
       </div>

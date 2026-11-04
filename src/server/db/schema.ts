@@ -583,6 +583,8 @@ export const deliveryCart = pgTable(
       .references(() => shops.id, { onDelete: "cascade" }),
     productId: text("product_id").notNull(),
     qty: integer("qty").notNull(),
+    /** Price the buyer last saw. Checkout refuses to continue when the shop price moved. */
+    priceSom: integer("price_som"),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [
@@ -617,6 +619,10 @@ export const orders = pgTable(
     paymentMethod: text("payment_method").notNull().default("cash"),
     deliveryCode: text("delivery_code").notNull(),
     codeFails: integer("code_fails").notNull().default(0),
+    /** Set once when nobody has taken a confirmed order in time, so the notice is not repeated. */
+    courierWaitNotifiedAt: ts("courier_wait_notified_at"),
+    /** stale_pickup: courier vanished after pickup. code_locked: too many wrong codes. */
+    adminFlag: text("admin_flag"),
     /** Buyer «Подтвердить заказ». Couriers do not see the order until this is set. */
     buyerConfirmedAt: ts("buyer_confirmed_at"),
     /** Shop confirmed the courier paid for the goods at pickup. */

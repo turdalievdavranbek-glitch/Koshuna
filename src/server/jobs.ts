@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { CIRCLE_MAX } from "@/lib/circles";
 import { removeCourierApplication } from "./couriers";
+import { sweepDeliveryOrders } from "./delivery-sweep";
 import { getDb } from "./db";
 import {
   accountDeletions,
@@ -317,10 +318,16 @@ export async function circlesJob(): Promise<{ ok: true; counts: Record<string, n
   return { ok: true, counts: { cities: cities.length, picks } };
 }
 
+export async function deliverySweepJob(): Promise<{ ok: true; counts: Record<string, number> }> {
+  await sweepDeliveryOrders();
+  return { ok: true, counts: {} };
+}
+
 export const JOBS = {
   "listing-reminders": listingReminders,
   "account-deletions": accountDeletionsJob,
   cleanup: cleanupJob,
   circles: circlesJob,
   "price-stats": priceStatsJob,
+  "delivery-sweep": deliverySweepJob,
 } as const;

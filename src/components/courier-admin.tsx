@@ -7,6 +7,7 @@ import { districtLabel } from "@/lib/geo";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { refreshCourierBadge } from "./courier-badge";
+import { deliveryError } from "./delivery-ui";
 
 type CourierApp = {
   id: string;
@@ -22,6 +23,7 @@ type CourierApp = {
 };
 
 type Blocked = { id: string; name: string; email: string; phone: string; refusals: number };
+type Stuck = { id: string; no: number; status: string; flag: string | null; codeFails: number; shopName: string };
 
 /** Кабинет, admin only: approve or revoke couriers, and open ordering again after two refusals. */
 export function CourierAdmin() {
@@ -29,7 +31,9 @@ export function CourierAdmin() {
   const admin = isAdminUser(user);
   const [rows, setRows] = useState<CourierApp[] | null>(null);
   const [blocked, setBlocked] = useState<Blocked[] | null>(null);
+  const [stuck, setStuck] = useState<Stuck[] | null>(null);
   const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
 
   const load = useCallback(() => {
     void api<{ couriers?: CourierApp[] }>("/api/admin/couriers").then((res) => {
@@ -37,6 +41,9 @@ export function CourierAdmin() {
     });
     void api<{ buyers?: Blocked[] }>("/api/admin/order-blocks").then((res) => {
       setBlocked(res.ok && Array.isArray(res.data?.buyers) ? res.data.buyers : []);
+    });
+    void api<{ orders?: Stuck[] }>("/api/admin/delivery-stuck").then((res) => {
+      setStuck(res.ok && Array.isArray(res.data?.orders) ? res.data.orders : []);
     });
   }, []);
 
@@ -48,8 +55,13 @@ export function CourierAdmin() {
 
   const review = (id: string, action: "approve" | "revoke") => {
     setBusy(id);
-    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action } }).then(() => {
+    setError("");
+    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action } }).then((res) => {
       setBusy("");
+      if (!res.ok) {
+        setError(deliveryError(res.error, t));
+        return;
+      }
       refreshCourierBadge();
       load();
     });
@@ -101,6 +113,45 @@ export function CourierAdmin() {
                   {t.deliveryRevokeCourier}
                 </button>
               )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+
+      <div className="mt-4 text-[13px] font-semibold uppercase text-muted">{t.deliveryStuck}</div>
+      {stuck && stuck.length === 0 ? <div className="mt-2 text-[13px] text-muted">{t.deliveryStuckEmpty}</div> : null}
+      <div className="mt-2 flex flex-col gap-2">
+        {(stuck ?? []).map((row) => (
+          <div key={row.id} className="rounded-[14px] border border-line bg-white px-3.5 py-3">
+            <div className="text-[15px] font-semibold text-ink">№{row.no} · {row.shopName}</div>
+            <div className="text-[12px] text-muted">{row.flag || row.status}{row.codeFails >= 5 ? ` · ${t.deliveryCodeLocked}` : ""}</div>
+            <div className="mt-2 flex gap-2">
+              {row.codeFails >= 5 || row.flag === "code_locked" ? (
+                <button type="button" disabled={busy === row.id} onClick={() => {
+                  setBusy(row.id);
+                  void api("/api/admin/delivery-stuck", { method: "POST", json: { id: row.id, action: "unlock" } }).then((res) => {
+                    setBusy("");
+                    if (!res.ok) setError(deliveryError(res.error, t));
+                    else load();
+                  });
+                }} className="h-9 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">
+                  {t.deliveryUnlockCode}
+                </button>
+              ) : null}
+              {row.flag ? (
+                <button type="button" disabled={busy === row.id} onClick={() => {
+                  setBusy(row.id);
+                  void api("/api/admin/delivery-stuck", { method: "POST", json: { id: row.id, action: "clear" } }).then((res) => {
+                    setBusy("");
+                    if (!res.ok) setError(deliveryError(res.error, t));
+                    else load();
+                  });
+                }} className="h-9 flex-1 rounded-xl border border-line text-[13px] font-semibold disabled:opacity-40">
+                  {t.deliveryClearFlag}
+                </button>
+              ) : null}
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readPoint } from "@/lib/delivery";
+import { readPoint, type CartProblem } from "@/lib/delivery";
 import type { Lang } from "@/lib/types";
 import { listBuyerOrders, placeOrder } from "@/server/delivery";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (blocked) return blocked;
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
-  const body = await readJson<{ shopId?: unknown; address?: unknown; phone?: unknown; comment?: unknown; lat?: unknown; lng?: unknown }>(req);
+  const body = await readJson<{ shopId?: unknown; address?: unknown; phone?: unknown; comment?: unknown; lat?: unknown; lng?: unknown; acceptPrices?: unknown }>(req);
   if (!body || typeof body.shopId !== "string" || typeof body.address !== "string" || typeof body.phone !== "string") {
     return json({ error: "bad-address" }, 400);
   }
@@ -37,9 +37,10 @@ export async function POST(req: Request) {
       comment: typeof body.comment === "string" ? body.comment : "",
       lat: point?.lat ?? null,
       lng: point?.lng ?? null,
+      acceptPrices: body.acceptPrices === true,
     },
     langOf(user.lang),
   );
-  if ("error" in done) return json({ error: done.error }, done.status);
+  if ("error" in done) return json({ error: done.error, changes: (done as { changes?: CartProblem[] }).changes }, done.status);
   return json({ order: done.order });
 }

@@ -132,6 +132,13 @@ export default function CourierPage() {
               ) : null}
             </div>
             {active.status === "assigned" && !active.shopPaid ? <p className="mt-3 text-[15px] font-extrabold text-accent">{t.deliveryPayShop(som(active.itemsTotalSom))}</p> : null}
+            {active.status === "assigned" ? (
+              <div className="mt-2">
+                <GhostBtn disabled={busy} onClick={() => act(active.id, "release")}>
+                  {t.deliveryRelease}
+                </GhostBtn>
+              </div>
+            ) : null}
             {active.status === "assigned" && active.shopPaid ? (
               <div className="mt-3">
                 <RedBtn disabled={busy} onClick={() => act(active.id, "pickup")}>
@@ -139,7 +146,8 @@ export default function CourierPage() {
                 </RedBtn>
               </div>
             ) : null}
-            {active.status === "picked_up" ? (
+            {active.codeLocked ? <p className="mt-3 text-[13px] font-semibold text-accent">{t.deliveryCodeLocked}</p> : null}
+            {active.status === "picked_up" && !active.codeLocked ? (
               <div className="mt-3">
                 <label className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">{t.deliveryCodeEnter}</label>
                 <input

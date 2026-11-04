@@ -207,6 +207,12 @@ export async function setCourierPlace(
   const db = getDb();
   const who = await db.select({ courier: users.isCourier }).from(users).where(eq(users.id, userId)).limit(1);
   if (!who[0]?.courier) return { error: "forbidden", status: 403 };
+  const active = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .where(and(eq(orders.courierId, userId), inArray(orders.status, ["assigned", "picked_up", "refused"])))
+    .limit(1);
+  if (active[0]) return { error: "city-locked", status: 409 };
   await db
     .update(users)
     .set({ courierCity: nextCity, courierDistrict: nextDistrict || null, updatedAt: new Date() })

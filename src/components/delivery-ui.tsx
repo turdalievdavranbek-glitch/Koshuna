@@ -34,13 +34,23 @@ export function deliveryError(code: string | undefined, t: Dict): string {
   if (code === "blocked") return t.deliveryBlocked;
   if (code === "taken") return t.deliveryTaken;
   if (code === "bad-code") return t.deliveryBadCode;
-  if (code === "too-many") return t.deliveryTooMany;
+  if (code === "too-many" || code === "code-locked") return t.deliveryCodeLocked;
   if (code === "need-pay") return t.deliveryNeedPay;
   if (code === "offline") return t.deliveryOfflineNeed;
+  if (code === "need-place") return t.deliveryNeedPlace;
   if (code === "busy") return t.deliveryBusy;
   if (code === "own") return t.deliveryOwn;
   if (code === "active") return t.deliveryActiveOrder;
-  if (code === "bad-phone") return t.deliveryFail;
+  if (code === "bad-phone") return t.deliveryBadPhone;
+  if (code === "bad-address") return t.deliveryBadAddress;
+  if (code === "shop-closed") return t.deliveryShopClosed;
+  if (code === "too-far") return t.deliveryTooFar;
+  if (code === "price-changed") return t.deliveryPriceChanged;
+  if (code === "stale") return t.deliveryGone;
+  if (code === "city-locked") return t.deliveryCityLocked;
+  if (code === "after-pickup") return t.deliveryAfterPickup;
+  if (code === "state") return t.deliveryState;
+  if (code === "empty") return t.deliveryEmpty;
   return t.deliveryFail;
 }
 

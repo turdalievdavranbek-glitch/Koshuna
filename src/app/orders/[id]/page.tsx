@@ -17,6 +17,7 @@ export default function OrderPage() {
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [resent, setResent] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -48,6 +49,7 @@ export default function OrderPage() {
       setBusy(false);
       if (res.ok && res.data?.order) {
         setOrder(res.data.order);
+        if (action === "resend") setResent(true);
         return;
       }
       setError(deliveryError(res.data?.error || res.error, t));
@@ -88,11 +90,16 @@ export default function OrderPage() {
               </div>
             </div>
             <p className="mt-3 text-[13px] text-muted">{order.address}</p>
+            {order.codeLocked ? <p className="mt-4 text-[13px] font-semibold text-accent">{t.deliveryCodeLocked}</p> : null}
             {order.deliveryCode ? (
               <div className="mt-4 rounded-2xl bg-[#FAFAFB] px-4 py-3 text-center">
                 <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">{t.deliveryCode}</div>
                 <div className="mt-1 font-display text-[32px] font-extrabold tracking-[0.2em] text-ink">{order.deliveryCode}</div>
                 <p className="mt-1 text-[12px] text-muted">{t.deliveryCodeHint}</p>
+                <button type="button" disabled={busy} onClick={() => act("resend")} className="mt-2 text-[13px] font-semibold text-accent">
+                  {t.deliveryResendCode}
+                </button>
+                {resent ? <p className="mt-1 text-[12px] text-muted">{t.deliveryResent}</p> : null}
               </div>
             ) : null}
             {order.shopPhone ? (
@@ -109,8 +116,16 @@ export default function OrderPage() {
                 </RedBtn>
               </div>
             ) : null}
-            {order.status === "new" || order.status === "accepted" ? (
+            {order.status === "new" || order.status === "accepted" || order.status === "assembled" || order.status === "assigned" ? (
               <div className="mt-3">
+                <GhostBtn disabled={busy} onClick={() => act("cancel")}>
+                  {t.deliveryCancel}
+                </GhostBtn>
+              </div>
+            ) : null}
+            {order.status === "picked_up" ? (
+              <div className="mt-3">
+                <p className="mb-2 text-[13px] text-muted">{t.deliveryAfterPickup}</p>
                 <GhostBtn disabled={busy} onClick={() => act("cancel")}>
                   {t.deliveryCancel}
                 </GhostBtn>

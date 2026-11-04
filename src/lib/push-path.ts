@@ -18,6 +18,7 @@ export function pushPathForNotice(input: {
   audience?: "buyer" | "shop" | "courier" | null;
 }): string {
   if (input.textKey === "notifFeedback") return "/admin/feedback";
+  if (input.textKey === "notifOrderCodeLocked" || input.textKey === "notifOrderStale") return "/profile";
   if (input.orderId && isDbUserId(input.orderId)) {
     if (input.audience === "courier") return "/courier";
     if (input.audience === "shop" && input.shopId && SHOP_ID.test(input.shopId)) return `/shops/${input.shopId}/orders`;

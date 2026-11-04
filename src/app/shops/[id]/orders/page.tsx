@@ -105,6 +105,13 @@ export default function ShopOrdersPage() {
               <p className="mt-1 text-[13px] text-muted">
                 {order.buyerName} · {order.address} · {som(order.totalSom)} сом
               </p>
+              {order.status === "accepted" || order.status === "assembled" || order.status === "assigned" ? (
+                <div className="mt-3">
+                  <GhostBtn disabled={busy === order.id + "cancel"} onClick={() => act(order.id, "cancel")}>
+                    {t.deliveryShopCancel}
+                  </GhostBtn>
+                </div>
+              ) : null}
               {order.status === "accepted" ? (
                 <div className="mt-3">
                   <YellowBtn disabled={busy === order.id + "assemble"} onClick={() => act(order.id, "assemble")}>

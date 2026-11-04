@@ -16,6 +16,7 @@ export default function CartPage() {
   const user = useSignedIn("/cart");
   const router = useRouter();
   const [shops, setShops] = useState<CartShop[] | null>(null);
+  const [error, setError] = useState("");
 
   const load = () => {
     void api<{ shops?: CartShop[] }>("/api/delivery/cart").then((res) => {
@@ -46,7 +47,10 @@ export default function CartPage() {
       ).filter((shop) => shop.lines.length),
     );
     const res = await api("/api/delivery/cart", { method: "PUT", json: { shopId, productId, qty } });
-    if (!res.ok) load();
+    if (!res.ok) {
+      setError(t.deliveryFail);
+      load();
+    }
   };
 
   const count = (shops ?? []).reduce((sum, shop) => sum + shop.lines.reduce((n, line) => n + line.qty, 0), 0);
@@ -55,6 +59,7 @@ export default function CartPage() {
     <PhoneShell>
       <PageHead title={t.deliveryCart} fallback="/" aside={<span className="text-[13px] font-semibold text-muted">{count ? t.deliveryGoodsCount(count) : ""}</span>} />
       <div className="sc mt-3 min-h-0 flex-1 overflow-y-auto px-5 pb-8">
+        {error ? <p className="mb-2 text-[13px] font-semibold text-accent">{error}</p> : null}
         {shops && shops.length === 0 ? <p className="mt-8 text-center text-[15px] text-muted">{t.deliveryEmpty}</p> : null}
         <div className="flex flex-col gap-4">
           {(shops ?? []).map((shop) => (
@@ -74,7 +79,12 @@ export default function CartPage() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-bold text-ink">{line.title}</div>
                       <div className="text-[12px] text-muted">{t.shopUnits[line.unit] || line.unit}</div>
-                      <div className="text-[14px] font-extrabold text-ink">{som(line.priceSom)} сом</div>
+                      {line.unavailable ? <div className="text-[12px] font-semibold text-accent">{t.deliveryGone}</div> : null}
+                      {line.changed && line.listedSom != null ? (
+                        <div className="text-[12px] font-semibold text-accent">{t.deliveryWasNow(som(line.listedSom), som(line.priceSom))}</div>
+                      ) : (
+                        <div className="text-[14px] font-extrabold text-ink">{som(line.priceSom)} сом</div>
+                      )}
                     </div>
                     <ShopQty qty={line.qty} onChange={(next) => void change(shop.shopId, line.productId, next)} />
                   </div>
@@ -94,10 +104,12 @@ export default function CartPage() {
                   <span>{som(shop.itemsTotalSom + shop.quote.feeSom)} сом</span>
                 </div>
               </div>
+              {shop.closed ? <p className="mt-3 text-[13px] font-semibold text-accent">{t.deliveryClosedShop}</p> : null}
               <button
                 type="button"
+                disabled={shop.closed || shop.lines.some((line) => line.unavailable)}
                 onClick={() => router.push(`/cart/checkout?shop=${encodeURIComponent(shop.shopId)}`)}
-                className="shadow-btn mt-3 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-bold text-accent-on"
+                className="shadow-btn mt-3 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-bold text-accent-on disabled:opacity-40"
               >
                 {t.deliveryCheckout} · {som(shop.itemsTotalSom + shop.quote.feeSom)} сом
               </button>

@@ -24,7 +24,10 @@ export type FeeQuote = {
   flat: boolean;
   baseSom: number;
   perKmSom: number;
+  tooFar?: boolean;
 };
+
+export type CartProblem = { title: string; kind: "price" | "gone" | "stock"; from?: number; to?: number };
 
 export type CartLine = {
   productId: string;
@@ -34,6 +37,10 @@ export type CartLine = {
   qty: number;
   photo?: string;
   kind?: string;
+  /** Price stored when the line was added. Differs from priceSom after the shop edits it. */
+  listedSom?: number | null;
+  changed?: boolean;
+  unavailable?: boolean;
 };
 
 export type CartShop = {
@@ -43,6 +50,8 @@ export type CartShop = {
   lines: CartLine[];
   itemsTotalSom: number;
   quote: FeeQuote;
+  /** Shop is hidden, withdrawn, or gone. Checkout is closed. */
+  closed?: boolean;
 };
 
 export type OrderItemView = {
@@ -78,6 +87,8 @@ export type OrderView = {
   shopPaid: boolean;
   /** Present only for the buyer, and only while the courier still needs it. */
   deliveryCode: string | null;
+  /** Wrong code entered too many times. The admin is told. The code stays hidden. */
+  codeLocked?: boolean;
   createdAt: string;
 };
 
