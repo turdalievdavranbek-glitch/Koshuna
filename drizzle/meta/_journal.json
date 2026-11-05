@@ -134,6 +134,41 @@
       "when": 1793347200000,
       "tag": "0020_user_follows",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793433600000,
+      "tag": "0021_delivery_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793520000000,
+      "tag": "0022_dispatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793606400000,
+      "tag": "0023_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793692800000,
+      "tag": "0024_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793779200000,
+      "tag": "0025_referrals",
+      "breakpoints": true
     }
   ]
 }

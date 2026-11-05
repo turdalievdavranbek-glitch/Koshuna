@@ -10,7 +10,16 @@ import { IconPhone } from "@/components/icons";
 import { CourierPlace } from "@/components/courier-place";
 import { askPoint, deliveryError, GhostBtn, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
 
-type Board = { online: boolean; courier: boolean; city: string | null; active: OrderView | null; available: CourierOffer[] };
+type Board = {
+  online: boolean;
+  courier: boolean;
+  city: string | null;
+  paused: boolean;
+  softBanned: boolean;
+  offer: (CourierOffer & { expiresAt: string }) | null;
+  active: OrderView | null;
+  available: CourierOffer[];
+};
 
 export default function CourierPage() {
   const { t } = useApp();
@@ -19,6 +28,7 @@ export default function CourierPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
   const [code, setCode] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [placeTick, setPlaceTick] = useState(0);
@@ -141,9 +151,33 @@ export default function CourierPage() {
             ) : null}
             {active.status === "assigned" && active.shopPaid ? (
               <div className="mt-3">
-                <RedBtn disabled={busy} onClick={() => act(active.id, "pickup")}>
-                  {t.deliveryPicked}
-                </RedBtn>
+                <label className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">{t.deliveryReceipt}</label>
+                <input type="file" accept="image/*" capture="environment" className="mt-2 block w-full text-[13px]" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
+                <div className="mt-2">
+                  <RedBtn
+                    disabled={busy || (!active.hasReceipt && !receipt)}
+                    onClick={() => {
+                      if (active.hasReceipt || !receipt) {
+                        act(active.id, "pickup");
+                        return;
+                      }
+                      setBusy(true);
+                      const form = new FormData();
+                      form.set("photo", receipt);
+                      void fetch(`/api/orders/${encodeURIComponent(active.id)}/receipt`, { method: "POST", body: form, credentials: "same-origin" }).then(async (res) => {
+                        if (!res.ok) {
+                          setBusy(false);
+                          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+                          setError(deliveryError(data?.error, t));
+                          return;
+                        }
+                        act(active.id, "pickup");
+                      });
+                    }}
+                  >
+                    {t.deliveryPicked}
+                  </RedBtn>
+                </div>
               </div>
             ) : null}
             {active.codeLocked ? <p className="mt-3 text-[13px] font-semibold text-accent">{t.deliveryCodeLocked}</p> : null}
@@ -175,6 +209,24 @@ export default function CourierPage() {
           </section>
         ) : null}
         {board?.courier && board.online && !active && !board.city ? <p className="mt-4 text-[14px] text-muted">{t.deliveryNeedPlace}</p> : null}
+        {board?.softBanned ? <p className="mt-4 text-[14px] font-semibold text-accent">{t.deliverySoftBan}</p> : null}
+        {board?.paused && !board.softBanned ? <p className="mt-4 text-[14px] font-semibold text-accent">{t.deliveryPaused}</p> : null}
+        {board?.offer && !active ? (
+          <article className="mt-4 rounded-[18px] border border-accent bg-white p-3">
+            <div className="text-[12px] font-bold uppercase tracking-[0.08em] text-accent">{t.deliveryOfferTitle}</div>
+            <div className="mt-1 text-[16px] font-extrabold">{board.offer.shopName}</div>
+            <div className="text-[13px] text-muted">{board.offer.shopPlace}</div>
+            <div className="mt-1 text-[15px] font-extrabold text-accent">{som(board.offer.feeSom)} сом</div>
+            <div className="mt-3 flex gap-2">
+              <YellowBtn disabled={busy} onClick={() => act(board.offer!.id, "take")}>
+                {t.deliveryOfferAccept}
+              </YellowBtn>
+              <GhostBtn disabled={busy} onClick={() => act(board.offer!.id, "decline")}>
+                {t.deliveryOfferDecline}
+              </GhostBtn>
+            </div>
+          </article>
+        ) : null}
         {board?.courier && board.online && !active && board.city ? (
           <div className="mt-5">
             <h2 className="text-[18px] font-extrabold">{t.deliveryNearby}</h2>

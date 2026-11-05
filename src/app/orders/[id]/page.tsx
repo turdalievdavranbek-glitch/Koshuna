@@ -18,6 +18,12 @@ export default function OrderPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [resent, setResent] = useState(false);
+  const [courierStars, setCourierStars] = useState(5);
+  const [shopStars, setShopStars] = useState(5);
+  const [rated, setRated] = useState(false);
+  const [dispute, setDispute] = useState("");
+  const [disputePhoto, setDisputePhoto] = useState<File | null>(null);
+  const [disputeNote, setDisputeNote] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -84,6 +90,12 @@ export default function OrderPage() {
                 <FeeNote km={order.km} flat={order.flatFee} t={t} />
                 <span>≈ {som(order.deliveryFeeSom)} сом</span>
               </div>
+              {order.discountSom > 0 ? (
+                <div className="flex justify-between text-muted">
+                  <span>−{som(order.discountSom)} сом</span>
+                  <span>{t.deliveryReferral}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between text-[16px] font-extrabold">
                 <span>{t.deliveryToPay}</span>
                 <span>{som(order.totalSom)} сом</span>
@@ -131,6 +143,64 @@ export default function OrderPage() {
                 </GhostBtn>
               </div>
             ) : null}
+            {order.status === "delivered" && !rated ? (
+              <div className="mt-4">
+                <div className="text-[14px] font-extrabold">{t.deliveryRate}</div>
+                <label className="mt-2 block text-[13px] text-muted">
+                  {t.deliveryRateCourier}
+                  <input type="number" min={1} max={5} value={courierStars} onChange={(e) => setCourierStars(Number(e.target.value))} className="ml-2 h-9 w-16 rounded-lg border border-line px-2" />
+                </label>
+                <label className="mt-2 block text-[13px] text-muted">
+                  {t.deliveryRateShop}
+                  <input type="number" min={1} max={5} value={shopStars} onChange={(e) => setShopStars(Number(e.target.value))} className="ml-2 h-9 w-16 rounded-lg border border-line px-2" />
+                </label>
+                <div className="mt-2">
+                  <RedBtn
+                    disabled={busy}
+                    onClick={() => {
+                      setBusy(true);
+                      void api(`/api/orders/${encodeURIComponent(order.id)}/rate`, { method: "POST", json: { courierStars, shopStars } }).then((res) => {
+                        setBusy(false);
+                        if (res.ok) setRated(true);
+                        else setError(deliveryError(res.error, t));
+                      });
+                    }}
+                  >
+                    {t.deliveryRateSend}
+                  </RedBtn>
+                </div>
+              </div>
+            ) : null}
+            {rated ? <p className="mt-3 text-[13px] font-semibold text-ink">{t.deliveryRated}</p> : null}
+            <div className="mt-4">
+              <div className="text-[14px] font-extrabold">{t.deliveryDispute}</div>
+              <textarea value={dispute} onChange={(e) => setDispute(e.target.value)} placeholder={t.deliveryDisputePh} className="mt-2 h-20 w-full rounded-2xl border border-line px-3 py-2 text-[14px]" />
+              <input type="file" accept="image/*" className="mt-2 block w-full text-[13px]" onChange={(e) => setDisputePhoto(e.target.files?.[0] ?? null)} />
+              <button
+                type="button"
+                disabled={busy || dispute.trim().length < 4}
+                onClick={() => {
+                  setBusy(true);
+                  const form = new FormData();
+                  form.set("text", dispute.trim());
+                  if (disputePhoto) form.set("photo", disputePhoto);
+                  void fetch(`/api/orders/${encodeURIComponent(order.id)}/dispute`, { method: "POST", body: form, credentials: "same-origin" }).then(async (res) => {
+                    setBusy(false);
+                    const data = (await res.json().catch(() => null)) as { status?: string; error?: string } | null;
+                    if (!res.ok) {
+                      setError(deliveryError(data?.error, t));
+                      return;
+                    }
+                    setDispute("");
+                    setDisputeNote(data?.status === "auto" ? t.deliveryDisputeAuto : t.deliveryDisputeSent);
+                  });
+                }}
+                className="mt-2 h-11 w-full rounded-2xl border border-line text-[14px] font-bold disabled:opacity-40"
+              >
+                {t.deliveryDisputeSend}
+              </button>
+              {disputeNote ? <p className="mt-2 text-[13px] text-muted">{disputeNote}</p> : null}
+            </div>
             {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
           </div>
         ) : null}

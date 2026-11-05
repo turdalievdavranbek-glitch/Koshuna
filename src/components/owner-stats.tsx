@@ -15,6 +15,69 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+type Desk = {
+  couriers: { id: string; name: string; email: string; until: string | null; pauses: number; soft: boolean }[];
+  shops: { id: string; name: string }[];
+  disputes: { id: string; text: string; createdAt: string; no: number; hasPhoto: boolean }[];
+};
+
+function OwnerDeliveryDesk() {
+  const [desk, setDesk] = useState<Desk | null>(null);
+  const load = () => {
+    void api<Desk>("/api/owner/delivery").then((res) => {
+      if (res.ok && res.data) setDesk(res.data);
+    });
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const act = (action: string, id: string) => {
+    void api("/api/owner/delivery", { method: "POST", json: { action, id } }).then(() => load());
+  };
+  return (
+    <section>
+      <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">Паузы и блокировки</h2>
+      {!desk || (desk.couriers.length === 0 && desk.shops.length === 0 && desk.disputes.length === 0) ? (
+        <p className="mt-2 text-[13px] text-muted">Пауз и споров нет</p>
+      ) : null}
+      <div className="mt-2 flex flex-col gap-2">
+        {desk?.couriers.map((row) => (
+          <div key={row.id} className="rounded-[16px] border border-line bg-white px-3 py-3 text-[14px]">
+            <div className="font-semibold">{row.name || row.email}</div>
+            <div className="text-[12px] text-muted">{row.soft ? "Блокировка" : "Пауза"} · {row.pauses}</div>
+            <button type="button" onClick={() => act("restore-courier", row.id)} className="mt-2 text-[13px] font-bold text-accent">
+              Вернуть
+            </button>
+          </div>
+        ))}
+        {desk?.shops.map((row) => (
+          <div key={row.id} className="rounded-[16px] border border-line bg-white px-3 py-3 text-[14px]">
+            <div className="font-semibold">{row.name}</div>
+            <div className="text-[12px] text-muted">Доставка выключена</div>
+            <button type="button" onClick={() => act("restore-shop", row.id)} className="mt-2 text-[13px] font-bold text-accent">
+              Вернуть
+            </button>
+          </div>
+        ))}
+        {desk?.disputes.map((row) => (
+          <div key={row.id} className="rounded-[16px] border border-line bg-white px-3 py-3 text-[14px]">
+            <div className="font-semibold">Спор №{row.no}</div>
+            <p className="mt-1 text-[13px] text-muted">{row.text}</p>
+            {row.hasPhoto ? (
+              <a href={`/api/owner/delivery?photo=${encodeURIComponent(row.id)}`} className="mt-1 inline-block text-[13px] font-semibold text-accent">
+                Фото
+              </a>
+            ) : null}
+            <button type="button" onClick={() => act("close-dispute", row.id)} className="mt-2 block text-[13px] font-bold text-accent">
+              Закрыть спор
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function dash(value: string): string {
   return value.trim() ? value : "—";
 }
@@ -215,6 +278,7 @@ export function OwnerStatsScreen() {
                 </table>
               </div>
             </section>
+            <OwnerDeliveryDesk />
             <button
               type="button"
               disabled={busy}

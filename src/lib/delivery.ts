@@ -80,7 +80,10 @@ export type OrderView = {
   items: OrderItemView[];
   itemsTotalSom: number;
   deliveryFeeSom: number;
+  /** Som taken off the fee for a referred client's first order. */
+  discountSom: number;
   totalSom: number;
+  hasReceipt: boolean;
   km: number | null;
   flatFee: boolean;
   buyerConfirmed: boolean;

@@ -38,5 +38,7 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifOrderStale") return t.notifOrderStale(title);
   if (row.textKey === "notifOrderCodeLocked") return t.notifOrderCodeLocked(title);
   if (row.textKey === "notifOrderCode") return t.notifOrderCode(title);
+  if (row.textKey === "notifOrderOffer") return t.notifOrderOffer(title);
+  if (row.textKey === "notifDispute") return t.notifDispute(title);
   return t.notifGeneric;
 }

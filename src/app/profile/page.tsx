@@ -34,6 +34,24 @@ import { UserFollow } from "@/components/user-follow";
 
 const PHONE_LATER = "konshu.phoneLater";
 
+function ReferralCard() {
+  const { t } = useApp();
+  const [link, setLink] = useState<{ code: string; whatsapp: string } | null>(null);
+  useEffect(() => {
+    void api<{ code: string; whatsapp: string }>("/api/me/referral").then((res) => {
+      if (res.ok && res.data?.code) setLink({ code: res.data.code, whatsapp: res.data.whatsapp });
+    });
+  }, []);
+  if (!link) return null;
+  return (
+    <a href={link.whatsapp} className="mt-2 block rounded-[18px] border border-line bg-white px-4 py-3.5">
+      <div className="text-[15px] font-semibold text-ink">{t.deliveryReferralShare}</div>
+      <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.deliveryReferralHint}</p>
+      <div className="mt-1 text-[13px] font-bold text-accent">{link.code}</div>
+    </a>
+  );
+}
+
 function MethodIcon({ method }: { method: AuthMethod }) {
   if (method === "google") return <BrandGoogle size={14} />;
   if (method === "telegram") return <BrandTelegram size={14} />;
@@ -211,6 +229,7 @@ export default function ProfilePage() {
           <span className="text-[15px] font-semibold text-ink">{t.deliveryOrders}</span>
           <span className="text-[18px] text-muted-2">›</span>
         </button>
+        <ReferralCard />
         <button
           type="button"
           onClick={() => router.push(user.courier ? "/courier" : "/courier/apply")}

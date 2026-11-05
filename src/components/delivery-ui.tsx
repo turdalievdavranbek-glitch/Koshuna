@@ -51,6 +51,13 @@ export function deliveryError(code: string | undefined, t: Dict): string {
   if (code === "after-pickup") return t.deliveryAfterPickup;
   if (code === "state") return t.deliveryState;
   if (code === "empty") return t.deliveryEmpty;
+  if (code === "open-order") return t.deliveryOpenOrder;
+  if (code === "new-limit") return t.deliveryNewLimit;
+  if (code === "delivery-off") return t.deliveryOff;
+  if (code === "paused") return t.deliveryPaused;
+  if (code === "soft-ban") return t.deliverySoftBan;
+  if (code === "offered") return t.deliveryOffered;
+  if (code === "need-receipt") return t.deliveryNeedReceipt;
   return t.deliveryFail;
 }
 

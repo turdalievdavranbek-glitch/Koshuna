@@ -50,6 +50,11 @@ export const users = pgTable("users", {
   /** Two confirmed client refusals. The admin can clear this. */
   orderBlocked: boolean("order_blocked").notNull().default(false),
   refusalCount: integer("refusal_count").notNull().default(0),
+  /** Set when a low rating or two no-shows pause the courier for 48 hours. */
+  courierPausedUntil: ts("courier_paused_until"),
+  courierPauseCount: integer("courier_pause_count").notNull().default(0),
+  /** Three pauses. Only the owner clears this. */
+  courierSoftBanned: boolean("courier_soft_banned").notNull().default(false),
   /** Presence: touched at most once a minute by any signed-in request. */
   lastSeenAt: ts("last_seen_at"),
   bannedAt: ts("banned_at"),
@@ -147,6 +152,12 @@ export const shops = pgTable(
     /** Auto-hidden after 3 reports. Public feeds skip it; the owner still sees it. */
     underReview: boolean("under_review").notNull().default(false),
     followersCount: integer("followers_count").notNull().default(0),
+    /** False after too many shop cancellations. Checkout refuses delivery. */
+    deliveryEnabled: boolean("delivery_enabled").notNull().default(true),
+    /** Phone and a storefront photo are both on file. */
+    verifiedAt: ts("verified_at"),
+    /** Referred shop: 0% commission until this moment. No commission is charged yet. */
+    commissionFreeUntil: ts("commission_free_until"),
     lastPostedAt: ts("last_posted_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
@@ -636,6 +647,10 @@ export const orders = pgTable(
     distanceKm: doublePrecision("distance_km"),
     feeFlat: boolean("fee_flat").notNull().default(false),
     paymentMethod: text("payment_method").notNull().default("cash"),
+    /** Private photo of the receipt, taken at pickup. */
+    receiptPath: text("receipt_path"),
+    /** Som taken off the delivery fee for a referred client's first order. */
+    referralDiscountSom: integer("referral_discount_som").notNull().default(0),
     deliveryCode: text("delivery_code").notNull(),
     codeFails: integer("code_fails").notNull().default(0),
     /** Set once when nobody has taken a confirmed order in time, so the notice is not repeated. */
@@ -720,6 +735,132 @@ export const courierApplications = pgTable(
     check("courier_applications_transport", sql`${t.transport} in ('car','moto','walk')`),
     check("courier_applications_status", sql`${t.status} in ('pending','approved','revoked')`),
     index("courier_applications_status_idx").on(t.status),
+  ],
+);
+
+/** A 45-second offer to one online courier. One live row per order. */
+export const orderOffers = pgTable(
+  "order_offers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    courierId: uuid("courier_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    offeredAt: ts("offered_at").notNull().defaultNow(),
+    expiresAt: ts("expires_at").notNull(),
+    status: text("status").notNull().default("offered"),
+  },
+  (t) => [
+    check("order_offers_status", sql`${t.status} in ('offered','accepted','declined','expired')`),
+    index("order_offers_order_idx").on(t.orderId),
+    index("order_offers_courier_idx").on(t.courierId, t.status),
+    uniqueIndex("order_offers_one_live").on(t.orderId).where(sql`${t.status} = 'offered'`),
+  ],
+);
+
+export const deliveryRatings = pgTable(
+  "delivery_ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    raterId: uuid("rater_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    courierStars: integer("courier_stars"),
+    shopStars: integer("shop_stars"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    unique("delivery_ratings_order").on(t.orderId),
+    check(
+      "delivery_ratings_stars",
+      sql`(${t.courierStars} is null or (${t.courierStars} >= 1 and ${t.courierStars} <= 5)) and (${t.shopStars} is null or (${t.shopStars} >= 1 and ${t.shopStars} <= 5))`,
+    ),
+  ],
+);
+
+export const deliveryNoShows = pgTable(
+  "delivery_no_shows",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courierId: uuid("courier_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("delivery_no_shows_courier_idx").on(t.courierId, t.createdAt)],
+);
+
+export const deliveryDisputes = pgTable(
+  "delivery_disputes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    openerId: uuid("opener_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    photoPath: text("photo_path"),
+    status: text("status").notNull().default("escalated"),
+    resolution: text("resolution"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    check("delivery_disputes_status", sql`${t.status} in ('auto','escalated','closed')`),
+    index("delivery_disputes_status_idx").on(t.status, t.createdAt),
+  ],
+);
+
+export const referralCodes = pgTable("referral_codes", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const referralAttributions = pgTable(
+  "referral_attributions",
+  {
+    referredId: uuid("referred_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    referrerId: uuid("referrer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [check("referral_attributions_not_self", sql`${t.referredId} <> ${t.referrerId}`)],
+);
+
+export const referralRewards = pgTable(
+  "referral_rewards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referrerId: uuid("referrer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    referredId: uuid("referred_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    shopId: text("shop_id"),
+    amountSom: integer("amount_som").notNull().default(0),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    check("referral_rewards_kind", sql`${t.kind} in ('courier','client','shop')`),
+    unique("referral_rewards_once").on(t.referredId, t.kind),
   ],
 );
 

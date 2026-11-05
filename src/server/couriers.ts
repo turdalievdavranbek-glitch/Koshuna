@@ -222,8 +222,15 @@ export async function setCourierPlace(
 
 export async function setCourierOnline(userId: string, on: boolean): Promise<{ ok: true; online: boolean } | Fail> {
   const db = getDb();
-  const who = await db.select({ courier: users.isCourier }).from(users).where(eq(users.id, userId)).limit(1);
+  const who = await db
+    .select({ courier: users.isCourier, soft: users.courierSoftBanned, until: users.courierPausedUntil })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   if (!who[0]?.courier) return { error: "forbidden", status: 403 };
+  if (on && (who[0].soft || (who[0].until && who[0].until.getTime() > Date.now()))) {
+    return { error: who[0].soft ? "soft-ban" : "paused", status: 403 };
+  }
   await db.update(users).set({ courierOnline: on, updatedAt: new Date() }).where(eq(users.id, userId));
   return { ok: true, online: on };
 }

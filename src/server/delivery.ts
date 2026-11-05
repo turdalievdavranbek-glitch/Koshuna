@@ -8,6 +8,10 @@ import type { Lang, Shop, ShopProduct } from "@/lib/types";
 import { getDb } from "./db";
 import { deliveryCart, orderItems, orders, shops, users } from "./db/schema";
 import { rowToShop } from "./mappers";
+import { acceptOffer, declineOffer, liveOfferFor, liveOfferedOrderIds, offerBlocks, offerNext } from "./delivery-dispatch";
+import { guardBuyerOrder } from "./delivery-rules";
+import { clientDiscount, rememberClientDiscount, rewardCourierReferral } from "./delivery-referrals";
+import { courierIsPaused, reviewShop } from "./delivery-standing";
 import { kickDeliverySweep } from "./delivery-sweep";
 import { bindNoticePushes, saveNotices, type NoticeWrite } from "./notices";
 
@@ -79,11 +83,26 @@ function sameCode(stored: string, given: string): boolean {
 }
 
 function uniqueViolation(err: unknown): boolean {
+  return walkError(err, (row) => row.code === "23505");
+}
+
+function constraintName(err: unknown): string {
+  let name = "";
+  walkError(err, (row) => {
+    const constraint = typeof row.constraint === "string" ? row.constraint : "";
+    const message = typeof row.message === "string" ? row.message : "";
+    if (constraint || message.includes("orders_one_open_buyer")) name = constraint || message;
+    return false;
+  });
+  return name;
+}
+
+function walkError(err: unknown, visit: (row: { code?: unknown; constraint?: unknown; message?: unknown }) => boolean): boolean {
   const seen = new Set<unknown>();
   let cur: unknown = err;
   while (cur && typeof cur === "object" && !seen.has(cur)) {
     seen.add(cur);
-    if ("code" in cur && (cur as { code?: unknown }).code === "23505") return true;
+    if (visit(cur as { code?: unknown; constraint?: unknown; message?: unknown })) return true;
     cur = "cause" in cur ? (cur as { cause?: unknown }).cause : null;
   }
   return false;
@@ -181,7 +200,9 @@ async function toViews(db: Tx | ReturnType<typeof getDb>, joined: Joined[], role
       items: byOrder.get(row.order.id) ?? [],
       itemsTotalSom: row.order.itemsTotalSom,
       deliveryFeeSom: row.order.deliveryFeeSom,
+      discountSom: row.order.referralDiscountSom,
       totalSom: row.order.totalSom,
+      hasReceipt: Boolean(row.order.receiptPath),
       km: row.order.distanceKm == null ? null : Math.round(row.order.distanceKm * 10) / 10,
       flatFee: row.order.feeFlat,
       buyerConfirmed: row.order.buyerConfirmedAt != null,
@@ -356,7 +377,9 @@ export async function placeOrder(
         if (buyer[0].blocked) return { error: "blocked", status: 403 };
 
         const shopRow = await tx.select().from(shops).where(eq(shops.id, input.shopId)).limit(1);
-        if (!shopRow[0] || shopRow[0].status !== "active" || shopRow[0].underReview) return { error: "shop-closed", status: 409 };
+        if (!shopRow[0] || shopRow[0].status !== "active" || shopRow[0].underReview || shopRow[0].deliveryEnabled === false) {
+          return { error: shopRow[0] && shopRow[0].deliveryEnabled === false ? "delivery-off" : "shop-closed", status: 409 };
+        }
         const owner = await tx.select({ bannedAt: users.bannedAt, deletedAt: users.deletedAt }).from(users).where(eq(users.id, shopRow[0].ownerId)).limit(1);
         if (!owner[0] || owner[0].bannedAt || owner[0].deletedAt) return { error: "shop-closed", status: 409 };
         const shop = rowToShop(shopRow[0]);
@@ -410,6 +433,10 @@ export async function placeOrder(
         const km = routeKm(shop.lat, shop.lng, input.lat, input.lng);
         const quote = quoteFee(km);
         if (quote.tooFar) return { error: "too-far", status: 409 };
+        const discountSom = await clientDiscount(tx, userId, quote.feeSom);
+        const totalSom = itemsTotalSom + quote.feeSom - discountSom;
+        const blockedBuyer = await guardBuyerOrder(tx, userId, totalSom);
+        if (blockedBuyer) return blockedBuyer;
         const [created] = await tx
           .insert(orders)
           .values({
@@ -423,7 +450,8 @@ export async function placeOrder(
             comment,
             itemsTotalSom,
             deliveryFeeSom: quote.feeSom,
-            totalSom: itemsTotalSom + quote.feeSom,
+            referralDiscountSom: discountSom,
+            totalSom,
             distanceKm: quote.km,
             feeFlat: quote.flat,
             paymentMethod: "cash",
@@ -442,6 +470,7 @@ export async function placeOrder(
           })),
         );
         await tx.delete(deliveryCart).where(and(eq(deliveryCart.userId, userId), eq(deliveryCart.shopId, shop.id)));
+        await rememberClientDiscount(tx, userId, discountSom);
         await saveNotices(tx, [note(shopRow[0].ownerId, "notifOrderNew", created, "shop", userId)]);
         const buyerName = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
         const views = await toViews(tx, [{ order: created, shop, ownerId: shopRow[0].ownerId, buyerName: buyerName[0]?.name ?? "" }], "buyer", lang);
@@ -450,7 +479,10 @@ export async function placeOrder(
       }),
     );
   } catch (err) {
-    if (uniqueViolation(err)) return { error: "fail", status: 409 };
+    if (uniqueViolation(err)) {
+      if (constraintName(err).includes("orders_one_open_buyer")) return { error: "open-order", status: 409 };
+      return { error: "fail", status: 409 };
+    }
     throw err;
   }
 }
@@ -469,7 +501,7 @@ export async function actOnOrder(
 ): Promise<{ order: OrderView } | Fail> {
   if (!isDbUserId(orderId)) return { error: "not-found", status: 404 };
   try {
-    return await bindNoticePushes(() =>
+    const result = await bindNoticePushes(() =>
       getDb().transaction(async (tx) => {
         await tx.select({ id: orders.id }).from(orders).where(eq(orders.id, orderId)).for("update");
         const row = await one(tx, orderId);
@@ -481,9 +513,20 @@ export async function actOnOrder(
         const role: OrderRole = fresh.order.buyerId === userId ? "buyer" : fresh.ownerId === userId ? "shop" : "courier";
         const views = await toViews(tx, [fresh], role, lang);
         if (!views[0]) return { error: "fail", status: 500 };
-        return { order: views[0] };
+        return { order: views[0], shopId: fresh.order.shopId, courierId: fresh.order.courierId };
       }),
     );
+    if ("error" in result) return result;
+    if (action === "confirm" || action === "release" || action === "decline") {
+      await offerNext(orderId).catch(() => undefined);
+    }
+    if (action === "deliver" && result.courierId) {
+      await rewardCourierReferral(result.courierId).catch(() => undefined);
+    }
+    if (action === "reject" || (action === "cancel" && result.order.role === "shop")) {
+      await reviewShop(result.shopId).catch(() => undefined);
+    }
+    return { order: result.order };
   } catch (err) {
     if (uniqueViolation(err)) return { error: "busy", status: 409 };
     throw err;
@@ -609,17 +652,7 @@ async function applyAction(
       .where(and(eq(orders.id, order.id), eq(orders.status, "assembled"), isNull(orders.buyerConfirmedAt)))
       .returning();
     if (!updated[0]) return { error: "state", status: 409 };
-    const couriers = await tx
-      .select({ id: users.id })
-      .from(users)
-      .where(and(eq(users.isCourier, true), eq(users.courierOnline, true), isNull(users.deletedAt), isNull(users.bannedAt)))
-      .limit(100);
-    const notes: NoticeWrite[] = [note(row.ownerId, "notifOrderReady", order, "shop", userId)];
-    for (const courier of couriers) {
-      if (courier.id === userId || courier.id === row.ownerId) continue;
-      notes.push(note(courier.id, "notifOrderAvailable", order, "courier", null));
-    }
-    await saveNotices(tx, notes);
+    await saveNotices(tx, [note(row.ownerId, "notifOrderReady", order, "shop", userId)]);
     return { ok: true };
   }
   if (action === "accept" || action === "reject" || action === "assemble" || action === "paid" || action === "return") {
@@ -687,6 +720,11 @@ async function applyAction(
     await saveNotices(tx, notes);
     return { ok: true };
   }
+  if (action === "decline") {
+    const ok = await declineOffer(order.id, userId);
+    if (!ok) return { error: "state", status: 409 };
+    return { ok: true };
+  }
   if (action === "take" || action === "pickup" || action === "deliver" || action === "refuse") {
     const who = await tx
       .select({
@@ -694,16 +732,22 @@ async function applyAction(
         online: users.courierOnline,
         deletedAt: users.deletedAt,
         bannedAt: users.bannedAt,
+        soft: users.courierSoftBanned,
+        pausedUntil: users.courierPausedUntil,
       })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
     if (!who[0] || who[0].deletedAt || who[0].bannedAt) return { error: "forbidden", status: 403 };
+    if ((action === "take" || action === "pickup") && courierIsPaused({ courierSoftBanned: who[0].soft, courierPausedUntil: who[0].pausedUntil })) {
+      return { error: who[0].soft ? "soft-ban" : "paused", status: 403 };
+    }
     if (action === "take" && !who[0].courier) return { error: "forbidden", status: 403 };
     if (action !== "take" && order.courierId !== userId) return { error: "forbidden", status: 403 };
   }
   if (action === "take") {
     if (order.buyerId === userId || row.ownerId === userId) return { error: "own", status: 403 };
+    if (await offerBlocks(order.id, userId)) return { error: "offered", status: 409 };
     const who = await tx.select({ online: users.courierOnline, city: users.courierCity }).from(users).where(eq(users.id, userId)).limit(1);
     if (!who[0]?.online) return { error: "offline", status: 409 };
     if (!who[0].city) return { error: "need-place", status: 409 };
@@ -720,6 +764,7 @@ async function applyAction(
       .where(and(eq(orders.id, order.id), eq(orders.status, "assembled"), isNotNull(orders.buyerConfirmedAt), isNull(orders.courierId)))
       .returning();
     if (!updated[0]) return { error: "taken", status: 409 };
+    await acceptOffer(order.id, userId);
     await saveNotices(tx, [
       note(order.buyerId, "notifOrderAssigned", order, "buyer", userId),
       note(row.ownerId, "notifOrderAssigned", order, "shop", userId),
@@ -728,6 +773,7 @@ async function applyAction(
   }
   if (action === "pickup") {
     if (!order.shopPaidAt) return { error: "need-pay", status: 409 };
+    if (!order.receiptPath) return { error: "need-receipt", status: 409 };
     const updated = await tx
       .update(orders)
       .set({ status: "picked_up", pickedAt: new Date() })
@@ -784,7 +830,7 @@ export async function courierBoard(
   lang: Lang,
   lat: number | null,
   lng: number | null,
-): Promise<{ online: boolean; courier: boolean; city: string | null; district: string | null; active: OrderView | null; available: CourierOffer[] } | Fail> {
+): Promise<{ online: boolean; courier: boolean; city: string | null; district: string | null; paused: boolean; softBanned: boolean; offer: (CourierOffer & { expiresAt: string }) | null; active: OrderView | null; available: CourierOffer[] } | Fail> {
   kickDeliverySweep();
   const db = getDb();
   const who = await db
@@ -796,6 +842,8 @@ export async function courierBoard(
       district: users.courierDistrict,
       lastLat: users.lastLat,
       lastLng: users.lastLng,
+      soft: users.courierSoftBanned,
+      pausedUntil: users.courierPausedUntil,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -817,7 +865,8 @@ export async function courierBoard(
       : who[0].lastLat != null && who[0].lastLng != null && Number.isFinite(who[0].lastLat) && Number.isFinite(who[0].lastLng)
         ? { lat: who[0].lastLat, lng: who[0].lastLng }
         : null;
-  if (who[0].courier && who[0].online && who[0].city && !activeViews.length) {
+    const held = await liveOfferedOrderIds();
+    if (who[0].courier && who[0].online && who[0].city && !activeViews.length) {
     const radius = courierRadiusKm();
     const rows = await db
       .select({ order: orders, shop: shops })
@@ -829,6 +878,7 @@ export async function courierBoard(
     available = rows
       .filter((row) => {
         if (row.order.buyerId === userId || row.shop.ownerId === userId) return false;
+        if (held.has(row.order.id)) return false;
         if (fix && row.shop.lat != null && row.shop.lng != null) {
           return haversineKm(fix.lat, fix.lng, row.shop.lat, row.shop.lng) <= radius;
         }
@@ -848,7 +898,43 @@ export async function courierBoard(
         };
       });
   }
-  return { online: who[0].online, courier: who[0].courier, city: place.city, district: place.district, active: activeViews[0] ?? null, available };
+  let offer: (CourierOffer & { expiresAt: string }) | null = null;
+  const mine = !activeViews.length ? await liveOfferFor(userId) : null;
+  if (mine) {
+    const offered = await db
+      .select({ order: orders, shop: shops })
+      .from(orders)
+      .innerJoin(shops, eq(orders.shopId, shops.id))
+      .where(eq(orders.id, mine.orderId))
+      .limit(1);
+    const row = offered[0];
+    if (row && row.order.status === "assembled" && !row.order.courierId) {
+      const shop = rowToShop(row.shop);
+      const km = routeKm(shop.lat, shop.lng, fix?.lat, fix?.lng);
+      offer = {
+        id: row.order.id,
+        no: row.order.publicNo,
+        shopName: shop.name,
+        shopPlace: shopPlace(shop, lang),
+        feeSom: row.order.deliveryFeeSom,
+        itemsTotalSom: row.order.itemsTotalSom,
+        km: km == null ? null : Math.round(km * 10) / 10,
+        expiresAt: mine.expiresAt.toISOString(),
+      };
+    }
+  }
+  const pause = courierIsPaused({ courierSoftBanned: who[0].soft, courierPausedUntil: who[0].pausedUntil });
+  return {
+    online: who[0].online,
+    courier: who[0].courier,
+    city: place.city,
+    district: place.district,
+    paused: pause,
+    softBanned: who[0].soft,
+    offer,
+    active: activeViews[0] ?? null,
+    available,
+  };
 }
 
 /** Drop a courier off an order they have not picked up yet, so another courier can take it. */

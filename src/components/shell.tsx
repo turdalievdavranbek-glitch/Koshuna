@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@/lib/api/client";
 import { usePresenceHeartbeat } from "@/lib/presence";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,6 +19,23 @@ import { useChatUnread } from "@/lib/chat-unread";
 type TabIcon = (p: { size?: number; color?: string }) => ReactNode;
 
 const TAB_H = 78;
+
+function ReferralCatch() {
+  const { user } = useApp();
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) localStorage.setItem("konshu.ref", ref.slice(0, 16));
+  }, []);
+  useEffect(() => {
+    if (!user?.id) return;
+    const code = localStorage.getItem("konshu.ref");
+    if (!code) return;
+    void api("/api/me/referral", { method: "POST", json: { code } }).then((res) => {
+      if (res.ok) localStorage.removeItem("konshu.ref");
+    });
+  }, [user?.id]);
+  return null;
+}
 
 export function TabBar({ hidden }: { hidden?: boolean }) {
   const { t, user, setPendingPath, askLeave, setFilters } = useApp();
@@ -309,6 +327,7 @@ export function PhoneShell({
           </div>
         )}
         <FeedbackLauncher showBubble={!reels && !keyboard && !path.startsWith("/chat/") && !path.startsWith("/admin")} lifted={focus} />
+        <ReferralCatch />
       </div>
     </div>
   );

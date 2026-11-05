@@ -33,6 +33,23 @@ import { goBack } from "@/lib/go-back";
 import { socialCounts } from "@/lib/reactions";
 import { ListingThumb } from "@/components/listing-media";
 
+function ShopTrust({ shopId }: { shopId: string }) {
+  const { t } = useApp();
+  const [trust, setTrust] = useState<{ verified: boolean; rating: number | null; count: number } | null>(null);
+  useEffect(() => {
+    void api<{ verified: boolean; rating: number | null; count: number }>(`/api/shops/${encodeURIComponent(shopId)}/trust`).then((res) => {
+      if (res.ok && res.data) setTrust(res.data);
+    });
+  }, [shopId]);
+  if (!trust) return null;
+  return (
+    <>
+      {trust.verified ? <span className="rounded-full bg-[#E7F6EE] px-2 py-0.5 text-[10px] font-bold text-[#147A3E]">{t.deliveryShopVerified}</span> : null}
+      {trust.rating != null ? <span className="text-[12px] font-semibold text-muted">{t.deliveryShopRating(String(trust.rating).replace(".", ","), trust.count)}</span> : null}
+    </>
+  );
+}
+
 export default function ShopDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -149,6 +166,7 @@ export default function ShopDetailPage() {
             <div className="flex flex-wrap items-center gap-1.5">
               <h1 className="font-display text-[19px] font-bold leading-[1.15] text-ink">{shop.name}</h1>
               <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-screen">{t.shopBadge}</span>
+              <ShopTrust shopId={shop.id} />
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
               <span>{shop.managedFor?.name || shop.ownerName}</span>

@@ -89,6 +89,8 @@ const ORDER_PUSH: Record<PushLang, Record<string, (title: string) => string>> = 
     notifOrderStale: (title) => (title ? `Заказ ${title} долго в пути. Нужна проверка` : "Заказ долго в пути"),
     notifOrderCodeLocked: (title) => (title ? `Код заказа ${title} заблокирован` : "Код заказа заблокирован"),
     notifOrderCode: (title) => (title ? `Код получения: ${title}` : "Код получения"),
+    notifOrderOffer: (title) => (title ? `Вам предложен заказ ${title}. 45 секунд` : "Вам предложен заказ"),
+    notifDispute: (title) => (title ? `Спор по заказу ${title}` : "Новый спор по заказу"),
   },
   ky: {
     notifOrderNew: (title) => (title ? `Жаңы буйрутма ${title}` : "Жаңы буйрутма"),
@@ -113,6 +115,8 @@ const ORDER_PUSH: Record<PushLang, Record<string, (title: string) => string>> = 
     notifOrderStale: (title) => (title ? `${title} көпкө жолдо. Текшерүү керек` : "Буйрутма көпкө жолдо"),
     notifOrderCodeLocked: (title) => (title ? `${title} коду бөгөттөлдү` : "Код бөгөттөлдү"),
     notifOrderCode: (title) => (title ? `Алуу коду: ${title}` : "Алуу коду"),
+    notifOrderOffer: (title) => (title ? `Сизге ${title} сунушталды. 45 секунд` : "Сизге буйрутма сунушталды"),
+    notifDispute: (title) => (title ? `${title} боюнча талаш` : "Жаңы талаш"),
   },
 };
 

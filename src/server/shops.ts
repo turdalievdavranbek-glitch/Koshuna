@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { sessionIsAdmin, type SessionUser } from "./auth";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
@@ -9,6 +9,7 @@ import { getDb } from "./db";
 import { listings, reports, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { isMasterOrAdmin } from "./masters";
+import { rewardShopReferral } from "./delivery-referrals";
 import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
 function productCreatesPharmacyListing(
@@ -116,6 +117,13 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   }
   await syncProductListings(user, clean);
   await attachMedia(user.id, shopMediaUrls(clean), { shopId: clean.id });
+  const phone = (columns.phone ?? "").replace(/\D/g, "");
+  const photo = columns.photoUrl ?? "";
+  await db
+    .update(shops)
+    .set({ verifiedAt: phone && photo ? sql`coalesce(${shops.verifiedAt}, now())` : null })
+    .where(eq(shops.id, clean.id));
+  await rewardShopReferral(user.id, clean.id).catch(() => undefined);
   return { shop: clean };
 }
 

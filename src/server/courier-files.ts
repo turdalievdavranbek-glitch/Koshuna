@@ -10,7 +10,7 @@ export function privateMediaRoot(): string | null {
   return path.resolve(media, "..", "koshuna-private");
 }
 
-const SAFE_REL = /^couriers\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/i;
+const SAFE_REL = /^(couriers|orders|disputes)\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/i;
 
 export function resolvePrivate(rel: string): string | null {
   if (!SAFE_REL.test(rel)) return null;
@@ -36,7 +36,16 @@ export function photoMaxBytes(): number {
 }
 
 export async function writePrivatePhoto(userId: string, bytes: Buffer, ext: "jpg" | "png" | "webp"): Promise<string> {
-  const rel = `couriers/${userId}/${randomUUID()}.${ext}`;
+  return writeScopedPhoto("couriers", userId, bytes, ext);
+}
+
+export async function writeScopedPhoto(
+  scope: "couriers" | "orders" | "disputes",
+  id: string,
+  bytes: Buffer,
+  ext: "jpg" | "png" | "webp",
+): Promise<string> {
+  const rel = `${scope}/${id}/${randomUUID()}.${ext}`;
   const full = resolvePrivate(rel);
   if (!full) throw new Error("private-path");
   await mkdir(path.dirname(full), { recursive: true, mode: 0o700 });

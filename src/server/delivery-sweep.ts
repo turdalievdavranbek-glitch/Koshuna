@@ -2,6 +2,8 @@ import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-
 import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { orders, shops, users } from "./db/schema";
+import { offerNext, sweepDispatch } from "./delivery-dispatch";
+import { recordNoShow, reviewShop } from "./delivery-standing";
 import { bindNoticePushes, saveNotices, type NoticeWrite } from "./notices";
 
 type Fail = { error: string; status: number };
@@ -68,6 +70,7 @@ export async function sweepDeliveryOrders(): Promise<void> {
         if (owner) notes.push(note(owner, "notifOrderShopTimeout", order, "shop"));
       }
       await saveNotices(db, notes);
+      for (const order of dropped) await reviewShop(order.shopId).catch(() => undefined);
     }
 
     const waiting = await db
@@ -119,6 +122,10 @@ export async function sweepDeliveryOrders(): Promise<void> {
         if (order.courier_id) notes.push(note(order.courier_id, "notifOrderReleased", shaped, "courier"));
       }
       await saveNotices(db, notes);
+      for (const order of releasedRows) {
+        if (order.courier_id) await recordNoShow(order.courier_id, order.id).catch(() => undefined);
+        await offerNext(order.id).catch(() => undefined);
+      }
     }
 
     const stale = await db
@@ -177,6 +184,11 @@ function ensureSweepTimer(): void {
     globalSweep.__koshunaSweepAt = Date.now();
     runSweep();
   }, 60_000);
+  setInterval(() => {
+    void sweepDispatch().catch((err) => {
+      console.error("dispatch", err instanceof Error ? err.message : "failed");
+    });
+  }, 12_000);
 }
 
 /** At most one pass per 30s in this process. Reads of orders call this. */
