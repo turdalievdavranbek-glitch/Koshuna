@@ -653,14 +653,16 @@ export default function ListingPage() {
             </button>
           ) : null}
 
-          <div className="mt-3 rounded-[18px] bg-accent-tint p-4" data-testid="listing-safety">
-            <div className="text-[15px] font-bold text-accent-dark">
-              {listing.section === "services" ? t.meetService : t.meetSafe}
+          {FEATURES.listingSafety ? (
+            <div className="mt-3 rounded-[18px] bg-accent-tint p-4" data-testid="listing-safety">
+              <div className="text-[15px] font-bold text-accent-dark">
+                {listing.section === "services" ? t.meetService : t.meetSafe}
+              </div>
+              <p className="mt-1.5 text-[13px] leading-[1.5] text-safe">
+                {listing.section === "services" ? t.meetServiceText : listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
+              </p>
             </div>
-            <p className="mt-1.5 text-[13px] leading-[1.5] text-safe">
-              {listing.section === "services" ? t.meetServiceText : listing.safetyKind === "home" ? t.meetHome : t.meetGoods}
-            </p>
-          </div>
+          ) : null}
 
           {similar.length ? (
             <div className="mt-6">

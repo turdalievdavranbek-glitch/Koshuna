@@ -17,6 +17,7 @@ export const FEATURES = {
   honesty: false,         // звёзды честности (HonestyCard «Честность», 1–5 ★)
   aiyl: false,            // «Айылы» (AiylRoad card + aiylOnly toggle in /filters)
   comments: true,         // owner turned comments back on: cards, listing page, reels, and comment pushes.
+  listingSafety: false,  // pink «Встречайтесь безопасно» card on the listing page. Chat system message stays.
   shareFacebookVk: false, // Facebook / VK cells in share block (№85, №52)
   accountStars: false,    // 0–3 «Звёзды аккаунта» (TrustStars / SellerStarsBadge) and the login explanation
   ownerVoice: false,     // Голос хозяина: hidden until speech-to-text works (owner 08.10). Code stays.
