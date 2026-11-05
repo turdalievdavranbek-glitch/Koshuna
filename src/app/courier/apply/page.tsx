@@ -12,6 +12,56 @@ import { PageHead, RedBtn, useSignedIn } from "@/components/delivery-ui";
 import { refreshCourierBadge } from "@/components/courier-badge";
 import { CourierRules } from "@/components/courier-rules";
 
+function PhotoTile({
+  file,
+  onFile,
+  icon,
+  label,
+  replace,
+  capture,
+}: {
+  file: File | null;
+  onFile: (file: File | null) => void;
+  icon: string;
+  label: string;
+  replace: string;
+  capture: "environment" | "user";
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      return;
+    }
+    const next = URL.createObjectURL(file);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [file]);
+  return (
+    <label className="shadow-btn relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl bg-accent text-center text-accent-on ring-2 ring-[#FFE600]">
+      <input
+        type="file"
+        accept="image/*"
+        capture={capture}
+        className="absolute inset-0 cursor-pointer opacity-0"
+        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+      />
+      {url ? (
+        <>
+          <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#FFE600] text-[14px] font-extrabold text-ink">✔</span>
+          <span className="absolute inset-x-0 bottom-0 bg-accent/95 py-2 text-[13px] font-bold">{replace}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[42px] leading-none">{icon}</span>
+          <span className="mt-1.5 px-2 text-[13px] font-bold leading-tight">{label}</span>
+        </>
+      )}
+    </label>
+  );
+}
+
 type Mine = {
   courier: boolean;
   application: { status: string } | null;
@@ -116,14 +166,10 @@ export default function CourierApplyPage() {
                 </button>
               ))}
             </div>
-            <label className="block text-[14px] font-semibold">
-              {t.deliveryPassport}
-              <input type="file" accept="image/*" capture="environment" className="mt-1 block w-full text-[13px]" onChange={(e) => setPassport(e.target.files?.[0] ?? null)} />
-            </label>
-            <label className="block text-[14px] font-semibold">
-              {t.deliverySelfie}
-              <input type="file" accept="image/*" capture="user" className="mt-1 block w-full text-[13px]" onChange={(e) => setSelfie(e.target.files?.[0] ?? null)} />
-            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <PhotoTile file={passport} onFile={setPassport} icon="🪪" label={t.deliveryPassport} replace={t.courierTileReplace} capture="environment" />
+              <PhotoTile file={selfie} onFile={setSelfie} icon="🤳" label={t.courierTileSelfie} replace={t.courierTileReplace} capture="user" />
+            </div>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
             <RedBtn disabled={busy || !agreed || name.trim().length < 2 || !phone.trim() || district.trim().length < 2 || !passport || !selfie} onClick={() => void send()}>
               {t.deliverySendApply}
