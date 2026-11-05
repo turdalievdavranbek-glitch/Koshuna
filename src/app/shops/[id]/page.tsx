@@ -179,7 +179,7 @@ export default function ShopDetailPage() {
             ) : null}
           </div>
           <div className="mt-1 flex items-center gap-2 [&>div]:mt-0">
-            <ShopSubscribe shopId={shop.id} mine={mine} onCount={setFollowers} hideCount />
+            <ShopSubscribe shopId={shop.id} mine={mine} onCount={setFollowers} />
             {!mine && linked[0] ? (
               <button
                 type="button"

@@ -21,6 +21,7 @@ import {
   shops,
   subscriptions,
   userAuth,
+  userFollows,
   users,
 } from "./db/schema";
 import { rowToShop } from "./mappers";
@@ -194,6 +195,7 @@ export async function wipeUser(userId: string) {
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
   await db.delete(deliveryCart).where(eq(deliveryCart.userId, userId));
   await db.delete(subscriptions).where(eq(subscriptions.userId, userId));
+  await db.delete(userFollows).where(or(eq(userFollows.followerId, userId), eq(userFollows.followeeId, userId)));
   await db.delete(devices).where(eq(devices.userId, userId));
   await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
   await db.delete(sessions).where(eq(sessions.userId, userId));

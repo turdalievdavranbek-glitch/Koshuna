@@ -14,6 +14,7 @@ import { goBack } from "@/lib/go-back";
 import { PhoneShell } from "@/components/shell";
 import { RoundBtn } from "@/components/ui";
 import { ListingGrid } from "@/components/listing-grid";
+import { UserFollow } from "@/components/user-follow";
 
 const VISIBLE = new Set(["active", "promoted", "reserved"]);
 
@@ -122,6 +123,7 @@ export default function OwnerPage() {
             </div>
           </div>
         </div>
+        <UserFollow userId={id} mine={mine} locked={blocked} returnPath={`/owner/${id}`} />
         {blocked ? <BlockedAuthorNotice userId={id} /> : null}
         {mine ? null : <MasterToggle userId={id} />}
         {mine || blocked ? null : (

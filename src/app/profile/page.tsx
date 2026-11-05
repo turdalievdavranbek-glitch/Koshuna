@@ -30,6 +30,7 @@ import { MyListings } from "@/components/my-listings";
 import { HoldInbox } from "@/components/hold-inbox";
 import { IncomingBuyRequests, MyBuyRequests } from "@/components/buy-requests";
 import { SubscriptionList } from "@/components/subscription-list";
+import { UserFollow } from "@/components/user-follow";
 
 const PHONE_LATER = "konshu.phoneLater";
 
@@ -130,6 +131,7 @@ export default function ProfilePage() {
                 {[user.email, user.phone ? formatPhoneDisplay(user.phone) : ""].filter(Boolean).join(" · ")}
               </div>
             ) : null}
+            {user.id ? <UserFollow userId={user.id} mine compact returnPath="/profile" /> : null}
             {user.method ? (
               <div className="mt-0.5 flex items-center gap-1 whitespace-nowrap text-[11.5px] text-muted-2">
                 <MethodIcon method={user.method} />

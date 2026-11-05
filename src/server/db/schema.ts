@@ -264,6 +264,25 @@ export const subscriptions = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.shopId] })],
 );
 
+/** Instagram-style follow between two accounts. A person cannot follow themselves. */
+export const userFollows = pgTable(
+  "user_follows",
+  {
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followeeId: uuid("followee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.followerId, t.followeeId] }),
+    check("user_follows_no_self", sql`${t.followerId} <> ${t.followeeId}`),
+    index("user_follows_followee_idx").on(t.followeeId),
+  ],
+);
+
 export const cartItems = pgTable(
   "cart_items",
   {
