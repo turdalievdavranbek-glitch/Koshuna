@@ -282,6 +282,16 @@ export default function ProfilePage() {
             <span className="text-[18px] text-muted-2">›</span>
           </button>
         ) : null}
+        {user.owner ? (
+          <button
+            type="button"
+            onClick={() => router.push("/owner/couriers")}
+            className="mt-2.5 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.ownerCouriersTitle}</span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        ) : null}
 
         {isAdminUser(user) ? (
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { areasOfOblast, adminAreaLabel, type AdminArea } from "@/lib/admin-areas";
@@ -8,6 +8,7 @@ import { courierFixPlace, haversineKm } from "@/lib/geo";
 import { pointOblasts, pointPlaceSuggestions } from "@/lib/point-place";
 import { settlementById } from "@/lib/data";
 import { compressImage } from "@/lib/media-compress";
+import { locate as readLocation } from "@/lib/locate";
 import type { CourierTransport } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
@@ -23,6 +24,7 @@ function PhotoTile({
   label,
   replace,
   capture,
+  hint,
 }: {
   file: File | null;
   onFile: (file: File | null) => void;
@@ -30,6 +32,7 @@ function PhotoTile({
   label: string;
   replace: string;
   capture: "environment" | "user";
+  hint?: string;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -42,6 +45,7 @@ function PhotoTile({
     return () => URL.revokeObjectURL(next);
   }, [file]);
   return (
+    <div className="flex flex-col gap-1">
     <label className="shadow-btn relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl bg-accent text-center text-accent-on ring-2 ring-[#FFE600]">
       <input
         type="file"
@@ -52,7 +56,7 @@ function PhotoTile({
       />
       {url ? (
         <>
-          <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={url} alt="" className="absolute inset-0 h-full w-full object-contain" />
           <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#FFE600] text-[14px] font-extrabold text-ink">✔</span>
           <span className="absolute inset-x-0 bottom-0 bg-accent/95 py-2 text-[13px] font-bold">{replace}</span>
         </>
@@ -63,6 +67,8 @@ function PhotoTile({
         </>
       )}
     </label>
+    {hint ? <p className="text-center text-[11px] font-semibold leading-tight text-muted">{hint}</p> : null}
+    </div>
   );
 }
 
@@ -88,6 +94,7 @@ export default function CourierApplyPage() {
   const [selfie, setSelfie] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -98,7 +105,8 @@ export default function CourierApplyPage() {
   }, [user]);
 
   const send = async () => {
-    if (!passport || !selfie || !agreed || !place || busy) return;
+    if (sending.current || !passport || !selfie || !agreed || !place || busy) return;
+    sending.current = true;
     setBusy(true);
     setError("");
     try {
@@ -114,7 +122,6 @@ export default function CourierApplyPage() {
       form.set("passport", new File([await compressImage(passport)], "passport.jpg", { type: "image/jpeg" }));
       form.set("selfie", new File([await compressImage(selfie)], "selfie.jpg", { type: "image/jpeg" }));
       const res = await api("/api/me/courier", { method: "POST", body: form });
-      setBusy(false);
       if (!res.ok) {
         setError(res.error === "rules" ? t.courierRulesRequired : t.deliveryFail);
         return;
@@ -122,8 +129,10 @@ export default function CourierApplyPage() {
       refreshCourierBadge();
       setMine({ courier: false, application: { status: "pending" } });
     } catch {
-      setBusy(false);
       setError(t.deliveryFail);
+    } finally {
+      sending.current = false;
+      setBusy(false);
     }
   };
 
@@ -139,25 +148,19 @@ export default function CourierApplyPage() {
 
   const locate = () => {
     if (locating) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setStep(0);
-      setError(t.courierLocateFail);
-      return;
-    }
     setLocating(true);
     setError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        choose(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => {
-        setLocating(false);
+    void readLocation().then((fix) => {
+      setLocating(false);
+      if (!fix.ok) {
         setStep(0);
+        setOblast("");
+        setRayon(null);
         setError(t.courierLocateFail);
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 },
-    );
+        return;
+      }
+      choose(fix.lat, fix.lng);
+    });
   };
 
   const areas = oblast ? areasOfOblast(oblast) : { districts: [], cities: [] };
@@ -246,6 +249,7 @@ export default function CourierApplyPage() {
               <span className="text-[28px] leading-none">📍</span>
               <span>{locating ? t.courierLocateWait : t.courierLocate}</span>
             </button>
+            {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
             <div className="rounded-2xl border border-line bg-white px-3 py-3">
               <div className="flex flex-wrap items-center gap-1 text-[13px] font-semibold">
                 <button type="button" onClick={() => setStep(0)} className={step === 0 ? "text-accent" : "text-ink"}>
@@ -336,7 +340,7 @@ export default function CourierApplyPage() {
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <PhotoTile file={passport} onFile={setPassport} icon="🪪" label={t.deliveryPassport} replace={t.courierTileReplace} capture="environment" />
-              <PhotoTile file={selfie} onFile={setSelfie} icon="🤳" label={t.courierTileSelfie} replace={t.courierTileReplace} capture="user" />
+              <PhotoTile file={selfie} onFile={setSelfie} icon="🤳" label={t.courierTileSelfie} replace={t.courierTileReplace} capture="user" hint={t.courierSelfieHint} />
             </div>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
             <RedBtn disabled={busy || !agreed || !place || name.trim().length < 2 || !phone.trim() || !passport || !selfie} onClick={() => void send()}>

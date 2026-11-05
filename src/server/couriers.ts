@@ -6,7 +6,7 @@ import { OWNER_EMAIL } from "@/lib/owner";
 import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { courierApplications, orders, users } from "./db/schema";
-import { sessionIsAdmin, sessionIsOwner } from "./auth";
+import { sessionIsOwner } from "./auth";
 import { releaseCourierOffers } from "./delivery-dispatch";
 import { releaseAssignedOrders } from "./delivery";
 import { removePrivate } from "./courier-files";
@@ -31,9 +31,9 @@ function districtInCity(districtId: string, city: string): boolean {
   return DISTRICTS.some((row) => row.id === districtId && row.city === city);
 }
 
-/** Admin or the single owner account. Courier photos and approve/revoke stay behind this. */
+/** The single owner account. Courier photos and the badge stay behind this. */
 export async function canReviewCouriers(userId: string): Promise<boolean> {
-  return (await sessionIsAdmin(userId)) || (await sessionIsOwner(userId));
+  return sessionIsOwner(userId);
 }
 
 export async function courierIds(): Promise<string[]> {
@@ -100,54 +100,58 @@ export async function saveCourierApplication(
   if (!detected || detected.city !== input.city || detected.districtId !== input.districtId) return { error: "bad-district", status: 400 };
   const district = detected.label;
   if (district.length < 2) return { error: "bad-district", status: 400 };
-  const previous = existing[0] ? [existing[0].passportPath, existing[0].selfiePath] : [];
-  if (existing[0]) {
-    await db
-      .update(courierApplications)
-      .set({
-        name: input.name,
-        phone: input.phone,
-        district,
-        transport: input.transport,
-        passportPath: input.passportPath,
-        selfiePath: input.selfiePath,
-        acceptedRulesAt: input.acceptedRulesAt,
-        status: "pending",
-        createdAt: new Date(),
-        reviewedAt: null,
-        reviewerId: null,
+  const fields = {
+    name: input.name,
+    phone: input.phone,
+    district,
+    transport: input.transport,
+    passportPath: input.passportPath,
+    selfiePath: input.selfiePath,
+    acceptedRulesAt: input.acceptedRulesAt,
+    status: "pending" as const,
+    createdAt: new Date(),
+    reviewedAt: null,
+    reviewerId: null,
+  };
+  const saved = await db.transaction(async (tx) => {
+    const existing = await tx.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
+    if (existing[0]?.status === "approved") return { error: "approved" as const, status: 409 };
+    const written = await tx
+      .insert(courierApplications)
+      .values({ userId, ...fields })
+      .onConflictDoUpdate({
+        target: courierApplications.userId,
+        set: fields,
+        setWhere: sql`${courierApplications.status} <> 'approved'`,
       })
-      .where(eq(courierApplications.userId, userId));
-  } else {
-    await db.insert(courierApplications).values({
-      userId,
-      name: input.name,
-      phone: input.phone,
-      district,
-      transport: input.transport,
-      passportPath: input.passportPath,
-      selfiePath: input.selfiePath,
-      acceptedRulesAt: input.acceptedRulesAt,
-      status: "pending",
-    });
-  }
-  await db
-    .update(users)
-    .set({
-      courierCity: input.city,
-      courierDistrict: input.districtId || null,
-      lastLat: input.lat,
-      lastLng: input.lng,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
+      .returning({ id: courierApplications.id });
+    if (!written[0]) return { error: "approved" as const, status: 409 };
+    await tx
+      .update(users)
+      .set({
+        isCourier: false,
+        courierOnline: false,
+        courierCity: input.city,
+        courierDistrict: input.districtId || null,
+        lastLat: input.lat,
+        lastLng: input.lng,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    return {
+      ok: true as const,
+      previous: existing[0] ? [existing[0].passportPath, existing[0].selfiePath] : [],
+      notify: existing[0]?.status !== "pending",
+    };
+  });
+  if ("error" in saved) return saved;
   const owners = await db
     .select({ id: users.id })
     .from(users)
     .where(and(sql`lower(${users.email}) = ${OWNER_EMAIL}`, isNull(users.deletedAt)))
     .limit(1);
   const owner = owners[0];
-  if (owner && owner.id !== userId) {
+  if (saved.notify && owner && owner.id !== userId) {
     await bindNoticePushes(() =>
       saveNotice(db, {
         userId: owner.id,
@@ -158,7 +162,7 @@ export async function saveCourierApplication(
       }),
     );
   }
-  return { ok: true, previous };
+  return { ok: true, previous: saved.previous };
 }
 
 export async function removeCourierApplication(userId: string): Promise<void> {
@@ -209,7 +213,65 @@ export async function listCourierApplications(): Promise<CourierAdminRow[]> {
   return rows.map((row) => ({ ...row, email: row.email ?? "", createdAt: row.createdAt.toISOString() }));
 }
 
+export type OwnerCourierRow = {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  district: string;
+  status: "pending" | "approved" | "revoked";
+  online: boolean;
+  paused: boolean;
+  delivered: number;
+  reviewedAt: string | null;
+  createdAt: string;
+};
+
+/** Owner cabinet: every application, with the live badge, pause, and delivered count. */
+export async function ownerCourierRoster(): Promise<OwnerCourierRow[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: courierApplications.id,
+      userId: courierApplications.userId,
+      name: courierApplications.name,
+      phone: courierApplications.phone,
+      district: courierApplications.district,
+      status: courierApplications.status,
+      online: users.courierOnline,
+      pausedUntil: users.courierPausedUntil,
+      soft: users.courierSoftBanned,
+      reviewedAt: courierApplications.reviewedAt,
+      createdAt: courierApplications.createdAt,
+    })
+    .from(courierApplications)
+    .innerJoin(users, eq(courierApplications.userId, users.id))
+    .where(isNull(users.deletedAt))
+    .orderBy(desc(courierApplications.createdAt))
+    .limit(300);
+  const counts = await db
+    .select({ courierId: orders.courierId, n: sql<number>`count(*)::int` })
+    .from(orders)
+    .where(eq(orders.status, "delivered"))
+    .groupBy(orders.courierId);
+  const delivered = new Map(counts.map((row) => [row.courierId, Number(row.n) || 0]));
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    phone: row.phone,
+    district: row.district,
+    status: row.status === "approved" || row.status === "revoked" ? row.status : "pending",
+    online: row.online,
+    paused: row.soft || (row.pausedUntil != null && row.pausedUntil.getTime() > Date.now()),
+    delivered: delivered.get(row.userId) ?? 0,
+    reviewedAt: row.reviewedAt ? row.reviewedAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
 export async function reviewCourier(adminId: string, applicationId: string, approve: boolean): Promise<{ ok: true } | Fail> {
+  if (!(await sessionIsOwner(adminId))) return { error: "forbidden", status: 403 };
   if (!isDbUserId(applicationId)) return { error: "not-found", status: 404 };
   const preview = await getDb().select({ userId: courierApplications.userId }).from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
   const result = await bindNoticePushes(() =>
@@ -219,6 +281,7 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
       if (!app) return { error: "not-found", status: 404 };
       if (approve) {
         if (app.status === "approved") return { ok: true as const };
+        if (app.status !== "pending" || !app.acceptedRulesAt) return { error: "state", status: 409 };
         await tx
           .update(courierApplications)
           .set({ status: "approved", reviewedAt: new Date(), reviewerId: adminId })

@@ -99,20 +99,35 @@ export async function sweepDeliveryOrders(): Promise<void> {
       await saveNotices(db, notes);
     }
 
-    const pickupCutoff = ago(minutes("DELIVERY_PICKUP_MINUTES", 20));
-    const released = await db.execute<{ id: string; courier_id: string | null; buyer_id: string; shop_id: string; public_no: number }>(sql`
-      WITH due AS (
-        SELECT id, courier_id FROM orders
-        WHERE status = 'assigned' AND assigned_at < ${pickupCutoff}
+    const pickupMinutes = minutes("DELIVERY_PICKUP_MINUTES", 20);
+    const releasedRows = await db.transaction(async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT id, courier_id, buyer_id, shop_id, public_no
+        FROM orders
+        WHERE status = 'assigned'
+          AND assigned_at < now() - (${pickupMinutes}::int * interval '1 minute')
         FOR UPDATE SKIP LOCKED
-      )
-      UPDATE orders AS o
-      SET status = 'assembled', courier_id = NULL, assigned_at = NULL
-      FROM due
-      WHERE o.id = due.id
-      RETURNING o.id, due.courier_id, o.buyer_id, o.shop_id, o.public_no
-    `);
-    const releasedRows = [...released];
+      `);
+      if (!Array.isArray(result)) throw new Error("delivery-sweep: unexpected query result");
+      const due = result.flatMap((raw) => {
+        const row = raw as Record<string, unknown>;
+        if (typeof row.id !== "string" || typeof row.buyer_id !== "string" || typeof row.shop_id !== "string") return [];
+        const no = Number(row.public_no);
+        return [{
+          id: row.id,
+          courier_id: typeof row.courier_id === "string" ? row.courier_id : null,
+          buyer_id: row.buyer_id,
+          shop_id: row.shop_id,
+          public_no: Number.isFinite(no) ? no : 0,
+        }];
+      });
+      if (!due.length) return due;
+      await tx
+        .update(orders)
+        .set({ status: "assembled", courierId: null, assignedAt: null })
+        .where(inArray(orders.id, due.map((row) => row.id)));
+      return due;
+    });
     if (releasedRows.length) {
       const owners = await ownerOf(releasedRows.map((row) => row.shop_id));
       const notes: NoticeWrite[] = [];
@@ -179,9 +194,22 @@ export async function sweepDeliveryOrders(): Promise<void> {
 
 const globalSweep = globalThis as { __koshunaSweep?: boolean; __koshunaSweepAt?: number };
 
+function describeDbError(err: unknown): string {
+  const parts: string[] = [];
+  const walk = (value: unknown, depth: number) => {
+    if (!value || typeof value !== "object" || depth > 3) return;
+    const row = value as { message?: unknown; code?: unknown; detail?: unknown; hint?: unknown; cause?: unknown };
+    const bit = [row.code, row.message, row.detail, row.hint].filter((item) => typeof item === "string" && item).join(" | ");
+    if (bit) parts.push(bit);
+    if (row.cause) walk(row.cause, depth + 1);
+  };
+  walk(err, 0);
+  return parts.join(" <- ") || "failed";
+}
+
 function runSweep(): void {
   void sweepDeliveryOrders().catch((err) => {
-    console.error("delivery-sweep", err instanceof Error ? err.message : "failed");
+    console.error("delivery-sweep", describeDbError(err));
   });
 }
 
@@ -195,7 +223,7 @@ function ensureSweepTimer(): void {
   }, 60_000);
   setInterval(() => {
     void sweepDispatch().catch((err) => {
-      console.error("dispatch", err instanceof Error ? err.message : "failed");
+      console.error("dispatch", describeDbError(err));
     });
   }, 12_000);
 }

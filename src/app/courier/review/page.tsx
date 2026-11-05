@@ -3,13 +3,12 @@
 import { CourierReview } from "@/components/courier-admin";
 import { PageHead, useSignedIn } from "@/components/delivery-ui";
 import { PhoneShell } from "@/components/shell";
-import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 
 export default function CourierReviewPage() {
   const { t } = useApp();
   const user = useSignedIn("/courier/review");
-  const allowed = Boolean(user && (isAdminUser(user) || user.owner));
+  const allowed = Boolean(user?.owner);
   return (
     <PhoneShell>
       <PageHead title={t.deliveryAdminCouriers} fallback="/profile" />
