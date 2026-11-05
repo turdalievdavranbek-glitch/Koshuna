@@ -11,6 +11,7 @@ import { rowToShop } from "./mappers";
 import { declineOffer, expireOrderOffers, liveOfferFor, liveOfferedOrderIds, offerBlocks, offerNext, skipCourier } from "./delivery-dispatch";
 import { clearOrderTrack, etaSpanForCourier } from "./delivery-track";
 import { guardBuyerOrder } from "./delivery-rules";
+import { FEATURES } from "@/lib/features";
 import { clientDiscount, rememberClientDiscount, rewardCourierReferral } from "./delivery-referrals";
 import { courierIsPaused, reviewShop } from "./delivery-standing";
 import { kickDeliverySweep } from "./delivery-sweep";
@@ -434,7 +435,7 @@ export async function placeOrder(
         const km = routeKm(shop.lat, shop.lng, input.lat, input.lng);
         const quote = quoteFee(km);
         if (quote.tooFar) return { error: "too-far", status: 409 };
-        const discountSom = await clientDiscount(tx, userId, quote.feeSom);
+        const discountSom = FEATURES.referrals ? await clientDiscount(tx, userId, quote.feeSom) : 0;
         const totalSom = itemsTotalSom + quote.feeSom - discountSom;
         const blockedBuyer = await guardBuyerOrder(tx, userId, totalSom);
         if (blockedBuyer) return blockedBuyer;
@@ -471,7 +472,7 @@ export async function placeOrder(
           })),
         );
         await tx.delete(deliveryCart).where(and(eq(deliveryCart.userId, userId), eq(deliveryCart.shopId, shop.id)));
-        await rememberClientDiscount(tx, userId, discountSom);
+        if (FEATURES.referrals) await rememberClientDiscount(tx, userId, discountSom);
         await saveNotices(tx, [note(shopRow[0].ownerId, "notifOrderNew", created, "shop", userId)]);
         const buyerName = await tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
         const views = await toViews(tx, [{ order: created, shop, ownerId: shopRow[0].ownerId, buyerName: buyerName[0]?.name ?? "" }], "buyer", lang);
@@ -523,7 +524,7 @@ export async function actOnOrder(
     if (action === "confirm" || action === "release" || action === "decline") {
       await offerNext(orderId).catch(() => undefined);
     }
-    if (action === "deliver" && result.courierId) {
+    if (FEATURES.referrals && action === "deliver" && result.courierId) {
       await rewardCourierReferral(result.courierId).catch(() => undefined);
     }
     if (action === "reject" || (action === "cancel" && result.order.role === "shop")) {

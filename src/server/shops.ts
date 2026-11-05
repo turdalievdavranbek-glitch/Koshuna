@@ -9,6 +9,7 @@ import { getDb } from "./db";
 import { listings, reports, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { isMasterOrAdmin } from "./masters";
+import { FEATURES } from "@/lib/features";
 import { rewardShopReferral } from "./delivery-referrals";
 import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
 
@@ -123,7 +124,7 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
     .update(shops)
     .set({ verifiedAt: phone && photo ? sql`coalesce(${shops.verifiedAt}, now())` : null })
     .where(eq(shops.id, clean.id));
-  await rewardShopReferral(user.id, clean.id).catch(() => undefined);
+  if (FEATURES.referrals) await rewardShopReferral(user.id, clean.id).catch(() => undefined);
   return { shop: clean };
 }
 

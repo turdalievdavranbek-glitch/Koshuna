@@ -23,11 +23,12 @@ const TAB_H = 78;
 function ReferralCatch() {
   const { user } = useApp();
   useEffect(() => {
+    if (!FEATURES.referrals) return;
     const ref = new URLSearchParams(window.location.search).get("ref");
     if (ref) localStorage.setItem("konshu.ref", ref.slice(0, 16));
   }, []);
   useEffect(() => {
-    if (!user?.id) return;
+    if (!FEATURES.referrals || !user?.id) return;
     const code = localStorage.getItem("konshu.ref");
     if (!code) return;
     void api("/api/me/referral", { method: "POST", json: { code } }).then((res) => {

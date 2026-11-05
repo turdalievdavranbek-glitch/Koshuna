@@ -229,7 +229,7 @@ export default function ProfilePage() {
           <span className="text-[15px] font-semibold text-ink">{t.deliveryOrders}</span>
           <span className="text-[18px] text-muted-2">›</span>
         </button>
-        <ReferralCard />
+        {FEATURES.referrals ? <ReferralCard /> : null}
         <button
           type="button"
           onClick={() => router.push(user.courier ? "/courier" : "/courier/apply")}
