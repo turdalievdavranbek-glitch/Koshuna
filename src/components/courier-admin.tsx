@@ -25,6 +25,87 @@ type CourierApp = {
 type Blocked = { id: string; name: string; email: string; phone: string; refusals: number };
 type Stuck = { id: string; no: number; status: string; flag: string | null; codeFails: number; shopName: string };
 
+/** Owner or admin: pending and approved courier applications. */
+export function CourierReview() {
+  const { t, lang, user } = useApp();
+  const allowed = isAdminUser(user) || Boolean(user?.owner);
+  const [rows, setRows] = useState<CourierApp[] | null>(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    void api<{ couriers?: CourierApp[] }>("/api/admin/couriers").then((res) => {
+      setRows(res.ok && Array.isArray(res.data?.couriers) ? res.data.couriers : []);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (allowed) load();
+  }, [allowed, load]);
+
+  if (!allowed) return null;
+
+  const review = (id: string, action: "approve" | "revoke") => {
+    setBusy(id);
+    setError("");
+    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action } }).then((res) => {
+      setBusy("");
+      if (!res.ok) {
+        setError(deliveryError(res.error, t));
+        return;
+      }
+      refreshCourierBadge();
+      load();
+    });
+  };
+
+  const transport = (value: string) => (value === "car" ? t.deliveryCar : value === "moto" ? t.deliveryMoto : t.deliveryWalk);
+  const placeLine = (row: CourierApp) => {
+    const city = row.city ? t.cities[row.city] || row.city : t.deliveryNoCity;
+    const area = DISTRICTS.find((item) => item.id === row.placeDistrict);
+    return area ? `${city} · ${districtLabel(area, lang)}` : city;
+  };
+
+  return (
+    <div className="mt-5" data-testid="courier-review">
+      <div className="text-[13px] font-semibold uppercase text-muted">{t.deliveryAdminCouriers}</div>
+      {rows && rows.length === 0 ? <div className="mt-2 text-[13px] text-muted">{t.deliveryNoApps}</div> : null}
+      <div className="mt-2 flex flex-col gap-2">
+        {(rows ?? []).map((row) => (
+          <div key={row.id} className="rounded-[14px] border border-line bg-white px-3.5 py-3">
+            <div className="text-[15px] font-semibold text-ink">{row.name}</div>
+            <div className="text-[12px] text-muted">
+              {row.phone} · {row.district} · {transport(row.transport)}
+            </div>
+            <div className="text-[12px] font-semibold text-ink">{placeLine(row)}</div>
+            <div className="text-[12px] text-muted">{row.email}</div>
+            <div className="mt-2 flex gap-2">
+              <a href={`/api/admin/couriers/${row.id}/photo?kind=passport`} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-accent">
+                {t.deliveryPassport}
+              </a>
+              <a href={`/api/admin/couriers/${row.id}/photo?kind=selfie`} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-accent">
+                {t.deliverySelfie}
+              </a>
+            </div>
+            <div className="mt-2 flex gap-2">
+              {row.status !== "approved" ? (
+                <button type="button" disabled={busy === row.id} onClick={() => review(row.id, "approve")} className="h-9 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">
+                  {t.deliveryApprove}
+                </button>
+              ) : (
+                <button type="button" disabled={busy === row.id} onClick={() => review(row.id, "revoke")} className="h-9 flex-1 rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">
+                  {t.deliveryRevokeCourier}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+    </div>
+  );
+}
+
 /** Кабинет, admin only: approve or revoke couriers, and open ordering again after two refusals. */
 export function CourierAdmin() {
   const { t, lang, user } = useApp();

@@ -2,7 +2,7 @@
 
 import { openFeedback } from "@/components/feedback";
 import { PromoterAdmin } from "@/components/promoter-admin";
-import { CourierAdmin } from "@/components/courier-admin";
+import { CourierAdmin, CourierReview } from "@/components/courier-admin";
 import { CourierBadge } from "@/components/courier-badge";
 import { CourierPlace } from "@/components/courier-place";
 import { MasterBadge } from "@/components/master-badge";
@@ -376,6 +376,7 @@ export default function ProfilePage() {
         </div>
         <div className="mt-3" data-testid="cabinet-listings">
           <PromoterAdmin />
+          {user.owner && !isAdminUser(user) ? <CourierReview /> : null}
           <CourierAdmin />
           <MyListings />
         </div>

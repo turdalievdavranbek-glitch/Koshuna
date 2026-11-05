@@ -1,9 +1,11 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { CITIES, DISTRICTS } from "@/lib/data";
 import { isCourierTransport, type CourierTransport } from "@/lib/delivery";
+import { OWNER_EMAIL } from "@/lib/owner";
 import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { courierApplications, orders, users } from "./db/schema";
+import { sessionIsAdmin, sessionIsOwner } from "./auth";
 import { releaseAssignedOrders } from "./delivery";
 import { removePrivate } from "./courier-files";
 import { bindNoticePushes, saveNotice } from "./notices";
@@ -25,6 +27,11 @@ function isDeliveryCity(value: string): boolean {
 
 function districtInCity(districtId: string, city: string): boolean {
   return DISTRICTS.some((row) => row.id === districtId && row.city === city);
+}
+
+/** Admin or the single owner account. Courier photos and approve/revoke stay behind this. */
+export async function canReviewCouriers(userId: string): Promise<boolean> {
+  return (await sessionIsAdmin(userId)) || (await sessionIsOwner(userId));
 }
 
 export async function courierIds(): Promise<string[]> {
@@ -103,6 +110,23 @@ export async function saveCourierApplication(
       acceptedRulesAt: input.acceptedRulesAt,
       status: "pending",
     });
+  }
+  const owners = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(sql`lower(${users.email}) = ${OWNER_EMAIL}`, isNull(users.deletedAt)))
+    .limit(1);
+  const owner = owners[0];
+  if (owner && owner.id !== userId) {
+    await bindNoticePushes(() =>
+      saveNotice(db, {
+        userId: owner.id,
+        type: "courier",
+        textKey: "notifCourierApply",
+        params: { name: input.name, title: input.name },
+        actorId: userId,
+      }),
+    );
   }
   return { ok: true, previous };
 }

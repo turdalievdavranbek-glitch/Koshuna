@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { sessionIsAdmin } from "@/server/auth";
 import { readPrivatePhoto } from "@/server/courier-files";
-import { courierPhotoPath } from "@/server/couriers";
+import { canReviewCouriers, courierPhotoPath } from "@/server/couriers";
 import { json, requireUser } from "@/server/http";
 
 export const runtime = "nodejs";
@@ -12,7 +11,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(req: Request, ctx: Ctx) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
-  if (!(await sessionIsAdmin(user.id))) return json({ error: "forbidden" }, 403);
+  if (!(await canReviewCouriers(user.id))) return json({ error: "forbidden" }, 403);
   const kind = new URL(req.url).searchParams.get("kind");
   if (kind !== "passport" && kind !== "selfie") return json({ error: "bad-photo" }, 400);
   const { id } = await ctx.params;

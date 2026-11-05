@@ -86,6 +86,20 @@ export default function CourierApplyPage() {
           <div className="flex flex-col gap-3">
             {mine?.application?.status === "revoked" ? <p className="text-[13px] text-muted">{t.deliveryRevokedHint}</p> : null}
             <p className="text-[13px] leading-[1.4] text-muted">{t.deliveryBecomeHint}</p>
+            <CourierRules />
+            {agreed ? (
+              <p className="text-[13px] font-semibold text-ink">{t.courierRulesDone}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAgreed(true)}
+                className="shadow-btn h-[52px] w-full rounded-2xl bg-accent text-[16px] font-bold text-accent-on"
+              >
+                {t.courierRulesConfirm}
+              </button>
+            )}
+            {agreed ? (
+              <>
             <Input value={name} onChange={setName} placeholder={t.deliveryYourName} />
             <Input value={phone} onChange={setPhone} placeholder="+996" inputMode="tel" />
             <Input value={district} onChange={setDistrict} placeholder={t.deliveryDistrict} />
@@ -110,15 +124,12 @@ export default function CourierApplyPage() {
               {t.deliverySelfie}
               <input type="file" accept="image/*" capture="user" className="mt-1 block w-full text-[13px]" onChange={(e) => setSelfie(e.target.files?.[0] ?? null)} />
             </label>
-            <CourierRules />
-            <label className="flex items-start gap-2 text-[14px] font-semibold text-ink">
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
-              <span>{t.courierRulesAgree}</span>
-            </label>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
             <RedBtn disabled={busy || !agreed || name.trim().length < 2 || !phone.trim() || district.trim().length < 2 || !passport || !selfie} onClick={() => void send()}>
               {t.deliverySendApply}
             </RedBtn>
+              </>
+            ) : null}
           </div>
         )}
       </div>
