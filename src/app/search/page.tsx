@@ -22,6 +22,9 @@ import { PhoneShell } from "@/components/shell";
 import { ListingGrid } from "@/components/listing-grid";
 import { IconSearch, IconSliders } from "@/components/icons";
 
+/** Two columns on a phone. On a wide screen, four columns inside a capped width so the photos stay tall. */
+const SECTION_GRID = "mt-3 grid grid-cols-2 gap-2.5 desk:max-w-[960px] desk:grid-cols-4";
+
 function PhotoTile({ tile, testId, onClick }: { tile: SearchTile; testId: string; onClick: () => void }) {
   const { t } = useApp();
   if (!tile.art) {
@@ -41,13 +44,13 @@ function PhotoTile({ tile, testId, onClick }: { tile: SearchTile; testId: string
       type="button"
       data-testid={testId}
       onClick={onClick}
-      className="section-tile flex h-[112px] flex-col overflow-hidden rounded-[16px] text-center"
+      className="section-tile flex h-[112px] flex-col overflow-hidden rounded-[16px] text-center desk:h-auto"
     >
       <span className="relative z-[1] line-clamp-2 shrink-0 bg-[#fffdf8] px-2 py-1.5 text-[12px] font-semibold leading-[1.2] text-ink">
         {tile.label(t)}
       </span>
-      <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc]">
-        <img src={tile.art} alt="" className="h-full w-full object-cover" />
+      <span className="min-h-0 flex-1 overflow-hidden bg-[#eee8dc] desk:aspect-[4/3] desk:w-full desk:flex-none">
+        <img src={tile.art} alt="" className="h-full w-full object-cover desk:object-[center_30%]" />
       </span>
     </button>
   );
@@ -185,7 +188,7 @@ export default function SearchPage() {
               </div>
             </div>
             {level.tiles.length ? (
-              <div className="mt-3 grid grid-cols-2 gap-2.5 desk:grid-cols-3">
+              <div className={SECTION_GRID}>
                 {level.tiles.map((tile) => (
                   <PhotoTile key={tile.id} tile={tile} testId={`search-tile-${tile.id}`} onClick={() => openTile(tile)} />
                 ))}
@@ -209,7 +212,7 @@ export default function SearchPage() {
         ) : (
           <>
             <h2 className="font-display text-[19px] font-bold text-ink">{t.searchSections}</h2>
-            <div className="mt-3 grid grid-cols-2 gap-2.5 desk:grid-cols-3">
+            <div className={SECTION_GRID}>
               {rootSearchTiles().map((tile) => (
                 <PhotoTile key={tile.id} tile={tile} testId={`search-section-${tile.id}`} onClick={() => openTile(tile)} />
               ))}
