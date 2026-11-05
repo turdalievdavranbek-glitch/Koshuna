@@ -6,6 +6,7 @@ import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { courierApplications, orders, users } from "./db/schema";
 import { sessionIsAdmin, sessionIsOwner } from "./auth";
+import { releaseCourierOffers } from "./delivery-dispatch";
 import { releaseAssignedOrders } from "./delivery";
 import { removePrivate } from "./courier-files";
 import { bindNoticePushes, saveNotice } from "./notices";
@@ -181,7 +182,8 @@ export async function listCourierApplications(): Promise<CourierAdminRow[]> {
 
 export async function reviewCourier(adminId: string, applicationId: string, approve: boolean): Promise<{ ok: true } | Fail> {
   if (!isDbUserId(applicationId)) return { error: "not-found", status: 404 };
-  return bindNoticePushes(() =>
+  const preview = await getDb().select({ userId: courierApplications.userId }).from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
+  const result = await bindNoticePushes(() =>
     getDb().transaction(async (tx) => {
       const rows = await tx.select().from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
       const app = rows[0];
@@ -218,6 +220,8 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
       return { ok: true as const };
     }),
   );
+  if (!approve && preview[0] && !("error" in result)) await releaseCourierOffers(preview[0].userId).catch(() => undefined);
+  return result;
 }
 
 /** Working city and district. Does not touch the application, the badge, or past orders. */
@@ -243,6 +247,7 @@ export async function setCourierPlace(
     .update(users)
     .set({ courierCity: nextCity, courierDistrict: nextDistrict || null, updatedAt: new Date() })
     .where(eq(users.id, userId));
+  await releaseCourierOffers(userId).catch(() => undefined);
   return { ok: true, city: nextCity, district: nextDistrict };
 }
 
@@ -258,6 +263,7 @@ export async function setCourierOnline(userId: string, on: boolean): Promise<{ o
     return { error: who[0].soft ? "soft-ban" : "paused", status: 403 };
   }
   await db.update(users).set({ courierOnline: on, updatedAt: new Date() }).where(eq(users.id, userId));
+  if (!on) await releaseCourierOffers(userId).catch(() => undefined);
   return { ok: true, online: on };
 }
 

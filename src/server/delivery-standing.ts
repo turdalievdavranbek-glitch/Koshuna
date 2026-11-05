@@ -1,5 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "./db";
+import { releaseCourierOffers } from "./delivery-dispatch";
 import { deliveryNoShows, deliveryRatings, orders, shops, users } from "./db/schema";
 
 const PAUSE_MS = 48 * 60 * 60 * 1000;
@@ -57,6 +58,7 @@ export async function reviewCourier(courierId: string): Promise<void> {
       .update(users)
       .set({ courierSoftBanned: true, courierPauseCount: pauses, courierPausedUntil: null, courierOnline: false, updatedAt: new Date() })
       .where(eq(users.id, courierId));
+    await releaseCourierOffers(courierId).catch(() => undefined);
     return;
   }
   await db
@@ -68,6 +70,7 @@ export async function reviewCourier(courierId: string): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(users.id, courierId));
+  await releaseCourierOffers(courierId).catch(() => undefined);
 }
 
 export async function recordNoShow(courierId: string, orderId: string): Promise<void> {
@@ -81,7 +84,7 @@ export async function reviewShop(shopId: string): Promise<void> {
   const rows = await db
     .select({
       n: sql<number>`count(*)::int`,
-      bad: sql<number>`count(*) filter (where ${orders.status} in ('cancelled','rejected'))::int`,
+      bad: sql<number>`count(*) filter (where ${orders.status} = 'rejected' or (${orders.status} = 'cancelled' and ${orders.cancelReason} in ('shop','shop-timeout')))::int`,
     })
     .from(orders)
     .where(eq(orders.shopId, shopId));

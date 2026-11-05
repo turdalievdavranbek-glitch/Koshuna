@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
+import { isDbUserId } from "@/lib/phone";
 import { photoMaxBytes, removePrivate, sniffImage, writeScopedPhoto } from "@/server/courier-files";
 import { getDb } from "@/server/db";
 import { orders } from "@/server/db/schema";
@@ -16,6 +17,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   const { id } = await ctx.params;
+  if (!isDbUserId(id)) return json({ error: "not-found" }, 404);
   let form: FormData;
   try {
     form = await req.formData();
@@ -33,7 +35,15 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!order || order.courierId !== user.id) return json({ error: "forbidden" }, 403);
   if (order.status !== "assigned") return json({ error: "state" }, 409);
   const path = await writeScopedPhoto("orders", id, bytes, ext);
-  await db.update(orders).set({ receiptPath: path }).where(and(eq(orders.id, id), eq(orders.courierId, user.id), eq(orders.status, "assigned")));
-  await removePrivate(order.path);
+  const saved = await db
+    .update(orders)
+    .set({ receiptPath: path })
+    .where(and(eq(orders.id, id), eq(orders.courierId, user.id), eq(orders.status, "assigned")))
+    .returning({ id: orders.id });
+  if (!saved[0]) {
+    await removePrivate(path);
+    return json({ error: "state" }, 409);
+  }
+  if (order.path && order.path !== path) await removePrivate(order.path);
   return json({ ok: true });
 }

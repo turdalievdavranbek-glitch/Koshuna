@@ -20,26 +20,22 @@ function paused(row: { courierSoftBanned: boolean; courierPausedUntil: Date | nu
 /** Offer the assembled, confirmed order to the nearest online courier who has not been asked yet. */
 export async function offerNext(orderId: string): Promise<void> {
   const db = getDb();
-  const rows = await db
-    .select({ order: orders, shop: shops })
-    .from(orders)
-    .innerJoin(shops, eq(orders.shopId, shops.id))
-    .where(eq(orders.id, orderId))
-    .limit(1);
-  const row = rows[0];
-  if (!row) return;
-  if (row.order.status !== "assembled" || !row.order.buyerConfirmedAt || row.order.courierId) return;
-
-  const live = await db
-    .select({ id: orderOffers.id })
-    .from(orderOffers)
-    .where(and(eq(orderOffers.orderId, orderId), eq(orderOffers.status, "offered"), gt(orderOffers.expiresAt, new Date())))
-    .limit(1);
-  if (live[0]) return;
-
-  const past = await db.select({ courierId: orderOffers.courierId }).from(orderOffers).where(eq(orderOffers.orderId, orderId));
-  const asked = new Set(past.map((item) => item.courierId));
-  const couriers = await db
+  const picked = await db.transaction(async (tx) => {
+    const locked = await tx.select().from(orders).where(eq(orders.id, orderId)).for("update").limit(1);
+    const order = locked[0];
+    if (!order || order.status !== "assembled" || !order.buyerConfirmedAt || order.courierId) return null;
+    const live = await tx
+      .select({ id: orderOffers.id })
+      .from(orderOffers)
+      .where(and(eq(orderOffers.orderId, orderId), eq(orderOffers.status, "offered"), gt(orderOffers.expiresAt, new Date())))
+      .limit(1);
+    if (live[0]) return null;
+    const shopRows = await tx.select().from(shops).where(eq(shops.id, order.shopId)).limit(1);
+    const shop = shopRows[0];
+    if (!shop) return null;
+    const past = await tx.select({ courierId: orderOffers.courierId }).from(orderOffers).where(eq(orderOffers.orderId, orderId));
+    const asked = new Set(past.map((item) => item.courierId));
+    const couriers = await tx
     .select({
       id: users.id,
       lat: users.lastLat,
@@ -56,12 +52,12 @@ export async function offerNext(orderId: string): Promise<void> {
         eq(users.courierSoftBanned, false),
         isNull(users.deletedAt),
         isNull(users.bannedAt),
-        row.shop.city ? eq(users.courierCity, row.shop.city) : sql`true`,
+        shop.city ? eq(users.courierCity, shop.city) : sql`true`,
       ),
     )
     .limit(200);
 
-  const busy = await db
+    const busy = await tx
     .select({ courierId: orders.courierId })
     .from(orders)
     .where(and(isNotNull(orders.courierId), inArray(orders.status, ["assigned", "picked_up", "refused"])));
@@ -70,37 +66,76 @@ export async function offerNext(orderId: string): Promise<void> {
   const ranked = couriers
     .filter((courier) => {
       if (asked.has(courier.id) || held.has(courier.id)) return false;
-      if (courier.id === row.order.buyerId || courier.id === row.shop.ownerId) return false;
+      if (courier.id === order.buyerId || courier.id === shop.ownerId) return false;
       if (paused({ courierSoftBanned: courier.soft, courierPausedUntil: courier.pausedUntil })) return false;
-      if (row.shop.lat == null || row.shop.lng == null || courier.lat == null || courier.lng == null) return true;
-      return haversineKm(courier.lat, courier.lng, row.shop.lat, row.shop.lng) <= radius;
+      if (shop.lat == null || shop.lng == null || courier.lat == null || courier.lng == null) return true;
+      return haversineKm(courier.lat, courier.lng, shop.lat, shop.lng) <= radius;
     })
     .map((courier) => ({
       id: courier.id,
       km:
-        row.shop.lat != null && row.shop.lng != null && courier.lat != null && courier.lng != null
-          ? haversineKm(courier.lat, courier.lng, row.shop.lat, row.shop.lng)
+        shop.lat != null && shop.lng != null && courier.lat != null && courier.lng != null
+          ? haversineKm(courier.lat, courier.lng, shop.lat, shop.lng)
           : Number.POSITIVE_INFINITY,
     }))
     .sort((a, b) => a.km - b.km);
 
-  const next = ranked[0];
-  if (!next) return;
-  const expiresAt = new Date(Date.now() + OFFER_MS);
-  try {
-    await db.insert(orderOffers).values({ orderId, courierId: next.id, expiresAt, status: "offered" });
-  } catch {
-    return;
-  }
+    const next = ranked[0];
+    if (!next) return null;
+    const expiresAt = new Date(Date.now() + OFFER_MS);
+    try {
+      await tx.insert(orderOffers).values({ orderId, courierId: next.id, expiresAt, status: "offered" });
+    } catch {
+      return null;
+    }
+    return { courierId: next.id, publicNo: order.publicNo, shopId: order.shopId };
+  });
+  if (!picked) return;
   await bindNoticePushes(async () => {
     await saveNotice(db, {
-      userId: next.id,
+      userId: picked.courierId,
       type: "order",
       textKey: "notifOrderOffer",
-      params: { title: `№${row.order.publicNo}`, orderId, shopId: row.order.shopId, audience: "courier" },
+      params: { title: `№${picked.publicNo}`, orderId, shopId: picked.shopId, audience: "courier" },
       actorId: null,
     });
   });
+}
+
+/** Remember a courier who already had this order, so the cascade does not hand it straight back. */
+export async function skipCourier(orderId: string, courierId: string): Promise<void> {
+  const db = getDb();
+  const past = await db
+    .select({ id: orderOffers.id })
+    .from(orderOffers)
+    .where(and(eq(orderOffers.orderId, orderId), eq(orderOffers.courierId, courierId)))
+    .limit(1);
+  if (past[0]) return;
+  await db
+    .insert(orderOffers)
+    .values({ orderId, courierId, expiresAt: new Date(), status: "declined" })
+    .catch(() => undefined);
+}
+
+/** End every live offer on an order. Used when the order is cancelled or rejected. */
+export async function expireOrderOffers(orderId: string): Promise<void> {
+  await getDb()
+    .update(orderOffers)
+    .set({ status: "expired" })
+    .where(and(eq(orderOffers.orderId, orderId), eq(orderOffers.status, "offered")));
+}
+
+/** A courier who goes offline, is paused, or is revoked must not keep a 45-second hold. */
+export async function releaseCourierOffers(courierId: string): Promise<void> {
+  const dropped = await getDb()
+    .update(orderOffers)
+    .set({ status: "expired" })
+    .where(and(eq(orderOffers.courierId, courierId), eq(orderOffers.status, "offered")))
+    .returning({ orderId: orderOffers.orderId });
+  for (const row of dropped) {
+    await skipCourier(row.orderId, courierId);
+    await offerNext(row.orderId).catch(() => undefined);
+  }
 }
 
 /** Expire offers that ran out of 45 seconds and offer the next courier. */

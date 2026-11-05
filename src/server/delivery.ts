@@ -6,9 +6,9 @@ import { isDbUserId, normalizePhoneInput } from "@/lib/phone";
 import { shopCallPhone, shopDistrictName, shopLandmarkLine } from "@/lib/shops";
 import type { Lang, Shop, ShopProduct } from "@/lib/types";
 import { getDb } from "./db";
-import { deliveryCart, orderItems, orders, shops, users } from "./db/schema";
+import { deliveryCart, orderItems, orderOffers, orders, shops, users } from "./db/schema";
 import { rowToShop } from "./mappers";
-import { acceptOffer, declineOffer, liveOfferFor, liveOfferedOrderIds, offerBlocks, offerNext } from "./delivery-dispatch";
+import { declineOffer, expireOrderOffers, liveOfferFor, liveOfferedOrderIds, offerBlocks, offerNext, skipCourier } from "./delivery-dispatch";
 import { guardBuyerOrder } from "./delivery-rules";
 import { clientDiscount, rememberClientDiscount, rewardCourierReferral } from "./delivery-referrals";
 import { courierIsPaused, reviewShop } from "./delivery-standing";
@@ -517,6 +517,8 @@ export async function actOnOrder(
       }),
     );
     if ("error" in result) return result;
+    if (action === "release") await skipCourier(orderId, userId).catch(() => undefined);
+    if (action === "cancel" || action === "reject") await expireOrderOffers(orderId).catch(() => undefined);
     if (action === "confirm" || action === "release" || action === "decline") {
       await offerNext(orderId).catch(() => undefined);
     }
@@ -739,7 +741,7 @@ async function applyAction(
       .where(eq(users.id, userId))
       .limit(1);
     if (!who[0] || who[0].deletedAt || who[0].bannedAt) return { error: "forbidden", status: 403 };
-    if ((action === "take" || action === "pickup") && courierIsPaused({ courierSoftBanned: who[0].soft, courierPausedUntil: who[0].pausedUntil })) {
+    if (action === "take" && courierIsPaused({ courierSoftBanned: who[0].soft, courierPausedUntil: who[0].pausedUntil })) {
       return { error: who[0].soft ? "soft-ban" : "paused", status: 403 };
     }
     if (action === "take" && !who[0].courier) return { error: "forbidden", status: 403 };
@@ -761,10 +763,30 @@ async function applyAction(
     const updated = await tx
       .update(orders)
       .set({ courierId: userId, status: "assigned", assignedAt: new Date() })
-      .where(and(eq(orders.id, order.id), eq(orders.status, "assembled"), isNotNull(orders.buyerConfirmedAt), isNull(orders.courierId)))
+      .where(
+        and(
+          eq(orders.id, order.id),
+          eq(orders.status, "assembled"),
+          isNotNull(orders.buyerConfirmedAt),
+          isNull(orders.courierId),
+          sql`not exists (
+            select 1 from ${orderOffers}
+            where ${orderOffers.orderId} = ${orders.id}
+              and ${orderOffers.status} = 'offered'
+              and ${orderOffers.expiresAt} > now()
+              and ${orderOffers.courierId} <> ${userId}
+          )`,
+        ),
+      )
       .returning();
-    if (!updated[0]) return { error: "taken", status: 409 };
-    await acceptOffer(order.id, userId);
+    if (!updated[0]) {
+      if (await offerBlocks(order.id, userId)) return { error: "offered", status: 409 };
+      return { error: "taken", status: 409 };
+    }
+    await tx
+      .update(orderOffers)
+      .set({ status: "accepted" })
+      .where(and(eq(orderOffers.orderId, order.id), eq(orderOffers.courierId, userId), eq(orderOffers.status, "offered")));
     await saveNotices(tx, [
       note(order.buyerId, "notifOrderAssigned", order, "buyer", userId),
       note(row.ownerId, "notifOrderAssigned", order, "shop", userId),
