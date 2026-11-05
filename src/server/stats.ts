@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/delivery";
-import type { OwnerStats } from "@/lib/owner";
+import type { OwnerAccount, OwnerStats } from "@/lib/owner";
 import { getDb } from "./db";
 
 const ZONE = "Asia/Bishkek";
@@ -159,6 +159,102 @@ function cell(value: string | number): string {
 
 function line(values: Array<string | number>): string {
   return values.map(cell).join(";");
+}
+
+const METHOD_RU: Record<string, string> = {
+  google: "Google",
+  email: "Email",
+  sms: "Телефон",
+  telegram: "Telegram",
+  apple: "Apple",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+  whatsapp: "WhatsApp",
+  demo: "Демо",
+};
+
+function methodLabel(value: unknown): string {
+  const key = String(value ?? "").trim().toLowerCase();
+  if (!key) return "";
+  return METHOD_RU[key] ?? "";
+}
+
+function bishkekStamp(value: unknown): string {
+  if (value == null || value === "") return "";
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("day")}.${part("month")}.${part("year")} ${part("hour")}:${part("minute")}`;
+}
+
+function flag(value: unknown): boolean {
+  return value === true || value === "t" || value === "true" || value === 1;
+}
+
+/** Registered accounts, newest first. Phone and password are not selected. */
+export async function ownerAccounts(): Promise<OwnerAccount[]> {
+  const db = getDb();
+  const raw = await db.execute(sql`
+    SELECT
+      coalesce(u.email, '') AS email,
+      coalesce(u.name, '') AS name,
+      u.created_at,
+      u.last_seen_at,
+      method.provider AS method,
+      coalesce(posts.n, 0) AS listings,
+      coalesce(points.n, 0) > 0 AS has_shop
+    FROM users u
+    LEFT JOIN LATERAL (
+      SELECT provider
+      FROM user_auth
+      WHERE user_id = u.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) method ON true
+    LEFT JOIN (
+      SELECT owner_id, count(*)::int AS n
+      FROM listings
+      WHERE status <> 'hidden'
+      GROUP BY owner_id
+    ) posts ON posts.owner_id = u.id
+    LEFT JOIN (
+      SELECT owner_id, count(*)::int AS n
+      FROM shops
+      WHERE status <> 'hidden'
+      GROUP BY owner_id
+    ) points ON points.owner_id = u.id
+    WHERE u.deleted_at IS NULL
+    ORDER BY u.created_at DESC, u.id DESC
+  `);
+  return rowsOf(raw).map((row) => ({
+    email: String(row.email ?? "").trim(),
+    name: String(row.name ?? "").trim(),
+    method: methodLabel(row.method),
+    registeredAt: bishkekStamp(row.created_at),
+    lastSeenAt: bishkekStamp(row.last_seen_at),
+    listings: num(row.listings),
+    shop: flag(row.has_shop),
+  }));
+}
+
+/** UTF-8 CSV with a BOM so Excel opens the Russian headers. */
+export function accountsCsv(accounts: OwnerAccount[]): string {
+  const rows = [
+    line(["Email", "Имя", "Вход", "Регистрация", "Последний визит", "Объявления", "Точка"]),
+    ...accounts.map((row) =>
+      line([row.email, row.name, row.method, row.registeredAt, row.lastSeenAt, row.listings, row.shop ? "Да" : "Нет"]),
+    ),
+  ];
+  return `\uFEFF${rows.join("\r\n")}\r\n`;
 }
 
 /** UTF-8 CSV with a BOM so Excel opens the Russian headers. */

@@ -14,6 +14,20 @@ export type OwnerStats = {
   days: StatsDay[];
 };
 
+/** One registered account on the owner statistics page. No phone and no secrets. */
+export type OwnerAccount = {
+  email: string;
+  name: string;
+  /** Google, Email, Телефон, or another known method. Empty when the method is unknown. */
+  method: string;
+  /** Registration time in Asia/Bishkek, `dd.mm.yyyy hh:mm`. */
+  registeredAt: string;
+  /** Last visit in Asia/Bishkek, or empty when the account has no lastSeenAt. */
+  lastSeenAt: string;
+  listings: number;
+  shop: boolean;
+};
+
 export function isOwnerEmail(email: string | null | undefined): boolean {
   return (email ?? "").trim().toLowerCase() === OWNER_EMAIL;
 }
