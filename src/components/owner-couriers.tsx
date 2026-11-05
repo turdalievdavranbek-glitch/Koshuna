@@ -7,6 +7,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "./shell";
 import { PageHead } from "./delivery-ui";
 import { refreshCourierBadge } from "./courier-badge";
+import { CourierShot } from "./courier-shot";
 
 type Row = {
   id: string;
@@ -100,6 +101,10 @@ export function OwnerCouriersScreen() {
             <div key={row.id} className="rounded-[14px] border border-line bg-white px-3.5 py-3">
               <div className="text-[15px] font-semibold text-ink">{row.name}</div>
               <div className="text-[13px] text-muted">{row.phone}</div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <CourierShot id={row.id} kind="passport" label={t.deliveryPassport} />
+                <CourierShot id={row.id} kind="selfie" label={t.deliverySelfie} />
+              </div>
               {row.district ? <div className="text-[12px] text-muted">{row.district}</div> : null}
               {tab === "approved" ? (
                 <>

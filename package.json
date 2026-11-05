@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.mjs",
+    "courier:thumbs": "tsx scripts/courier-photo-thumbs.ts",
     "db:seed:dev": "tsx scripts/seed-dev.ts",
     "smoke:step4": "node scripts/smoke-step4.mjs",
     "smoke:step5": "node scripts/smoke-step5.mjs",
@@ -41,7 +42,8 @@
     "postgres": "^3.4.9",
     "qrcode-generator": "^2.0.4",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

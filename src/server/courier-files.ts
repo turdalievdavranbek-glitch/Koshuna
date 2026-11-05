@@ -10,7 +10,14 @@ export function privateMediaRoot(): string | null {
   return path.resolve(media, "..", "koshuna-private");
 }
 
-const SAFE_REL = /^(couriers|orders|disputes)\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/i;
+const SAFE_REL = /^(couriers|orders|disputes)\/[0-9a-f-]{36}\/[0-9a-f-]{36}(?:\.thumb)?\.(jpg|png|webp)$/i;
+
+/** `couriers/<id>/<file>.jpg` → `couriers/<id>/<file>.thumb.jpg`. */
+export function thumbRel(rel: string): string | null {
+  if (/\.thumb\.(jpg|png|webp)$/i.test(rel)) return rel;
+  const next = rel.replace(/\.(jpg|png|webp)$/i, ".thumb.jpg");
+  return next === rel ? null : next;
+}
 
 export function resolvePrivate(rel: string): string | null {
   if (!SAFE_REL.test(rel)) return null;
@@ -37,6 +44,26 @@ export function photoMaxBytes(): number {
 
 export async function writePrivatePhoto(userId: string, bytes: Buffer, ext: "jpg" | "png" | "webp"): Promise<string> {
   return writeScopedPhoto("couriers", userId, bytes, ext);
+}
+
+/** Full JPEG and its thumbnail share one id. Returns the full-image path. */
+export async function writeCourierPhotos(userId: string, full: Buffer, thumb: Buffer): Promise<string> {
+  const rel = `couriers/${userId}/${randomUUID()}.jpg`;
+  const thumbPath = thumbRel(rel);
+  const fullPath = resolvePrivate(rel);
+  const smallPath = thumbPath ? resolvePrivate(thumbPath) : null;
+  if (!fullPath || !smallPath) throw new Error("private-path");
+  await mkdir(path.dirname(fullPath), { recursive: true, mode: 0o700 });
+  await writeFile(fullPath, full, { mode: 0o600 });
+  await writeFile(smallPath, thumb, { mode: 0o600 });
+  return rel;
+}
+
+export async function writePrivateBytes(rel: string, bytes: Buffer): Promise<void> {
+  const full = resolvePrivate(rel);
+  if (!full) throw new Error("private-path");
+  await mkdir(path.dirname(full), { recursive: true, mode: 0o700 });
+  await writeFile(full, bytes, { mode: 0o600 });
 }
 
 export async function writeScopedPhoto(
@@ -66,9 +93,20 @@ export async function readPrivatePhoto(rel: string): Promise<{ bytes: Buffer; ty
   }
 }
 
+/** Deletes one file and leaves a sibling thumbnail alone. */
+export async function removePrivateFile(rel: string): Promise<void> {
+  const full = resolvePrivate(rel);
+  if (!full) return;
+  await rm(full, { force: true }).catch(() => undefined);
+}
+
 export async function removePrivate(rel: string | null | undefined): Promise<void> {
   if (!rel) return;
   const full = resolvePrivate(rel);
   if (!full) return;
   await rm(full, { force: true }).catch(() => undefined);
+  if (/\.thumb\.(jpg|png|webp)$/i.test(rel)) return;
+  const thumb = thumbRel(rel);
+  const thumbPath = thumb ? resolvePrivate(thumb) : null;
+  if (thumbPath) await rm(thumbPath, { force: true }).catch(() => undefined);
 }

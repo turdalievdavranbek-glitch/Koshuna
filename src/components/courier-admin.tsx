@@ -7,6 +7,7 @@ import { districtLabel } from "@/lib/geo";
 import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { refreshCourierBadge } from "./courier-badge";
+import { CourierShot } from "./courier-shot";
 import { deliveryError } from "./delivery-ui";
 
 type CourierApp = {
@@ -21,23 +22,6 @@ type CourierApp = {
   city?: string | null;
   placeDistrict?: string | null;
 };
-
-function CourierShot({ src, label }: { src: string; label: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
-        <img src={src} alt={label} className="max-h-[60vh] w-full max-w-full object-contain" />
-        <span className="mt-1 block text-[12px] font-semibold text-accent">{label}</span>
-      </button>
-      {open ? (
-        <button type="button" aria-label={label} onClick={() => setOpen(false)} className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-3">
-          <img src={src} alt="" className="max-h-full max-w-full object-contain" />
-        </button>
-      ) : null}
-    </>
-  );
-}
 
 type Blocked = { id: string; name: string; email: string; phone: string; refusals: number };
 type Stuck = { id: string; no: number; status: string; flag: string | null; codeFails: number; shopName: string };
@@ -96,9 +80,9 @@ export function CourierReview() {
             </div>
             <div className="text-[12px] font-semibold text-ink">{placeLine(row)}</div>
             <div className="text-[12px] text-muted">{row.email}</div>
-            <div className="mt-2 flex flex-col gap-3">
-              <CourierShot src={`/api/admin/couriers/${row.id}/photo?kind=passport`} label={t.deliveryPassport} />
-              <CourierShot src={`/api/admin/couriers/${row.id}/photo?kind=selfie`} label={t.deliverySelfie} />
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <CourierShot id={row.id} kind="passport" label={t.deliveryPassport} />
+              <CourierShot id={row.id} kind="selfie" label={t.deliverySelfie} />
             </div>
             <div className="mt-2 flex gap-2">
               {row.status === "pending" ? (

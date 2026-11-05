@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isCourierTransport } from "@/lib/delivery";
 import { normalizePhoneInput } from "@/lib/phone";
-import { photoMaxBytes, removePrivate, sniffImage, writePrivatePhoto } from "@/server/courier-files";
+import { courierJpegPair } from "@/server/courier-image";
+import { photoMaxBytes, removePrivate, sniffImage, writeCourierPhotos } from "@/server/courier-files";
 import { myCourier, saveCourierApplication } from "@/server/couriers";
 import { guardCsrf, json, requireUser } from "@/server/http";
 
@@ -19,7 +20,8 @@ async function storePhoto(userId: string, file: File): Promise<string> {
   const bytes = Buffer.from(await file.arrayBuffer());
   const ext = sniffImage(bytes);
   if (!ext) throw new Error("type");
-  return writePrivatePhoto(userId, bytes, ext);
+  const pair = await courierJpegPair(bytes);
+  return writeCourierPhotos(userId, pair.full, pair.thumb);
 }
 
 export async function POST(req: Request) {
