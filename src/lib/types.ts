@@ -128,6 +128,8 @@ export type User = {
   master?: boolean;
   /** Approved courier. */
   courier?: boolean;
+  /** The single operator account. Not implied by admin or promoter. */
+  owner?: boolean;
   /** Two client refusals. Checkout is closed until an admin opens it. */
   orderBlocked?: boolean;
 };

@@ -842,6 +842,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               joinedYear: serverUser.joinedYear || s.user.joinedYear,
               roles: rolesForPhone(serverUser.phone || s.user.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
               courier: serverUser.courier,
+              owner: serverUser.owner,
               orderBlocked: serverUser.orderBlocked,
             }
           : {
@@ -849,6 +850,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               phone: serverUser.phone || "",
               roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
               courier: serverUser.courier,
+              owner: serverUser.owner,
               orderBlocked: serverUser.orderBlocked,
             },
       }));
@@ -1230,6 +1232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           views: 0,
           roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
           courier: serverUser.courier,
+          owner: serverUser.owner,
           orderBlocked: serverUser.orderBlocked,
         };
         return {
@@ -1301,6 +1304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           views: 0,
           roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), s.realtorProfiles, s.developerProfiles, s.dealerProfiles),
           courier: serverUser.courier,
+          owner: serverUser.owner,
           orderBlocked: serverUser.orderBlocked,
         };
         return {
@@ -1554,6 +1558,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             telegram: serverUser.telegram,
             roles: rolesForPhone(serverUser.phone || "", serverAdminFlag(serverUser), state.realtorProfiles, state.developerProfiles, state.dealerProfiles),
             courier: serverUser.courier ?? state.user.courier,
+            owner: serverUser.owner ?? state.user.owner,
             orderBlocked: serverUser.orderBlocked ?? state.user.orderBlocked,
           }
         : null;

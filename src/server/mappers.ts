@@ -1,3 +1,4 @@
+import { isOwnerEmail } from "@/lib/owner";
 import { postedAgoFrom } from "@/lib/shop-listing";
 import { shopCallPhone } from "@/lib/shops";
 import { telegramUsername } from "@/lib/telegram-username";
@@ -28,6 +29,7 @@ export function publicUser(user: SessionUser): User {
     roles: user.isAdmin ? ["admin"] : undefined,
     master: user.isMaster === true ? true : undefined,
     courier: user.isCourier === true ? true : undefined,
+    owner: isOwnerEmail(user.email) ? true : undefined,
     orderBlocked: user.orderBlocked === true ? true : undefined,
   };
 }

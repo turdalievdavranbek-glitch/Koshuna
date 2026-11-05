@@ -1,6 +1,7 @@
 /**
  * Identity plug-in: a provider route verifies its token and calls `signInWithIdentity`. Шаг 8 ships Google only. `AUTH_DEMO_ENABLED` must be `"true"` for the demo route and for demo sessions to count; otherwise that route is 404 and `getSessionUser` ignores a session whose latest method is `demo`. Rows stay in the database.
  */
+import { isOwnerEmail } from "@/lib/owner";
 import { telegramUsername } from "@/lib/telegram-username";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
@@ -181,6 +182,16 @@ export async function signInWithIdentity(input: {
 export async function sessionIsAdmin(userId: string): Promise<boolean> {
   const rows = await getDb().select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId)).limit(1);
   return rows[0]?.isAdmin === true;
+}
+
+/** The one operator account. Admin, promoter, and moderator flags do not count. */
+export async function sessionIsOwner(userId: string): Promise<boolean> {
+  const rows = await getDb()
+    .select({ email: users.email })
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .limit(1);
+  return isOwnerEmail(rows[0]?.email);
 }
 
 export async function getSessionUser(req: Request): Promise<SessionUser | null> {
