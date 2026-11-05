@@ -10,6 +10,7 @@ import { PhoneShell } from "@/components/shell";
 import { Input } from "@/components/ui";
 import { PageHead, RedBtn, useSignedIn } from "@/components/delivery-ui";
 import { refreshCourierBadge } from "@/components/courier-badge";
+import { CourierRules } from "@/components/courier-rules";
 
 type Mine = {
   courier: boolean;
@@ -27,6 +28,7 @@ export default function CourierApplyPage() {
   const [transport, setTransport] = useState<CourierTransport>("walk");
   const [passport, setPassport] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +40,7 @@ export default function CourierApplyPage() {
   }, [user]);
 
   const send = async () => {
-    if (!passport || !selfie || busy) return;
+    if (!passport || !selfie || !agreed || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -47,12 +49,13 @@ export default function CourierApplyPage() {
       form.set("phone", phone.trim());
       form.set("district", district.trim());
       form.set("transport", transport);
+      form.set("rules", "1");
       form.set("passport", new File([await compressImage(passport)], "passport.jpg", { type: "image/jpeg" }));
       form.set("selfie", new File([await compressImage(selfie)], "selfie.jpg", { type: "image/jpeg" }));
       const res = await api("/api/me/courier", { method: "POST", body: form });
       setBusy(false);
       if (!res.ok) {
-        setError(t.deliveryFail);
+        setError(res.error === "rules" ? t.courierRulesRequired : t.deliveryFail);
         return;
       }
       refreshCourierBadge();
@@ -107,8 +110,13 @@ export default function CourierApplyPage() {
               {t.deliverySelfie}
               <input type="file" accept="image/*" capture="user" className="mt-1 block w-full text-[13px]" onChange={(e) => setSelfie(e.target.files?.[0] ?? null)} />
             </label>
+            <CourierRules />
+            <label className="flex items-start gap-2 text-[14px] font-semibold text-ink">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
+              <span>{t.courierRulesAgree}</span>
+            </label>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
-            <RedBtn disabled={busy || name.trim().length < 2 || !phone.trim() || district.trim().length < 2 || !passport || !selfie} onClick={() => void send()}>
+            <RedBtn disabled={busy || !agreed || name.trim().length < 2 || !phone.trim() || district.trim().length < 2 || !passport || !selfie} onClick={() => void send()}>
               {t.deliverySendApply}
             </RedBtn>
           </div>

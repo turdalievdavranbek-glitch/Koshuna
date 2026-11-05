@@ -725,6 +725,8 @@ export const courierApplications = pgTable(
     transport: text("transport").notNull(),
     passportPath: text("passport_path").notNull(),
     selfiePath: text("selfie_path").notNull(),
+    /** Set when the applicant checks «Согласен с правилами курьера». */
+    acceptedRulesAt: ts("accepted_rules_at"),
     status: text("status").notNull().default("pending"),
     createdAt: ts("created_at").notNull().defaultNow(),
     reviewedAt: ts("reviewed_at"),

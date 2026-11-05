@@ -68,7 +68,7 @@ export async function myCourier(userId: string): Promise<CourierMine> {
 
 export async function saveCourierApplication(
   userId: string,
-  input: { name: string; phone: string; district: string; transport: CourierTransport; passportPath: string; selfiePath: string },
+  input: { name: string; phone: string; district: string; transport: CourierTransport; passportPath: string; selfiePath: string; acceptedRulesAt: Date },
 ): Promise<{ ok: true; previous: string[] } | Fail> {
   const db = getDb();
   const existing = await db.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
@@ -84,6 +84,7 @@ export async function saveCourierApplication(
         transport: input.transport,
         passportPath: input.passportPath,
         selfiePath: input.selfiePath,
+        acceptedRulesAt: input.acceptedRulesAt,
         status: "pending",
         createdAt: new Date(),
         reviewedAt: null,
@@ -99,6 +100,7 @@ export async function saveCourierApplication(
       transport: input.transport,
       passportPath: input.passportPath,
       selfiePath: input.selfiePath,
+      acceptedRulesAt: input.acceptedRulesAt,
       status: "pending",
     });
   }

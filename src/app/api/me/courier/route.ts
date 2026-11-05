@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   if (!phone) return json({ error: "bad-phone" }, 400);
   if (district.length < 2 || district.length > 80) return json({ error: "bad-district" }, 400);
   if (!isCourierTransport(transport)) return json({ error: "bad-transport" }, 400);
+  if (form.get("rules") !== "1") return json({ error: "rules" }, 400);
   const passport = form.get("passport");
   const selfie = form.get("selfie");
   if (!(passport instanceof File) || !(selfie instanceof File)) return json({ error: "bad-photo" }, 400);
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
       transport,
       passportPath,
       selfiePath,
+      acceptedRulesAt: new Date(),
     });
     if ("error" in done) {
       await Promise.all(saved.map((rel) => removePrivate(rel)));

@@ -169,6 +169,13 @@
       "when": 1793779200000,
       "tag": "0025_referrals",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793865600000,
+      "tag": "0026_courier_rules",
+      "breakpoints": true
     }
   ]
 }

@@ -104,6 +104,9 @@ export default function CourierPage() {
         {board?.courier ? (
           <div className="mb-4">
             <CourierPlace onChange={() => setPlaceTick((n) => n + 1)} />
+            <button type="button" onClick={() => router.push("/courier/rules")} className="mt-2 text-[14px] font-semibold text-accent">
+              {t.courierRulesLink}
+            </button>
           </div>
         ) : null}
         {board && !board.courier && !active ? (

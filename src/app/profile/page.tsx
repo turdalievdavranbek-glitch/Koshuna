@@ -241,6 +241,9 @@ export default function ProfilePage() {
         {user.courier ? (
           <div className="mt-2">
             <CourierPlace />
+            <button type="button" onClick={() => router.push("/courier/rules")} className="mt-2 text-[14px] font-semibold text-accent">
+              {t.courierRulesLink}
+            </button>
           </div>
         ) : null}
 
