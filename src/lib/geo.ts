@@ -1,6 +1,6 @@
 import type { Lang, MeetupSpot } from "./types";
 import { ADMIN_AREAS } from "./admin-areas";
-import { DISTRICTS, GIS_CITIES, SETTLEMENTS } from "./data";
+import { CITIES, DISTRICTS, GIS_CITIES, SETTLEMENTS } from "./data";
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -65,6 +65,80 @@ export function spotForFix(lat: number, lng: number): { city: string | null; dis
     }
   }
   return { city, district: null };
+}
+
+function shortRayon(name: string): string {
+  return name.replace(/район/g, "р-н").replace(/району/g, "р-ну");
+}
+
+function deliveryCity(id: string | undefined | null): string | null {
+  if (!id || id === "all") return null;
+  return (CITIES as readonly string[]).includes(id) ? id : null;
+}
+
+/** Nearest known town plus rayon, for example «Сузак, Сузакский р-н». */
+export function courierFixPlace(
+  lat: number,
+  lng: number,
+  lang: Lang = "ru",
+): { city: string; districtId: string; label: string } | null {
+  if (!inKonshuZone(lat, lng)) return null;
+  type Hit = { km: number; name: string; city: string | null; districtId: string; rayon: boolean };
+  let town: Hit | null = null;
+  const consider = (km: number, name: string, city: string | null, districtId: string, withRayon: boolean) => {
+    if (km > 40 || !name) return;
+    if (!town || km < town.km) town = { km, name, city, districtId, rayon: withRayon };
+  };
+  for (const row of SETTLEMENTS) {
+    consider(haversineKm(lat, lng, row.lat, row.lng), lang === "ky" ? row.nameKy : row.name, deliveryCity(row.city), "", true);
+  }
+  for (const row of DISTRICTS) {
+    consider(haversineKm(lat, lng, row.lat, row.lng), lang === "ky" ? row.nameKy : row.name, deliveryCity(row.city), row.id, false);
+  }
+  for (const row of ADMIN_AREAS) {
+    if (row.kind !== "city") continue;
+    const viaSettlement = row.settlementId ? SETTLEMENTS.find((item) => item.id === row.settlementId)?.city : undefined;
+    consider(
+      haversineKm(lat, lng, row.lat, row.lng),
+      lang === "ky" ? row.nameKy : row.name,
+      deliveryCity(row.cityId) ?? deliveryCity(viaSettlement),
+      "",
+      false,
+    );
+  }
+  let rayon: (typeof ADMIN_AREAS)[number] | null = null;
+  let rayonKm = 60;
+  for (const row of ADMIN_AREAS) {
+    if (row.kind !== "district") continue;
+    const km = haversineKm(lat, lng, row.lat, row.lng);
+    if (km < rayonKm) {
+      rayonKm = km;
+      rayon = row;
+    }
+  }
+  if (!town && rayon) {
+    const via = rayon.settlementId ? SETTLEMENTS.find((item) => item.id === rayon.settlementId)?.city : undefined;
+    town = {
+      km: rayonKm,
+      name: lang === "ky" ? rayon.nameKy : rayon.name,
+      city: deliveryCity(rayon.cityId) ?? deliveryCity(via),
+      districtId: "",
+      rayon: false,
+    };
+  }
+  if (!town) return null;
+  const nearestId = nearestCityId(lat, lng);
+  const nearest = GIS_CITIES[nearestId];
+  const city =
+    town.city ??
+    (nearest && haversineKm(lat, lng, nearest.lat, nearest.lng) <= 80 ? deliveryCity(nearestId) : null);
+  if (!city) return null;
+  const micro = town.districtId ? null : nearestDistrict(lat, lng, city, 25);
+  const districtId = town.districtId || micro?.id || "";
+  const rayonName = rayon ? shortRayon(lang === "ky" ? rayon.nameKy : rayon.name) : "";
+  const namedRayon = /район|р-н|району/i.test(town.name);
+  const label = town.rayon && rayonName && !namedRayon ? `${town.name}, ${rayonName}` : town.name;
+  return { city, districtId, label: label.slice(0, 80) };
 }
 
 export function districtLabel(

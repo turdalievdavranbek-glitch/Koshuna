@@ -35,11 +35,14 @@ export async function POST(req: Request) {
   }
   const name = String(form.get("name") ?? "").trim();
   const phone = normalizePhoneInput(String(form.get("phone") ?? ""));
-  const district = String(form.get("district") ?? "").trim();
+  const city = String(form.get("city") ?? "").trim();
+  const districtId = String(form.get("district") ?? "").trim();
+  const lat = Number(form.get("lat"));
+  const lng = Number(form.get("lng"));
   const transport = String(form.get("transport") ?? "");
   if (name.length < 2 || name.length > 80) return json({ error: "bad-name" }, 400);
   if (!phone) return json({ error: "bad-phone" }, 400);
-  if (district.length < 2 || district.length > 80) return json({ error: "bad-district" }, 400);
+  if (!city) return json({ error: "bad-district" }, 400);
   if (!isCourierTransport(transport)) return json({ error: "bad-transport" }, 400);
   if (form.get("rules") !== "1") return json({ error: "rules" }, 400);
   const passport = form.get("passport");
@@ -54,7 +57,10 @@ export async function POST(req: Request) {
     const done = await saveCourierApplication(user.id, {
       name,
       phone,
-      district,
+      city,
+      districtId,
+      lat,
+      lng,
       transport,
       passportPath,
       selfiePath,

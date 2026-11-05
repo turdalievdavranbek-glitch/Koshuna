@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { CITIES, DISTRICTS } from "@/lib/data";
+import { courierFixPlace, inKonshuZone } from "@/lib/geo";
 import { isCourierTransport, type CourierTransport } from "@/lib/delivery";
 import { OWNER_EMAIL } from "@/lib/owner";
 import { isDbUserId } from "@/lib/phone";
@@ -76,11 +77,29 @@ export async function myCourier(userId: string): Promise<CourierMine> {
 
 export async function saveCourierApplication(
   userId: string,
-  input: { name: string; phone: string; district: string; transport: CourierTransport; passportPath: string; selfiePath: string; acceptedRulesAt: Date },
+  input: {
+    name: string;
+    phone: string;
+    city: string;
+    districtId: string;
+    lat: number;
+    lng: number;
+    transport: CourierTransport;
+    passportPath: string;
+    selfiePath: string;
+    acceptedRulesAt: Date;
+  },
 ): Promise<{ ok: true; previous: string[] } | Fail> {
   const db = getDb();
   const existing = await db.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
   if (existing[0]?.status === "approved") return { error: "approved", status: 409 };
+  if (!isDeliveryCity(input.city)) return { error: "bad-district", status: 400 };
+  if (input.districtId && !districtInCity(input.districtId, input.city)) return { error: "bad-district", status: 400 };
+  if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng) || !inKonshuZone(input.lat, input.lng)) return { error: "bad-place", status: 400 };
+  const detected = courierFixPlace(input.lat, input.lng, "ru");
+  if (!detected || detected.city !== input.city || detected.districtId !== input.districtId) return { error: "bad-district", status: 400 };
+  const district = detected.label;
+  if (district.length < 2) return { error: "bad-district", status: 400 };
   const previous = existing[0] ? [existing[0].passportPath, existing[0].selfiePath] : [];
   if (existing[0]) {
     await db
@@ -88,7 +107,7 @@ export async function saveCourierApplication(
       .set({
         name: input.name,
         phone: input.phone,
-        district: input.district,
+        district,
         transport: input.transport,
         passportPath: input.passportPath,
         selfiePath: input.selfiePath,
@@ -104,7 +123,7 @@ export async function saveCourierApplication(
       userId,
       name: input.name,
       phone: input.phone,
-      district: input.district,
+      district,
       transport: input.transport,
       passportPath: input.passportPath,
       selfiePath: input.selfiePath,
@@ -112,6 +131,16 @@ export async function saveCourierApplication(
       status: "pending",
     });
   }
+  await db
+    .update(users)
+    .set({
+      courierCity: input.city,
+      courierDistrict: input.districtId || null,
+      lastLat: input.lat,
+      lastLng: input.lng,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
   const owners = await db
     .select({ id: users.id })
     .from(users)

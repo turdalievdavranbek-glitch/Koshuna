@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
+import { areasOfOblast, adminAreaLabel, type AdminArea } from "@/lib/admin-areas";
+import { courierFixPlace, haversineKm } from "@/lib/geo";
+import { pointOblasts, pointPlaceSuggestions } from "@/lib/point-place";
+import { settlementById } from "@/lib/data";
 import { compressImage } from "@/lib/media-compress";
 import type { CourierTransport } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
@@ -68,13 +72,17 @@ type Mine = {
 };
 
 export default function CourierApplyPage() {
-  const { t, user: sessionUser } = useApp();
+  const { t, lang, user: sessionUser } = useApp();
   const user = useSignedIn("/courier/apply");
   const router = useRouter();
   const [mine, setMine] = useState<Mine | null>(null);
   const [name, setName] = useState(sessionUser?.name ?? "");
   const [phone, setPhone] = useState(sessionUser?.phone ?? "");
-  const [district, setDistrict] = useState("");
+  const [place, setPlace] = useState<{ city: string; districtId: string; label: string; lat: number; lng: number } | null>(null);
+  const [step, setStep] = useState(0);
+  const [oblast, setOblast] = useState("");
+  const [rayon, setRayon] = useState<AdminArea | null>(null);
+  const [locating, setLocating] = useState(false);
   const [transport, setTransport] = useState<CourierTransport>("walk");
   const [passport, setPassport] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
@@ -90,14 +98,17 @@ export default function CourierApplyPage() {
   }, [user]);
 
   const send = async () => {
-    if (!passport || !selfie || !agreed || busy) return;
+    if (!passport || !selfie || !agreed || !place || busy) return;
     setBusy(true);
     setError("");
     try {
       const form = new FormData();
       form.set("name", name.trim());
       form.set("phone", phone.trim());
-      form.set("district", district.trim());
+      form.set("city", place?.city ?? "");
+      form.set("district", place?.districtId ?? "");
+      form.set("lat", String(place?.lat ?? ""));
+      form.set("lng", String(place?.lng ?? ""));
       form.set("transport", transport);
       form.set("rules", "1");
       form.set("passport", new File([await compressImage(passport)], "passport.jpg", { type: "image/jpeg" }));
@@ -115,6 +126,64 @@ export default function CourierApplyPage() {
       setError(t.deliveryFail);
     }
   };
+
+  const choose = (lat: number, lng: number) => {
+    const found = courierFixPlace(lat, lng, lang);
+    if (!found) {
+      setError(t.courierLocateFail);
+      return;
+    }
+    setPlace({ ...found, lat, lng });
+    setError("");
+  };
+
+  const locate = () => {
+    if (locating) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setStep(0);
+      setError(t.courierLocateFail);
+      return;
+    }
+    setLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        choose(pos.coords.latitude, pos.coords.longitude);
+      },
+      () => {
+        setLocating(false);
+        setStep(0);
+        setError(t.courierLocateFail);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 },
+    );
+  };
+
+  const areas = oblast ? areasOfOblast(oblast) : { districts: [], cities: [] };
+  const rayons = areas.districts;
+  const nearestRayonId = (lat: number, lng: number) =>
+    areas.districts.reduce(
+      (best, row) => {
+        const km = haversineKm(lat, lng, row.lat, row.lng);
+        return km < best.km ? { id: row.id, km } : best;
+      },
+      { id: "", km: Infinity },
+    ).id;
+  const towns = rayon
+    ? [
+        ...areas.cities
+          .filter((city) => nearestRayonId(city.lat, city.lng) === rayon.id)
+          .map((city) => ({ id: city.id, label: adminAreaLabel(city, lang), lat: city.lat, lng: city.lng })),
+        ...(rayon.settlementId
+          ? (() => {
+              const own = settlementById(rayon.settlementId);
+              return own ? [{ id: `s-${own.id}`, label: lang === "ky" ? own.nameKy : own.name, lat: own.lat, lng: own.lng }] : [];
+            })()
+          : []),
+        ...pointPlaceSuggestions(oblast, rayon, lang),
+      ]
+    : [];
 
   const choices: { id: CourierTransport; label: string }[] = [
     { id: "car", label: t.deliveryCar },
@@ -152,7 +221,106 @@ export default function CourierApplyPage() {
               <>
             <Input value={name} onChange={setName} placeholder={t.deliveryYourName} />
             <Input value={phone} onChange={setPhone} placeholder="+996" inputMode="tel" />
-            <Input value={district} onChange={setDistrict} placeholder={t.deliveryDistrict} />
+            {place ? (
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-white px-4 py-3">
+                <span className="text-[15px] font-semibold text-ink">{place.label}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(0);
+                    setOblast("");
+                    setRayon(null);
+                  }}
+                  className="shrink-0 text-[14px] font-bold text-accent"
+                >
+                  {t.courierLocateChange}
+                </button>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              disabled={locating}
+              onClick={locate}
+              className="shadow-btn flex h-[72px] w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-[16px] font-bold text-accent-on ring-2 ring-[#FFE600] disabled:opacity-60"
+            >
+              <span className="text-[28px] leading-none">📍</span>
+              <span>{locating ? t.courierLocateWait : t.courierLocate}</span>
+            </button>
+            <div className="rounded-2xl border border-line bg-white px-3 py-3">
+              <div className="flex flex-wrap items-center gap-1 text-[13px] font-semibold">
+                <button type="button" onClick={() => setStep(0)} className={step === 0 ? "text-accent" : "text-ink"}>
+                  {oblast ? (t.oblasts[oblast] ?? oblast) : t.placeOblast}
+                </button>
+                {step >= 1 ? (
+                  <>
+                    <span className="text-muted">›</span>
+                    <button type="button" onClick={() => setStep(1)} className={step === 1 ? "text-accent" : "text-ink"}>
+                      {rayon ? adminAreaLabel(rayon, lang) : t.locationDistricts}
+                    </button>
+                  </>
+                ) : null}
+                {step === 2 ? (
+                  <>
+                    <span className="text-muted">›</span>
+                    <span className="text-accent">{t.courierPlaceTown}</span>
+                  </>
+                ) : null}
+              </div>
+              {step > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep((n) => Math.max(0, n - 1))}
+                  className="mt-2 text-[13px] font-bold text-ink"
+                >
+                  ‹ {t.pointPrev}
+                </button>
+              ) : null}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {step === 0
+                  ? pointOblasts().map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          setOblast(id);
+                          setRayon(null);
+                          setStep(1);
+                        }}
+                        className="flex min-h-[64px] items-center justify-center rounded-2xl border border-line bg-white px-2 py-2 text-center text-[14px] font-semibold leading-tight text-ink"
+                      >
+                        {t.oblasts[id] ?? id}
+                      </button>
+                    ))
+                  : null}
+                {step === 1
+                  ? rayons.map((row) => (
+                      <button
+                        key={row.id}
+                        type="button"
+                        onClick={() => {
+                          setRayon(row);
+                          setStep(2);
+                        }}
+                        className={`flex min-h-[64px] items-center justify-center rounded-2xl border px-2 py-2 text-center text-[14px] font-semibold leading-tight text-ink ${rayon?.id === row.id ? "border-2 border-accent bg-[#FFF4EC]" : "border-line bg-white"}`}
+                      >
+                        {adminAreaLabel(row, lang)}
+                      </button>
+                    ))
+                  : null}
+                {step === 2
+                  ? (towns.length ? towns : rayon ? [{ id: rayon.id, label: adminAreaLabel(rayon, lang), lat: rayon.lat, lng: rayon.lng }] : []).map((row) => (
+                      <button
+                        key={row.id}
+                        type="button"
+                        onClick={() => choose(row.lat, row.lng)}
+                        className="flex min-h-[64px] items-center justify-center rounded-2xl border border-line bg-white px-2 py-2 text-center text-[14px] font-semibold leading-tight text-ink"
+                      >
+                        {row.label}
+                      </button>
+                    ))
+                  : null}
+              </div>
+            </div>
             <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t.deliveryTransport}</div>
             <div className="flex gap-2">
               {choices.map((choice) => (
@@ -171,7 +339,7 @@ export default function CourierApplyPage() {
               <PhotoTile file={selfie} onFile={setSelfie} icon="🤳" label={t.courierTileSelfie} replace={t.courierTileReplace} capture="user" />
             </div>
             {error ? <p className="text-[13px] font-semibold text-accent">{error}</p> : null}
-            <RedBtn disabled={busy || !agreed || name.trim().length < 2 || !phone.trim() || district.trim().length < 2 || !passport || !selfie} onClick={() => void send()}>
+            <RedBtn disabled={busy || !agreed || !place || name.trim().length < 2 || !phone.trim() || !passport || !selfie} onClick={() => void send()}>
               {t.deliverySendApply}
             </RedBtn>
               </>
