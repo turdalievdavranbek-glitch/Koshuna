@@ -15,6 +15,7 @@ export type GisMarker = {
   lng: number;
   label?: string;
   active?: boolean;
+  color?: string;
 };
 
 type Props = {
@@ -94,7 +95,7 @@ export function GisMap({
       const marker = L.circleMarker([m.lat, m.lng], {
         radius: m.active ? 10 : 7,
         color: "#FFFFFF",
-        fillColor: m.active ? "#E31E24" : "#18181B",
+        fillColor: m.color ?? (m.active ? "#E31E24" : "#18181B"),
         fillOpacity: 1,
         weight: 2,
       });

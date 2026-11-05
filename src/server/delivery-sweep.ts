@@ -4,6 +4,7 @@ import { getDb } from "./db";
 import { orders, shops, users } from "./db/schema";
 import { offerNext, skipCourier, sweepDispatch } from "./delivery-dispatch";
 import { recordNoShow, reviewShop } from "./delivery-standing";
+import { clearOrderTracks } from "./delivery-track";
 import { bindNoticePushes, saveNotices, type NoticeWrite } from "./notices";
 
 type Fail = { error: string; status: number };
@@ -71,6 +72,7 @@ export async function sweepDeliveryOrders(): Promise<void> {
       }
       await saveNotices(db, notes);
       for (const order of dropped) await reviewShop(order.shopId).catch(() => undefined);
+      await clearOrderTracks(dropped.map((order) => order.id)).catch(() => undefined);
     }
 
     const waiting = await db
@@ -129,6 +131,7 @@ export async function sweepDeliveryOrders(): Promise<void> {
         }
         await offerNext(order.id).catch(() => undefined);
       }
+      await clearOrderTracks(releasedRows.map((order) => order.id)).catch(() => undefined);
     }
 
     const stale = await db
@@ -161,6 +164,7 @@ export async function sweepDeliveryOrders(): Promise<void> {
         await saveNotices(db, notes);
         await skipCourier(order.id, order.courierId!).catch(() => undefined);
         await offerNext(order.id).catch(() => undefined);
+        await clearOrderTracks([order.id]).catch(() => undefined);
         continue;
       }
       const flagged = await db

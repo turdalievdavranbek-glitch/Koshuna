@@ -86,6 +86,25 @@ export default function CourierPage() {
 
   const active = board?.active;
 
+  useEffect(() => {
+    const orderId = active?.id;
+    const live = active?.status === "assigned" || active?.status === "picked_up";
+    if (!orderId || !live || typeof navigator === "undefined" || !navigator.geolocation) return;
+    let last = 0;
+    const send = (lat: number, lng: number) => {
+      const now = Date.now();
+      if (now - last < 12_000) return;
+      last = now;
+      void api(`/api/orders/${encodeURIComponent(orderId)}/location`, { method: "POST", json: { lat, lng } });
+    };
+    const watch = navigator.geolocation.watchPosition(
+      (pos) => send(pos.coords.latitude, pos.coords.longitude),
+      () => undefined,
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 12_000 },
+    );
+    return () => navigator.geolocation.clearWatch(watch);
+  }, [active?.id, active?.status]);
+
   return (
     <PhoneShell>
       <PageHead

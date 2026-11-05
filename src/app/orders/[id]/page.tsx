@@ -8,6 +8,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { IconPhone } from "@/components/icons";
 import { deliveryError, FeeNote, GhostBtn, orderStatusText, OrderTracker, PageHead, RedBtn, som, useSignedIn } from "@/components/delivery-ui";
+import { OrderLiveMap } from "@/components/order-live";
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
@@ -102,6 +103,7 @@ export default function OrderPage() {
               </div>
             </div>
             <p className="mt-3 text-[13px] text-muted">{order.address}</p>
+            {order.status === "assigned" || order.status === "picked_up" ? <OrderLiveMap orderId={order.id} /> : null}
             {order.codeLocked ? <p className="mt-4 text-[13px] font-semibold text-accent">{t.deliveryCodeLocked}</p> : null}
             {order.deliveryCode ? (
               <div className="mt-4 rounded-2xl bg-[#FAFAFB] px-4 py-3 text-center">

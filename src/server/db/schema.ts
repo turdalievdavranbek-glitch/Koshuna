@@ -691,6 +691,16 @@ export const orders = pgTable(
   ],
 );
 
+/** One latest GPS fix per order. Deleted when the order leaves assigned / picked up. */
+export const orderTracks = pgTable("order_tracks", {
+  orderId: uuid("order_id")
+    .primaryKey()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  lat: doublePrecision("lat").notNull(),
+  lng: doublePrecision("lng").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const orderItems = pgTable(
   "order_items",
   {

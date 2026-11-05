@@ -9,6 +9,7 @@ import { getDb } from "./db";
 import { deliveryCart, orderItems, orderOffers, orders, shops, users } from "./db/schema";
 import { rowToShop } from "./mappers";
 import { declineOffer, expireOrderOffers, liveOfferFor, liveOfferedOrderIds, offerBlocks, offerNext, skipCourier } from "./delivery-dispatch";
+import { clearOrderTrack, etaSpanForCourier } from "./delivery-track";
 import { guardBuyerOrder } from "./delivery-rules";
 import { clientDiscount, rememberClientDiscount, rewardCourierReferral } from "./delivery-referrals";
 import { courierIsPaused, reviewShop } from "./delivery-standing";
@@ -528,6 +529,9 @@ export async function actOnOrder(
     if (action === "reject" || (action === "cancel" && result.order.role === "shop")) {
       await reviewShop(result.shopId).catch(() => undefined);
     }
+    if (result.order.status !== "assigned" && result.order.status !== "picked_up") {
+      await clearOrderTrack(orderId).catch(() => undefined);
+    }
     return { order: result.order };
   } catch (err) {
     if (uniqueViolation(err)) return { error: "busy", status: 409 };
@@ -787,8 +791,15 @@ async function applyAction(
       .update(orderOffers)
       .set({ status: "accepted" })
       .where(and(eq(orderOffers.orderId, order.id), eq(orderOffers.courierId, userId), eq(orderOffers.status, "offered")));
+    const eta = await etaSpanForCourier(order.id, userId, false);
     await saveNotices(tx, [
-      note(order.buyerId, "notifOrderAssigned", order, "buyer", userId),
+      {
+        userId: order.buyerId,
+        type: "order",
+        textKey: "notifOrderEta",
+        params: { title: eta, orderId: order.id, shopId: order.shopId, audience: "buyer" },
+        actorId: userId,
+      },
       note(row.ownerId, "notifOrderAssigned", order, "shop", userId),
     ]);
     return { ok: true };

@@ -7,6 +7,7 @@ import type { OrderView } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { deliveryError, GhostBtn, orderStatusText, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
+import { OrderLiveMap } from "@/components/order-live";
 
 export default function ShopOrdersPage() {
   const { id } = useParams<{ id: string }>();
@@ -105,6 +106,7 @@ export default function ShopOrdersPage() {
               <p className="mt-1 text-[13px] text-muted">
                 {order.buyerName} · {order.address} · {som(order.totalSom)} сом
               </p>
+              {order.status === "assigned" || order.status === "picked_up" ? <OrderLiveMap orderId={order.id} /> : null}
               {order.status === "accepted" || order.status === "assembled" || order.status === "assigned" ? (
                 <div className="mt-3">
                   <GhostBtn disabled={busy === order.id + "cancel"} onClick={() => act(order.id, "cancel")}>
