@@ -9,10 +9,15 @@ export function GreetingTile({
   videoUrl,
   poster,
   onChange,
+  variant = "tile",
+  onBusy,
 }: {
   videoUrl?: string;
   poster?: string;
   onChange: (next: { greetingVideo?: string; greetingPoster?: string }) => void;
+  /** Wizard step matches the facade photo screen. The tile is the compact form control. */
+  variant?: "tile" | "wizard";
+  onBusy?: (busy: boolean) => void;
 }) {
   const { t } = useApp();
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -53,6 +58,7 @@ export function GreetingTile({
       return;
     }
     setBusy(true);
+    onBusy?.(true);
     try {
       releaseBlob(videoUrl);
       const url = rememberBlob(file);
@@ -62,6 +68,7 @@ export function GreetingTile({
       setError(t.shopError);
     } finally {
       setBusy(false);
+      onBusy?.(false);
     }
   };
 
@@ -110,6 +117,61 @@ export function GreetingTile({
     releaseBlob(videoUrl);
     onChange({ greetingVideo: undefined, greetingPoster: undefined });
   };
+
+  if (variant === "wizard") {
+    return (
+      <div data-testid="point-greeting">
+        <button
+          type="button"
+          data-testid="point-greeting-box"
+          onClick={() => (recording ? stop() : void record())}
+          className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[18px] border border-dashed border-line bg-chip text-[15px] font-semibold text-accent"
+        >
+          {recording ? (
+            <video ref={liveRef} muted playsInline className="h-full w-full object-cover" />
+          ) : videoUrl ? (
+            <video src={videoUrl} poster={poster || undefined} muted playsInline preload="metadata" className="h-full w-full bg-chip object-contain" />
+          ) : busy ? (
+            t.shopLoad
+          ) : (
+            <span className="text-[40px] leading-none">+</span>
+          )}
+        </button>
+        <div className="mt-3 flex gap-2">
+          <button type="button" disabled={busy} onClick={() => (recording ? stop() : void record())} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
+            {recording ? t.pointGreetingStop : t.pointGreetingShoot}
+          </button>
+          <button type="button" disabled={busy || recording} onClick={() => galleryRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
+            {t.postGallery}
+          </button>
+        </div>
+        {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+        <input
+          ref={cameraFileRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void accept(file);
+          }}
+        />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void accept(file);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div data-testid="point-greeting">

@@ -10,10 +10,11 @@ import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory } from "@/lib/types";
 import { PlaceCascade } from "./place-cascade";
 import { NativePhotoInputs } from "./native-photo";
+import { GreetingTile } from "./greeting-tile";
 
 export const POINT_NEW_KEY = "konshu-point-new";
 const STEP_KEY = "konshu-point-wizard";
-const STEPS = 5;
+const STEPS = 6;
 
 export type PointKind = "shop" | "stall" | "service" | "cafe" | "farm";
 
@@ -81,7 +82,7 @@ function writeStep(id: string, step: number | null) {
 
 /**
  * New point as a wizard: one question per screen.
- * 1 name · 2 phone · 3 facade photo (skippable) · 4 place + landmark · 5 type → «Открыть точку».
+ * 1 name · 2 phone · 3 facade photo (skippable) · 4 greeting video (skippable) · 5 place + landmark · 6 type → «Открыть точку».
  * Progress is kept in the persisted shop draft, so the owner can come back later.
  */
 /** One wizard for every business card: shop, stall, service/master and cafe. */
@@ -97,6 +98,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
   const [landmark, setLandmark] = useState("");
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [greetingBusy, setGreetingBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -175,8 +177,8 @@ export function PointWizard({ kind }: { kind: PointKind }) {
   const check = (at: number): string => {
     if (at === 0 && !d.name.trim()) return t.shopNeedName;
     if (at === 1 && normalizePhone(phone).length < 9) return t.pointQuickPhoneNeed;
-    if (at === 3 && !placed) return t.shopNeedCity;
-    if (at === 4 && !group) return t.pointNeedGroup;
+    if (at === 4 && !placed) return t.shopNeedCity;
+    if (at === 5 && !group) return t.pointNeedGroup;
     return "";
   };
 
@@ -257,6 +259,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
     t.pointQuickName,
     t.pointQuickPhone,
     goods ? t.pointQuickPhoto : t.pointQuickCover,
+    t.pointQuickGreeting,
     t.pointQuickPlace,
     kind === "service" ? t.pointQuickTypeService : kind === "cafe" ? t.pointQuickTypeCafe : kind === "farm" ? t.pointQuickTypeFarm : t.pointQuickType,
   ];
@@ -270,6 +273,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
           : t.pointQuickNameHint,
     t.pointQuickPhoneHint,
     goods ? t.pointQuickPhotoHint : t.pointQuickCoverHint,
+    t.pointGreetingHint,
     t.pointQuickPlaceHint,
     t.pointQuickTypeHint,
   ];
@@ -366,6 +370,19 @@ export function PointWizard({ kind }: { kind: PointKind }) {
         ) : null}
 
         {step === 3 ? (
+          <GreetingTile
+            variant="wizard"
+            videoUrl={d.greetingVideo}
+            poster={d.greetingPoster}
+            onBusy={setGreetingBusy}
+            onChange={(next) => {
+              setError("");
+              setShopDraft({ greetingVideo: next.greetingVideo, greetingPoster: next.greetingPoster });
+            }}
+          />
+        ) : null}
+
+        {step === 4 ? (
           <PlaceCascade
             place={{ city: d.city, district: d.district, lat: d.lat, lng: d.lng }}
             onPlace={(next) => {
@@ -377,7 +394,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
           />
         ) : null}
 
-        {step === 4 ? (
+        {step === 5 ? (
           kind === "farm" ? (
             <div data-testid="point-groups" className="grid grid-cols-2 gap-2 desk:grid-cols-3">
               {FARM_KINDS.map((id) => {
@@ -452,7 +469,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
         <button
           type="submit"
           data-testid={last ? "point-create" : "point-next"}
-          disabled={busy || photoBusy}
+          disabled={busy || photoBusy || greetingBusy}
           className="shadow-btn mt-6 h-[56px] w-full rounded-2xl bg-accent text-[17px] font-semibold text-accent-on disabled:opacity-60"
         >
           {last ? t.pointOpen : t.pointNext}
@@ -461,6 +478,11 @@ export function PointWizard({ kind }: { kind: PointKind }) {
 
       {step === 2 && !d.coverUrl ? (
         <button type="button" data-testid="point-photo-skip" onClick={() => go(3)} className="mt-3 h-11 w-full text-[14px] font-semibold text-muted">
+          {t.pointQuickPhotoSkip}
+        </button>
+      ) : null}
+      {step === 3 && !d.greetingVideo ? (
+        <button type="button" data-testid="point-greeting-skip" onClick={() => go(4)} className="mt-3 h-11 w-full text-[14px] font-semibold text-muted">
           {t.pointQuickPhotoSkip}
         </button>
       ) : null}
