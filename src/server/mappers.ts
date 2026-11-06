@@ -168,6 +168,8 @@ export function shopToColumns(shop: Shop, ownerId: string): typeof shops.$inferI
     lng: shop.lng ?? null,
     hours: shop.hours ?? null,
     photoUrl: shop.coverUrl ?? null,
+    greetingVideo: shop.greetingVideo ?? null,
+    greetingPoster: shop.greetingPoster ?? null,
     hasDelivery: Boolean(shop.delivery),
     deliveryFree: shop.delivery ? (shop.deliveryFree ?? null) : null,
     deliveryDistricts: shop.delivery ? (shop.deliveryDistricts ?? []) : [],
@@ -199,6 +201,8 @@ export function rowToShop(row: ShopRow): Shop {
     deliveryFree: typeof doc.deliveryFree === "boolean" ? doc.deliveryFree : typeof row.deliveryFree === "boolean" ? row.deliveryFree : undefined,
     deliveryDistricts: doc.deliveryDistricts?.length ? doc.deliveryDistricts : row.deliveryDistricts?.length ? [...row.deliveryDistricts] : doc.deliveryDistricts,
     products: Array.isArray(doc.products) ? doc.products : [],
+    greetingVideo: doc.greetingVideo || row.greetingVideo || undefined,
+    greetingPoster: doc.greetingPoster || row.greetingPoster || undefined,
   };
 }
 
@@ -226,7 +230,7 @@ export function listingMediaUrls(listing: Listing): string[] {
 }
 
 export function shopMediaUrls(shop: Shop): string[] {
-  const urls = [shop.coverUrl, shop.videoUrl];
+  const urls = [shop.coverUrl, shop.videoUrl, shop.greetingVideo, shop.greetingPoster];
   for (const product of shop.products ?? []) urls.push(product.photo, product.videoUrl);
   return urls.filter((url): url is string => Boolean(url));
 }

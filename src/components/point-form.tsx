@@ -7,6 +7,7 @@ import { DISTRICTS, GIS_CITIES } from "@/lib/data";
 import { captureVideoPoster, keepBlob, videoFileDuration } from "@/lib/blob-media";
 import { districtLabel } from "@/lib/geo";
 import { videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
+import { GreetingTile } from "./greeting-tile";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { shopErrorText, shopKindLabel } from "@/lib/shop-copy";
 import { isAdminUser } from "@/lib/partners";
@@ -581,6 +582,13 @@ export function PointForm({
           <span className="text-[12px] text-muted">{t.pointOptional}</span>
         </div>
         <p className="mt-1.5 text-[13px] leading-[1.45] text-muted">{t.pointPhotoHint}</p>
+        <div className="mt-3">
+          <GreetingTile
+            videoUrl={d.greetingVideo}
+            poster={d.greetingPoster}
+            onChange={(next) => patch(next)}
+          />
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-chip text-accent">
             {d.coverUrl ? (

@@ -14,7 +14,13 @@ export function videoMaxSeconds(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 120;
 }
 
+/** Point greeting. Shorter than a listing or a counter walkthrough. */
+export function greetingVideoMaxSeconds(): number {
+  return 30;
+}
+
 /** Product-counter walkthrough is shorter than a shop intro. */
+
 export function shopVideoMaxSeconds(): number {
   const raw = Number(process.env.SHOP_VIDEO_MAX_SECONDS || process.env.NEXT_PUBLIC_SHOP_VIDEO_MAX_SECONDS);
   return Number.isFinite(raw) && raw > 0 ? raw : 60;

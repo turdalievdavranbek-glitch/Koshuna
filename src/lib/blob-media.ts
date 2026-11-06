@@ -47,6 +47,12 @@ export function videoFileDuration(file: File): Promise<number> {
   });
 }
 
+export function releaseBlob(url?: string) {
+  if (!url?.startsWith("blob:")) return;
+  URL.revokeObjectURL(url);
+  blobs.delete(url);
+}
+
 export function dropBlob(key: "video" | "voice" | "photo") {
   const prev = held.get(key);
   if (prev) {

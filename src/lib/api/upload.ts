@@ -142,6 +142,8 @@ export async function materializeShop(shop: Shop): Promise<Shop> {
     ...shop,
     coverUrl: await mediaField(shop.coverUrl, "poster", undefined, keepServer((s) => s.coverUrl)),
     videoUrl: await mediaField(shop.videoUrl, "video", undefined, keepServer((s) => s.videoUrl)),
+    greetingPoster: await mediaField(shop.greetingPoster, "poster", undefined, keepServer((s) => s.greetingPoster)),
+    greetingVideo: await mediaField(shop.greetingVideo, "video", undefined, keepServer((s) => s.greetingVideo)),
     products,
   };
 }

@@ -142,6 +142,9 @@ export const shops = pgTable(
     lng: doublePrecision("lng"),
     hours: jsonb("hours"),
     photoUrl: text("photo_url"),
+    /** Optional 30-second greeting. The poster is the frame shown until play. */
+    greetingVideo: text("greeting_video"),
+    greetingPoster: text("greeting_poster"),
     hasDelivery: boolean("has_delivery").notNull().default(false),
     deliveryFree: boolean("delivery_free"),
     deliveryDistricts: text("delivery_districts").array().notNull().default(sql`'{}'::text[]`),

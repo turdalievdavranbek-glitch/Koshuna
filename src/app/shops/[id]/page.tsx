@@ -14,7 +14,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopCartBar, ShopQty, useShopCart } from "@/components/delivery-shop-buy";
 import { ShopProductsEditor } from "@/components/shop-products";
-import { ShopThumb, ShopVideo } from "@/components/shop-thumb";
+import { GreetingVideo, ShopThumb, ShopVideo } from "@/components/shop-thumb";
 import { Chip, Eyebrow } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { FEATURES } from "@/lib/features";
@@ -135,6 +135,11 @@ export default function ShopDetailPage() {
           <span className="w-9" />
         </div>
 
+        {shop.greetingVideo ? (
+          <div className="mt-3">
+            <GreetingVideo src={shop.greetingVideo} poster={shop.greetingPoster || shop.coverUrl} />
+          </div>
+        ) : null}
         <div className="contents desk:mt-3 desk:grid desk:grid-cols-12 desk:items-start desk:gap-4">
         <div className="mt-3 desk:col-span-5 desk:row-start-1 desk:mt-0">
           <div className="flex items-center gap-4">

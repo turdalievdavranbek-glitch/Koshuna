@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { Photo } from "./ui";
 
 export function ShopThumb({
@@ -28,6 +29,46 @@ export function ShopThumb({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** Poster until tap, then the same clip plays with sound. */
+export function GreetingVideo({ src, poster }: { src: string; poster?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [sound, setSound] = useState(false);
+  return (
+    <button
+      type="button"
+      data-testid="shop-greeting"
+      onClick={() => {
+        const el = ref.current;
+        if (!el) return;
+        if (!sound) {
+          el.muted = false;
+          setSound(true);
+          void el.play();
+          return;
+        }
+        if (el.paused) void el.play();
+        else el.pause();
+      }}
+      className="relative block w-full overflow-hidden rounded-[18px] bg-ink text-left"
+    >
+      <video
+        ref={ref}
+        src={src}
+        poster={poster}
+        muted
+        playsInline
+        preload="metadata"
+        className="max-h-[60vh] w-full object-contain"
+      />
+      {sound ? null : (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(24,24,27,.72)] pl-1 text-[18px] text-white">▶</span>
+        </span>
+      )}
+    </button>
   );
 }
 

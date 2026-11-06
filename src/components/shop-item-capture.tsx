@@ -9,6 +9,7 @@ import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
 import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
+import { GreetingTile } from "./greeting-tile";
 import {
   assortmentKey,
   assortmentUseCount,
@@ -83,6 +84,8 @@ export function ShopItemCapture({
   const [hoursNote, setHoursNote] = useState("");
   const [hoursState, setHoursState] = useState<HoursPickerState>({ days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false });
   const [pointVideo, setPointVideo] = useState("");
+  const [greetingVideo, setGreetingVideo] = useState("");
+  const [greetingPoster, setGreetingPoster] = useState("");
   // A gallery video for a product: kept as the listing video (it used to be cut down to one still).
   const [itemVideo, setItemVideo] = useState("");
   const videoFileRef = useRef<HTMLInputElement>(null);
@@ -499,6 +502,8 @@ export function ShopItemCapture({
       lng: placeLng ?? draft.lng,
       coverUrl: photo || undefined,
       videoUrl: pointVideo || undefined,
+      greetingVideo: greetingVideo || undefined,
+      greetingPoster: greetingPoster || undefined,
       contacts: { ...draft.contacts, whatsapp: true },
       products: [],
     };
@@ -802,7 +807,19 @@ export function ShopItemCapture({
         </div>
       ) : (
         <>
-          {pointMode ? <p className="mt-3 text-[13px] leading-[1.45] text-muted">{t.pointPhotoHint}</p> : null}
+          {pointMode ? (
+            <div className="mt-3 flex flex-col gap-3">
+              <p className="text-[13px] leading-[1.45] text-muted">{t.pointPhotoHint}</p>
+              <GreetingTile
+                videoUrl={greetingVideo || undefined}
+                poster={greetingPoster || undefined}
+                onChange={(next) => {
+                  setGreetingVideo(next.greetingVideo ?? "");
+                  setGreetingPoster(next.greetingPoster ?? "");
+                }}
+              />
+            </div>
+          ) : null}
           {mode !== "text" ? (
           <div className="mt-3 overflow-hidden rounded-[18px] bg-ink">
             <video ref={videoRef} muted playsInline className={live ? "aspect-[4/5] w-full object-cover" : "hidden"} />

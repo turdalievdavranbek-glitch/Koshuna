@@ -724,6 +724,8 @@ function persistShop(shop: Shop): Shop {
   return {
     ...shop,
     videoUrl: persistableUrl(shop.videoUrl),
+    greetingVideo: persistableUrl(shop.greetingVideo),
+    greetingPoster: persistableUrl(shop.greetingPoster),
     coverUrl: persistableUrl(shop.coverUrl),
     products: (shop.products ?? []).map((item) => ({
       ...item,

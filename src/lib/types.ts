@@ -613,6 +613,9 @@ export type Shop = {
   /** Free text when the group is «Другое». */
   kindOther?: string;
   videoUrl?: string;
+  /** Optional greeting, at most 30 seconds. Shown first on the public card. */
+  greetingVideo?: string;
+  greetingPoster?: string;
   coverUrl?: string;
   transcript?: string;
   /** shop/stall sell goods; service and cafe are points for masters and food places. */
