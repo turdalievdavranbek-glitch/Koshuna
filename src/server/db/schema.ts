@@ -549,14 +549,23 @@ export const messages = pgTable(
     kind: text("kind").notNull().default("text"),
     text: text("text"),
     mediaUrl: text("media_url"),
+    /** Length of a voice message, in seconds. */
+    voiceSec: integer("voice_sec"),
+    /** Up to five compressed images for a photo message. */
+    photos: text("photos").array(),
     createdAt: ts("created_at").notNull().defaultNow(),
     readAt: ts("read_at"),
     /** Sender changed the text. No push, unread unchanged. */
     editedAt: ts("edited_at"),
     /** Soft delete for both people: shown as «Сообщение удалено». */
     deletedAt: ts("deleted_at"),
+    /** The message this one quotes. Cleared if that row is removed. */
+    replyToId: uuid("reply_to_message_id").references((): AnyPgColumn => messages.id, { onDelete: "set null" }),
   },
-  (t) => [check("messages_kind", sql`${t.kind} in ('text','voice','system')`)],
+  (t) => [
+    check("messages_kind", sql`${t.kind} in ('text','voice','photo','system')`),
+    check("messages_voice_sec", sql`${t.voiceSec} is null or (${t.voiceSec} >= 0 and ${t.voiceSec} <= 120)`),
+  ],
 );
 
 /** One emoji reaction per user per chat message (Instagram-style). */

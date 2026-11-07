@@ -30,7 +30,12 @@ export class LocalMediaGone extends Error {
 }
 
 /** Шаг 4 in-session upload. Shops stay on this path until Шаг 11. */
-export async function materializeMedia(url: string, kind: Kind, durationSec?: number): Promise<string> {
+export async function materializeMedia(
+  url: string,
+  kind: Kind,
+  durationSec?: number,
+  onProgress?: (ratio: number) => void,
+): Promise<string> {
   if (!isLocal(url)) return url;
   const known = uploaded.get(url);
   if (known) return known;
@@ -75,6 +80,7 @@ export async function materializeMedia(url: string, kind: Kind, durationSec?: nu
       }
       offset = typeof data.received === "number" ? data.received : end;
       advanced = true;
+      onProgress?.(bytes.length ? offset / bytes.length : 1);
     }
   }
   const done = await api<{ mediaId: string; url: string }>(`/api/uploads/${uploadId}/complete`, {

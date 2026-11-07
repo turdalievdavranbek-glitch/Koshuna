@@ -181,7 +181,9 @@ export function MessageInbox() {
                       </span>
                       {peer ? <span className="truncate text-[12px] text-muted">{peer}</span> : null}
                     </div>
-                    <div className={`truncate text-[13px] ${row.unread > 0 ? "font-bold text-ink" : "text-muted"}`}>{row.preview || title}</div>
+                    <div className={`truncate text-[13px] ${row.unread > 0 ? "font-bold text-ink" : "text-muted"}`}>
+                      {row.previewKind === "voice" ? t.chatVoicePreview : row.previewKind === "photo" ? t.chatPhotoPreview : row.preview || title}
+                    </div>
                   </div>
                   {row.unread > 0 ? (
                     <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#E0242B] px-1.5 text-[12px] font-bold text-white">

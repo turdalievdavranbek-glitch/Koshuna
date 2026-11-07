@@ -5,6 +5,7 @@ import { CHAT_REACTIONS, type ChatDetail, type ChatLine, type ChatThread } from 
 import { getDb } from "./db";
 import { blocks, listings, messageReactions, messages, purchaseRequests, shops, threads, users } from "./db/schema";
 import { bindNoticePushes, saveNotice } from "./notices";
+import { mediaUrlError } from "./mappers";
 import { clearTyping, isTyping, markTyping, medianReplyMs } from "./presence";
 
 const TEXT_MAX = 2000;
@@ -158,9 +159,16 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
           and messages.created_at > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)
       )`,
       preview: sql<string | null>`(
-        select messages.text from messages
+        select case when messages.kind = 'text' then messages.text else '' end from messages
         where messages.thread_id = threads.id
-          and messages.kind = 'text'
+          and messages.deleted_at is null
+          and messages.created_at > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)
+        order by messages.created_at desc
+        limit 1
+      )`,
+      previewKind: sql<string | null>`(
+        select messages.kind from messages
+        where messages.thread_id = threads.id
           and messages.deleted_at is null
           and messages.created_at > coalesce(case when threads.buyer_id = ${userId}::uuid then threads.buyer_cleared_at else threads.seller_cleared_at end, '-infinity'::timestamptz)
         order by messages.created_at desc
@@ -231,6 +239,7 @@ export async function listChats(userId: string): Promise<{ threads: ChatThread[]
       peerOnline: Date.now() - (seenAt.get(peerId) ?? 0) < 2 * 60_000,
       role: row.sellerId === userId ? "sell" : "buy",
       preview: (row.preview ?? "").trim(),
+      previewKind: row.previewKind === "voice" || row.previewKind === "photo" || row.previewKind === "system" || row.previewKind === "text" ? row.previewKind : null,
       lastMessageAt: (row.lastMessageAt ?? row.createdAt).toISOString(),
       unread: n,
     };
@@ -258,6 +267,11 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
         senderId: messages.senderId,
         kind: messages.kind,
         text: messages.text,
+        mediaUrl: messages.mediaUrl,
+        voiceSec: messages.voiceSec,
+        photos: messages.photos,
+        replyToId: messages.replyToId,
+        readAt: messages.readAt,
         createdAt: messages.createdAt,
         editedAt: messages.editedAt,
         deletedAt: messages.deletedAt,
@@ -287,18 +301,24 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
       : Promise.resolve([]),
     pairBlocked(userId, peerId),
   ]);
+  const firstUnreadId =
+    [...lines].reverse().find((row) => row.senderId !== userId && !row.readAt && !row.deletedAt)?.id ?? null;
   await db
     .update(messages)
     .set({ readAt: new Date() })
     .where(and(eq(messages.threadId, thread.id), ne(messages.senderId, userId), isNull(messages.readAt)));
-  const shown: ChatLine[] = lines
+  const shown: Array<ChatLine & { replyToId?: string | null }> = lines
     .reverse()
-    .filter((row) => row.kind === "text" && (row.deletedAt || (row.text ?? "").trim()))
+    .filter((row) => row.deletedAt || (row.kind === "text" && (row.text ?? "").trim()) || (row.kind === "voice" && row.mediaUrl) || (row.kind === "photo" && (row.photos?.length || row.mediaUrl)))
     .map((row) => ({
       id: row.id,
       mine: row.senderId === userId,
-      // A deleted message keeps its place but never its text.
-      text: row.deletedAt ? "" : (row.text ?? "").trim(),
+      kind: row.kind === "voice" ? "voice" : row.kind === "photo" ? "photo" : "text",
+      text: row.deletedAt || row.kind === "voice" ? "" : (row.text ?? "").trim(),
+      voiceUrl: row.deletedAt || row.kind !== "voice" ? null : row.mediaUrl,
+      voiceSec: row.kind === "voice" ? row.voiceSec ?? null : null,
+      photos: row.deletedAt || row.kind !== "photo" ? null : (row.photos?.length ? row.photos : row.mediaUrl ? [row.mediaUrl] : []),
+      replyToId: row.replyToId,
       createdAt: row.createdAt.toISOString(),
       editedAt: row.deletedAt ? null : (row.editedAt?.toISOString() ?? null),
       deleted: Boolean(row.deletedAt),
@@ -316,6 +336,43 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
       else line.peerReaction = row.emoji;
     }
   }
+  const quoteOf = new Map(shown.map((line) => [line.id, line]));
+  const missingQuotes = [...new Set(shown.map((line) => line.replyToId).filter((id): id is string => Boolean(id)))].filter((id) => !quoteOf.has(id));
+  if (missingQuotes.length) {
+    const extra = await db
+      .select({
+        id: messages.id,
+        senderId: messages.senderId,
+        kind: messages.kind,
+        text: messages.text,
+        deletedAt: messages.deletedAt,
+      })
+      .from(messages)
+      .where(and(eq(messages.threadId, thread.id), inArray(messages.id, missingQuotes)));
+    for (const row of extra) {
+      quoteOf.set(row.id, {
+        id: row.id,
+        mine: row.senderId === userId,
+        kind: row.kind === "voice" ? "voice" : row.kind === "photo" ? "photo" : "text",
+        text: row.deletedAt ? "" : (row.text ?? "").trim(),
+        deleted: Boolean(row.deletedAt),
+        createdAt: "",
+      });
+    }
+  }
+  for (const line of shown) {
+    const src = line.replyToId ? quoteOf.get(line.replyToId) : undefined;
+    if (src) {
+      line.replyTo = {
+        id: src.id,
+        mine: src.mine,
+        kind: src.kind === "voice" ? "voice" : src.kind === "photo" ? "photo" : "text",
+        text: src.deleted ? "" : src.text,
+        deleted: Boolean(src.deleted),
+      };
+    }
+    delete line.replyToId;
+  }
   const listing = card[0];
   const request = listing ? undefined : ask[0];
   return {
@@ -330,6 +387,7 @@ export async function readChat(userId: string, threadId: string): Promise<ChatDe
     blocked,
     section: listing?.section ?? null,
     messages: shown,
+    firstUnreadId,
     peerLastSeenAt: person[0]?.lastSeenAt?.toISOString() ?? null,
     peerTyping: isTyping(thread.id, peerId),
     peerReplyMs: await medianReplyMs(peerId).catch(() => null),
@@ -356,9 +414,52 @@ export async function touchTyping(userId: string, threadId: string): Promise<{ o
   return { ok: true };
 }
 
-export async function sendChat(userId: string, threadId: string, raw: string): Promise<{ message: ChatLine } | Fail> {
+export async function sendChat(
+  userId: string,
+  threadId: string,
+  raw: string,
+  replyToId?: string | null,
+): Promise<{ message: ChatLine } | Fail> {
   const text = raw.trim();
   if (!text || text.length > TEXT_MAX) return { error: "text", status: 400 };
+  return postMessage(userId, threadId, { kind: "text", text, replyToId });
+}
+
+export async function sendVoiceChat(
+  userId: string,
+  threadId: string,
+  voiceUrl: string,
+  voiceSec: number,
+  replyToId?: string | null,
+): Promise<{ message: ChatLine } | Fail> {
+  const sec = Math.round(Number(voiceSec));
+  if (!Number.isFinite(sec) || sec < 1 || sec > 120) return { error: "voice", status: 400 };
+  if (mediaUrlError([voiceUrl])) return { error: "media-not-uploaded", status: 400 };
+  return postMessage(userId, threadId, { kind: "voice", voiceUrl, voiceSec: sec, replyToId });
+}
+
+export async function sendPhotoChat(
+  userId: string,
+  threadId: string,
+  photos: string[],
+  caption: string,
+  replyToId?: string | null,
+): Promise<{ message: ChatLine } | Fail> {
+  const urls = photos.map((url) => url.trim()).filter(Boolean).slice(0, 5);
+  if (!urls.length || urls.length > 5) return { error: "photo", status: 400 };
+  if (mediaUrlError(urls)) return { error: "media-not-uploaded", status: 400 };
+  const text = caption.trim().slice(0, TEXT_MAX);
+  return postMessage(userId, threadId, { kind: "photo", photos: urls, text, replyToId });
+}
+
+async function postMessage(
+  userId: string,
+  threadId: string,
+  body:
+    | { kind: "text"; text: string; replyToId?: string | null }
+    | { kind: "voice"; voiceUrl: string; voiceSec: number; replyToId?: string | null }
+    | { kind: "photo"; photos: string[]; text: string; replyToId?: string | null },
+): Promise<{ message: ChatLine } | Fail> {
   const db = getDb();
   return bindNoticePushes(() => db.transaction(async (tx) => {
     const locked = await tx.select().from(threads).where(eq(threads.id, threadId)).limit(1);
@@ -376,18 +477,34 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
       )
       .limit(1);
     if (blocked[0]) return { error: "blocked", status: 403 };
+    let replyId: string | null = null;
+    if (body.replyToId) {
+      const quoted = await tx
+        .select({ id: messages.id, kind: messages.kind, text: messages.text, deletedAt: messages.deletedAt })
+        .from(messages)
+        .where(and(eq(messages.id, body.replyToId), eq(messages.threadId, thread.id)))
+        .limit(1);
+      if (!quoted[0]) return { error: "reply", status: 400 };
+      replyId = quoted[0].id;
+    }
 
     clearTyping(thread.id, userId);
     const now = new Date();
     const inserted = await tx
       .insert(messages)
-      .values({ threadId: thread.id, senderId: userId, kind: "text", text, createdAt: now })
+      .values(
+        body.kind === "voice"
+          ? { threadId: thread.id, senderId: userId, kind: "voice", mediaUrl: body.voiceUrl, voiceSec: body.voiceSec, replyToId: replyId, createdAt: now }
+          : body.kind === "photo"
+            ? { threadId: thread.id, senderId: userId, kind: "photo", text: body.text || null, photos: body.photos, replyToId: replyId, createdAt: now }
+            : { threadId: thread.id, senderId: userId, kind: "text", text: body.text, replyToId: replyId, createdAt: now },
+      )
       .returning({ id: messages.id, createdAt: messages.createdAt });
     const row = inserted[0];
     if (!row) return { error: "save", status: 500 };
     await tx.update(threads).set({ lastMessageAt: now }).where(eq(threads.id, thread.id));
 
-    const [sender, card, ask] = await Promise.all([
+    const [sender, card, ask, quoted] = await Promise.all([
       tx.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1),
       thread.listingId
         ? tx.select({ title: listings.title }).from(listings).where(eq(listings.id, thread.listingId)).limit(1)
@@ -399,25 +516,46 @@ export async function sendChat(userId: string, threadId: string, raw: string): P
             .where(eq(purchaseRequests.id, thread.requestId))
             .limit(1)
         : Promise.resolve([]),
+      replyId
+        ? tx
+            .select({ id: messages.id, senderId: messages.senderId, kind: messages.kind, text: messages.text, deletedAt: messages.deletedAt })
+            .from(messages)
+            .where(eq(messages.id, replyId))
+            .limit(1)
+        : Promise.resolve([]),
     ]);
     await saveNotice(tx, {
       userId: peerId,
       type: "chat_message",
       listingId: thread.listingId,
-      textKey: "notifChat",
+      textKey: body.kind === "voice" ? "notifChatVoice" : body.kind === "photo" ? "notifChatPhoto" : "notifChat",
       params: {
         name: holdPersonName(sender[0]?.name),
         title: (card[0]?.title || ask[0]?.text || "").slice(0, 120),
         threadId: thread.id,
       },
       actorId: userId,
-      chat: { preview: text },
+      chat: body.kind === "voice" ? { media: "voice" } : body.kind === "photo" ? { media: "photo" } : { preview: body.text },
     });
+    const quote = quoted[0];
     return {
       message: {
         id: row.id,
         mine: true,
-        text,
+        kind: body.kind,
+        text: body.kind === "text" ? body.text : body.kind === "photo" ? body.text : "",
+        voiceUrl: body.kind === "voice" ? body.voiceUrl : null,
+        voiceSec: body.kind === "voice" ? body.voiceSec : null,
+        photos: body.kind === "photo" ? body.photos : null,
+        replyTo: quote
+          ? {
+              id: quote.id,
+              mine: quote.senderId === userId,
+              kind: quote.kind === "voice" ? "voice" : quote.kind === "photo" ? "photo" : "text",
+              text: quote.deletedAt ? "" : (quote.text ?? "").trim(),
+              deleted: Boolean(quote.deletedAt),
+            }
+          : null,
         createdAt: row.createdAt.toISOString(),
       },
     };
@@ -474,7 +612,6 @@ export async function deleteChatMessage(userId: string, threadId: string, messag
         eq(messages.id, messageId),
         eq(messages.threadId, thread.id),
         eq(messages.senderId, userId),
-        eq(messages.kind, "text"),
         isNull(messages.deletedAt),
       ),
     )

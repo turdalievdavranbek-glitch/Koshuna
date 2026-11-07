@@ -1,12 +1,17 @@
 "use client";
 
 import { MasterBadge } from "@/components/master-badge";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { takeChatDraft } from "@/lib/chat-draft";
 import { buyRequestChatTitle } from "@/lib/buy-request";
 import { CHAT_REACTIONS, type ChatDetail, type ChatLine } from "@/lib/chat";
+import { lineTop, readChatScroll, saveChatScroll } from "@/lib/chat-scroll";
+import { ChatMic, PhotoStrip, PhotoViewer, QuoteChip, VoiceBubble, quoteSnippet } from "@/components/chat-voice";
+import { jpegDataUrl } from "@/lib/photo-price";
+import { NativePhotoInputs, openFileInput } from "@/components/native-photo";
+import { materializeMedia } from "@/lib/api/upload";
 import { EmojiPanel } from "@/components/emoji-panel";
 import { presenceLabel, replyBucket } from "@/lib/presence";
 import { formatWhen } from "@/lib/dates";
@@ -35,15 +40,33 @@ export default function ChatPage() {
   const [text, setText] = useState(() => (typeof window === "undefined" || !id ? "" : takeChatDraft(id)));
   const [sendError, setSendError] = useState("");
   const [sending, setSending] = useState(false);
-  const end = useRef<HTMLDivElement>(null);
-  const seen = useRef(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true);
+  const awayRef = useRef(false);
+  const placedFor = useRef("");
+  const openFor = useRef("");
+  const unreadLocked = useRef(false);
+  const unreadFromRef = useRef<string | null>(null);
+  const [unreadFrom, setUnreadFrom] = useState<string | null>(null);
+  const [shownThread, setShownThread] = useState<string | null>(null);
+  const [away, setAway] = useState(false);
   // Own message actions: long-press (phone) or «⋯» on hover (desktop) opens a sheet.
   const [menuFor, setMenuFor] = useState<ChatLine | null>(null);
   const [threadMenu, setThreadMenu] = useState(false);
   const closeThreadMenu = useCallback(() => setThreadMenu(false), []);
   const [editing, setEditing] = useState<ChatLine | null>(null);
   const hold = useRef<number | null>(null);
+  const swipeX = useRef(0);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [quoting, setQuoting] = useState<ChatLine | null>(null);
+  const [highlight, setHighlight] = useState("");
+  const [micLive, setMicLive] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [viewer, setViewer] = useState<{ urls: string[]; index: number } | null>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingSent = useRef(0);
   const signalTyping = useCallback(() => {
@@ -59,14 +82,24 @@ export default function ChatPage() {
     return () => removeOverlay("chat-msg-menu");
   }, [menuFor]);
 
+  const idRef = useRef(id);
+  idRef.current = id;
+
   const load = useCallback(async () => {
     if (!id) return;
     const res = await api<ChatDetail>(`/api/threads/${encodeURIComponent(id)}`);
     if (!res.ok || !res.data?.id) {
-      if (res.status === 404) setMissing(true);
+      if (res.status === 404 && idRef.current === id) setMissing(true);
       return;
     }
+    if (res.data.id !== idRef.current) return;
     setMissing(false);
+    const next = res.data;
+    if (next.id === idRef.current && !unreadLocked.current) {
+      unreadLocked.current = true;
+      unreadFromRef.current = next.firstUnreadId || null;
+      setUnreadFrom(unreadFromRef.current);
+    }
     setDetail((cur) => {
       const next = res.data;
       if (!next) return cur;
@@ -92,13 +125,82 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, user?.id, id, load]);
 
-  useEffect(() => {
-    const n = detail?.messages.length ?? 0;
-    if (n !== seen.current) {
-      seen.current = n;
-      end.current?.scrollIntoView({ behavior: "smooth" });
+  const placeScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el || !id) return;
+    const gap = () => el.scrollHeight - el.scrollTop - el.clientHeight;
+    const pin = (next: boolean) => {
+      stickRef.current = next;
+      const up = !next && gap() >= 80;
+      if (up !== awayRef.current) {
+        awayRef.current = up;
+        setAway(up);
+      }
+    };
+    if (placedFor.current !== id) {
+      placedFor.current = id;
+      const unreadNode = unreadFromRef.current ? document.getElementById("chat-unread") : null;
+      if (unreadNode) {
+        el.scrollTop = Math.max(0, lineTop(unreadNode, el) - 8);
+        pin(gap() < 48);
+      } else {
+        const saved = readChatScroll(id);
+        const node = saved?.anchorId
+          ? el.querySelector<HTMLElement>(`[data-chat-line="${CSS.escape(saved.anchorId)}"]`)
+          : null;
+        if (saved && !saved.atBottom && node) {
+          el.scrollTop = Math.max(0, lineTop(node, el) - saved.offset);
+          pin(false);
+        } else if (saved && !saved.atBottom) {
+          el.scrollTop = saved.top;
+          pin(false);
+        } else {
+          el.scrollTop = el.scrollHeight;
+          pin(true);
+        }
+      }
+    } else if (stickRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [detail?.messages.length]);
+    saveChatScroll(id, el);
+  }, [id]);
+
+  useLayoutEffect(() => {
+    if (openFor.current !== (id || "")) {
+      openFor.current = id || "";
+      placedFor.current = "";
+      unreadLocked.current = false;
+      unreadFromRef.current = null;
+      setUnreadFrom(null);
+      setShownThread(null);
+    }
+    if (!detail || detail.id !== id) return;
+    placeScroll();
+    if (shownThread !== detail.id) setShownThread(detail.id);
+  }, [id, detail, unreadFrom, placeScroll, shownThread]);
+
+  const onListScroll = () => {
+    const el = scrollerRef.current;
+    if (!el || !detail || detail.id !== id || shownThread !== detail.id) return;
+    const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickRef.current = gap < 48;
+    const up = gap >= 80;
+    if (up !== awayRef.current) {
+      awayRef.current = up;
+      setAway(up);
+    }
+    saveChatScroll(detail.id, el);
+  };
+
+  const jumpLatest = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    stickRef.current = true;
+    awayRef.current = false;
+    setAway(false);
+    if (detail) saveChatScroll(detail.id, el);
+  };
 
   if (!ready || !user) return null;
 
@@ -234,7 +336,7 @@ export default function ChatPage() {
     setSendError("");
     const res = await api<{ message?: ChatLine }>(`/api/threads/${encodeURIComponent(detail.id)}`, {
       method: "POST",
-      json: { text: body },
+      json: { text: body, replyToId: quoting?.id },
     });
     setSending(false);
     if (!res.ok || !res.data?.message) {
@@ -248,12 +350,115 @@ export default function ChatPage() {
     }
     const message = res.data.message;
     setText("");
+    setQuoting(null);
     setDetail((cur) => {
       if (!cur) return cur;
       if (cur.messages.some((row) => row.id === message.id)) return cur;
       return { ...cur, messages: [...cur.messages, message] };
     });
   };
+
+  const sendVoice = async (blob: Blob, seconds: number) => {
+    if (sending || detail.blocked) return;
+    void enableNativePush();
+    setSending(true);
+    setSendError("");
+    try {
+      const local = URL.createObjectURL(blob);
+      const voiceUrl = await materializeMedia(local, "voice", seconds);
+      URL.revokeObjectURL(local);
+      const res = await api<{ message?: ChatLine }>(`/api/threads/${encodeURIComponent(detail.id)}`, {
+        method: "POST",
+        json: { voiceUrl, voiceSec: seconds, replyToId: quoting?.id },
+      });
+      if (!res.ok || !res.data?.message) {
+        setSendError(res.error === "blocked" ? t.chatBlocked : t.chatSendFailed);
+        if (res.error === "blocked") setDetail({ ...detail, blocked: true });
+        return;
+      }
+      const message = res.data.message;
+      setQuoting(null);
+      setDetail((cur) => {
+        if (!cur) return cur;
+        if (cur.messages.some((row) => row.id === message.id)) return cur;
+        return { ...cur, messages: [...cur.messages, message] };
+      });
+    } catch {
+      setSendError(t.chatSendFailed);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const takePhotos = async (files: File[]) => {
+    const images = files.filter((file) => file.type.startsWith("image/"));
+    const room = Math.max(0, 5 - pendingPhotos.length);
+    const picked = images.slice(0, room);
+    setAttachOpen(false);
+    if (!images.length) return;
+    if (images.length > room) setSendError(t.chatPhotoLimit);
+    if (!picked.length) return;
+    const urls: string[] = [];
+    for (const file of picked) {
+      const raw = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      urls.push(await jpegDataUrl(raw, 1280, 0.72));
+    }
+    setPendingPhotos((cur) => [...cur, ...urls].slice(0, 5));
+  };
+
+  const sendPhotos = async () => {
+    if (!pendingPhotos.length || sending || detail.blocked) return;
+    void enableNativePush();
+    setSending(true);
+    setSendError("");
+    setUploadPct(0);
+    try {
+      const urls: string[] = [];
+      for (let i = 0; i < pendingPhotos.length; i += 1) {
+        const url = await materializeMedia(pendingPhotos[i], "photo", undefined, (ratio) => {
+          setUploadPct(Math.round(((i + ratio) / pendingPhotos.length) * 100));
+        });
+        urls.push(url);
+      }
+      const res = await api<{ message?: ChatLine }>(`/api/threads/${encodeURIComponent(detail.id)}`, {
+        method: "POST",
+        json: { photos: urls, text, replyToId: quoting?.id },
+      });
+      if (!res.ok || !res.data?.message) {
+        setSendError(t.chatSendFailed);
+        return;
+      }
+      const message = res.data.message;
+      setText("");
+      setQuoting(null);
+      setPendingPhotos([]);
+      setDetail((cur) => {
+        if (!cur) return cur;
+        if (cur.messages.some((row) => row.id === message.id)) return cur;
+        return { ...cur, messages: [...cur.messages, message] };
+      });
+    } catch {
+      setSendError(t.chatSendFailed);
+    } finally {
+      setSending(false);
+      setUploadPct(null);
+    }
+  };
+
+  const jumpTo = (messageId: string) => {
+    const root = scrollerRef.current;
+    const node = document.getElementById(`chat-line-${messageId}`);
+    if (root && node) root.scrollTo({ top: Math.max(0, lineTop(node, root) - 24), behavior: "smooth" });
+    setHighlight(messageId);
+    window.setTimeout(() => setHighlight((cur) => (cur === messageId ? "" : cur)), 1400);
+  };
+
+  const quoteLabels = { deleted: t.chatDeleted, voice: t.chatVoiceQuote, photo: t.chatPhotoQuote };
 
   const title = buyRequestChatTitle(detail.title, detail.requestQuantity, detail.requestUnit, t.buyUnits) || t.chatListingGone;
   const peer = detail.peerName || t.holdNoName;
@@ -324,24 +529,45 @@ export default function ChatPage() {
         </button>
       </div>
 
-      <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-[18px]">
+      <div className="relative min-h-0 flex-1">
+      <div
+        ref={scrollerRef}
+        onScroll={onListScroll}
+        data-testid="chat-log"
+        className={`sc flex h-full flex-col gap-2.5 overflow-y-auto px-4 py-[18px] ${shownThread === detail.id ? "" : "invisible"}`}
+        style={{ overflowAnchor: "none" }}
+      >
         {detail.messages.length === 0 ? <p className="text-center text-[13px] text-muted">{t.chatStart}</p> : null}
         {detail.messages.map((m) => {
           const when = `${m.editedAt && !m.deleted ? `${t.chatEdited} · ` : ""}${formatWhen(m.createdAt, lang)}`;
+          const divider = unreadFrom === m.id ? (
+            <div id="chat-unread" data-testid="chat-unread" className="flex items-center gap-2 py-1">
+              <span className="h-px flex-1 bg-line" />
+              <span className="rounded-full bg-chip px-2.5 py-0.5 text-[11px] font-semibold text-muted">{t.chatUnreadDivider}</span>
+              <span className="h-px flex-1 bg-line" />
+            </div>
+          ) : null;
           if (m.deleted) {
             return (
+              <Fragment key={m.id}>
+                {divider}
               <div
-                key={m.id}
                 data-testid="chat-msg-deleted"
+                data-chat-line={m.id}
+                id={`chat-line-${m.id}`}
                 className={`max-w-[78%] rounded-[18px] border border-dashed border-line px-3.5 py-2 ${m.mine ? "self-end" : "self-start"}`}
               >
                 <div className="text-[14px] italic leading-[1.45] text-muted">{t.chatDeleted}</div>
                 <div className="mt-0.5 text-right text-[11px] text-muted-2">{formatWhen(m.createdAt, lang)}</div>
               </div>
+              </Fragment>
             );
           }
-          return m.mine ? (
-            <div key={m.id} className="group flex max-w-[86%] items-center gap-1 self-end">
+          return (
+            <Fragment key={m.id}>
+            {divider}
+            {m.mine ? (
+            <div className="group flex max-w-[86%] items-center gap-1 self-end">
               <button
                 type="button"
                 data-testid="chat-msg-more"
@@ -354,10 +580,18 @@ export default function ChatPage() {
               <div className="flex min-w-0 flex-col items-end">
               <div
                 data-testid="chat-msg-mine"
-                className="min-w-0 select-none rounded-[18px_18px_6px_18px] bg-ink px-3.5 py-2.5"
+                id={`chat-line-${m.id}`}
+                data-chat-line={m.id}
+                className={`min-w-0 select-none rounded-[18px_18px_6px_18px] bg-ink px-3.5 py-2.5 ${highlight === m.id ? "ring-2 ring-[#FFE600]" : ""}`}
                 style={{ WebkitTouchCallout: "none" }}
-                onPointerDown={() => holdStart(m)}
-                onPointerUp={holdStop}
+                onPointerDown={(event) => {
+                  swipeX.current = event.clientX;
+                  holdStart(m);
+                }}
+                onPointerUp={(event) => {
+                  holdStop();
+                  if (!m.deleted && event.clientX - swipeX.current > 64) setQuoting(m);
+                }}
                 onPointerLeave={holdStop}
                 onPointerCancel={holdStop}
                 onPointerMove={(e) => {
@@ -369,20 +603,40 @@ export default function ChatPage() {
                   setMenuFor(m);
                 }}
               >
-                <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div>
+                {m.replyTo ? (
+                  <QuoteChip quote={m.replyTo} mine you={t.chatReplyYou} peer={peer} labels={quoteLabels} onJump={() => jumpTo(m.replyTo!.id)} />
+                ) : null}
+                {m.kind === "voice" && m.voiceUrl ? (
+                  <VoiceBubble src={m.voiceUrl} seconds={m.voiceSec} mine />
+                ) : m.kind === "photo" && m.photos?.length ? (
+                  <div>
+                    <PhotoStrip urls={m.photos} mine onOpen={(index) => setViewer({ urls: m.photos || [], index })} />
+                    {m.text ? <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div> : null}
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-screen">{m.text}</div>
+                )}
                 <div className="mt-1 text-right text-[11px] text-[rgba(245,245,247,.6)]">{when}</div>
               </div>
               {badge(m)}
               </div>
             </div>
           ) : (
-            <div key={m.id} className="flex max-w-[78%] flex-col items-start self-start">
+            <div className="flex max-w-[78%] flex-col items-start self-start">
               <div
                 data-testid="chat-msg-peer"
-                className="select-none rounded-[18px_18px_18px_6px] border border-line bg-white px-3.5 py-2.5"
+                id={`chat-line-${m.id}`}
+                data-chat-line={m.id}
+                className={`select-none rounded-[18px_18px_18px_6px] border border-line bg-white px-3.5 py-2.5 ${highlight === m.id ? "ring-2 ring-[#FFE600]" : ""}`}
                 style={{ WebkitTouchCallout: "none" }}
-                onPointerDown={() => holdStart(m)}
-                onPointerUp={holdStop}
+                onPointerDown={(event) => {
+                  swipeX.current = event.clientX;
+                  holdStart(m);
+                }}
+                onPointerUp={(event) => {
+                  holdStop();
+                  if (!m.deleted && event.clientX - swipeX.current > 64) setQuoting(m);
+                }}
                 onPointerLeave={holdStop}
                 onPointerCancel={holdStop}
                 onPointerMove={(e) => {
@@ -395,14 +649,39 @@ export default function ChatPage() {
                 }}
                 onDoubleClick={() => void react(m, "❤️")}
               >
-                <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div>
+                {m.replyTo ? (
+                  <QuoteChip quote={m.replyTo} mine={false} you={t.chatReplyYou} peer={peer} labels={quoteLabels} onJump={() => jumpTo(m.replyTo!.id)} />
+                ) : null}
+                {m.kind === "voice" && m.voiceUrl ? (
+                  <VoiceBubble src={m.voiceUrl} seconds={m.voiceSec} mine={false} />
+                ) : m.kind === "photo" && m.photos?.length ? (
+                  <div>
+                    <PhotoStrip urls={m.photos} mine={false} onOpen={(index) => setViewer({ urls: m.photos || [], index })} />
+                    {m.text ? <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div> : null}
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-ink">{m.text}</div>
+                )}
                 <div className="mt-1 text-right text-[11px] text-muted-2">{when}</div>
               </div>
               {badge(m)}
             </div>
+            )}
+            </Fragment>
           );
         })}
-        <div ref={end} />
+      </div>
+      {away ? (
+        <button
+          type="button"
+          data-testid="chat-jump-latest"
+          aria-label={t.chatJumpLatest}
+          onClick={jumpLatest}
+          className="absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-ink text-[18px] text-white shadow-lg"
+        >
+          ↓
+        </button>
+      ) : null}
       </div>
 
       {detail.blocked ? <p className="px-4 pb-2 text-[13px] text-accent">{t.chatBlocked}</p> : null}
@@ -421,6 +700,17 @@ export default function ChatPage() {
               </button>
             ))}
           </div>
+          {quoting ? (
+            <div className="flex items-center gap-2 border-t border-line bg-white px-4 pt-2" data-testid="chat-replying">
+              <div className="min-w-0 flex-1 border-l-2 border-accent pl-2">
+                <div className="text-[12px] font-bold text-accent">{quoting.mine ? t.chatReplyYou : peer}</div>
+                <div className="truncate text-[13px] text-muted">{quoteSnippet(quoting, quoteLabels)}</div>
+              </div>
+              <button type="button" aria-label={t.cardDeleteCancel} onClick={() => setQuoting(null)} className="h-8 w-8 shrink-0 rounded-full text-[16px] text-muted">
+                ✕
+              </button>
+            </div>
+          ) : null}
           {editing ? (
             <div className="flex items-center gap-2 border-t border-line bg-white px-4 pt-2 text-[13px]" data-testid="chat-editing">
               <span className="min-w-0 flex-1 truncate font-semibold text-accent">
@@ -440,7 +730,41 @@ export default function ChatPage() {
             </div>
           ) : null}
           {emojiOpen ? <EmojiPanel onPick={insertEmoji} /> : null}
+          {pendingPhotos.length && !micLive ? (
+            <div className="flex gap-2 overflow-x-auto border-t border-line bg-white px-3 py-2">
+              {pendingPhotos.map((url, index) => (
+                <div key={`${index}-${url.slice(-16)}`} className="relative shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="h-14 w-14 rounded-[10px] object-cover" />
+                  <button
+                    type="button"
+                    aria-label={t.cardDeleteCancel}
+                    onClick={() => setPendingPhotos((cur) => cur.filter((_, i) => i !== index))}
+                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {uploadPct != null ? (
+            <div className="h-1 bg-chip" data-testid="chat-upload-progress">
+              <div className="h-full bg-accent" style={{ width: `${uploadPct}%` }} />
+            </div>
+          ) : null}
           <div className="flex w-full min-w-0 max-w-full items-center gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
+            {micLive ? null : (
+            <button
+              type="button"
+              data-testid="chat-attach"
+              aria-label={t.chatAttach}
+              onClick={() => setAttachOpen(true)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[20px]"
+            >
+              📎
+            </button>
+            )}
             <button
               type="button"
               data-testid="chat-emoji"
@@ -461,24 +785,43 @@ export default function ChatPage() {
                 if (e.target.value.trim() && !editing) signalTyping();
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void send();
+                if (e.key === "Enter") void (pendingPhotos.length ? sendPhotos() : send());
               }}
-              placeholder={t.msgPh}
+              placeholder={pendingPhotos.length ? t.chatPhotoCaption : t.msgPh}
               size={1}
-              className="h-11 w-0 min-w-0 flex-1 rounded-full border border-line bg-screen px-3.5 text-[15px] outline-none placeholder:text-muted-2"
+              className={`h-11 min-w-0 flex-1 rounded-full border border-line bg-screen px-3.5 text-[15px] outline-none placeholder:text-muted-2 ${micLive ? "hidden" : ""}`}
             />
+            {text.trim() || editing || pendingPhotos.length ? (
             <button
               type="button"
               data-testid="chat-send"
               disabled={sending}
-              onClick={() => void send()}
+              onClick={() => void (pendingPhotos.length ? sendPhotos() : send())}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent disabled:opacity-60"
             >
               <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="#FFFFFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 3 2.5 8.2l4.2 1.3L15.8 3.2 8.4 11l.4 4 2.2-3 3 2.4z" />
               </svg>
             </button>
+            ) : (
+              <ChatMic
+                disabled={sending}
+                cancelLabel={t.chatVoiceCancel}
+                onDenied={() => setSendError(t.chatMicDenied)}
+                onShort={() => setSendError(t.chatVoiceShort)}
+                onLive={setMicLive}
+                onSend={(blob, seconds) => void sendVoice(blob, seconds)}
+              />
+            )}
           </div>
+          <NativePhotoInputs
+            cameraRef={cameraRef}
+            galleryRef={galleryRef}
+            galleryMultiple
+            galleryTestId="chat-photo-file"
+            onFile={(file) => void takePhotos([file])}
+            onGalleryFiles={(files) => void takePhotos(files)}
+          />
         </>
       )}
       </div>
@@ -515,9 +858,24 @@ export default function ChatPage() {
                 </button>
               ))}
             </div>
-            <p className="truncate px-4 pb-2 text-[13px] text-muted">{menuFor.text}</p>
-            {menuFor.mine ? (
-            <>
+            <p className="truncate px-4 pb-2 text-[13px] text-muted">
+              {menuFor.kind === "voice" ? t.chatVoiceQuote : menuFor.kind === "photo" ? t.chatPhotoQuote : menuFor.text}
+            </p>
+            {!menuFor.deleted ? (
+              <button
+                type="button"
+                data-testid="chat-msg-reply"
+                onClick={() => {
+                  const line = menuFor;
+                  setMenuFor(null);
+                  setQuoting(line);
+                }}
+                className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-ink active:bg-chip"
+              >
+                {t.chatReply}
+              </button>
+            ) : null}
+            {menuFor.mine && menuFor.kind !== "voice" && menuFor.kind !== "photo" ? (
             <button
               type="button"
               data-testid="chat-msg-edit"
@@ -531,6 +889,8 @@ export default function ChatPage() {
             >
               {t.edit}
             </button>
+            ) : null}
+            {menuFor.mine ? (
             <button
               type="button"
               data-testid="chat-msg-delete"
@@ -543,13 +903,30 @@ export default function ChatPage() {
             >
               {t.cardDelete}
             </button>
-            </>
             ) : null}
             <button
               type="button"
               onClick={() => setMenuFor(null)}
               className="mt-1 block h-[48px] w-full text-center text-[15px] font-semibold text-muted"
             >
+              {t.cardDeleteCancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {viewer ? (
+        <PhotoViewer urls={viewer.urls} index={viewer.index} onClose={() => setViewer(null)} onIndex={(index) => setViewer({ urls: viewer.urls, index })} />
+      ) : null}
+      {attachOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(24,24,27,.45)]" onClick={() => setAttachOpen(false)}>
+          <div className="w-full max-w-[430px] rounded-t-[24px] bg-white px-3 pb-6 pt-3" onClick={(event) => event.stopPropagation()}>
+            <button type="button" data-testid="chat-camera" onClick={() => { setAttachOpen(false); openFileInput(cameraRef.current); }} className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold">
+              {t.chatCamera}
+            </button>
+            <button type="button" data-testid="chat-gallery" onClick={() => { setAttachOpen(false); openFileInput(galleryRef.current); }} className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold">
+              {t.postGallery}
+            </button>
+            <button type="button" onClick={() => setAttachOpen(false)} className="mt-1 block h-[48px] w-full text-[15px] font-semibold text-muted">
               {t.cardDeleteCancel}
             </button>
           </div>

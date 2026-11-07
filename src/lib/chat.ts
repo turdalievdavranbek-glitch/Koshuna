@@ -11,6 +11,8 @@ export type ChatThread = {
   peerName: string;
   role: ChatRole;
   preview: string;
+  /** Last message kind, so the inbox can say «голосовое» instead of an empty line. */
+  previewKind?: "text" | "voice" | "photo" | "system" | null;
   lastMessageAt: string | null;
   unread: number;
   /** Seen within the last 2 minutes. */
@@ -19,11 +21,25 @@ export type ChatThread = {
   requestUnit?: string | null;
 };
 
+export type ChatQuote = {
+  id: string;
+  mine: boolean;
+  kind: "text" | "voice" | "photo";
+  /** Empty when the original was deleted. */
+  text: string;
+  deleted: boolean;
+};
+
 export type ChatLine = {
   id: string;
   mine: boolean;
-  /** Empty when deleted. */
+  kind?: "text" | "voice" | "photo";
+  /** Empty when deleted or when the message is only media. */
   text: string;
+  voiceUrl?: string | null;
+  voiceSec?: number | null;
+  photos?: string[] | null;
+  replyTo?: ChatQuote | null;
   createdAt: string;
   editedAt?: string | null;
   deleted?: boolean;
@@ -46,6 +62,8 @@ export type ChatDetail = {
   /** Listing section, so a service chat offers service quick replies. */
   section?: string | null;
   messages: ChatLine[];
+  /** Oldest still-unread message on the first open. Later polls send null; the client keeps the divider. */
+  firstUnreadId?: string | null;
   /** Presence: last signed-in activity of the other person (ISO). */
   peerLastSeenAt?: string | null;
   peerTyping?: boolean;

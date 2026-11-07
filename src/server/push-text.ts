@@ -9,6 +9,7 @@ type Copy = {
   noName: string;
   photo: string;
   video: string;
+  voice: string;
   holdAsked: (name: string, title: string) => string;
   holdYes: (title: string) => string;
   holdNo: (title: string) => string;
@@ -28,8 +29,9 @@ const COPY: Record<PushLang, Copy> = {
   ru: {
     app: "Коңшу",
     noName: "без имени",
-    photo: "Фото",
+    photo: "📷 Фото",
     video: "Видео",
+    voice: "🎤 Голосовое сообщение",
     holdAsked: (name, title) => `${name} просит отложить «${title}»`,
     holdYes: (title) => `Для вас отложили «${title}»`,
     holdNo: (title) => `Отказали отложить «${title}»`,
@@ -47,8 +49,9 @@ const COPY: Record<PushLang, Copy> = {
   ky: {
     app: "Коңшу",
     noName: "аты жок",
-    photo: "Сүрөт",
+    photo: "📷 Сүрөт",
     video: "Видео",
+    voice: "🎤 Үн билдирүү",
     holdAsked: (name, title) => `${name} «${title}» калтырууну сурайт`,
     holdYes: (title) => `Сиз үчүн «${title}» калтырылды`,
     holdNo: (title) => `«${title}» калтыруудан баш тартышты`,
@@ -128,7 +131,7 @@ export type PushCopyInput = {
   textKey: string;
   name?: string;
   title?: string;
-  chat?: { preview?: string; media?: "photo" | "video" };
+  chat?: { preview?: string; media?: "photo" | "video" | "voice" };
 };
 
 /** Chat: sender name + preview (or Фото/Видео). Other notices: the same sentence as the bell. */
@@ -143,7 +146,9 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
         ? copy.photo
         : media === "video"
           ? copy.video
-          : (input.chat?.preview ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
+          : media === "voice"
+            ? copy.voice
+            : (input.chat?.preview ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
     const body = (preview || copy.chat(name, title)).slice(0, 100);
     return { title: name.slice(0, 80), body };
   }

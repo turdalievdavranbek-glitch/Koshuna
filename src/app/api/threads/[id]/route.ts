@@ -1,5 +1,5 @@
 import { sealChat } from "@/lib/chat";
-import { clearChatForUser, readChat, sendChat } from "@/server/chat";
+import { clearChatForUser, readChat, sendChat, sendPhotoChat, sendVoiceChat } from "@/server/chat";
 import { isDbUserId } from "@/lib/phone";
 import { guardCsrf, json, readJson, requireUser } from "@/server/http";
 import { NextResponse } from "next/server";
@@ -27,8 +27,13 @@ export async function POST(req: Request, ctx: Ctx) {
   const limited = limitOr429(`msg-min:${user.id}`, 30, 60_000) ?? limitOr429(`msg-hour:${user.id}`, 400, 3_600_000);
   if (limited) return limited;
   const { id } = await ctx.params;
-  const body = await readJson<{ text?: string }>(req);
-  const result = await sendChat(user.id, id, body?.text ?? "");
+  const body = await readJson<{ text?: string; voiceUrl?: string; voiceSec?: number; photos?: string[]; replyToId?: string }>(req);
+  const replyToId = typeof body?.replyToId === "string" ? body.replyToId : null;
+  const result = body?.voiceUrl
+    ? await sendVoiceChat(user.id, id, body.voiceUrl, Number(body.voiceSec), replyToId)
+    : Array.isArray(body?.photos)
+      ? await sendPhotoChat(user.id, id, body.photos, body?.text ?? "", replyToId)
+      : await sendChat(user.id, id, body?.text ?? "", replyToId);
   if ("error" in result) return json({ error: result.error }, result.status);
   return json(sealChat(result), 200, { "Cache-Control": "no-store" });
 }

@@ -30,7 +30,7 @@ export type NoticeWrite = {
   /** The other person. Push is skipped when either side has blocked the other. */
   actorId?: string | null;
   /** Chat only: message preview, or a photo/video label chosen from the recipient's language. */
-  chat?: { preview?: string; media?: "photo" | "video" };
+  chat?: { preview?: string; media?: "photo" | "video" | "voice" };
 };
 
 const pendingPushes = new AsyncLocalStorage<NoticePush[]>();

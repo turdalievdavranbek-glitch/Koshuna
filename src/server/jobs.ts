@@ -11,6 +11,7 @@ import {
   devices,
   listings,
   media,
+  messages,
   notifications,
   priceStats,
   pushTokens,
@@ -248,7 +249,15 @@ export async function cleanupJob(): Promise<{ ok: true; counts: Record<string, n
   const orphans = await db
     .select()
     .from(media)
-    .where(and(eq(media.uploadStatus, "ready"), isNull(media.listingId), isNull(media.shopId), lt(media.createdAt, weekAgo)));
+    .where(
+      and(
+        eq(media.uploadStatus, "ready"),
+        isNull(media.listingId),
+        isNull(media.shopId),
+        lt(media.createdAt, weekAgo),
+        sql`not exists (select 1 from ${messages} where ${messages.deletedAt} is null and (${messages.mediaUrl} = ${media.url} or ${media.url} = any(${messages.photos})))`,
+      ),
+    );
   for (const row of orphans) {
     if (row.path) await removeFile(row.path).catch(() => undefined);
   }
