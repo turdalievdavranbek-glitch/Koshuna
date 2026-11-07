@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { recorderMime, recorderOptions } from "@/lib/blob-media";
 import type { ChatLine, ChatQuote } from "@/lib/chat";
+import { hasNativeMic, requestNativeMic, type MicGate } from "@/lib/mic-permission";
 
 const MAX_SEC = 120;
 
@@ -131,25 +132,29 @@ export function VoiceBubble({ src, seconds, mine }: { src: string; seconds?: num
   );
 }
 
+type Phase = "idle" | "recording" | "locked";
+
 export function ChatMic({
   disabled,
   cancelLabel,
   onSend,
   onDenied,
-  onShort,
-  onLive,
+  onTap,
 }: {
   disabled?: boolean;
   cancelLabel: string;
   onSend: (blob: Blob, seconds: number) => void;
-  onDenied: () => void;
-  onShort: () => void;
-  onLive?: (live: boolean) => void;
+  onDenied: (gate: Exclude<MicGate, "granted">) => void;
+  /** Finger already up before a real recording started. */
+  onTap: () => void;
 }) {
-  const [rec, setRec] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [cancel, setCancel] = useState(false);
   const [sec, setSec] = useState(0);
+  const phaseRef = useRef<Phase>("idle");
+  const holding = useRef(false);
   const startX = useRef(0);
+  const startY = useRef(0);
   const started = useRef(0);
   const stream = useRef<MediaStream | null>(null);
   const media = useRef<MediaRecorder | null>(null);
@@ -158,6 +163,10 @@ export function ChatMic({
   const cap = useRef<number | null>(null);
   const cancelRef = useRef(false);
 
+  const show = (next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  };
   const stopTracks = () => {
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
@@ -168,16 +177,25 @@ export function ChatMic({
     timer.current = null;
     cap.current = null;
   };
-
-  const finish = (send: boolean) => {
+  /** Back to the text field. Does not stop the encoder; callers stop the recorder first. */
+  const clearUi = () => {
     clearTimers();
-    const elapsed = (Date.now() - started.current) / 1000;
+    cancelRef.current = false;
+    setCancel(false);
+    setSec(0);
+    show("idle");
+  };
+  const stopRecorder = () => {
     const rec = media.current;
     media.current = null;
-    setRec(false);
-    onLive?.(false);
-    setCancel(false);
-    if (!rec || rec.state === "inactive") {
+    if (!rec || rec.state === "inactive") return null;
+    return rec;
+  };
+  const finish = (send: boolean) => {
+    const elapsed = (Date.now() - started.current) / 1000;
+    const rec = stopRecorder();
+    clearUi();
+    if (!rec) {
       stopTracks();
       return;
     }
@@ -185,75 +203,211 @@ export function ChatMic({
       stopTracks();
       const blob = new Blob(chunks.current, { type: rec.mimeType || "audio/webm" });
       if (send && elapsed >= 0.4 && blob.size > 0) onSend(blob, Math.min(MAX_SEC, Math.round(elapsed)));
-      else if (send) onShort();
+      else if (send) onTap();
     };
-    rec.stop();
-  };
-
-  const begin = async (event: PointerEvent<HTMLButtonElement>) => {
-    if (disabled || rec) return;
-    event.preventDefault();
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      onDenied();
-      return;
-    }
     try {
-      const live = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.current = live;
-      const mime = recorderMime("audio");
-      const next = new MediaRecorder(live, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("audio") });
-      chunks.current = [];
-      next.ondataavailable = (item) => {
-        if (item.data.size) chunks.current.push(item.data);
-      };
-      media.current = next;
-      next.start();
-      started.current = Date.now();
-      startX.current = event.clientX;
-      cancelRef.current = false;
-      setCancel(false);
-      setSec(0);
-      setRec(true);
-      onLive?.(true);
-      event.currentTarget.setPointerCapture(event.pointerId);
-      timer.current = window.setInterval(() => setSec(Math.min(MAX_SEC, Math.floor((Date.now() - started.current) / 1000))), 200);
-      cap.current = window.setTimeout(() => finish(!cancelRef.current), MAX_SEC * 1000);
+      rec.stop();
     } catch {
       stopTracks();
-      onDenied();
     }
   };
+  const discard = () => {
+    const rec = stopRecorder();
+    clearUi();
+    if (!rec) {
+      stopTracks();
+      return;
+    }
+    rec.onstop = () => stopTracks();
+    try {
+      rec.stop();
+    } catch {
+      stopTracks();
+    }
+  };
+  const reset = () => {
+    const rec = stopRecorder();
+    clearUi();
+    if (!rec) {
+      stopTracks();
+      return;
+    }
+    rec.onstop = () => stopTracks();
+    try {
+      rec.stop();
+    } catch {
+      stopTracks();
+    }
+  };
+  const finishRef = useRef(finish);
+  const discardRef = useRef(discard);
+  finishRef.current = finish;
+  discardRef.current = discard;
+
+  useEffect(() => {
+    const move = (event: globalThis.PointerEvent) => {
+      if (phaseRef.current !== "recording") return;
+      const up = startY.current - event.clientY > 64;
+      const left = startX.current - event.clientX > 72;
+      if (up) {
+        cancelRef.current = false;
+        setCancel(false);
+        show("locked");
+        return;
+      }
+      cancelRef.current = left;
+      setCancel(left);
+    };
+    const up = () => {
+      holding.current = false;
+      if (phaseRef.current === "locked") return;
+      if (phaseRef.current === "recording") {
+        if (cancelRef.current) discardRef.current();
+        else finishRef.current(true);
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, []);
+
+  const begin = (event: PointerEvent<HTMLButtonElement>) => {
+    if (disabled || phaseRef.current !== "idle") return;
+    holding.current = true;
+    startX.current = event.clientX;
+    startY.current = event.clientY;
+    cancelRef.current = false;
+    const waitedAt = Date.now();
+    const pendingMic = hasNativeMic() ? null : navigator.mediaDevices?.getUserMedia?.({ audio: true });
+    void (async () => {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+          reset();
+          onDenied("denied");
+          return;
+        }
+        const gate = await requestNativeMic();
+        if (gate !== "granted") {
+          if (pendingMic) pendingMic.then((live) => live.getTracks().forEach((track) => track.stop())).catch(() => undefined);
+          reset();
+          onDenied(gate);
+          return;
+        }
+        if (!holding.current) {
+          if (pendingMic) pendingMic.then((live) => live.getTracks().forEach((track) => track.stop())).catch(() => undefined);
+          reset();
+          if (Date.now() - waitedAt < 280) onTap();
+          return;
+        }
+        const live = pendingMic ? await pendingMic : await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!holding.current || phaseRef.current === "locked") {
+          live.getTracks().forEach((track) => track.stop());
+          if (phaseRef.current === "idle" && Date.now() - waitedAt < 800) onTap();
+          return;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+        if (!holding.current || phaseRef.current !== "idle") {
+          live.getTracks().forEach((track) => track.stop());
+          if (phaseRef.current === "idle") onTap();
+          return;
+        }
+        stream.current = live;
+        const mime = recorderMime("audio");
+        const next = new MediaRecorder(live, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("audio") });
+        chunks.current = [];
+        next.ondataavailable = (item) => {
+          if (item.data.size) chunks.current.push(item.data);
+        };
+        media.current = next;
+        next.start();
+        if (!holding.current) {
+          discard();
+          onTap();
+          return;
+        }
+        started.current = Date.now();
+        setSec(0);
+        show("recording");
+        timer.current = window.setInterval(() => setSec(Math.min(MAX_SEC, Math.floor((Date.now() - started.current) / 1000))), 200);
+        cap.current = window.setTimeout(() => finish(!cancelRef.current && phaseRef.current !== "idle"), MAX_SEC * 1000);
+      } catch {
+        const stillHolding = holding.current;
+        if (pendingMic) pendingMic.then((live) => live.getTracks().forEach((track) => track.stop())).catch(() => undefined);
+        reset();
+        if (stillHolding) onDenied("denied");
+        else onTap();
+      }
+    })();
+  };
+
+  const clock = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  const live = phase !== "idle";
 
   return (
     <>
-      {rec ? (
-        <div className={`flex h-11 min-w-0 flex-1 items-center justify-between rounded-full px-3 text-[13px] font-semibold ${cancel ? "bg-[#FDE8E8] text-accent" : "bg-ink text-screen"}`}>
-          <span className="tabular-nums">{Math.floor(sec / 60)}:{String(sec % 60).padStart(2, "0")}</span>
-          <span className="truncate">{cancelLabel}</span>
+      {live ? (
+        <div
+          className={`absolute inset-y-0 left-0 right-14 z-[1] flex items-center gap-2 rounded-[22px] px-3 text-[13px] font-semibold ${cancel ? "bg-[#FDE8E8] text-accent" : "bg-white text-ink"}`}
+          data-testid="chat-recording"
+        >
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent" />
+          <span className="tabular-nums">{clock}</span>
+          {phase === "locked" ? (
+            <span className="min-w-0 flex-1 truncate text-right text-muted">🔒</span>
+          ) : (
+            <button
+              type="button"
+              data-testid="chat-voice-cancel"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                discard();
+              }}
+              className="min-w-0 flex-1 truncate text-right"
+            >
+              {cancelLabel}
+            </button>
+          )}
         </div>
       ) : null}
-      <button
-        type="button"
-        data-testid="chat-mic"
-        disabled={disabled}
-        aria-label="mic"
-        onPointerDown={(event) => void begin(event)}
-        onPointerMove={(event) => {
-          if (!rec) return;
-          const left = startX.current - event.clientX > 72;
-          cancelRef.current = left;
-          setCancel(left);
-        }}
-        onPointerUp={() => {
-          if (rec) finish(!cancelRef.current);
-        }}
-        onPointerCancel={() => {
-          if (rec) finish(false);
-        }}
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[20px] ${rec ? "bg-accent" : "bg-ink"} disabled:opacity-60`}
-      >
-        <span aria-hidden>🎤</span>
-      </button>
+      {phase === "locked" ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            data-testid="chat-voice-trash"
+            onClick={() => discard()}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-chip text-[18px]"
+            aria-label={cancelLabel}
+          >
+            🗑
+          </button>
+          <button
+            type="button"
+            data-testid="chat-voice-send"
+            onClick={() => finish(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-[18px] text-white"
+            aria-label="send"
+          >
+            ➤
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          data-testid="chat-mic"
+          disabled={disabled}
+          aria-label="mic"
+          onPointerDown={(event) => begin(event)}
+          onContextMenu={(event) => event.preventDefault()}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[20px] text-white disabled:opacity-60"
+        >
+          <span aria-hidden>🎤</span>
+        </button>
+      )}
     </>
   );
 }

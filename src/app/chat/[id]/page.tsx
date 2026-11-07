@@ -18,6 +18,7 @@ import { presenceLabel, replyBucket } from "@/lib/presence";
 import { formatWhen } from "@/lib/dates";
 import { goBack } from "@/lib/go-back";
 import { isDbUserId } from "@/lib/phone";
+import { openMicSettings } from "@/lib/mic-permission";
 import { enableNativePush } from "@/lib/native-push";
 import { useApp } from "@/lib/store";
 import { IconBack } from "@/components/icons";
@@ -61,7 +62,8 @@ export default function ChatPage() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [quoting, setQuoting] = useState<ChatLine | null>(null);
   const [highlight, setHighlight] = useState("");
-  const [micLive, setMicLive] = useState(false);
+  const [micSettings, setMicSettings] = useState(false);
+  const [toast, setToast] = useState("");
   const [attachOpen, setAttachOpen] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -686,7 +688,26 @@ export default function ChatPage() {
       </div>
 
       {detail.blocked ? <p className="px-4 pb-2 text-[13px] text-accent">{t.chatBlocked}</p> : null}
-      {sendError && !detail.blocked ? <p className="px-4 pb-2 text-[13px] text-accent">{sendError}</p> : null}
+      {sendError && !detail.blocked ? (
+        <div className="flex items-center gap-2 px-4 pb-2">
+          <p className="min-w-0 flex-1 text-[13px] text-accent">{sendError}</p>
+          {micSettings ? (
+            <button
+              type="button"
+              data-testid="chat-mic-settings"
+              onClick={() => openMicSettings()}
+              className="shrink-0 rounded-full bg-ink px-3 py-1.5 text-[12px] font-semibold text-white"
+            >
+              {t.chatMicSettings}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {toast ? (
+        <p data-testid="chat-mic-toast" className="px-4 pb-2 text-center text-[13px] font-semibold text-ink">
+          {toast}
+        </p>
+      ) : null}
       {detail.blocked ? null : (
         <>
           <div className="sc flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2">
@@ -731,7 +752,7 @@ export default function ChatPage() {
             </div>
           ) : null}
           {emojiOpen ? <EmojiPanel onPick={insertEmoji} /> : null}
-          {pendingPhotos.length && !micLive ? (
+          {pendingPhotos.length ? (
             <div className="flex gap-2 overflow-x-auto border-t border-line bg-white px-3 py-2">
               {pendingPhotos.map((url, index) => (
                 <div key={`${index}-${url.slice(-16)}`} className="relative shrink-0">
@@ -755,17 +776,6 @@ export default function ChatPage() {
             </div>
           ) : null}
           <div className="flex w-full min-w-0 max-w-full items-end gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
-            {micLive ? null : (
-            <button
-              type="button"
-              data-testid="chat-attach"
-              aria-label={t.chatAttach}
-              onClick={() => setAttachOpen(true)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[20px]"
-            >
-              📎
-            </button>
-            )}
             <button
               type="button"
               data-testid="chat-emoji"
@@ -773,43 +783,71 @@ export default function ChatPage() {
               aria-pressed={emojiOpen}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setEmojiOpen((v) => !v)}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[22px] leading-none ${emojiOpen ? "bg-accent-tint" : ""}`}
+              className={`mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[22px] leading-none ${emojiOpen ? "bg-accent-tint" : ""}`}
             >
               😊
             </button>
-            <ComposerField
-              ref={inputRef}
-              value={text}
-              data-testid="chat-input"
-              onChange={(e) => {
-                setText(e.target.value);
-                if (e.target.value.trim() && !editing) signalTyping();
-              }}
-              placeholder={pendingPhotos.length ? t.chatPhotoCaption : t.msgPh}
-              className={`max-h-[154px] min-h-11 min-w-0 flex-1 rounded-[22px] border border-line bg-screen px-3.5 py-[11px] text-[15px] outline-none placeholder:text-muted-2 ${micLive ? "hidden" : ""}`}
-            />
-            {text.trim() || editing || pendingPhotos.length ? (
-            <button
-              type="button"
-              data-testid="chat-send"
-              disabled={sending}
-              onClick={() => void (pendingPhotos.length ? sendPhotos() : send())}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent disabled:opacity-60"
-            >
-              <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke="#FFFFFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 3 2.5 8.2l4.2 1.3L15.8 3.2 8.4 11l.4 4 2.2-3 3 2.4z" />
-              </svg>
-            </button>
-            ) : (
-              <ChatMic
-                disabled={sending}
-                cancelLabel={t.chatVoiceCancel}
-                onDenied={() => setSendError(t.chatMicDenied)}
-                onShort={() => setSendError(t.chatVoiceShort)}
-                onLive={setMicLive}
-                onSend={(blob, seconds) => void sendVoice(blob, seconds)}
-              />
-            )}
+            <div className="relative flex min-w-0 flex-1 items-end gap-2">
+              <div className="relative min-w-0 flex-1">
+                <ComposerField
+                  ref={inputRef}
+                  value={text}
+                  data-testid="chat-input"
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    setMicSettings(false);
+                    if (e.target.value.trim() && !editing) signalTyping();
+                  }}
+                  placeholder={pendingPhotos.length ? t.chatPhotoCaption : t.msgPh}
+                  className="max-h-[154px] min-h-11 w-full rounded-[22px] border border-line bg-screen py-[11px] pl-3.5 pr-[4.75rem] text-[15px] outline-none placeholder:text-muted-2"
+                />
+                <div className="absolute bottom-0 right-1 flex h-11 items-center">
+                  <button
+                    type="button"
+                    data-testid="chat-attach"
+                    aria-label={t.chatAttach}
+                    onClick={() => setAttachOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center text-[18px]"
+                  >
+                    📎
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="chat-camera-btn"
+                    aria-label={t.chatCamera}
+                    onClick={() => openFileInput(cameraRef.current)}
+                    className="flex h-9 w-9 items-center justify-center text-[18px]"
+                  >
+                    📷
+                  </button>
+                </div>
+              </div>
+              {text.length > 0 || editing || pendingPhotos.length ? (
+                <button
+                  type="button"
+                  data-testid="chat-send"
+                  disabled={sending}
+                  onClick={() => void (pendingPhotos.length ? sendPhotos() : send())}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[18px] text-white disabled:opacity-60"
+                >
+                  ➤
+                </button>
+              ) : (
+                <ChatMic
+                  disabled={sending}
+                  cancelLabel={t.chatVoiceCancel}
+                  onDenied={(gate) => {
+                    setSendError(t.chatMicDenied);
+                    setMicSettings(gate === "settings");
+                  }}
+                  onTap={() => {
+                    setToast(t.chatMicHold);
+                    window.setTimeout(() => setToast(""), 1600);
+                  }}
+                  onSend={(blob, seconds) => void sendVoice(blob, seconds)}
+                />
+              )}
+            </div>
           </div>
           <NativePhotoInputs
             cameraRef={cameraRef}
