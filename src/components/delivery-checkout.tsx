@@ -8,7 +8,7 @@ import { isShopId } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { Input } from "@/components/ui";
-import { askPoint, deliveryError, FeeNote, PageHead, RedBtn, som, useSignedIn } from "@/components/delivery-ui";
+import { askPoint, CommissionLine, deliveryError, FeeNote, PageHead, RedBtn, som, useSignedIn } from "@/components/delivery-ui";
 
 export function CheckoutScreen() {
   const { t } = useApp();
@@ -69,7 +69,8 @@ export function CheckoutScreen() {
 
   const fee = quote?.feeSom ?? shop?.quote.feeSom ?? 0;
   const goods = shop?.itemsTotalSom ?? 0;
-  const total = goods + fee;
+  const commission = shop?.commissionSom ?? 0;
+  const total = goods + fee + commission;
 
   return (
     <PhoneShell>
@@ -112,6 +113,9 @@ export function CheckoutScreen() {
               <div className="mt-1 flex justify-between">
                 <span className="text-muted">{quote ? <FeeNote km={quote.km} flat={quote.flat} t={t} /> : t.deliveryFeeFlat}</span>
                 <span>≈ {som(fee)} сом</span>
+              </div>
+              <div className="mt-1">
+                <CommissionLine percent={shop.commissionPercent ?? 0} amount={commission} label={t.deliveryCommission} />
               </div>
               <div className="mt-2 flex justify-between text-[18px] font-extrabold">
                 <span>{t.deliveryToPay}</span>

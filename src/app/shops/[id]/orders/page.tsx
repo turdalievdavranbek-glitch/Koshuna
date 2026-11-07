@@ -6,7 +6,7 @@ import { api } from "@/lib/api/client";
 import type { OrderView } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
-import { deliveryError, GhostBtn, orderStatusText, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
+import { CommissionLine, deliveryError, FeeNote, GhostBtn, orderStatusText, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
 import { OrderLiveMap } from "@/components/order-live";
 
 export default function ShopOrdersPage() {
@@ -75,9 +75,16 @@ export default function ShopOrdersPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-2 flex justify-between text-[16px] font-extrabold">
-                <span>{t.deliveryTotal}</span>
-                <span>{som(order.totalSom)} сом</span>
+              <div className="mt-2 space-y-1 text-[14px]">
+                <div className="flex justify-between text-muted">
+                  <FeeNote km={order.km} flat={order.flatFee} t={t} />
+                  <span>≈ {som(order.deliveryFeeSom)} сом</span>
+                </div>
+                <CommissionLine percent={order.commissionPercent ?? 0} amount={order.commissionSom ?? 0} label={t.deliveryCommission} />
+                <div className="flex justify-between text-[16px] font-extrabold text-ink">
+                  <span>{t.deliveryTotal}</span>
+                  <span>{som(order.totalSom)} сом</span>
+                </div>
               </div>
               <p className="mt-1 text-[12px] text-muted">{t.deliveryPayCash}</p>
               <div className="mt-3 flex gap-2">
@@ -106,6 +113,17 @@ export default function ShopOrdersPage() {
               <p className="mt-1 text-[13px] text-muted">
                 {order.buyerName} · {order.address} · {som(order.totalSom)} сом
               </p>
+              <div className="mt-2 space-y-1 text-[14px]">
+                <div className="flex justify-between text-muted">
+                  <span>{t.deliveryGoodsSum}</span>
+                  <span>{som(order.itemsTotalSom)} сом</span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <FeeNote km={order.km} flat={order.flatFee} t={t} />
+                  <span>≈ {som(order.deliveryFeeSom)} сом</span>
+                </div>
+                <CommissionLine percent={order.commissionPercent ?? 0} amount={order.commissionSom ?? 0} label={t.deliveryCommission} />
+              </div>
               {order.status === "assigned" || order.status === "picked_up" ? <OrderLiveMap orderId={order.id} /> : null}
               {order.status === "accepted" || order.status === "assembled" || order.status === "assigned" ? (
                 <div className="mt-3">

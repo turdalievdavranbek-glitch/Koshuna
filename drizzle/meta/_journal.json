@@ -190,6 +190,13 @@
       "when": 1794038400000,
       "tag": "0028_shop_greeting",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794124800000,
+      "tag": "0029_order_commission",
+      "breakpoints": true
     }
   ]
 }

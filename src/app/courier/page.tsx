@@ -8,7 +8,7 @@ import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { IconPhone } from "@/components/icons";
 import { CourierPlace } from "@/components/courier-place";
-import { askPoint, deliveryError, GhostBtn, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
+import { askPoint, CommissionLine, deliveryError, FeeNote, GhostBtn, PageHead, RedBtn, som, useSignedIn, YellowBtn } from "@/components/delivery-ui";
 
 type Board = {
   online: boolean;
@@ -146,6 +146,17 @@ export default function CourierPage() {
             <div className="mt-2 rounded-2xl bg-[#FDE8E8] px-3 py-2 text-[14px]">
               <span className="mr-2 rounded-md bg-[#F8C9C9] px-1.5 py-0.5 text-[11px] font-extrabold text-accent">{t.deliveryDropoff}</span>
               {active.address}
+            </div>
+            <div className="mt-3 space-y-1 text-[14px]">
+              <div className="flex justify-between text-muted">
+                <span>{t.deliveryGoodsSum}</span>
+                <span>{som(active.itemsTotalSom)} сом</span>
+              </div>
+              <div className="flex justify-between text-muted">
+                <FeeNote km={active.km} flat={active.flatFee} t={t} />
+                <span>≈ {som(active.deliveryFeeSom)} сом</span>
+              </div>
+              <CommissionLine percent={active.commissionPercent ?? 0} amount={active.commissionSom ?? 0} label={t.deliveryCommission} />
             </div>
             <p className="mt-3 text-[14px] font-semibold">{t.deliveryCollect(som(active.totalSom))}</p>
             {active.comment ? <p className="mt-1 text-[13px] text-muted">{active.comment}</p> : null}

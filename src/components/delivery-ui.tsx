@@ -30,6 +30,20 @@ export function som(n: number): string {
   return formatSom(n);
 }
 
+/** «Комиссия Коңшу» — percent and som, for example «0% · 0 сом». */
+export function CommissionLine({ percent, amount, label }: { percent: number; amount: number; label: string }) {
+  const pct = Number.isFinite(percent) ? percent : 0;
+  const shown = Number.isInteger(pct) ? String(pct) : String(Math.round(pct * 100) / 100);
+  return (
+    <div className="flex justify-between text-muted">
+      <span>{label}</span>
+      <span>
+        {shown}% · {som(amount)} сом
+      </span>
+    </div>
+  );
+}
+
 export function deliveryError(code: string | undefined, t: Dict): string {
   if (code === "blocked") return t.deliveryBlocked;
   if (code === "taken") return t.deliveryTaken;

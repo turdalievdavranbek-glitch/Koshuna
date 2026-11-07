@@ -50,6 +50,10 @@ export type CartShop = {
   lines: CartLine[];
   itemsTotalSom: number;
   quote: FeeQuote;
+  /** Live rate from app_settings, for this cart preview. */
+  commissionPercent: number;
+  /** Commission on the goods subtotal, in som. */
+  commissionSom: number;
   /** Shop is hidden, withdrawn, or gone. Checkout is closed. */
   closed?: boolean;
 };
@@ -82,6 +86,9 @@ export type OrderView = {
   deliveryFeeSom: number;
   /** Som taken off the fee for a referred client's first order. */
   discountSom: number;
+  /** Percent stored on the order. Old orders are 0. */
+  commissionPercent: number;
+  commissionSom: number;
   totalSom: number;
   hasReceipt: boolean;
   km: number | null;
@@ -115,6 +122,14 @@ export function isCourierTransport(value: string): value is CourierTransport {
 
 export function formatKm(km: number): string {
   return (Math.round(km * 10) / 10).toFixed(1).replace(".", ",");
+}
+
+/** Som taken as «Комиссия Коңшу». Percent comes from the server; the amount is a whole som. */
+export function commissionAmount(goodsSom: number, percent: number): number {
+  const goods = Number.isFinite(goodsSom) ? goodsSom : 0;
+  const pct = Number.isFinite(percent) ? percent : 0;
+  if (goods <= 0 || pct <= 0) return 0;
+  return Math.max(0, Math.round((goods * pct) / 100));
 }
 
 const SHOP_ID = /^shop-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

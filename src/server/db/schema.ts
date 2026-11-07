@@ -654,6 +654,10 @@ export const orders = pgTable(
     receiptPath: text("receipt_path"),
     /** Som taken off the delivery fee for a referred client's first order. */
     referralDiscountSom: integer("referral_discount_som").notNull().default(0),
+    /** Percent copied from app_settings when the order is placed. Old rows stay 0. */
+    commissionPercent: numeric("commission_percent", { precision: 4, scale: 2 }).notNull().default("0"),
+    /** Commission on the goods subtotal, in som. */
+    commissionSom: integer("commission_som").notNull().default(0),
     deliveryCode: text("delivery_code").notNull(),
     codeFails: integer("code_fails").notNull().default(0),
     /** Set once when nobody has taken a confirmed order in time, so the notice is not repeated. */
@@ -685,6 +689,7 @@ export const orders = pgTable(
     check("orders_payment", sql`${t.paymentMethod} = 'cash'`),
     check("orders_code", sql`${t.deliveryCode} ~ '^[0-9]{4}$'`),
     check("orders_money", sql`${t.itemsTotalSom} >= 0 and ${t.deliveryFeeSom} >= 0 and ${t.totalSom} >= 0`),
+    check("orders_commission", sql`${t.commissionPercent} >= 0 and ${t.commissionPercent} <= 50 and ${t.commissionSom} >= 0`),
     index("orders_shop_status_idx").on(t.shopId, t.status),
     index("orders_buyer_idx").on(t.buyerId, t.createdAt),
     index("orders_courier_idx").on(t.courierId),
@@ -842,6 +847,13 @@ export const referralCodes = pgTable("referral_codes", {
     .references(() => users.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),
   createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/** Owner-edited site settings. `commission_percent` is the live Коңшу rate. */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
 export const referralAttributions = pgTable(

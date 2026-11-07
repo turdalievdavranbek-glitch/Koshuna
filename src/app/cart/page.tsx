@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
-import type { CartShop } from "@/lib/delivery";
+import { commissionAmount, type CartShop } from "@/lib/delivery";
 import type { ShopProduct } from "@/lib/types";
 import { displayPhotoForProduct } from "@/lib/shop-photos";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopQty } from "@/components/delivery-shop-buy";
-import { FeeNote, PageHead, som, useSignedIn } from "@/components/delivery-ui";
+import { CommissionLine, FeeNote, PageHead, som, useSignedIn } from "@/components/delivery-ui";
 
 export default function CartPage() {
   const { t } = useApp();
@@ -41,8 +41,15 @@ export default function CartPage() {
                 .filter((line) => line.qty > 0),
               itemsTotalSom: shop.lines
                 .map((line) => (line.productId === productId ? { ...line, qty } : line))
-                .filter((line) => line.qty > 0)
+                .filter((line) => line.qty > 0 && !line.unavailable)
                 .reduce((sum, line) => sum + line.priceSom * line.qty, 0),
+              commissionSom: commissionAmount(
+                shop.lines
+                  .map((line) => (line.productId === productId ? { ...line, qty } : line))
+                  .filter((line) => line.qty > 0 && !line.unavailable)
+                  .reduce((sum, line) => sum + line.priceSom * line.qty, 0),
+                shop.commissionPercent ?? 0,
+              ),
             },
       ).filter((shop) => shop.lines.length),
     );
@@ -99,9 +106,10 @@ export default function CartPage() {
                   <FeeNote km={shop.quote.km} flat={shop.quote.flat} t={t} />
                   <span>≈ {som(shop.quote.feeSom)} сом</span>
                 </div>
+                <CommissionLine percent={shop.commissionPercent ?? 0} amount={shop.commissionSom ?? 0} label={t.deliveryCommission} />
                 <div className="flex justify-between text-[16px] font-extrabold text-ink">
                   <span>{t.deliveryTotal}</span>
-                  <span>{som(shop.itemsTotalSom + shop.quote.feeSom)} сом</span>
+                  <span>{som(shop.itemsTotalSom + shop.quote.feeSom + (shop.commissionSom ?? 0))} сом</span>
                 </div>
               </div>
               {shop.closed ? <p className="mt-3 text-[13px] font-semibold text-accent">{t.deliveryClosedShop}</p> : null}
@@ -111,7 +119,7 @@ export default function CartPage() {
                 onClick={() => router.push(`/cart/checkout?shop=${encodeURIComponent(shop.shopId)}`)}
                 className="shadow-btn mt-3 h-[52px] w-full rounded-2xl bg-accent text-[16px] font-bold text-accent-on disabled:opacity-40"
               >
-                {t.deliveryCheckout} · {som(shop.itemsTotalSom + shop.quote.feeSom)} сом
+                {t.deliveryCheckout} · {som(shop.itemsTotalSom + shop.quote.feeSom + (shop.commissionSom ?? 0))} сом
               </button>
             </section>
           ))}

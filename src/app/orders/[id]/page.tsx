@@ -7,7 +7,7 @@ import type { OrderView } from "@/lib/delivery";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { IconPhone } from "@/components/icons";
-import { deliveryError, FeeNote, GhostBtn, orderStatusText, OrderTracker, PageHead, RedBtn, som, useSignedIn } from "@/components/delivery-ui";
+import { CommissionLine, deliveryError, FeeNote, GhostBtn, orderStatusText, OrderTracker, PageHead, RedBtn, som, useSignedIn } from "@/components/delivery-ui";
 import { OrderLiveMap } from "@/components/order-live";
 
 export default function OrderPage() {
@@ -91,6 +91,7 @@ export default function OrderPage() {
                 <FeeNote km={order.km} flat={order.flatFee} t={t} />
                 <span>≈ {som(order.deliveryFeeSom)} сом</span>
               </div>
+              <CommissionLine percent={order.commissionPercent ?? 0} amount={order.commissionSom ?? 0} label={t.deliveryCommission} />
               {order.discountSom > 0 ? (
                 <div className="flex justify-between text-muted">
                   <span>−{som(order.discountSom)} сом</span>

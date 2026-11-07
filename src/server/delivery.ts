@@ -1,7 +1,7 @@
 import { randomInt, timingSafeEqual } from "crypto";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { haversineKm, inKonshuZone } from "@/lib/geo";
-import { isOrderStatus, isProductId, isShopId, type CartProblem, type CartShop, type CourierOffer, type FeeQuote, type OrderRole, type OrderStatus, type OrderView } from "@/lib/delivery";
+import { commissionAmount, isOrderStatus, isProductId, isShopId, type CartProblem, type CartShop, type CourierOffer, type FeeQuote, type OrderRole, type OrderStatus, type OrderView } from "@/lib/delivery";
 import { isDbUserId, normalizePhoneInput } from "@/lib/phone";
 import { shopCallPhone, shopDistrictName, shopLandmarkLine } from "@/lib/shops";
 import type { Lang, Shop, ShopProduct } from "@/lib/types";
@@ -14,6 +14,7 @@ import { guardBuyerOrder } from "./delivery-rules";
 import { FEATURES } from "@/lib/features";
 import { clientDiscount, rememberClientDiscount, rewardCourierReferral } from "./delivery-referrals";
 import { courierIsPaused, reviewShop } from "./delivery-standing";
+import { readCommissionPercent } from "./commission-rate";
 import { kickDeliverySweep } from "./delivery-sweep";
 import { bindNoticePushes, saveNotices, type NoticeWrite } from "./notices";
 
@@ -203,6 +204,8 @@ async function toViews(db: Tx | ReturnType<typeof getDb>, joined: Joined[], role
       itemsTotalSom: row.order.itemsTotalSom,
       deliveryFeeSom: row.order.deliveryFeeSom,
       discountSom: row.order.referralDiscountSom,
+      commissionPercent: Number(row.order.commissionPercent ?? 0),
+      commissionSom: row.order.commissionSom ?? 0,
       totalSom: row.order.totalSom,
       hasReceipt: Boolean(row.order.receiptPath),
       km: row.order.distanceKm == null ? null : Math.round(row.order.distanceKm * 10) / 10,
@@ -274,6 +277,7 @@ export async function cartFor(userId: string, lang: Lang, lat: number | null, ln
   const shopRows = await db.select().from(shops).where(inArray(shops.id, shopIds));
   const byShop = new Map(shopRows.map((row) => [row.id, rowToShop(row)]));
   const groups: CartShop[] = [];
+  const percent = await readCommissionPercent();
   for (const shopId of shopIds) {
     const shop = byShop.get(shopId);
     if (!shop) continue;
@@ -316,6 +320,8 @@ export async function cartFor(userId: string, lang: Lang, lat: number | null, ln
       lines: viewLines,
       itemsTotalSom,
       quote: quoteFee(routeKm(shop.lat, shop.lng, lat, lng)),
+      commissionPercent: percent,
+      commissionSom: commissionAmount(itemsTotalSom, percent),
       closed,
     });
   }
@@ -436,7 +442,9 @@ export async function placeOrder(
         const quote = quoteFee(km);
         if (quote.tooFar) return { error: "too-far", status: 409 };
         const discountSom = FEATURES.referrals ? await clientDiscount(tx, userId, quote.feeSom) : 0;
-        const totalSom = itemsTotalSom + quote.feeSom - discountSom;
+        const percent = await readCommissionPercent();
+        const commissionSom = commissionAmount(itemsTotalSom, percent);
+        const totalSom = itemsTotalSom + quote.feeSom - discountSom + commissionSom;
         const blockedBuyer = await guardBuyerOrder(tx, userId, totalSom);
         if (blockedBuyer) return blockedBuyer;
         const [created] = await tx
@@ -453,6 +461,8 @@ export async function placeOrder(
             itemsTotalSom,
             deliveryFeeSom: quote.feeSom,
             referralDiscountSom: discountSom,
+            commissionPercent: percent.toFixed(2),
+            commissionSom,
             totalSom,
             distanceKm: quote.km,
             feeFlat: quote.flat,
