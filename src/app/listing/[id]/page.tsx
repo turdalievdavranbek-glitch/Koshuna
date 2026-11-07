@@ -43,6 +43,7 @@ import { PriceHonest } from "@/components/magnets";
 import { Eyebrow, Photo, Price } from "@/components/ui";
 import { ListingHero, ListingThumb, isVideoListing } from "@/components/listing-media";
 import { reportListingView } from "@/lib/listing-view";
+import { reportShopEvent } from "@/lib/shop-events";
 import { RestaurantMenu } from "@/components/restaurant-menu";
 import { SellerStarsBadge } from "@/components/trust-stars";
 import { shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline } from "@/lib/shops";
@@ -388,7 +389,12 @@ export default function ListingPage() {
                   if (!user) {
                     event.preventDefault();
                     gate(`/listing/${listing.id}`);
+                    return;
                   }
+                  if (listing.shopId) reportShopEvent(listing.shopId, "call");
+                }}
+                onWhatsapp={() => {
+                  if (listing.shopId) reportShopEvent(listing.shopId, "whatsapp");
                 }}
                 onWrite={() => {
                   if (isStay) onBook();
@@ -770,7 +776,12 @@ export default function ListingPage() {
               if (!user) {
                 event.preventDefault();
                 gate(`/listing/${listing.id}`);
+                return;
               }
+              if (listing.shopId) reportShopEvent(listing.shopId, "call");
+            }}
+            onWhatsapp={() => {
+              if (listing.shopId) reportShopEvent(listing.shopId, "whatsapp");
             }}
             onWrite={() => {
               if (reserved && FEATURES.goLookMeet) {

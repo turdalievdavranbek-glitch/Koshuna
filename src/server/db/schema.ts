@@ -264,6 +264,28 @@ export const media = pgTable(
   ],
 );
 
+/** Shop page views are one row per viewer per day. Call and WhatsApp taps are one row each. */
+export const shopEvents = pgTable(
+  "shop_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    viewerKey: text("viewer_key").notNull(),
+    day: date("day").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    check("shop_events_kind", sql`${t.kind} in ('shop_view','call','whatsapp')`),
+    uniqueIndex("shop_events_view_day")
+      .on(t.shopId, t.kind, t.viewerKey, t.day)
+      .where(sql`${t.kind} = 'shop_view'`),
+    index("shop_events_shop_day_idx").on(t.shopId, t.day),
+  ],
+);
+
 export const subscriptions = pgTable(
   "subscriptions",
   {
@@ -658,6 +680,8 @@ export const orders = pgTable(
     commissionPercent: numeric("commission_percent", { precision: 4, scale: 2 }).notNull().default("0"),
     /** Commission on the goods subtotal, in som. */
     commissionSom: integer("commission_som").notNull().default(0),
+    /** Set when the delivered order has already reduced item quantities. */
+    stockApplied: boolean("stock_applied").notNull().default(false),
     deliveryCode: text("delivery_code").notNull(),
     codeFails: integer("code_fails").notNull().default(0),
     /** Set once when nobody has taken a confirmed order in time, so the notice is not repeated. */

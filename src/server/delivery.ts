@@ -17,6 +17,7 @@ import { courierIsPaused, reviewShop } from "./delivery-standing";
 import { readCommissionPercent } from "./commission-rate";
 import { kickDeliverySweep } from "./delivery-sweep";
 import { bindNoticePushes, saveNotices, type NoticeWrite } from "./notices";
+import { applyDeliveredStock } from "./shop-stock";
 
 type Fail = { error: string; status: number };
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
@@ -850,6 +851,7 @@ async function applyAction(
       .where(and(eq(orders.id, order.id), eq(orders.courierId, userId), eq(orders.status, "picked_up")))
       .returning();
     if (!updated[0]) return { error: "state", status: 409 };
+    await applyDeliveredStock(tx, order.id, order.shopId, row.ownerId);
     await saveNotices(tx, [
       note(order.buyerId, "notifOrderDelivered", order, "buyer", userId),
       note(row.ownerId, "notifOrderDelivered", order, "shop", userId),

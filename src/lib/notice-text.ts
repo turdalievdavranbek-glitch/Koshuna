@@ -27,6 +27,7 @@ export function noticeText(row: AppNotice, t: Dict): string {
   if (row.textKey === "notifOrderPaid") return t.notifOrderPaid(title);
   if (row.textKey === "notifOrderPicked") return t.notifOrderPicked(title);
   if (row.textKey === "notifOrderDelivered") return t.notifOrderDelivered(title);
+  if (row.textKey === "notifStockLow") return t.notifStockLow(title);
   if (row.textKey === "notifOrderCancelled") return t.notifOrderCancelled(title);
   if (row.textKey === "notifOrderRefused") return t.notifOrderRefused(title);
   if (row.textKey === "notifOrderReturned") return t.notifOrderReturned(title);

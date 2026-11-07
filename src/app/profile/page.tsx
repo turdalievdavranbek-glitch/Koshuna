@@ -342,6 +342,16 @@ export default function ProfilePage() {
           <span className="text-[13px] font-semibold text-muted">{points.length}</span>
         </div>
         {FEATURES.pointSetupHints ? <p className="mt-1 text-[13px] leading-[1.4] text-muted">{t.shopMineHint}</p> : null}
+        {points.length || user.owner ? (
+          <button
+            type="button"
+            onClick={() => router.push("/shops/stats")}
+            className="mt-3 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.shopStatsTitle}</span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        ) : null}
         {points.length ? (
           <div className="mt-3">
             <PointList shops={points} actions open="point" />

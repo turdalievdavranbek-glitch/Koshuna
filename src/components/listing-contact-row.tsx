@@ -10,6 +10,7 @@ export function ListingContactRow({
   waHref,
   telegramHref,
   onCallGate,
+  onWhatsapp,
   onWrite,
   callLabel,
   writeLabel,
@@ -21,6 +22,7 @@ export function ListingContactRow({
   waHref: string;
   telegramHref: string | null;
   onCallGate: (event: MouseEvent<HTMLAnchorElement>) => void;
+  onWhatsapp?: () => void;
   onWrite: () => void;
   callLabel: string;
   writeLabel: string;
@@ -43,6 +45,7 @@ export function ListingContactRow({
         <a
           href={waHref}
           data-testid={withTestIds ? "listing-wa" : undefined}
+          onClick={() => onWhatsapp?.()}
           target="_blank"
           rel="noreferrer"
           aria-label="WhatsApp"

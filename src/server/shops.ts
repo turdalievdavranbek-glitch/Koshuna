@@ -10,6 +10,7 @@ import { getDb } from "./db";
 import { listings, reports, shops } from "./db/schema";
 import { attachMedia } from "./media";
 import { isMasterOrAdmin } from "./masters";
+import { notifyLowStockOnSave } from "./shop-stock";
 import { FEATURES } from "@/lib/features";
 import { rewardShopReferral } from "./delivery-referrals";
 import { listingMediaUrls, listingToRow, rowToListing, rowToShop, sessionAsUser, shopMediaUrls, shopToColumns } from "./mappers";
@@ -127,6 +128,7 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
     .set({ verifiedAt: phone && photo ? sql`coalesce(${shops.verifiedAt}, now())` : null })
     .where(eq(shops.id, clean.id));
   if (FEATURES.referrals) await rewardShopReferral(user.id, clean.id).catch(() => undefined);
+  await notifyLowStockOnSave(db, user.id, clean.id, storedProducts, products).catch(() => undefined);
   return { shop: clean };
 }
 

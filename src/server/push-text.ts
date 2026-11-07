@@ -161,5 +161,6 @@ export function pushCopy(lang: PushLang, input: PushCopyInput): { title: string;
   else if (input.textKey === "notifPromoterOff") body = copy.promoterOff;
   else if (input.textKey === "notifShopTransferred") body = copy.transferred(title, (input.name ?? "").trim());
   else if (input.textKey === "notifSectionMoved") body = copy.moved(title, (input.name ?? "").trim());
+  else if (input.textKey === "notifStockLow") body = title ? (lang === "ky" ? `«${title}» бүтүп баратат` : `«${title}» заканчивается`) : lang === "ky" ? "Товар бүтүп баратат" : "Товар заканчивается";
   return { title: copy.app, body: body.slice(0, 180) };
 }

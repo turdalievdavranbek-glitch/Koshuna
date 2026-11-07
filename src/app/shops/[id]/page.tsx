@@ -28,6 +28,7 @@ import { PointChecklist } from "@/components/point-checklist";
 import { ShareButton } from "@/components/share-button";
 import { PointTransfer } from "@/components/point-transfer";
 import { ShopSubscribe } from "@/components/shop-subscribe";
+import { reportShopEvent } from "@/lib/shop-events";
 import { IconBack, IconPhone, IconTg, IconWa } from "@/components/icons";
 import { goBack } from "@/lib/go-back";
 import { socialCounts } from "@/lib/reactions";
@@ -72,6 +73,11 @@ export default function ShopDetailPage() {
     () => (shop ? allListings.filter((item) => item.shopId === shop.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden") : []),
     [allListings, shop],
   );
+
+  useEffect(() => {
+    if (!shop?.id || !visible) return;
+    reportShopEvent(shop.id, "view");
+  }, [shop?.id, visible]);
 
   const postCount = linked.length || products.length;
   const likeSum = useMemo(() => linked.reduce((sum, item) => sum + socialCounts(item.id, reactions, 0).likes, 0), [linked, reactions]);
@@ -245,13 +251,13 @@ export default function ShopDetailPage() {
 
         <div className="mt-3 flex flex-wrap gap-2 overflow-x-hidden desk:col-span-3 desk:col-start-10 desk:row-start-1 desk:mt-0 desk:flex-col">
           {callPhone ? (
-            <a href={`tel:${callPhone}`} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
+            <a href={`tel:${callPhone}`} onClick={() => reportShopEvent(shop.id, "call")} className="shadow-btn flex h-[54px] min-w-[8.5rem] flex-1 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-screen">
               <IconPhone size={18} color="#FFFFFF" />
               {t.callNow}
             </a>
           ) : null}
           {callPhone && (shop.contacts.whatsapp || shop.managedFor?.phone) ? (
-            <a href={`https://wa.me/${callPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success text-white">
+            <a href={`https://wa.me/${callPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" onClick={() => reportShopEvent(shop.id, "whatsapp")} className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-success text-white">
               <IconWa size={18} color="#fff" />
             </a>
           ) : null}
@@ -313,7 +319,12 @@ export default function ShopDetailPage() {
                         <Photo src={realProductPhoto(item)} alt="" />
                       </div>
                       <div className="min-w-0 flex-1">
-                      <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 truncate font-display text-[16px] font-bold text-ink">{item.title}</div>
+                        {(mine || user?.owner) && typeof item.quantity === "number" && item.quantity <= 2 ? (
+                          <span className="shrink-0 rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[11px] font-bold text-accent">{t.shopStatsLow}</span>
+                        ) : null}
+                      </div>
                       {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
                       <div className="mt-1 text-[15px] font-semibold text-accent">
                         {item.price != null ? `${formatSom(item.price)} сом / ${t.shopUnits[item.unit]}` : t.shopAskPrice}

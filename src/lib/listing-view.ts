@@ -6,7 +6,7 @@ const DEVICE_KEY = "konshu.deviceId";
 const sent = new Map<string, Promise<number | null>>();
 
 /** Anonymous id for guests, so a guest is counted once a day like a signed-in person. */
-function deviceId(): string | undefined {
+export function viewerDeviceId(): string | undefined {
   try {
     let id = localStorage.getItem(DEVICE_KEY);
     if (!id) {
@@ -25,7 +25,7 @@ export function reportListingView(listingId: string): Promise<number | null> {
   if (hit) return hit;
   const job = api<{ views: number }>(`/api/listings/${encodeURIComponent(listingId)}/view`, {
     method: "POST",
-    json: { device: deviceId() },
+    json: { device: viewerDeviceId() },
   }).then((res) => (res.ok && typeof res.data?.views === "number" ? res.data.views : null));
   sent.set(listingId, job);
   return job;

@@ -204,6 +204,13 @@
       "when": 1794211200000,
       "tag": "0030_drop_stock_item_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794297600000,
+      "tag": "0031_shop_stats",
+      "breakpoints": true
     }
   ]
 }
