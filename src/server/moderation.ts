@@ -1,4 +1,5 @@
 import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { isOwnerEmail } from "@/lib/owner";
 import type { Listing, Shop } from "@/lib/types";
 import { getDb, type Db } from "./db";
 import { listingComments, listings, reports, sessions, shops, users } from "./db/schema";
@@ -35,9 +36,13 @@ export type ModerationItem = {
  * Users with one are not limited. Everyone else: at most 3 personal listings per rolling 24h.
  */
 export async function personalLimitReached(tx: Executor, userId: string): Promise<boolean> {
-  // «Мастер-аккаунт» and admins have no personal daily limit.
-  const who = await tx.select({ isAdmin: users.isAdmin, isMaster: users.isMaster }).from(users).where(eq(users.id, userId)).limit(1);
-  if (who[0]?.isAdmin || who[0]?.isMaster) return false;
+  // Promoters, the owner, and admins have no personal daily limit.
+  const who = await tx
+    .select({ isAdmin: users.isAdmin, isMaster: users.isMaster, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (who[0]?.isAdmin || who[0]?.isMaster || isOwnerEmail(who[0]?.email)) return false;
   const point = await tx
     .select({ id: shops.id })
     .from(shops)

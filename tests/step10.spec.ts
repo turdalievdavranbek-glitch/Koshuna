@@ -552,7 +552,7 @@ test.describe("point registration", () => {
     await page.goto("/post?card=cafe");
     await expect(page.getByText("Сфотографируйте фасад вашего здания")).toBeVisible();
     await expect(page.getByText("Фасад, прилавок или контейнер")).toBeVisible();
-    await expect(page.getByText("Средний чек, сом (по желанию)")).toBeVisible();
+    await expect(page.getByText("Средний чек, сом (по желанию)")).toHaveCount(0);
     await page.getByPlaceholder("Заголовок").fill("Обед");
     await page.getByTestId("post-next").click();
     await expect(page).toHaveURL(/step=2/);

@@ -451,8 +451,8 @@ export function CardPost({ card }: { card: string }) {
                 </Field>
               ) : null}
               <PostTaxonomy draft={draft} onPatch={setDraft} onTaxonomyReady={setTaxonomyReady} />
-              {bizCard ? (
-                <Field label={entryCard === "cafe" ? t.avgCheckField : draft.section === "vacancies" ? t.salaryField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
+              {bizCard && entryCard !== "cafe" ? (
+                <Field label={draft.section === "vacancies" ? t.salaryField : draft.kind === "rent" ? t.priceMonthField : t.priceSomField}>
                   <Input value={draft.price} onChange={(v) => setDraft({ price: v })} placeholder="38 000" />
                 </Field>
               ) : null}

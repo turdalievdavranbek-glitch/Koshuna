@@ -27,7 +27,7 @@ export function publicUser(user: SessionUser): User {
     linkedChannels: [],
     cardLinked: false,
     roles: user.isAdmin ? ["admin"] : undefined,
-    master: user.isMaster === true ? true : undefined,
+    master: user.isMaster === true || isOwnerEmail(user.email) ? true : undefined,
     courier: user.isCourier === true ? true : undefined,
     owner: isOwnerEmail(user.email) ? true : undefined,
     orderBlocked: user.orderBlocked === true ? true : undefined,

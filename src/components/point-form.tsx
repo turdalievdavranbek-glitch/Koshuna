@@ -655,7 +655,7 @@ export function PointForm({
         </div>
       </div>
 
-      {user?.master || isAdminUser(user) || d.managedFor ? (
+      {user?.master || user?.owner || isAdminUser(user) || d.managedFor ? (
       <div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-[13px] font-semibold text-ink">{t.managedToggle}</span>

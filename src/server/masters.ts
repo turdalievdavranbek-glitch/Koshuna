@@ -1,24 +1,36 @@
-import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { isOwnerEmail, OWNER_EMAIL } from "@/lib/owner";
 import type { Listing, Shop } from "@/lib/types";
 import { getDb } from "./db";
 import { listings, shops, users } from "./db/schema";
 import { rowToListing, rowToShop } from "./mappers";
 import { bindNoticePushes, saveNotice } from "./notices";
 
-/** Public ids of «Мастер-аккаунт» users, for the badge. A short list. */
+/** Public ids of «Промоутер» users, for the badge. Includes the owner. A short list. */
 export async function masterIds(): Promise<string[]> {
   const rows = await getDb()
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.isMaster, true), isNull(users.deletedAt), isNull(users.bannedAt)))
+    .where(
+      and(
+        or(eq(users.isMaster, true), sql`lower(${users.email}) = ${OWNER_EMAIL}`),
+        isNull(users.deletedAt),
+        isNull(users.bannedAt),
+      ),
+    )
     .limit(500);
   return rows.map((row) => row.id);
 }
 
-/** Master or admin: may run points for sellers and has no personal daily limit. */
+/** Promoter badge, admin, or the owner: may run points for sellers and has no personal daily limit. */
 export async function isMasterOrAdmin(userId: string): Promise<boolean> {
-  const rows = await getDb().select({ isAdmin: users.isAdmin, isMaster: users.isMaster }).from(users).where(eq(users.id, userId)).limit(1);
-  return rows[0]?.isAdmin === true || rows[0]?.isMaster === true;
+  const rows = await getDb()
+    .select({ isAdmin: users.isAdmin, isMaster: users.isMaster, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const row = rows[0];
+  return row?.isAdmin === true || row?.isMaster === true || isOwnerEmail(row?.email);
 }
 
 export async function setMaster(adminId: string, userId: string, on: boolean): Promise<{ ok: true } | { error: string; status: number }> {
