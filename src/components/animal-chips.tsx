@@ -7,10 +7,10 @@ import { SectionList } from "@/components/section-list";
 
 export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boolean }) {
   const { t, filters, setFilters } = useApp();
-  const group = filters.animalGroup === "farm" || filters.animalGroup === "pets" ? filters.animalGroup : "any";
+  const group = (ANIMAL_GROUPS as readonly string[]).includes(filters.animalGroup) ? filters.animalGroup : "any";
   const kinds = animalKindsOf(group);
 
-  const pickGroup = (id: "pets" | "farm") => {
+  const pickGroup = (id: (typeof ANIMAL_GROUPS)[number]) => {
     setFilters({ animalGroup: id, animalKind: "any" });
   };
 
@@ -22,7 +22,7 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
           rows={[
             ...ANIMAL_GROUPS.map((id) => ({
               id,
-              label: id === "pets" ? t.animalPets : t.animalFarm,
+              label: t.animalGroups[id] ?? id,
               active: group === id,
               onClick: () => pickGroup(id),
             })),
@@ -50,7 +50,7 @@ export function AnimalChips({ labeled, list }: { labeled?: boolean; list?: boole
     <div className={`flex flex-wrap gap-2 ${labeled ? "mt-2.5" : ""}`}>
       {ANIMAL_GROUPS.map((id) => (
         <Chip key={id} active={group === id} onClick={() => pickGroup(id)}>
-          {id === "pets" ? t.animalPets : t.animalFarm}
+          {t.animalGroups[id] ?? id}
         </Chip>
       ))}
     </div>

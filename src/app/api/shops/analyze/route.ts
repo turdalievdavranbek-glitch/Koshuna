@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { applyShopAi, classifyShopSpeech, shopAiConfigured, type ShopAiGuess } from "@/lib/shop-ai";
 import type { ShopDraft } from "@/lib/types";
+import { requireUser } from "@/server/http";
+import { limitOr429 } from "@/server/rate-limit";
+
+const MAX_BODY_BYTES = 64 * 1024;
+const MAX_TRANSCRIPT = 4000;
 
 export const runtime = "nodejs";
 
@@ -21,13 +26,20 @@ async function cloudGuess(transcript: string): Promise<ShopAiGuess | null> {
 }
 
 export async function POST(req: Request) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  const limited = limitOr429(`ai-shop:${user.id}`, 30, 10 * 60_000);
+  if (limited) return limited;
+  if (Number(req.headers.get("content-length") || 0) > MAX_BODY_BYTES) {
+    return NextResponse.json({ ok: false, error: "too-large" }, { status: 413 });
+  }
   let body: { transcript?: string; draft?: ShopDraft };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad-json" }, { status: 400 });
   }
-  const transcript = (body.transcript ?? "").trim();
+  const transcript = String(body.transcript ?? "").trim().slice(0, MAX_TRANSCRIPT);
   if (!transcript) {
     return NextResponse.json({
       ok: false,

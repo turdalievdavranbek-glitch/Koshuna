@@ -37,8 +37,8 @@ export function HonestyCard({ listing }: { listing: Listing }) {
               }}
               className="flex h-9 w-9 items-center justify-center rounded-full text-[16px]"
               style={{
-                background: mine && mine >= n ? "#17140F" : "#F4EFE6",
-                color: mine && mine >= n ? "#F7F3EC" : "#17140F",
+                background: mine && mine >= n ? "#18181B" : "#F4EFE6",
+                color: mine && mine >= n ? "#F5F5F7" : "#18181B",
               }}
             >
               ★

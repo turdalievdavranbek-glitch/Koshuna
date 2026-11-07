@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { twoGisUrl } from "@/lib/geo";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { ListingGrid } from "@/components/listing-grid";
 import { PhoneShell } from "@/components/shell";
@@ -30,8 +31,9 @@ export default function DealerPublicPage() {
   if (!dealer || !dealer.verified) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <button type="button" onClick={() => router.push("/dealers")} className="text-[15px] font-semibold text-accent">
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/dealers" />
+          <button type="button" onClick={() => router.push("/dealers")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.dealersTitle}
           </button>
           <p className="mt-4 text-muted">{t.empty}</p>
@@ -45,14 +47,14 @@ export default function DealerPublicPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/dealers")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="max-w-[240px] truncate font-display text-[17px] font-bold text-ink">{dealer.companyName}</h1>
           <span className="w-9" />
         </div>
       </div>
       <div className="sc min-h-0 flex-1 overflow-y-auto px-5 pb-8">
-        <div className="rounded-[14px] bg-[#F3E0D9] px-3.5 py-2 text-[13px] font-bold text-accent-dark">
+        <div className="rounded-[14px] bg-[#FDE8E8] px-3.5 py-2 text-[13px] font-bold text-accent-dark">
           {dealer.verified ? t.dealerVerified : t.dealerBadge}
         </div>
         <div className="mt-3 text-[15px] leading-[1.5] text-ink">{dealer.address}</div>

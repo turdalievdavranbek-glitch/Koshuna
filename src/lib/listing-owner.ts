@@ -44,6 +44,7 @@ export function mineListings(all: Listing[], extra: Listing[], user: User | null
   return all.filter((item) => {
     if (seen.has(item.id)) return false;
     if (!isOwnListing(item, extra, user, shops)) return false;
+    if ((item.status as string) === "hidden") return false;
     seen.add(item.id);
     return true;
   });

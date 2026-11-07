@@ -1,3 +1,4 @@
+import { isSectionVisible } from "./features";
 import type { AnimalGroup, DraftListing, PropertyType, SectionId } from "./types";
 import { JOB_ROLE_RU, JOB_ROWS, type JobType } from "./vacancies";
 import { housingTypeToRealtyGroup } from "./realty";
@@ -65,7 +66,7 @@ type Rule = {
   title?: string;
 };
 
-const RULES: Rule[] = [
+export const RULES: Rule[] = [
   {
     keys: ["iphone", "айфон", "iphone 13", "айфон 13"],
     section: "secondhand",
@@ -103,7 +104,7 @@ const RULES: Rule[] = [
     title: "Телефон",
   },
   {
-    keys: ["ноутбук", "macbook", "макбук", "lenovo", "леново", "asus"],
+    keys: ["ноутбук", "ноут", "laptop", "notebook", "macbook", "макбук", "thinkpad", "think pad", "lenovo", "леново", "asus", "acer", "dell", "ультрабук"],
     section: "secondhand",
     kind: "goods",
     category: "laptops",
@@ -423,6 +424,7 @@ export function classifyListingSpeech(raw: string): AiGuess {
   const text = norm(raw);
   let best: { rule: Rule; score: number } | null = null;
   for (const rule of RULES) {
+    if (!isSectionVisible(rule.section)) continue;
     const s = score(text, rule.keys);
     if (s > 0 && (!best || s > best.score)) best = { rule, score: s };
   }

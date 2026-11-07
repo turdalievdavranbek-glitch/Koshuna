@@ -1,26 +1,37 @@
 @import "tailwindcss";
 
+/* Wide site only: ≥1024px and not the Android app (html.native). Phones and the app stay on the existing layout. */
+@custom-variant desk {
+  @media (min-width: 1024px) {
+    html:not(.native) & {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
-  --color-ink: #17140f;
-  --color-ink-2: #4a4238;
-  --color-muted: #6e6558;
-  --color-muted-2: #a79c8c;
-  --color-accent: #b8452f;
-  --color-accent-dark: #8e3423;
-  --color-accent-tint: #f3e0d9;
-  --color-accent-on: #fff7f0;
+  --color-ink: #18181b;
+  --color-ink-2: #3f3f46;
+  --color-muted: #61616b;
+  --color-muted-2: #a1a1aa;
+  --color-accent: #e31e24;
+  --color-accent-dark: #b0141a;
+  --color-accent-tint: #fde8e8;
+  --color-accent-on: #ffffff;
   --color-surface: #ffffff;
-  --color-screen: #f7f3ec;
-  --color-canvas: #ede7dc;
-  --color-line: #e4dcce;
-  --color-line-2: #efe8db;
-  --color-chip: #efe8db;
-  --color-toggle-off: #dcd3c4;
+  --color-screen: #f5f5f7;
+  --color-canvas: #ececf0;
+  --color-line: #e4e4e9;
+  --color-line-2: #f1f1f4;
+  --color-chip: #f1f1f4;
+  --color-toggle-off: #d4d4da;
   --color-success: #2a6b57;
   --color-success-tint: #e4efe9;
   --color-success-ink: #245046;
   --color-telegram: #2e6bb8;
   --color-safe: #6e4238;
+  --color-highlight: #ffe600;
+  --color-highlight-ink: #18181b;
   --font-display: var(--font-bricolage), var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-familjen), var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 }
@@ -37,8 +48,9 @@ body {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  background: #ede7dc;
-  color: #17140f;
+  background: linear-gradient(170deg, #f5f5f7, #fafafb 60%, #f1f1f4);
+  background-attachment: fixed;
+  color: #18181b;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -60,30 +72,108 @@ button {
 }
 
 .shadow-btn {
-  box-shadow: 0 8px 20px rgba(184, 69, 47, 0.28);
+  box-shadow: 0 5px 0 #b0141a, 0 10px 18px rgba(227,30,36, 0.32);
 }
 
 .shadow-fab {
-  box-shadow: 0 8px 18px rgba(184, 69, 47, 0.35);
+  box-shadow: 0 8px 18px rgba(227,30,36, 0.35);
 }
 
+/* Soft 3D / claymorphism (variant D). Visual only: no tilt in the real feed, CSS shadows only. */
+.clay {
+  background: #fff;
+  box-shadow:
+    6px 8px 18px rgba(24,24,27, 0.16),
+    inset -3px -4px 8px rgba(0, 0, 0, 0.04),
+    inset 3px 4px 8px rgba(255, 255, 255, 0.9);
+}
+
+.clay-card {
+  background: #fff;
+  border-color: transparent !important;
+  box-shadow:
+    6px 8px 18px rgba(24,24,27, 0.18),
+    inset -3px -4px 8px rgba(0, 0, 0, 0.04),
+    inset 3px 4px 8px rgba(255, 255, 255, 0.9);
+}
+
+.clay-chip {
+  box-shadow: 0 4px 0 #d4d4da, 0 7px 12px rgba(24,24,27, 0.13);
+}
+
+.clay-chip-on {
+  background: linear-gradient(180deg, #ff4148, #e31e24) !important;
+  box-shadow: 0 5px 0 #b0141a, 0 10px 16px rgba(24,24,27, 0.10);
+}
+
+/* R3 yellow accents: badges, price marker, selected-chip ring. Dark text only on yellow. */
+.badge-yellow {
+  background: #ffe600;
+  color: #18181b;
+  border: 1px solid #ffd000;
+}
+
+.price-mark {
+  background: linear-gradient(180deg, transparent 58%, #ffe600 58%, #ffe600 90%, transparent 90%);
+  padding: 0 3px;
+  margin: 0 -3px;
+  border-radius: 3px;
+}
+
+.clay-chip-on {
+  outline: 2px solid #ffd000;
+  outline-offset: 1px;
+}
+
+.clay-plus {
+  background: radial-gradient(circle at 35% 28%, #ff4148, #e31e24 60%, #b0141a);
+  outline: 3px solid #ffe600;
+  outline-offset: 0;
+  box-shadow:
+    0 12px 24px rgba(227,30,36, 0.45),
+    inset -4px -6px 10px rgba(0, 0, 0, 0.2),
+    inset 4px 5px 10px rgba(255, 255, 255, 0.45);
+}
+
+.clay-bar {
+  border-top-color: transparent !important;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -6px 18px rgba(24,24,27, 0.14);
+}
+
+/* Primary buttons (dark fill): red clay with a pressed edge; white text on #e31e24. */
+button.bg-ink,
+a.bg-ink {
+  background: linear-gradient(180deg, #ff4148, #e31e24);
+  box-shadow: 0 4px 0 #b0141a, 0 8px 16px rgba(176,20,26, 0.3);
+}
+
+button.bg-ink:active,
+a.bg-ink:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #b0141a, 0 4px 8px rgba(176,20,26, 0.25);
+}
+
+/* No height transition: animating the bar's height re-laid out the whole page on every frame (scroll jank on Android). */
+
 .section-tile {
-  background: #f3eee4;
-  border: 1px solid #efe8db;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #f1f1f4;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 0 #e4dcce,
-    0 6px 0 #d8ccba,
-    0 10px 16px rgba(23, 20, 15, 0.12);
+    0 1px 0 #e4e4e9,
+    0 6px 0 #d4d4da,
+    0 10px 16px rgba(24,24,27, 0.12);
 }
 
 .section-tile:active {
   transform: translateY(3px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 1px 0 #e4dcce,
-    0 3px 0 #d8ccba,
-    0 4px 8px rgba(23, 20, 15, 0.1);
+    0 1px 0 #e4e4e9,
+    0 3px 0 #d4d4da,
+    0 4px 8px rgba(24,24,27, 0.1);
 }
 
 .leaflet-container {
@@ -93,7 +183,11 @@ button {
 
 .leaflet-control-attribution {
   font-size: 10px !important;
-  background: rgba(247, 243, 236, 0.92) !important;
+  background: rgba(245,245,247, 0.92) !important;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  pointer-events: none;
 }
 
 .leaflet-control-zoom {
@@ -102,5 +196,51 @@ button {
 }
 
 .leaflet-bar a {
-  color: #17140f !important;
+  color: #18181b !important;
 }
+
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(9deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes unread-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.bell-ring {
+  animation: bell-ring 0.9s ease-in-out 1;
+  transform-origin: 50% 10%;
+}
+
+.unread-pop {
+  animation: unread-pop 0.35s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bell-ring,
+  .unread-pop {
+    animation: none;
+  }
+}
+
+@keyframes heart-pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  25% { transform: scale(1.15); opacity: 0.95; }
+  45% { transform: scale(0.95); opacity: 0.95; }
+  80% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.1); opacity: 0; }
+}
+.heart-pop { animation: heart-pop 0.8s ease-out forwards; }
+@keyframes like-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.like-bump { animation: like-bump 0.3s ease-out; }

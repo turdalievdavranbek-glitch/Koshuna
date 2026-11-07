@@ -1,4 +1,8 @@
-import type { Lang, Listing, ListingComment, Owner, ReserveAccount, SavedSearch, SectionId, Thread } from "./types";
+import { isSectionVisible } from "./features";
+import { SHOP_CATEGORIES, type Lang, type Listing, type ListingComment, type Owner, type SavedSearch, type SectionId, type Thread } from "./types";
+
+/** Private posts cannot offer medicines. «Здоровье» stays in shop browse and filters. */
+export const PRIVATE_POST_SHOP_CATEGORIES = SHOP_CATEGORIES.filter((c) => c !== "health");
 
 export const CITIES = [
   "all",
@@ -48,7 +52,7 @@ export function homeTiles() {
     if (id === "shops") return { id, art: SHOP_ART, href: "/shops" as const };
     const s = SECTIONS.find((item) => item.id === id);
     return { id, art: s?.art ?? SHOP_ART, href: `/section/${id}` as const };
-  });
+  }).filter((tile) => isSectionVisible(tile.id));
 }
 
 export const CATEGORIES = [
@@ -60,6 +64,7 @@ export const CATEGORIES = [
   "appliances",
   "kids",
   "home",
+  "clothes",
 ] as const;
 export type GoodsCategory = (typeof CATEGORIES)[number];
 
@@ -79,6 +84,7 @@ export const GOODS_KINDS: Record<GoodsCategory, readonly string[]> = {
   appliances: ["fridge", "washer", "stove", "vacuum", "ac", "microwave"],
   kids: ["stroller", "kids-clothes", "toys", "car-seat", "kids-furniture"],
   home: ["dishes", "textile", "decor", "storage", "home-cleaning"],
+  clothes: [],
 };
 
 export function goodsKindsOf(category: string | null | undefined): readonly string[] {
@@ -166,31 +172,134 @@ export function propertyShowsStock(type: string) {
   return STOCK_PROPERTY.has(type);
 }
 
-export const ANIMAL_GROUPS = ["pets", "farm"] as const;
+export const ANIMAL_GROUPS = ["farm", "plants", "pets"] as const;
 export type AnimalGroup = (typeof ANIMAL_GROUPS)[number];
 
 export const ANIMAL_KINDS: Record<AnimalGroup, readonly string[]> = {
+  farm: ["cow", "bull", "sheep", "horses", "goats", "chickens", "rabbits", "pigs", "other-farm"],
+  plants: ["potato", "carrot", "onion", "cabbage", "fruit", "hay", "seedlings", "other-plants"],
   pets: ["dogs", "cats", "fish", "pet-food", "birds", "rodents", "pet-goods", "other-pets"],
-  farm: ["cattle", "horses", "sheep", "goats", "chickens", "rabbits", "pigs", "other-farm"],
 };
 
+export function isAnimalGroup(id: string | null | undefined): id is AnimalGroup {
+  return id === "farm" || id === "plants" || id === "pets";
+}
+
 export function animalKindsOf(group: string | null | undefined): readonly string[] {
-  if (group === "pets" || group === "farm") return ANIMAL_KINDS[group];
+  if (isAnimalGroup(group)) return ANIMAL_KINDS[group];
   return [];
+}
+
+/** Selectable kinds only. Legacy "cattle" keeps a label but is not a choice. */
+export function isKnownAnimalKind(id: string | null | undefined): boolean {
+  if (!id || id === "any") return false;
+  return (Object.values(ANIMAL_KINDS) as readonly (readonly string[])[]).some((list) => list.includes(id));
 }
 
 export { CAR_MAKES, carModelsOf } from "./transport";
 export type { CarMake, VehicleGroup } from "./transport";
 
-export const SERVICE_CATEGORIES = [
-  "repairs-finish",
-  "house-build",
-  "appliance-repair",
-  "beauty",
+export const SERVICE_GROUPS = {
+  "svc-transport": ["car-wash", "auto-repair", "tire-service", "transport-local", "transport-intl"],
+  "svc-tech": ["appliance-repair", "phone-repair"],
+  "svc-home": ["home-master", "repairs-finish", "house-build", "cleaning"],
+  "svc-leisure": ["beauty", "sauna", "billiards"],
+  "svc-clothes": ["tailor", "dry-clean", "shoe-repair"],
+  "svc-events": ["event-host", "photo-video", "event-rent"],
+  "svc-tourism": ["tour-operator", "tour-guide", "guest-yurt", "gear-rental"],
+  "svc-health": ["clinic", "dentist"],
+  "svc-farm": ["farm-work", "vet"],
+} as const;
+
+export type ServiceGroupId = keyof typeof SERVICE_GROUPS;
+
+export const SERVICE_TOP = [
+  "svc-transport",
+  "svc-tech",
+  "svc-home",
+  "svc-leisure",
+  "svc-clothes",
+  "svc-events",
+  "svc-tourism",
+  "svc-health",
   "education",
-  "cleaning",
+  "svc-farm",
   "other",
 ] as const;
+
+export const SERVICE_CATEGORIES = [
+  "car-wash",
+  "auto-repair",
+  "tire-service",
+  "transport-local",
+  "transport-intl",
+  "appliance-repair",
+  "phone-repair",
+  "home-master",
+  "repairs-finish",
+  "house-build",
+  "cleaning",
+  "beauty",
+  "sauna",
+  "billiards",
+  "tailor",
+  "dry-clean",
+  "shoe-repair",
+  "event-host",
+  "photo-video",
+  "event-rent",
+  "tour-operator",
+  "tour-guide",
+  "guest-yurt",
+  "gear-rental",
+  "clinic",
+  "dentist",
+  "education",
+  "farm-work",
+  "vet",
+  "other",
+] as const;
+
+export const PHARMACY_SHOP_HREF = "/shops/c/health/health-pharmacy";
+
+export function isServiceGroup(id: string | null | undefined): id is ServiceGroupId {
+  return !!id && Object.prototype.hasOwnProperty.call(SERVICE_GROUPS, id);
+}
+
+export function serviceGroupOf(leaf: string | null | undefined): ServiceGroupId | null {
+  if (!leaf) return null;
+  for (const group of Object.keys(SERVICE_GROUPS) as ServiceGroupId[]) {
+    if ((SERVICE_GROUPS[group] as readonly string[]).includes(leaf)) return group;
+  }
+  return null;
+}
+
+/** Filter category may be a leaf or a svc-* group. A listing category is always a leaf. */
+export function serviceCategoryMatches(itemCat: string | null | undefined, filterCat: string | null | undefined): boolean {
+  if (!filterCat || filterCat === "all") return true;
+  if (!itemCat) return false;
+  if (itemCat === filterCat) return true;
+  if (!isServiceGroup(filterCat)) return false;
+  return (SERVICE_GROUPS[filterCat] as readonly string[]).includes(itemCat);
+}
+
+export function serviceChoicesForPost(openGroup: string | null): readonly string[] {
+  if (openGroup && isServiceGroup(openGroup)) return SERVICE_GROUPS[openGroup];
+  return SERVICE_TOP;
+}
+
+export function draftAfterServiceTap<T extends { category?: string }>(draft: T, id: string): T {
+  if (isServiceGroup(id)) return draft;
+  if ((SERVICE_CATEGORIES as readonly string[]).includes(id)) return { ...draft, category: id };
+  return draft;
+}
+
+export function serviceLeafReady(category: string | null | undefined, openGroup: string | null): boolean {
+  if (!category || isServiceGroup(category)) return false;
+  if (!(SERVICE_CATEGORIES as readonly string[]).includes(category)) return false;
+  if (openGroup && isServiceGroup(openGroup) && serviceGroupOf(category) !== openGroup) return false;
+  return true;
+}
 
 export const CONSTRUCTION_CATEGORIES = [
   "cement",
@@ -240,7 +349,7 @@ export const SETTLEMENTS = [
   { id: "belovodskoe", city: "bishkek", name: "Беловодское", nameKy: "Беловодское", nameEn: "Belovodskoye", fromRu: "50 мин · трасса М-41", fromKy: "50 мүн · М-41 жолу", fromEn: "50 min · M-41 highway", lng: 74.118, lat: 42.829 },
   { id: "uzgen", city: "osh", name: "Узген", nameKy: "Өзгөн", nameEn: "Uzgen", fromRu: "1,5 ч · маршрутка с Оша", fromKy: "1,5 с · Оштон маршрутка", fromEn: "1.5 h · marshrutka from Osh", lng: 73.3, lat: 40.77 },
   { id: "kara-suu", city: "osh", name: "Кара-Суу", nameKy: "Кара-Суу", nameEn: "Kara-Suu", fromRu: "25 мин от Оша", fromKy: "Оштон 25 мүн", fromEn: "25 min from Osh", lng: 72.87, lat: 40.7 },
-  { id: "suzak", city: "jalal-abad", name: "Сузак", nameKy: "Сузак", nameEn: "Suzak", fromRu: "20 мин от Джалал-Абада", fromKy: "Жалал-Абаддан 20 мүн", fromEn: "20 min from Jalal-Abad", lng: 72.9, lat: 40.86 },
+  { id: "suzak", city: "jalal-abad", name: "Сузак", nameKy: "Сузак", nameEn: "Suzak", fromRu: "20 мин от Манаса", fromKy: "Манастан 20 мүн", fromEn: "20 min from Manas", lng: 72.9, lat: 40.86 },
   { id: "at-bashy", city: "naryn", name: "Ат-Башы", nameKy: "Ат-Башы", nameEn: "At-Bashy", fromRu: "2 ч от Нарына", fromKy: "Нарындан 2 с", fromEn: "2 h from Naryn", lng: 75.8, lat: 41.17 },
   { id: "balykchy", city: "cholpon-ata", name: "Балыкчы", nameKy: "Балыкчы", nameEn: "Balykchy", fromRu: "3 ч от Бишкека · запад Иссык-Куля", fromKy: "Бишкектен 3 с · Ысык-Көлдүн батышы", fromEn: "3 h from Bishkek · west Issyk-Kul", lng: 76.18, lat: 42.46 },
 ] as const;
@@ -1384,7 +1493,7 @@ export const LISTINGS: Listing[] = [
     id: "cattle-talas",
     section: "animals",
     animalGroup: "farm",
-    animalKind: "cattle",
+    animalKind: "cow",
     title: "Корова, дойная, Талас",
     titleKy: "Саан уй, Талас",
     titleEn: "Dairy cow, Talas",
@@ -2708,12 +2817,6 @@ export const DEFAULT_SAVED: SavedSearch[] = [
   { id: "s3", title: "Мебель, Ош, до 20 000", newCount: 1, notify: true },
 ];
 
-export const RESERVE_ACCOUNTS: ReserveAccount[] = [
-  { id: "nurlan", name: "Нурлан", phone: "+996 700 12 34 56" },
-  { id: "davran", name: "Давран", phone: "+996 555 00 11 22" },
-  { id: "aigul", name: "Айгуль", phone: "+996 555 98 76 54" },
-];
-
 export const DEFAULT_THREADS: Thread[] = [
   {
     id: "t-aida",
@@ -2736,7 +2839,7 @@ export const DEFAULT_THREADS: Thread[] = [
       {
         id: "m5",
         from: "system",
-        text: "Koshuna не участвует в оплате. Не переводите залог до осмотра квартиры.",
+        text: "Коңшу не участвует в оплате. Не переводите залог до осмотра квартиры.",
         time: "",
       },
     ],

@@ -24,8 +24,8 @@ export function publishErrors(shop: Shop): ShopRuleError[] {
   const errors: ShopRuleError[] = [];
   if (!shop.name.trim()) errors.push("name");
   if (!isShopCategory(shop.category)) errors.push("category");
-  if (!shop.city || shop.city === "all") errors.push("city");
-  if (!shop.address.trim()) errors.push("address");
+  const placed = Boolean(shop.city && shop.city !== "all") || (typeof shop.lat === "number" && typeof shop.lng === "number");
+  if (!placed) errors.push("city");
   if (!hasShopContact(shop)) errors.push("contact");
   if (!shop.aiConfirmed) errors.push("confirm");
   return errors;

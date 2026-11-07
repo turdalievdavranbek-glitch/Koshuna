@@ -49,34 +49,34 @@ export function StayCalendar({ checkIn, checkOut, onChange }: Props) {
       <div className="grid grid-cols-2 gap-2">
         <div
           className="rounded-xl px-3 py-2.5"
-          style={{ background: checkIn && !checkOut ? "#17140F" : "#F7F3EC" }}
+          style={{ background: checkIn && !checkOut ? "#18181B" : "#F5F5F7" }}
         >
           <div
             className="text-[11px] font-semibold uppercase tracking-[0.04em]"
-            style={{ color: checkIn && !checkOut ? "#C9BBA8" : "#6E6558" }}
+            style={{ color: checkIn && !checkOut ? "#C9BBA8" : "#61616B" }}
           >
             {t.checkIn}
           </div>
           <div
             className="mt-0.5 text-[15px] font-semibold"
-            style={{ color: checkIn && !checkOut ? "#F7F3EC" : "#17140F" }}
+            style={{ color: checkIn && !checkOut ? "#F5F5F7" : "#18181B" }}
           >
             {checkIn ? formatStayDay(checkIn, lang) : t.pickCheckIn}
           </div>
         </div>
         <div
           className="rounded-xl px-3 py-2.5"
-          style={{ background: checkIn && !checkOut ? "#F7F3EC" : checkOut ? "#17140F" : "#F7F3EC" }}
+          style={{ background: checkIn && !checkOut ? "#F5F5F7" : checkOut ? "#18181B" : "#F5F5F7" }}
         >
           <div
             className="text-[11px] font-semibold uppercase tracking-[0.04em]"
-            style={{ color: checkOut ? "#C9BBA8" : "#6E6558" }}
+            style={{ color: checkOut ? "#C9BBA8" : "#61616B" }}
           >
             {t.checkOut}
           </div>
           <div
             className="mt-0.5 text-[15px] font-semibold"
-            style={{ color: checkOut ? "#F7F3EC" : "#17140F" }}
+            style={{ color: checkOut ? "#F5F5F7" : "#18181B" }}
           >
             {checkOut ? formatStayDay(checkOut, lang) : t.pickCheckOut}
           </div>
@@ -125,8 +125,8 @@ export function StayCalendar({ checkIn, checkOut, onChange }: Props) {
               onClick={() => pick(key)}
               className="relative h-10 text-[13px] font-semibold"
               style={{
-                color: past ? "#C9BBA8" : selected ? "#F7F3EC" : "#17140F",
-                background: selected ? "#17140F" : mid ? "#F3E0D9" : "transparent",
+                color: past ? "#C9BBA8" : selected ? "#F5F5F7" : "#18181B",
+                background: selected ? "#18181B" : mid ? "#FDE8E8" : "transparent",
                 borderRadius: start && end ? 999 : start ? "999px 0 0 999px" : end ? "0 999px 999px 0" : mid ? 0 : 999,
               }}
             >

@@ -20,8 +20,8 @@ export function NeighborMark({ listing, compact }: { listing: Listing; compact?:
       <span
         className={`pointer-events-none font-bold tracking-wide text-accent-dark ${
           compact
-            ? "rounded-full bg-[#F3E0D9] px-1.5 py-0.5 text-[8px]"
-            : "rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px]"
+            ? "rounded-full bg-[#FDE8E8] px-1.5 py-0.5 text-[8px]"
+            : "rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px]"
         }`}
       >
         {t.fromRealtor}
@@ -33,8 +33,8 @@ export function NeighborMark({ listing, compact }: { listing: Listing; compact?:
       <span
         className={`pointer-events-none font-bold tracking-wide text-accent-dark ${
           compact
-            ? "rounded-full bg-[#F3E0D9] px-1.5 py-0.5 text-[8px]"
-            : "rounded-full bg-[#F3E0D9] px-2 py-0.5 text-[10px]"
+            ? "rounded-full bg-[#FDE8E8] px-1.5 py-0.5 text-[8px]"
+            : "rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[10px]"
         }`}
       >
         {dealerLabel(listing, t)}
@@ -69,19 +69,19 @@ export function NeighborBanner({
       onClick={onClick}
       className="w-full rounded-[14px] border px-3 py-2 text-left"
       style={{
-        background: active ? "#17140F" : "#FFFFFF",
-        borderColor: active ? "#17140F" : "#E4DCCE",
+        background: active ? "#18181B" : "#FFFFFF",
+        borderColor: active ? "#18181B" : "#E4E4E9",
       }}
     >
       <div
         className="text-[10px] font-bold uppercase tracking-[0.1em]"
-        style={{ color: active ? "#E8C4B8" : "#8E3423" }}
+        style={{ color: active ? "#E8C4B8" : "#B0141A" }}
       >
         {t.fromNeighbor}
       </div>
       <div
         className="mt-0.5 font-display text-[14px] font-bold leading-[1.2] tracking-[-0.015em]"
-        style={{ color: active ? "#F7F3EC" : "#17140F" }}
+        style={{ color: active ? "#F5F5F7" : "#18181B" }}
       >
         {t.neighborSlogan}
       </div>
@@ -122,7 +122,7 @@ export function NeighborCard({ listing }: { listing: Listing }) {
       className="mt-5 rounded-[18px] border p-4"
       style={{
         background: ok ? "#E7F3ED" : "#FFFFFF",
-        borderColor: ok ? "#C5DDD1" : "#E4DCCE",
+        borderColor: ok ? "#C5DDD1" : "#E4E4E9",
       }}
     >
       <div className="flex items-baseline justify-between gap-2">
@@ -137,9 +137,9 @@ export function NeighborCard({ listing }: { listing: Listing }) {
             <li key={id} className="flex items-start gap-2.5">
               <span
                 className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full"
-                style={{ background: on ? "#2A6B57" : "#E4DCCE" }}
+                style={{ background: on ? "#2A6B57" : "#E4E4E9" }}
               >
-                <IconCheck size={11} color={on ? "#F7F3EC" : "#A79C8C"} />
+                <IconCheck size={11} color={on ? "#F5F5F7" : "#A1A1AA"} />
               </span>
               <span className="text-[13px] leading-[1.4] text-ink" style={{ opacity: on ? 1 : 0.55 }}>
                 {labels[id]}
