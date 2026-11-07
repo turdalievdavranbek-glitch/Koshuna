@@ -16,7 +16,7 @@ import { priceFromPhoto } from "@/lib/photo-price";
 import { useApp } from "@/lib/store";
 import type { DraftListing, MediaKind } from "@/lib/types";
 import { IconCamera, IconImage } from "./icons";
-import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs, openFileInput, resetFileInput } from "./native-photo";
 import { Chip, Eyebrow, Photo, Toggle } from "./ui";
 import { PostTypePicker } from "./post-type-picker";
 import { PostTaxonomy, pickSection } from "./post-taxonomy";
@@ -524,7 +524,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
     setBusy("");
     const personalVideo = variant === "personal" && mode === "video";
     const openCameraApp = () => {
-      videoFileRef.current?.click();
+      openFileInput(videoFileRef.current);
     };
     if (personalVideo && (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined")) {
       openCameraApp();
@@ -835,7 +835,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               <button
                 type="button"
                 data-testid="post-photo"
-                onClick={() => cameraRef.current?.click()}
+                onClick={() => openFileInput(cameraRef.current)}
                 className="h-12 flex-1 rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
               >
                 {t.postPhoto}
@@ -845,7 +845,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
             <button
               type="button"
               data-testid="post-gallery"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => openFileInput(fileRef.current)}
               className="h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold text-ink"
             >
               {t.postGallery}
@@ -860,9 +860,10 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           capture="environment"
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void onFile(file);
-            e.target.value = "";
           }}
         />
         <input
@@ -873,8 +874,9 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           multiple
           className="hidden"
           onChange={(e) => {
-            const files = Array.from(e.target.files ?? []);
-            e.target.value = "";
+            const input = e.currentTarget;
+            const files = Array.from(input.files ?? []);
+            resetFileInput(input);
             if (files.length) void onGallery(files);
           }}
         />
@@ -886,9 +888,10 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           capture="environment"
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void onFile(file);
-            e.target.value = "";
           }}
         />
         {FEATURES.ownerVoice ? (
@@ -1007,7 +1010,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
                   onClick={() => {
                     if (fileRef.current) {
                       fileRef.current.accept = "video/*";
-                      fileRef.current.click();
+                      openFileInput(fileRef.current);
                     }
                   }}
                   className="h-11 rounded-[12px] border border-line px-3 text-[13px] font-semibold"
@@ -1029,7 +1032,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               onClick={() => {
                 if (fileRef.current) {
                   fileRef.current.accept = "image/*";
-                  fileRef.current.click();
+                  openFileInput(fileRef.current);
                 }
               }}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
@@ -1049,7 +1052,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
               onClick={() => {
                 if (fileRef.current) {
                   fileRef.current.accept = "image/*,audio/*";
-                  fileRef.current.click();
+                  openFileInput(fileRef.current);
                 }
               }}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4]"
@@ -1067,7 +1070,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
-              onClick={() => cameraRef.current?.click()}
+              onClick={() => openFileInput(cameraRef.current)}
               className="relative aspect-square overflow-hidden rounded-[14px] bg-chip"
             >
               {draft.photo ? <Photo src={draft.photo} alt="" fit="contain" /> : <span className="px-1 text-center text-[11px] text-muted">{emptyText || t.photos}</span>}
@@ -1077,7 +1080,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
             </button>
             <button
               type="button"
-              onClick={() => cameraRef.current?.click()}
+              onClick={() => openFileInput(cameraRef.current)}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
             >
               <IconCamera size={22} color="#E31E24" />
@@ -1085,7 +1088,7 @@ export function MediaCapture({ draft, onPatch, variant = "default", hint, emptyT
             </button>
             <button
               type="button"
-              onClick={() => galleryRef.current?.click()}
+              onClick={() => openFileInput(galleryRef.current)}
               className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#D3C7B4] bg-white"
             >
               <IconImage size={22} color="#61616B" />

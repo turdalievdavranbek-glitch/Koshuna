@@ -17,6 +17,7 @@ import { GisOnMapCard } from "./gis-on-map";
 import { HoursPicker } from "./hours-picker";
 import { ShopKindPicker } from "./shop-kind-picker";
 import { Chip, Eyebrow, Field, Input, Toggle } from "./ui";
+import { openFileInput, resetFileInput } from "./native-photo";
 import { applySellerShopCategory } from "./shop-chips";
 
 const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
@@ -240,8 +241,8 @@ export function ShopForm({ boot = true }: { boot?: boolean } = {}) {
               {t.shopRecord}
             </button>
           )}
-          <button type="button" onClick={() => fileRef.current?.click()} className="h-12 rounded-2xl border border-line bg-white text-[14px] font-semibold">
-            {t.shopUpload}
+          <button type="button" onClick={() => openFileInput(fileRef.current)} className="h-12 rounded-2xl border border-line bg-white text-[14px] font-semibold">
+            {d.videoUrl ? t.pointGreetingReplace : t.shopUpload}
           </button>
         </div>
         <input
@@ -250,9 +251,10 @@ export function ShopForm({ boot = true }: { boot?: boolean } = {}) {
           accept="video/*"
           className="hidden"
           onChange={(e) => {
-            const file = e.target.files?.[0];
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void onFile(file);
-            e.target.value = "";
           }}
         />
         {live ? <p className="mt-2 text-[12px] text-muted">{live}</p> : null}

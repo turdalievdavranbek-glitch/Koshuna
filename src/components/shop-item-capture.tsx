@@ -32,7 +32,7 @@ import { locate } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
-import { isGalleryVideo } from "./native-photo";
+import { isGalleryVideo, openFileInput, resetFileInput } from "./native-photo";
 import { GisOnMapCard } from "./gis-on-map";
 import { HoursPicker } from "./hours-picker";
 import { Chip, Field, Input, Toggle } from "./ui";
@@ -841,7 +841,8 @@ export function ShopItemCapture({
 
           {mode === "photos" ? (
             <>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              {photo || itemVideo ? <div className="mt-3 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+              <div className={`grid grid-cols-2 gap-2 ${photo || itemVideo ? "" : "mt-3"}`}>
                 {live ? (
                   <button type="button" onClick={() => void shot()} className="h-11 rounded-2xl bg-accent text-[13px] font-semibold text-accent-on">
                     {t.shopItemShot}
@@ -854,7 +855,7 @@ export function ShopItemCapture({
                 <button
                   type="button"
                   data-testid="product-gallery"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => openFileInput(fileRef.current)}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
                   {t.postGallery}
@@ -864,11 +865,24 @@ export function ShopItemCapture({
                 type="button"
                 data-testid="product-gallery-video"
                 disabled={mediaBusy}
-                onClick={() => videoFileRef.current?.click()}
+                onClick={() => openFileInput(videoFileRef.current)}
                 className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
               >
                 {mediaBusy ? t.videoPreparing : t.videoFromGallery}
               </button>
+              {(photo || itemVideo) && !live ? (
+                <button
+                  type="button"
+                  data-testid="capture-photo-delete"
+                  onClick={() => {
+                    setPhoto("");
+                    setItemVideo("");
+                  }}
+                  className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-accent"
+                >
+                  {t.pointGreetingDelete}
+                </button>
+              ) : null}
             </>
           ) : null}
 
@@ -887,7 +901,7 @@ export function ShopItemCapture({
                 <button
                   type="button"
                   data-testid="product-gallery"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => openFileInput(fileRef.current)}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
                   {t.postGallery}
@@ -922,7 +936,7 @@ export function ShopItemCapture({
                   disabled={mediaBusy}
                   onClick={() => {
                     changeMode("photos");
-                    videoFileRef.current?.click();
+                    openFileInput(videoFileRef.current);
                   }}
                   className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
                 >
@@ -960,8 +974,9 @@ export function ShopItemCapture({
             accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.mkv"
             className="hidden"
             onChange={(e) => {
-              const files = Array.from(e.target.files ?? []);
-              e.target.value = "";
+              const input = e.currentTarget;
+              const files = Array.from(input.files ?? []);
+              resetFileInput(input);
               if (files.length) void onGallery(files);
             }}
           />
@@ -973,8 +988,9 @@ export function ShopItemCapture({
             multiple
             className="hidden"
             onChange={(e) => {
-              const files = Array.from(e.target.files ?? []);
-              e.target.value = "";
+              const input = e.currentTarget;
+              const files = Array.from(input.files ?? []);
+              resetFileInput(input);
               if (files.length) void onGallery(files);
             }}
           />

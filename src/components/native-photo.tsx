@@ -13,9 +13,26 @@ type Props = {
   galleryMultiple?: boolean;
 };
 
+/** Android WebView writes the chosen file after onChange, so a sync clear is lost and the next pick (even the same file) never fires. */
+export function resetFileInput(input: HTMLInputElement | null | undefined) {
+  if (!input) return;
+  input.value = "";
+  window.setTimeout(() => {
+    input.value = "";
+  }, 0);
+}
+
+/** Clear first, then open. A leftover value blocks the picker from reporting the next file. */
+export function openFileInput(input: HTMLInputElement | null | undefined) {
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
 function takeFiles(e: ChangeEvent<HTMLInputElement>, onFiles: (files: File[]) => void) {
-  const files = Array.from(e.target.files ?? []);
-  e.target.value = "";
+  const input = e.currentTarget;
+  const files = Array.from(input.files ?? []);
+  resetFileInput(input);
   if (files.length) onFiles(files);
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { captureVideoPoster, recorderMime, recorderOptions, releaseBlob, rememberBlob, videoFileDuration } from "@/lib/blob-media";
 import { greetingVideoMaxSeconds, videoMaxBytes } from "@/lib/media-limits";
 import { useApp } from "@/lib/store";
+import { openFileInput, resetFileInput } from "./native-photo";
 
 export function GreetingTile({
   videoUrl,
@@ -84,7 +85,7 @@ export function GreetingTile({
   const record = async () => {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      cameraFileRef.current?.click();
+      openFileInput(cameraFileRef.current);
       return;
     }
     try {
@@ -109,7 +110,7 @@ export function GreetingTile({
       stopTimer.current = window.setTimeout(stop, greetingVideoMaxSeconds() * 1000);
     } catch {
       stopTracks();
-      cameraFileRef.current?.click();
+      openFileInput(cameraFileRef.current);
     }
   };
 
@@ -137,13 +138,21 @@ export function GreetingTile({
             <span className="text-[40px] leading-none">+</span>
           )}
         </button>
-        <div className="mt-3 flex gap-2">
-          <button type="button" disabled={busy} onClick={() => (recording ? stop() : void record())} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
-            {recording ? t.pointGreetingStop : t.pointGreetingShoot}
-          </button>
-          <button type="button" disabled={busy || recording} onClick={() => galleryRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
-            {t.postGallery}
-          </button>
+        <div className="mt-3">
+          {videoUrl && !recording ? <div className="mb-2 text-[13px] font-semibold text-ink">{t.pointGreetingReplace}</div> : null}
+          <div className="flex gap-2">
+            <button type="button" disabled={busy} onClick={() => (recording ? stop() : void record())} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
+              {recording ? t.pointGreetingStop : t.pointGreetingShoot}
+            </button>
+            <button type="button" disabled={busy || recording} onClick={() => openFileInput(galleryRef.current)} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-50">
+              {t.postGallery}
+            </button>
+          </div>
+          {videoUrl && !recording ? (
+            <button type="button" data-testid="point-greeting-delete" disabled={busy} onClick={clear} className="mt-2 h-12 w-full rounded-2xl border border-line bg-white text-[14px] font-semibold text-accent disabled:opacity-50">
+              {t.pointGreetingDelete}
+            </button>
+          ) : null}
         </div>
         {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
         <input
@@ -153,8 +162,9 @@ export function GreetingTile({
           capture="environment"
           className="hidden"
           onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
+            const input = event.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void accept(file);
           }}
         />
@@ -164,8 +174,9 @@ export function GreetingTile({
           accept="video/*"
           className="hidden"
           onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
+            const input = event.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void accept(file);
           }}
         />
@@ -200,7 +211,7 @@ export function GreetingTile({
         <button type="button" disabled={busy || recording} onClick={() => void record()} className="h-10 flex-1 rounded-xl border border-line bg-white text-[13px] font-semibold disabled:opacity-50">
           {videoUrl ? t.pointGreetingReplace : t.pointGreetingCamera}
         </button>
-        <button type="button" disabled={busy || recording} onClick={() => galleryRef.current?.click()} className="h-10 flex-1 rounded-xl border border-line bg-white text-[13px] font-semibold disabled:opacity-50">
+        <button type="button" disabled={busy || recording} onClick={() => openFileInput(galleryRef.current)} className="h-10 flex-1 rounded-xl border border-line bg-white text-[13px] font-semibold disabled:opacity-50">
           {t.pointGreetingGallery}
         </button>
         {videoUrl ? (
@@ -218,8 +229,9 @@ export function GreetingTile({
         capture="environment"
         className="hidden"
         onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
+          const input = event.currentTarget;
+          const file = input.files?.[0];
+          resetFileInput(input);
           if (file) void accept(file);
         }}
       />
@@ -229,8 +241,9 @@ export function GreetingTile({
         accept="video/*"
         className="hidden"
         onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
+          const input = event.currentTarget;
+          const file = input.files?.[0];
+          resetFileInput(input);
           if (file) void accept(file);
         }}
       />

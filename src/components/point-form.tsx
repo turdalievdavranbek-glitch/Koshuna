@@ -37,7 +37,7 @@ import { useDraftHistoryGuard } from "./draft-guard";
 import { HoursPicker } from "./hours-picker";
 import { LeaveDialog } from "./leave-dialog";
 import { DeleteCardDialog } from "./card-delete";
-import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs, openFileInput, resetFileInput } from "./native-photo";
 import { PointAvatar } from "./point-rows";
 import { Chip, Field, Input, Toggle } from "./ui";
 import { PlaceCascade } from "./place-cascade";
@@ -589,24 +589,37 @@ export function PointForm({
             onChange={(next) => patch(next)}
           />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => galleryRef.current?.click()} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-chip text-accent">
+        <div className="mt-3">
+          {d.coverUrl ? <div className="mb-2 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => openFileInput(galleryRef.current)} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-chip text-accent">
+              {d.coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={d.coverUrl} alt="" className="h-full w-full bg-chip object-contain" />
+              ) : (
+                <span className="text-[28px] leading-none">+</span>
+              )}
+            </button>
+            <button type="button" onClick={() => openFileInput(cameraRef.current)} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
+              {t.postPhoto}
+            </button>
+            <button type="button" data-testid="point-gallery" onClick={() => openFileInput(galleryRef.current)} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
+              {t.postGallery}
+            </button>
+            <button type="button" onClick={() => openFileInput(videoRef.current)} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
+              {d.videoUrl ? t.pointGreetingReplace : t.pointPhotoVideo}
+            </button>
             {d.coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={d.coverUrl} alt="" className="h-full w-full bg-chip object-contain" />
-            ) : (
-              <span className="text-[28px] leading-none">+</span>
-            )}
-          </button>
-          <button type="button" onClick={() => cameraRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
-            {t.postPhoto}
-          </button>
-          <button type="button" data-testid="point-gallery" onClick={() => galleryRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
-            {t.postGallery}
-          </button>
-          <button type="button" onClick={() => videoRef.current?.click()} className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold">
-            {t.pointPhotoVideo}
-          </button>
+              <button
+                type="button"
+                data-testid="point-photo-delete"
+                onClick={() => patch({ coverUrl: undefined })}
+                className="h-10 rounded-xl border border-line bg-white px-3 text-[13px] font-semibold text-accent"
+              >
+                {t.pointGreetingDelete}
+              </button>
+            ) : null}
+          </div>
         </div>
         <NativePhotoInputs
           cameraRef={cameraRef}
@@ -623,8 +636,9 @@ export function PointForm({
           accept="video/*"
           className="hidden"
           onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
+            const input = event.currentTarget;
+            const file = input.files?.[0];
+            resetFileInput(input);
             if (file) void onVideo(file);
           }}
         />

@@ -14,7 +14,7 @@ import { validPrice } from "@/lib/shops";
 import { useApp } from "@/lib/store";
 import type { MediaKind, RestaurantDish } from "@/lib/types";
 import { IconCamera } from "./icons";
-import { isGalleryVideo, NativePhotoInputs } from "./native-photo";
+import { isGalleryVideo, NativePhotoInputs, openFileInput, resetFileInput } from "./native-photo";
 import { Chip, Field, Input, Toggle } from "./ui";
 
 export function RestaurantMenuCapture() {
@@ -480,19 +480,27 @@ export function RestaurantMenuCapture() {
           </div>
 
           {mode === "photos" || mode === "voice" ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3">
+              {photo ? <div className="mb-2 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+              <div className="grid grid-cols-2 gap-2">
               {live ? (
                 <button type="button" onClick={() => void shot()} className="h-11 rounded-2xl bg-accent text-[13px] font-semibold text-accent-on">
                   {t.shopItemShot}
                 </button>
               ) : (
-                <button type="button" onClick={() => cameraRef.current?.click()} className="h-11 rounded-2xl bg-ink text-[13px] font-semibold text-screen">
+                <button type="button" onClick={() => openFileInput(cameraRef.current)} className="h-11 rounded-2xl bg-ink text-[13px] font-semibold text-screen">
                   {t.camera}
                 </button>
               )}
-              <button type="button" onClick={() => galleryRef.current?.click()} className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold">
+              <button type="button" onClick={() => openFileInput(galleryRef.current)} className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold">
                 {t.gallery}
               </button>
+              </div>
+              {photo && !live ? (
+                <button type="button" onClick={() => setPhoto("")} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-accent">
+                  {t.pointGreetingDelete}
+                </button>
+              ) : null}
             </div>
           ) : null}
 
@@ -525,7 +533,7 @@ export function RestaurantMenuCapture() {
               type="button"
               data-testid="menu-gallery-video"
               disabled={videoBusy}
-              onClick={() => videoFileRef.current?.click()}
+              onClick={() => openFileInput(videoFileRef.current)}
               className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
             >
               {videoBusy ? t.videoPreparing : t.videoFromGallery}
@@ -537,8 +545,9 @@ export function RestaurantMenuCapture() {
             accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.mkv"
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
+              const input = e.currentTarget;
+              const file = input.files?.[0];
+              resetFileInput(input);
               void onCafeVideo(file);
             }}
           />

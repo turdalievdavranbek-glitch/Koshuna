@@ -12,7 +12,7 @@ import { useApp } from "@/lib/store";
 import type { Shop, ShopHours } from "@/lib/types";
 import { HoursPicker } from "./hours-picker";
 import { IconBack } from "./icons";
-import { NativePhotoInputs } from "./native-photo";
+import { NativePhotoInputs, openFileInput } from "./native-photo";
 import { PlaceCascade } from "./place-cascade";
 
 const GisMap = dynamic(() => import("./gis-map").then((m) => m.GisMap), { ssr: false });
@@ -171,7 +171,7 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
           <div>
             <button
               type="button"
-              onClick={() => cameraRef.current?.click()}
+              onClick={() => openFileInput(cover ? galleryRef.current : cameraRef.current)}
               className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[18px] border border-dashed border-line bg-chip text-[15px] font-semibold text-accent"
             >
               {cover ? (
@@ -183,13 +183,27 @@ export function PointFieldScreen({ shopId, field }: { shopId: string; field: Poi
                 <span className="text-[40px] leading-none">+</span>
               )}
             </button>
-            <div className="mt-3 flex gap-2">
-              <button type="button" onClick={() => cameraRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold">
-                {t.postPhoto}
-              </button>
-              <button type="button" onClick={() => galleryRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold">
-                {t.postGallery}
-              </button>
+            <div className="mt-3">
+              {cover ? <div className="mb-2 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+              <div className="flex gap-2">
+                <button type="button" disabled={photoBusy} onClick={() => openFileInput(cameraRef.current)} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-60">
+                  {t.postPhoto}
+                </button>
+                <button type="button" disabled={photoBusy} onClick={() => openFileInput(galleryRef.current)} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-60">
+                  {t.postGallery}
+                </button>
+              </div>
+              {cover ? (
+                <button
+                  type="button"
+                  data-testid="point-field-photo-delete"
+                  disabled={photoBusy}
+                  onClick={() => setCover("")}
+                  className="mt-2 h-12 w-full rounded-2xl border border-line bg-white text-[14px] font-semibold text-accent disabled:opacity-60"
+                >
+                  {t.pointGreetingDelete}
+                </button>
+              ) : null}
             </div>
             <NativePhotoInputs
               cameraRef={cameraRef}

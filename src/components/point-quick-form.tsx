@@ -9,7 +9,7 @@ import { landmarksFromText, NEW_POINT_GROUPS, normalizePhone } from "@/lib/shops
 import { useApp } from "@/lib/store";
 import type { Shop, ShopCategory } from "@/lib/types";
 import { PlaceCascade } from "./place-cascade";
-import { NativePhotoInputs } from "./native-photo";
+import { NativePhotoInputs, openFileInput } from "./native-photo";
 import { GreetingTile } from "./greeting-tile";
 
 export const POINT_NEW_KEY = "konshu-point-new";
@@ -339,7 +339,7 @@ export function PointWizard({ kind }: { kind: PointKind }) {
             <button
               type="button"
               data-testid="point-photo-box"
-              onClick={() => cameraRef.current?.click()}
+              onClick={() => openFileInput(d.coverUrl ? galleryRef.current : cameraRef.current)}
               className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[18px] border border-dashed border-line bg-chip text-[15px] font-semibold text-accent"
             >
               {d.coverUrl ? (
@@ -351,13 +351,30 @@ export function PointWizard({ kind }: { kind: PointKind }) {
                 <span className="text-[40px] leading-none">+</span>
               )}
             </button>
-            <div className="mt-3 flex gap-2">
-              <button type="button" onClick={() => cameraRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold">
-                {t.postPhoto}
-              </button>
-              <button type="button" onClick={() => galleryRef.current?.click()} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold">
-                {t.postGallery}
-              </button>
+            <div className="mt-3">
+              {d.coverUrl ? <div className="mb-2 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+              <div className="flex gap-2">
+                <button type="button" data-testid="point-photo-camera" disabled={photoBusy} onClick={() => openFileInput(cameraRef.current)} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-60">
+                  {t.postPhoto}
+                </button>
+                <button type="button" data-testid="point-photo-gallery" disabled={photoBusy} onClick={() => openFileInput(galleryRef.current)} className="h-12 flex-1 rounded-2xl border border-line bg-white text-[14px] font-semibold disabled:opacity-60">
+                  {t.postGallery}
+                </button>
+              </div>
+              {d.coverUrl ? (
+                <button
+                  type="button"
+                  data-testid="point-photo-delete"
+                  disabled={photoBusy}
+                  onClick={() => {
+                    setError("");
+                    setShopDraft({ coverUrl: undefined });
+                  }}
+                  className="mt-2 h-12 w-full rounded-2xl border border-line bg-white text-[14px] font-semibold text-accent disabled:opacity-60"
+                >
+                  {t.pointGreetingDelete}
+                </button>
+              ) : null}
             </div>
             <NativePhotoInputs
               cameraRef={cameraRef}
