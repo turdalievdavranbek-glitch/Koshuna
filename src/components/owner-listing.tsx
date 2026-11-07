@@ -49,8 +49,47 @@ export function ListingStageBanner({ listing }: { listing: Listing }) {
   );
 }
 
+export function OwnerAccountDelete({ listingId }: { listingId: string }) {
+  const { t, user, deleteListing } = useApp();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  if (!user?.owner) return null;
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        data-testid="owner-delete-listing"
+        onClick={() => setOpen(true)}
+        className="h-11 w-full rounded-[14px] border border-line bg-white text-[15px] font-semibold text-accent"
+      >
+        {t.ownerDeleteListing}
+      </button>
+      {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
+      <DeleteCardDialog
+        open={open}
+        busy={busy}
+        onCancel={() => setOpen(false)}
+        onConfirm={() => {
+          setBusy(true);
+          void deleteListing(listingId).then((result) => {
+            setBusy(false);
+            if (result.error) {
+              setError(t.cardDeleteError);
+              setOpen(false);
+              return;
+            }
+            router.push("/");
+          });
+        }}
+      />
+    </div>
+  );
+}
+
 export function OwnerListingTools({ listing }: { listing: Listing }) {
-  const { t, updateListing, clearMeetDeal, deleteListing, editListingToDraft } = useApp();
+  const { t, user, updateListing, clearMeetDeal, deleteListing, editListingToDraft } = useApp();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -121,7 +160,7 @@ export function OwnerListingTools({ listing }: { listing: Listing }) {
         onClick={() => setConfirmDelete(true)}
         className="mt-4 h-11 w-full text-[15px] font-semibold text-accent"
       >
-        {t.cardDelete}
+        {user?.owner ? t.ownerDeleteListing : t.cardDelete}
       </button>
       <DeleteCardDialog
         open={confirmDelete}

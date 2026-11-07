@@ -122,6 +122,7 @@ export function MyListings({ limit }: { limit?: number }) {
               <CardMenu
                 onDelete={() => setPendingId(item.id)}
                 testId="listing-menu"
+                deleteLabel={user?.owner ? t.ownerDeleteListing : undefined}
                 items={[
                   {
                     label: t.edit,

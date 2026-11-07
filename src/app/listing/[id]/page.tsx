@@ -23,7 +23,7 @@ import { VoiceNote } from "@/components/voice-note";
 import { AiylRoad } from "@/components/aiyl-road";
 import { StayCalendar } from "@/components/stay-calendar";
 import { GoLookCard, PayAfterNote } from "@/components/go-look";
-import { ListingStageBanner, OwnerListingTools } from "@/components/owner-listing";
+import { ListingStageBanner, OwnerAccountDelete, OwnerListingTools } from "@/components/owner-listing";
 import { HoldRequest } from "@/components/hold-request";
 import { StillActual } from "@/components/still-actual";
 import { MeetDealBlock } from "@/components/meet-deal";
@@ -465,7 +465,7 @@ export default function ListingPage() {
               })()
             : null}
           {mine || listing.ownerId === user?.id ? <StillActual listing={listing} /> : null}
-          {mine ? <OwnerListingTools listing={listing} /> : null}
+          {mine ? <OwnerListingTools listing={listing} /> : user?.owner ? <OwnerAccountDelete listingId={listing.id} /> : null}
           {mine ? (
             <button
               type="button"

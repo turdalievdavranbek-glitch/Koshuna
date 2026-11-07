@@ -56,10 +56,12 @@ export function CardMenu({
   onDelete,
   items = [],
   testId = "card-menu",
+  deleteLabel,
 }: {
   onDelete: () => void;
   items?: CardMenuItem[];
   testId?: string;
+  deleteLabel?: string;
 }) {
   const { t } = useApp();
   const [open, setOpen] = useState(false);
@@ -113,7 +115,7 @@ export function CardMenu({
               onClick={() => run(onDelete)}
               className="block h-[52px] w-full rounded-2xl px-4 text-left text-[16px] font-semibold text-accent active:bg-chip"
             >
-              {t.cardDelete}
+              {deleteLabel ?? t.cardDelete}
             </button>
             <button
               type="button"

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { sessionIsAdmin, getSessionUser } from "@/server/auth";
+import { sessionIsAdmin, sessionIsOwner, getSessionUser } from "@/server/auth";
 import { spotForFix } from "@/lib/geo";
 import { listingCategoryError } from "@/lib/listing-rules";
 import { sanitizeServiceListing } from "@/lib/service-listing";
@@ -160,7 +160,8 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const row = existing[0];
   if (!row) return json({ error: "not-found" }, 404);
   const admin = await sessionIsAdmin(user.id);
-  if (row.ownerId !== user.id && !admin) return json({ error: "forbidden" }, 403);
+  const owner = await sessionIsOwner(user.id);
+  if (row.ownerId !== user.id && !admin && !owner) return json({ error: "forbidden" }, 403);
   const saved = await hideListingById(id);
   if ("error" in saved) return json({ error: saved.error }, saved.status);
   return json({ ok: true });

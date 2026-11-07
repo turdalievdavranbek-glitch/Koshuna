@@ -2052,6 +2052,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const user = state.user;
       if (!user) return { error: "auth" };
       const current = state.extraListings.find((item) => item.id === id) ?? state.feed.find((item) => item.id === id);
+      const platformOwner = user.owner === true;
       // A listing opened by link may not be in the local feed: let the server check ownership.
       const own = !current || Boolean(
         current &&
@@ -2059,8 +2060,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             state.extraListings.some((item) => item.id === id) ||
             (current.shopId && isOwnShop(state.shops.find((shop) => shop.id === current.shopId) ?? { ownerPhone: "" }, user))),
       );
-      if (!own) return { error: "forbidden" };
-      if (current?.status === "draft") {
+      if (!platformOwner && !own) return { error: "forbidden" };
+      if (current?.status === "draft" && (!platformOwner || !current.ownerId || current.ownerId === user.id)) {
         // Unpublished drafts live only on this device: drop local copy, local media and orphaned uploads.
         const urls: string[] = [];
         const walk = (v: unknown) => {
