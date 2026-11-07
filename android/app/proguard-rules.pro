@@ -26,12 +26,31 @@
 -keepclassmembers class * extends android.webkit.WebViewClient { public *; }
 -keepclassmembers class * extends android.webkit.WebChromeClient { public *; }
 
-# --- Capacitor plugins we ship (@capacitor/app, push-notifications, capawesome sign-in, firebase crashlytics).
+# --- Capacitor plugins we ship. Each package is named so R8 cannot drop one of them.
+# App: hardware back and app links. Share + Filesystem: the share sheet. Push: FCM.
+# Splash: launch screen. Crashlytics / Google / Apple sign-in: Capawesome plugins.
 -keep class com.capacitorjs.plugins.** { *; }
+-keep class com.capacitorjs.plugins.app.** { *; }
+-keep class com.capacitorjs.plugins.share.** { *; }
+-keep class com.capacitorjs.plugins.filesystem.** { *; }
+-keep class com.capacitorjs.plugins.pushnotifications.** { *; }
+-keep class com.capacitorjs.plugins.splashscreen.** { *; }
 -keep class io.capawesome.capacitorjs.plugins.** { *; }
+-keep class io.capawesome.capacitorjs.plugins.firebase.crashlytics.** { *; }
+-keep class io.capawesome.capacitorjs.plugins.googlesignin.** { *; }
+-keep class io.capawesome.capacitorjs.plugins.applesignin.** { *; }
 
-# --- Our app classes (manifest entries, reflection-free but cheap to keep readable).
+# --- AndroidX WebKit. Capacitor uses WebViewCompat / document-start script injection.
+-keep class androidx.webkit.** { *; }
+-dontwarn androidx.webkit.**
+
+# --- Our activity and the mic bridge (KoshunaNative.requestMic / openSettings), plus KoshunaApp.
 -keep class com.koshuna.app.** { *; }
+-keep class com.koshuna.app.MainActivity { *; }
+-keep class com.koshuna.app.MainActivity$* { *; }
+-keepclassmembers class com.koshuna.app.MainActivity$MicBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
 # --- Firebase / FCM / Crashlytics (libraries ship consumer rules; these are belt-and-braces).
 -keep class com.google.firebase.crashlytics.** { *; }
