@@ -7,7 +7,7 @@ import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVide
 import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
 import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
-import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
+import { isStockShopPhoto } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { GreetingTile } from "./greeting-tile";
 import {
@@ -35,7 +35,7 @@ import { IconCamera } from "./icons";
 import { isGalleryVideo, openFileInput, resetFileInput } from "./native-photo";
 import { GisOnMapCard } from "./gis-on-map";
 import { HoursPicker } from "./hours-picker";
-import { Chip, Field, Input, Toggle } from "./ui";
+import { Chip, Field, Input, Photo, Toggle } from "./ui";
 
 export function ShopItemCapture({
   parent,
@@ -53,7 +53,9 @@ export function ShopItemCapture({
 }) {
   const { t, user, shops, ready, upsertShopProduct, setPendingPath, startShopDraft, setShopDraft, publishShop } = useApp();
   const router = useRouter();
-  const createdQuery = useSearchParams().get("created");
+  const search = useSearchParams();
+  const createdQuery = search.get("created");
+  const editProductId = search.get("product") || undefined;
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -64,6 +66,7 @@ export function ShopItemCapture({
   const recTimer = useRef(0);
   const spokenRef = useRef("");
   const priceTouched = useRef(false);
+  const editSeeded = useRef(false);
   const noPriceRef = useRef(false);
   const [mode, setMode] = useState<MediaKind>("photos");
   const [live, setLive] = useState(false);
@@ -126,21 +129,20 @@ export function ShopItemCapture({
   }, [mode]);
 
   useEffect(() => {
-    if (pointMode || !photo) return;
-    const next = photoForProductTitle(title, kind);
-    if (!next || next === photo) return;
-    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title)) {
-      setPhoto(next);
-      return;
-    }
-    let cancelled = false;
-    void looksLikeRenderedPriceTag(photo).then((tag) => {
-      if (!cancelled && tag) setPhoto(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [kind, photo, pointMode, title]);
+    if (isStockShopPhoto(photo)) setPhoto("");
+  }, [photo]);
+
+  useEffect(() => {
+    if (editSeeded.current || !editProductId || !shop) return;
+    const item = shop.products.find((row) => row.id === editProductId);
+    if (!item) return;
+    editSeeded.current = true;
+    setTitle(item.title);
+    setPrice(item.price != null ? String(item.price) : "");
+    setQty(item.quantity != null ? String(item.quantity) : "");
+    setNoPrice(item.price == null);
+    if (item.photo && !isStockShopPhoto(item.photo)) setPhoto(item.photo);
+  }, [editProductId, shop]);
 
   const rememberSpeech = (text: string) => {
     spokenRef.current = text;
@@ -184,14 +186,7 @@ export function ShopItemCapture({
     }
     setAi(t.shopItemAiBusy);
     const compact = await jpegDataUrl(dataUrl, 900);
-    const tag =
-      isGeneratedPriceTag(dataUrl) ||
-      isGeneratedPriceTag(compact) ||
-      isCompactPriceTagDataUrl(dataUrl, title) ||
-      isCompactPriceTagDataUrl(compact, title) ||
-      (await looksLikeRenderedPriceTag(dataUrl)) ||
-      (await looksLikeRenderedPriceTag(compact));
-    setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);
+    setPhoto(compact);
     try {
       const guess = await priceFromPhoto(dataUrl);
       if (noPriceRef.current) {
@@ -275,7 +270,7 @@ export function ShopItemCapture({
     const raw = draftsFromShopSpeech(text, { category: parent, kind });
     const next = pairDraftsWithStills(raw, stills, source).map((row) => ({
       ...row,
-      photo: row.photo || photoForProductTitle(row.title, row.kind),
+      photo: row.photo && !isStockShopPhoto(row.photo) ? row.photo : undefined,
       kind: kind ?? row.kind,
       category: kindParent(kind ?? row.kind, parent ?? row.category),
       kindOptions: kind ? [kind] : row.kindOptions,
@@ -567,14 +562,18 @@ export function ShopItemCapture({
       setError(t.shopNeedQuantity);
       return;
     }
+    const editing = editProductId ? place.products.find((row) => row.id === editProductId) : undefined;
     const result = await upsertShopProduct(place.id, {
+      id: editing?.id,
+      listingId: editing?.listingId,
       title: title.trim(),
       price: n,
       quantity,
       photo: photo || undefined,
-      videoUrl: itemVideo || undefined,
-      category: parent ?? cardCat,
-      kind,
+      videoUrl: itemVideo || editing?.videoUrl,
+      category: parent ?? cardCat ?? editing?.category,
+      kind: kind ?? editing?.kind,
+      unit: editing?.unit,
       priceFromPhoto: fromPhoto,
     });
     if (result.error) {
@@ -1197,8 +1196,9 @@ export function ShopItemCapture({
                 onClick={() => router.push(`/shops/${row.id}`)}
                 className="flex gap-3 rounded-[16px] border border-line bg-white p-3 text-left"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+                <span className="h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
+                  <Photo src={product.photo} alt="" />
+                </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] font-semibold text-ink">{product.title}</span>
                   <span className="mt-0.5 block text-[13px] font-semibold text-accent">
@@ -1230,8 +1230,9 @@ function ItemCard({
   const { t } = useApp();
   return (
     <div className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
+        <Photo src={product.photo} alt="" />
+      </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold text-ink">{product.title}</div>
         <div className="mt-0.5 text-[13px] font-semibold text-accent">

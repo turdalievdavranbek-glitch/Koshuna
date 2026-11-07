@@ -4,7 +4,7 @@ import { MasterBadge } from "@/components/master-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatSom } from "@/lib/data";
-import { displayPhotoForProduct } from "@/lib/shop-photos";
+import { realProductPhoto } from "@/lib/shop-photos";
 import { canSeeShop, shopCallPhone, formatShopHours, groupShopProducts, isOwnShop, nowInKg, publicProduct, shopDeliveryLine, shopHasPointPlace, shopPlaceHeadline, shopOpenNow } from "@/lib/shops";
 import { shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
 import { telegramLink } from "@/lib/telegram-username";
@@ -15,7 +15,7 @@ import { PhoneShell } from "@/components/shell";
 import { ShopCartBar, ShopQty, useShopCart } from "@/components/delivery-shop-buy";
 import { ShopProductsEditor } from "@/components/shop-products";
 import { GreetingVideo, ShopThumb, ShopVideo } from "@/components/shop-thumb";
-import { Chip, Eyebrow } from "@/components/ui";
+import { Chip, Eyebrow, Photo } from "@/components/ui";
 import { TrustStars } from "@/components/trust-stars";
 import { FEATURES } from "@/lib/features";
 import { GisOnMapCard } from "@/components/gis-on-map";
@@ -309,14 +309,24 @@ export default function ShopDetailPage() {
                 <div className="flex flex-col gap-2 desk:grid desk:grid-cols-4">
                   {group.items.map((item) => (
                     <div key={item.id} className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={displayPhotoForProduct(item)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
+                        <Photo src={realProductPhoto(item)} alt="" />
+                      </div>
                       <div className="min-w-0 flex-1">
                       <div className="font-display text-[16px] font-bold text-ink">{item.title}</div>
                       {item.description ? <p className="mt-1 text-[13px] text-muted">{item.description}</p> : null}
                       <div className="mt-1 text-[15px] font-semibold text-accent">
                         {item.price != null ? `${formatSom(item.price)} сом / ${t.shopUnits[item.unit]}` : t.shopAskPrice}
                       </div>
+                      {(mine || user?.owner || user?.master) && !realProductPhoto(item) ? (
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/shops/quick?shop=${encodeURIComponent(shop.id)}&product=${encodeURIComponent(item.id)}`)}
+                          className="mt-2 h-9 rounded-xl bg-ink px-3 text-[13px] font-semibold text-screen"
+                        >
+                          {t.addItemPhoto}
+                        </button>
+                      ) : null}
                       <div className="mt-0.5 text-[12px] text-muted">
                         {shopQtyLabel(t, item) ? `${shopQtyLabel(t, item)} · ` : ""}
                         {item.stock === "in" ? t.shopStockIn : item.stock === "out" ? t.shopStockOut : item.stock === "order" ? t.shopStockOrder : t.shopStockAsk}

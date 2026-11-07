@@ -1,6 +1,6 @@
 import { listingHasPrice } from "./deal";
 import { applySectionMove, type SectionMove } from "./section-move";
-import { displayPhotoForProduct } from "./shop-photos";
+import { realProductPhoto } from "./shop-photos";
 import { listingSectionForShop } from "./shops";
 import type { AuthMethod, Listing, ListingStatus, Shop, ShopProduct, User } from "./types";
 
@@ -53,7 +53,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
       : previousPrice && price > 0 && previousPrice > price
         ? Math.round((1 - price / previousPrice) * 100)
         : undefined;
-  const photo = displayPhotoForProduct(product, shop.coverUrl || "/sections/shops.jpg");
+  const photo = realProductPhoto(product);
   const id = prev?.id || product.listingId || listingIdForProduct(product.id);
   const moved = product.adminSection;
   const base: Listing = {
@@ -69,7 +69,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     city: shop.city === "all" ? "bishkek" : shop.city,
     postedAgo: postedAgoFrom(product.createdAt),
     postedAt: product.createdAt,
-    photos: [photo],
+    photos: photo ? [photo] : [],
     photoCredit: shop.name,
     description: product.description || product.title,
     descriptionKy: product.description || product.title,
@@ -81,7 +81,7 @@ export function listingFromShopProduct(shop: Shop, product: ShopProduct, user: U
     sellerCardLinked: user?.cardLinked ?? prev?.sellerCardLinked,
     shopId: shop.id,
     shopProductId: product.id,
-    hasPhoto: photo !== "/sections/shops.jpg" || Boolean(product.photo || shop.coverUrl),
+    hasPhoto: Boolean(photo),
     verified: Boolean(shop.aiConfirmed),
     noAgent: false,
     status: listingStatusForProduct(shop, product, prev),

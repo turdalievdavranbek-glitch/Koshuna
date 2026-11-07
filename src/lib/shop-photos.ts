@@ -80,10 +80,9 @@ export function imageSizeFromDataUrl(src?: string): { width: number; height: num
 }
 
 function isPriceTagCanvasSize(width: number, height: number): boolean {
-  const ratio = width / Math.max(height, 1);
-  const nearDemo = Math.abs(width - 640) <= 32 && Math.abs(height - 800) <= 32;
-  const fourByFive = ratio >= 0.78 && ratio <= 0.82 && width >= 480 && width <= 720 && height >= 600 && height <= 900;
-  return nearDemo || fourByFive;
+  // The demo price tag is a fixed ~640×800 canvas. A real phone photo resized
+  // by jpegDataUrl(900) is often 720×900 (4:5) and must stay the item photo.
+  return Math.abs(width - 640) <= 32 && Math.abs(height - 800) <= 32;
 }
 
 /** Demo AI price tag is a ~640×800 seven-segment canvas, not a product photo. */
@@ -201,32 +200,23 @@ export function photoForProductTitle(title?: string, kind?: ShopKind): string | 
   return stockPhotoForTitle(title) ?? (kind && KIND_PHOTOS[kind]) ?? undefined;
 }
 
-function usablePhoto(src?: string, title?: string, kind?: ShopKind): string | undefined {
-  if (!src || isPriceTagPhoto(src, title, kind)) return undefined;
+/** A photo the seller actually took or uploaded. Stock bakery/bread art is not one. */
+export function realProductPhoto(product: Pick<ShopProduct, "title" | "kind" | "photo">): string | undefined {
+  const src = product.photo;
+  if (!src || isStockShopPhoto(src) || src.startsWith("/sections/")) return undefined;
+  if (isPriceTagPhoto(src, product.title, product.kind)) return undefined;
   return src;
 }
 
-export function displayPhotoForProduct(
-  product: Pick<ShopProduct, "title" | "kind" | "photo">,
-  fallback?: string,
-): string {
-  const stock = photoForProductTitle(product.title, product.kind);
-  if (!product.photo || isPriceTagPhoto(product.photo, product.title, product.kind)) {
-    return stock || usablePhoto(fallback, product.title, product.kind) || SHOP_ITEM_PHOTOS.bakery;
-  }
-  return product.photo;
+export function displayPhotoForProduct(product: Pick<ShopProduct, "title" | "kind" | "photo">): string | undefined {
+  return realProductPhoto(product);
 }
 
 export async function replacePriceTagPhoto(
   product: Pick<ShopProduct, "title" | "kind" | "photo">,
 ): Promise<string | undefined> {
-  const shown = displayPhotoForProduct(product);
-  if (!product.photo) return shown;
-  if (shown !== product.photo) return shown;
-  if (isStockShopPhoto(product.photo) || !product.photo.startsWith("data:image")) return product.photo;
-  if (await looksLikeRenderedPriceTag(product.photo)) {
-    return photoForProductTitle(product.title, product.kind) || SHOP_ITEM_PHOTOS.bakery;
-  }
+  if (!product.photo || isStockShopPhoto(product.photo) || product.photo.startsWith("/sections/")) return undefined;
+  if (isGeneratedPriceTag(product.photo)) return undefined;
   return product.photo;
 }
 

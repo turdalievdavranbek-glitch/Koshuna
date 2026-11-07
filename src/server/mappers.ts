@@ -1,5 +1,6 @@
 import { isOwnerEmail } from "@/lib/owner";
 import { postedAgoFrom } from "@/lib/shop-listing";
+import { isStockShopPhoto } from "@/lib/shop-photos";
 import { shopCallPhone } from "@/lib/shops";
 import { telegramUsername } from "@/lib/telegram-username";
 import type { AuthMethod, Listing, Shop, ShopProduct, User } from "@/lib/types";
@@ -51,7 +52,8 @@ export function rowToListing(row: ListingRow): Listing {
   const attrs = (row.attrs ?? {}) as Partial<Listing> & { sellerPhone?: string };
   const { sellerPhone: _omit, ...rest } = attrs;
   const price = row.price == null ? 0 : Number(row.price);
-  const created = row.createdAt instanceof Date ? row.createdAt.toISOString() : undefined;
+    const created = row.createdAt instanceof Date ? row.createdAt.toISOString() : undefined;
+    const photos = (row.photos?.length ? row.photos : rest.photos ?? []).filter((src): src is string => Boolean(src) && !isStockShopPhoto(src));
   return {
     titleKy: row.title,
     titleEn: row.title,
@@ -83,11 +85,11 @@ export function rowToListing(row: ListingRow): Listing {
     settlement: row.settlement ?? rest.settlement,
     lat: row.lat ?? rest.lat,
     lng: row.lng ?? rest.lng,
-    photos: row.photos?.length ? row.photos : rest.photos ?? [],
+    photos,
     videoUrl: row.videoUrl ?? rest.videoUrl,
     voiceUrl: row.voiceUrl ?? rest.voiceUrl,
     voiceSec: row.voiceSec ?? rest.voiceSec,
-    hasPhoto: row.hasPhoto,
+    hasPhoto: photos.length > 0 || Boolean(row.videoUrl ?? rest.videoUrl),
     shopId: row.shopId ?? rest.shopId,
     shopProductId: row.shopProductId ?? rest.shopProductId,
     status: (LISTING_STATUSES.has(row.status) ? row.status : "active") as Listing["status"],
@@ -200,7 +202,9 @@ export function rowToShop(row: ShopRow): Shop {
     kindOther: doc.kindOther || row.kindOther || undefined,
     deliveryFree: typeof doc.deliveryFree === "boolean" ? doc.deliveryFree : typeof row.deliveryFree === "boolean" ? row.deliveryFree : undefined,
     deliveryDistricts: doc.deliveryDistricts?.length ? doc.deliveryDistricts : row.deliveryDistricts?.length ? [...row.deliveryDistricts] : doc.deliveryDistricts,
-    products: Array.isArray(doc.products) ? doc.products : [],
+    products: (Array.isArray(doc.products) ? doc.products : []).map((item) =>
+      item.photo && isStockShopPhoto(item.photo) ? { ...item, photo: undefined } : item,
+    ),
     greetingVideo: doc.greetingVideo || row.greetingVideo || undefined,
     greetingPoster: doc.greetingPoster || row.greetingPoster || undefined,
   };

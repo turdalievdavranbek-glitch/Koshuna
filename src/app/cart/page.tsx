@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { commissionAmount, type CartShop } from "@/lib/delivery";
 import type { ShopProduct } from "@/lib/types";
-import { displayPhotoForProduct } from "@/lib/shop-photos";
+import { realProductPhoto } from "@/lib/shop-photos";
 import { useApp } from "@/lib/store";
 import { PhoneShell } from "@/components/shell";
 import { ShopQty } from "@/components/delivery-shop-buy";
 import { CommissionLine, FeeNote, PageHead, som, useSignedIn } from "@/components/delivery-ui";
+import { Photo } from "@/components/ui";
 
 export default function CartPage() {
   const { t } = useApp();
@@ -81,8 +82,9 @@ export default function CartPage() {
               <div className="mt-3 flex flex-col gap-2">
                 {shop.lines.map((line) => (
                   <div key={line.productId} className="flex items-center gap-3 rounded-[16px] bg-[#FAFAFB] p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={displayPhotoForProduct({ title: line.title, kind: line.kind as ShopProduct["kind"], photo: line.photo })} alt="" className="h-14 w-14 rounded-[12px] object-cover" />
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[12px]">
+                      <Photo src={realProductPhoto({ title: line.title, kind: line.kind as ShopProduct["kind"], photo: line.photo })} alt="" />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-bold text-ink">{line.title}</div>
                       <div className="text-[12px] text-muted">{t.shopUnits[line.unit] || line.unit}</div>

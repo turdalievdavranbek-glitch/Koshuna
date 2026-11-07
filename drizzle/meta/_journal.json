@@ -197,6 +197,13 @@
       "when": 1794124800000,
       "tag": "0029_order_commission",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794211200000,
+      "tag": "0030_drop_stock_item_photos",
+      "breakpoints": true
     }
   ]
 }

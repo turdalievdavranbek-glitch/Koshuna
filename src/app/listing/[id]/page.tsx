@@ -265,6 +265,19 @@ export default function ListingPage() {
               )}
             </div>
           </div>
+          {!isVideoListing(listing) && listing.photos.length === 0 && listing.shopId && (mine || user?.owner || user?.master) ? (
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/shops/quick?shop=${encodeURIComponent(listing.shopId!)}&product=${encodeURIComponent(listing.shopProductId ?? "")}`,
+                )
+              }
+              className="absolute bottom-4 left-4 z-10 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-ink shadow-[0_4px_14px_rgba(0,0,0,.18)]"
+            >
+              {t.addItemPhoto}
+            </button>
+          ) : null}
           {isVideoListing(listing) ? (
             <span className="pointer-events-none absolute bottom-4 right-4">
               {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
@@ -272,9 +285,11 @@ export default function ListingPage() {
           ) : (
             <span className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2">
               {FEATURES.accountStars ? <SellerStarsBadge listing={listing} placed /> : null}
-              <span className="rounded-full bg-[rgba(24,24,27,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
-                {photo + 1} / {listing.photos.length}
-              </span>
+              {listing.photos.length > 0 ? (
+                <span className="rounded-full bg-[rgba(24,24,27,.72)] px-[11px] py-1 text-xs font-semibold text-screen">
+                  {photo + 1} / {listing.photos.length}
+                </span>
+              ) : null}
             </span>
           )}
         </div>

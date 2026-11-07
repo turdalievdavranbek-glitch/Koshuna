@@ -1,7 +1,7 @@
 import { normalizePhoneInput } from "./phone";
 import { adminAreaById } from "./admin-areas";
 import { DISTRICTS, GIS_CITIES } from "./data";
-import { displayPhotoForProduct } from "./shop-photos";
+import { realProductPhoto } from "./shop-photos";
 import {
   SHOP_CATEGORIES,
   SHOP_KINDS,
@@ -480,7 +480,7 @@ export function hydrateShop<T extends Shop>(shop: T): T {
     products: (shop.products ?? []).map((item) => {
       const kind = isShopKind(item.kind) ? item.kind : undefined;
       const next = { ...item, kind, quantity: validQuantity(item.quantity) };
-      return { ...next, photo: displayPhotoForProduct(next) };
+      return { ...next, photo: realProductPhoto(next) };
     }),
   };
 }

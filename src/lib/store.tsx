@@ -80,7 +80,7 @@ import {
   isLang,
 } from "./types";
 import { canReuseAssortment, emptyShopDraft, hydrateShop, isOwnShop, isShopKind, parentOfShopKind, pruneShopKinds, validPrice, validQuantity } from "./shops";
-import { displayPhotoForProduct, sweepShopPriceTagPhotos } from "./shop-photos";
+import { realProductPhoto, sweepShopPriceTagPhotos } from "./shop-photos";
 import { listingIdForProduct, syncProductListing, syncShopListings } from "./shop-listing";
 import { showsNeighborPledge } from "./neighbor";
 import { BrandMark } from "@/components/brand";
@@ -2141,7 +2141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         shopId,
         title: product.title.trim(),
         description: product.description,
-        photo: displayPhotoForProduct({ title: product.title.trim(), kind, photo: product.photo }),
+        photo: realProductPhoto({ title: product.title.trim(), kind, photo: product.photo }),
         videoUrl: product.videoUrl,
         category: parent,
         kind,
@@ -2220,7 +2220,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ? undefined
             : validPrice(patch.price)
           : current.price,
-        photo: displayPhotoForProduct({ ...current, ...patch }),
+        photo: realProductPhoto({ ...current, ...patch }),
         quantity: "quantity" in patch ? validQuantity(patch.quantity) : current.quantity,
         updatedAt: new Date().toISOString(),
       };

@@ -9,6 +9,7 @@ import { LANG_LABEL, listingChipLabel, listingTitle, postedLabel } from "@/lib/i
 import { isVideoListing } from "@/lib/video-ai";
 import { useApp } from "@/lib/store";
 import { LANGS, type Listing } from "@/lib/types";
+import { isStockShopPhoto } from "@/lib/shop-photos";
 import { IconBookmark, IconCheck, IconPin } from "./icons";
 
 export function Photo({
@@ -17,12 +18,19 @@ export function Photo({
   className,
   fit = "cover",
 }: {
-  src: string;
+  src?: string | null;
   alt: string;
   className?: string;
   /** "contain" shows the whole photo (upload previews); "cover" fills the frame (cards). */
   fit?: "cover" | "contain";
 }) {
+  if (!src || isStockShopPhoto(src) || src.startsWith("/sections/")) {
+    return (
+      <div className={`flex h-full w-full items-center justify-center bg-chip text-[28px] leading-none text-muted-2 ${className ?? ""}`} aria-hidden>
+        +
+      </div>
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img

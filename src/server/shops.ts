@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { sessionIsAdmin, type SessionUser } from "./auth";
 import { listingCategoryError } from "@/lib/listing-rules";
+import { isStockShopPhoto } from "@/lib/shop-photos";
 import { listingFromShopProduct, listingIdForProduct } from "@/lib/shop-listing";
 import { canMutate, mediaError, productErrors, publishErrors, reuseErrors, type ShopAction } from "@/lib/shop-rules";
 import { listingSectionForShop, sanitizeShopHours, sanitizeShopPointFields } from "@/lib/shops";
@@ -104,7 +105,8 @@ export async function saveShopForUser(user: SessionUser, shop: Shop): Promise<{ 
   const products = (shop.products ?? []).map((product) => {
     const { adminSection: _client, ...rest } = product;
     const stored = storedProducts.find((row) => row.id === product.id)?.adminSection;
-    return stored ? { ...rest, adminSection: stored } : rest;
+    const photo = rest.photo && !isStockShopPhoto(rest.photo) ? rest.photo : undefined;
+    return stored ? { ...rest, photo, adminSection: stored } : { ...rest, photo };
   });
   // «Точка от имени продавца» only for master accounts and admins; others keep what is stored (or nothing).
   const storedManaged = (existing[0]?.doc as Shop | undefined)?.managedFor;
