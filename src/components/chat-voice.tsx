@@ -314,14 +314,15 @@ export function PhotoViewer({
     <div
       className="fixed inset-0 z-[80] flex flex-col bg-black"
       data-testid="chat-photo-view"
+      style={{ touchAction: "none" }}
       onClick={() => {
         if (dragged.current) return;
         onClose();
       }}
       onPointerDown={(event) => {
+        if (event.target instanceof HTMLImageElement) event.preventDefault();
         startX.current = event.clientX;
         dragged.current = false;
-        event.currentTarget.setPointerCapture(event.pointerId);
       }}
       onPointerMove={(event) => {
         if (Math.abs(event.clientX - startX.current) > 8) dragged.current = true;
@@ -335,7 +336,9 @@ export function PhotoViewer({
       <img
         src={current}
         alt=""
-        className="m-auto max-h-full max-w-full object-contain"
+        draggable={false}
+        onDragStart={(event) => event.preventDefault()}
+        className="m-auto max-h-full max-w-full select-none object-contain"
         onClick={(event) => event.stopPropagation()}
       />
       {urls.length > 1 ? (
