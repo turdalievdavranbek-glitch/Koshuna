@@ -9,6 +9,7 @@ import { buyRequestChatTitle } from "@/lib/buy-request";
 import { CHAT_REACTIONS, type ChatDetail, type ChatLine } from "@/lib/chat";
 import { lineTop, readChatScroll, saveChatScroll } from "@/lib/chat-scroll";
 import { ChatMic, PhotoStrip, PhotoViewer, QuoteChip, VoiceBubble, quoteSnippet } from "@/components/chat-voice";
+import { ComposerField } from "@/components/composer-field";
 import { jpegDataUrl } from "@/lib/photo-price";
 import { NativePhotoInputs, openFileInput } from "@/components/native-photo";
 import { materializeMedia } from "@/lib/api/upload";
@@ -67,7 +68,7 @@ export default function ChatPage() {
   const [viewer, setViewer] = useState<{ urls: string[]; index: number } | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingSent = useRef(0);
   const signalTyping = useCallback(() => {
     const now = Date.now();
@@ -753,7 +754,7 @@ export default function ChatPage() {
               <div className="h-full bg-accent" style={{ width: `${uploadPct}%` }} />
             </div>
           ) : null}
-          <div className="flex w-full min-w-0 max-w-full items-center gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
+          <div className="flex w-full min-w-0 max-w-full items-end gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
             {micLive ? null : (
             <button
               type="button"
@@ -776,7 +777,7 @@ export default function ChatPage() {
             >
               😊
             </button>
-            <input
+            <ComposerField
               ref={inputRef}
               value={text}
               data-testid="chat-input"
@@ -784,12 +785,8 @@ export default function ChatPage() {
                 setText(e.target.value);
                 if (e.target.value.trim() && !editing) signalTyping();
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void (pendingPhotos.length ? sendPhotos() : send());
-              }}
               placeholder={pendingPhotos.length ? t.chatPhotoCaption : t.msgPh}
-              size={1}
-              className={`h-11 min-w-0 flex-1 rounded-full border border-line bg-screen px-3.5 text-[15px] outline-none placeholder:text-muted-2 ${micLive ? "hidden" : ""}`}
+              className={`max-h-[154px] min-h-11 min-w-0 flex-1 rounded-[22px] border border-line bg-screen px-3.5 py-[11px] text-[15px] outline-none placeholder:text-muted-2 ${micLive ? "hidden" : ""}`}
             />
             {text.trim() || editing || pendingPhotos.length ? (
             <button

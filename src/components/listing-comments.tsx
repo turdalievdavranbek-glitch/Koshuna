@@ -7,6 +7,7 @@ import { COMMENT_MAX, type CommentRow } from "@/lib/comments";
 import { setCommentCount, useCommentCount } from "@/lib/comment-counts";
 import { pushOverlay, removeOverlay } from "@/lib/native-back";
 import { useApp } from "@/lib/store";
+import { ComposerField } from "./composer-field";
 import { IconChat } from "./icons";
 
 const COMMENT_REASONS = ["spam", "abuse", "fraud", "other"] as const;
@@ -320,21 +321,14 @@ export function CommentsSheet({ listingId, title, onClose }: { listingId: string
         <div className="shrink-0 border-t border-line px-3 pt-2.5" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
           {user ? (
             <div className="flex items-end gap-2">
-              <textarea
+              <ComposerField
                 ref={input}
-                rows={1}
                 value={text}
                 maxLength={COMMENT_MAX}
                 data-testid="comment-input"
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void submit();
-                  }
-                }}
                 placeholder={t.commentPlaceholder}
-                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-[22px] border border-line bg-screen px-4 py-2.5 text-[14px] text-ink outline-none placeholder:text-muted-2"
+                className="max-h-[154px] min-h-11 flex-1 rounded-[22px] border border-line bg-screen px-4 py-[11px] text-[14px] text-ink outline-none placeholder:text-muted-2"
               />
               <button
                 type="button"
