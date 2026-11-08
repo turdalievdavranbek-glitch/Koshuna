@@ -799,15 +799,15 @@ export default function ChatPage() {
                     if (e.target.value.trim() && !editing) signalTyping();
                   }}
                   placeholder={pendingPhotos.length ? t.chatPhotoCaption : t.msgPh}
-                  className="max-h-[154px] min-h-11 w-full rounded-[22px] border border-line bg-screen py-[11px] pl-3.5 pr-[4.75rem] text-[15px] outline-none placeholder:text-muted-2"
+                  className="max-h-[154px] min-h-12 w-full rounded-[24px] border border-line bg-screen py-[11px] pl-3.5 pr-[5.75rem] text-[15px] outline-none placeholder:text-muted-2"
                 />
-                <div className="absolute bottom-0 right-1 flex h-11 items-center">
+                <div className="absolute bottom-0.5 right-0.5 flex h-11 items-center gap-0.5">
                   <button
                     type="button"
                     data-testid="chat-attach"
                     aria-label={t.chatAttach}
                     onClick={() => setAttachOpen(true)}
-                    className="flex h-9 w-9 items-center justify-center text-[18px]"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-[22px] leading-none active:bg-chip"
                   >
                     📎
                   </button>
@@ -816,7 +816,7 @@ export default function ChatPage() {
                     data-testid="chat-camera-btn"
                     aria-label={t.chatCamera}
                     onClick={() => openFileInput(cameraRef.current)}
-                    className="flex h-9 w-9 items-center justify-center text-[18px]"
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-[22px] leading-none active:bg-chip"
                   >
                     📷
                   </button>
