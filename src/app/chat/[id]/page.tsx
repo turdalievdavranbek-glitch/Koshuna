@@ -775,7 +775,7 @@ export default function ChatPage() {
               <div className="h-full bg-accent" style={{ width: `${uploadPct}%` }} />
             </div>
           ) : null}
-          <div className="flex w-full min-w-0 max-w-full items-end gap-2 border-t border-line bg-white px-3 pb-[26px] pt-2.5">
+          <div className="flex w-full min-w-0 max-w-full items-end gap-1.5 border-t border-line bg-white pb-[26px] pl-2 pt-2.5" style={{ paddingRight: "max(12px, env(safe-area-inset-right))", paddingBottom: "max(26px, env(safe-area-inset-bottom))" }}>
             <button
               type="button"
               data-testid="chat-emoji"
@@ -828,7 +828,7 @@ export default function ChatPage() {
                   data-testid="chat-send"
                   disabled={sending}
                   onClick={() => void (pendingPhotos.length ? sendPhotos() : send())}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[18px] text-white disabled:opacity-60"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-[18px] text-white disabled:opacity-60"
                 >
                   ➤
                 </button>

@@ -247,8 +247,8 @@ export function ChatMic({
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
       if (phaseRef.current !== "recording") return;
-      const up = startY.current - event.clientY > 64;
-      const left = startX.current - event.clientX > 72;
+      const up = startY.current - event.clientY > 80;
+      const left = startX.current - event.clientX > 100;
       if (up) {
         cancelRef.current = false;
         setCancel(false);
@@ -352,7 +352,7 @@ export function ChatMic({
     <>
       {live ? (
         <div
-          className={`absolute inset-y-0 left-0 right-14 z-[1] flex items-center gap-2 rounded-[22px] px-3 text-[13px] font-semibold ${cancel ? "bg-[#FDE8E8] text-accent" : "bg-white text-ink"}`}
+          className={`absolute inset-y-0 left-0 right-[3.5rem] z-[1] flex items-center gap-2 rounded-[22px] px-3 text-[13px] font-semibold ${cancel ? "bg-[#FDE8E8] text-accent" : "bg-white text-ink"}`}
           data-testid="chat-recording"
         >
           <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent" />
@@ -389,7 +389,7 @@ export function ChatMic({
             type="button"
             data-testid="chat-voice-send"
             onClick={() => finish(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-[18px] text-white"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-[18px] text-white"
             aria-label="send"
           >
             ➤
@@ -403,9 +403,22 @@ export function ChatMic({
           aria-label="mic"
           onPointerDown={(event) => begin(event)}
           onContextMenu={(event) => event.preventDefault()}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-[20px] text-white disabled:opacity-60"
+          style={{ touchAction: "none", WebkitUserSelect: "none", userSelect: "none" }}
+          className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-white disabled:opacity-60 ${phase === "recording" ? "scale-110" : ""}`}
         >
-          <span aria-hidden>🎤</span>
+          {phase === "recording" ? (
+            <span
+              aria-hidden
+              data-testid="chat-voice-lock-hint"
+              className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 flex -translate-x-1/2 flex-col items-center rounded-full bg-white px-2 py-1.5 text-[13px] text-muted shadow-md"
+            >
+              <span>🔒</span>
+              <span className="text-[11px] leading-none">▲</span>
+            </span>
+          ) : null}
+          <svg aria-hidden width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z" />
+          </svg>
         </button>
       )}
     </>
