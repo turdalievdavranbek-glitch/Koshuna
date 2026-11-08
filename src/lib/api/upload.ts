@@ -45,7 +45,7 @@ export async function materializeMedia(
   } catch {
     throw new LocalMediaGone();
   }
-  const mime = blob.type || MIME[kind];
+  const mime = (blob.type || MIME[kind]).split(";")[0].trim().toLowerCase();
   const created = await api<{ uploadId: string; chunkSize: number }>("/api/uploads", {
     method: "POST",
     json: { kind, mime, size: blob.size, durationSec },

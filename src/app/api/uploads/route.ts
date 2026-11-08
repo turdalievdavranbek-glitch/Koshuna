@@ -16,6 +16,8 @@ export async function POST(req: Request) {
   if (user instanceof NextResponse) return user;
   const body = await readJson<Body>(req);
   if (!body) return json({ error: "bad-json" }, 400);
+  // Android WebView records "audio/webm;codecs=opus"; keep only the base type.
+  if (typeof body.mime === "string") body.mime = body.mime.split(";")[0].trim().toLowerCase();
   const problem = validateUploadStart(body);
   if (problem) return json({ error: problem }, 400);
   const [row] = await getDb()
