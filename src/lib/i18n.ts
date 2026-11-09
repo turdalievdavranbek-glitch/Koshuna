@@ -2456,6 +2456,11 @@ const ru = {
   courierRulePolite: "Вежливость с клиентами; берите только сумму, указанную в заказе.",
   deliveryPending: "Заявка на проверке",
   deliveryRevokedHint: "Роль снята. Можно подать заявку снова.",
+  courierRejectTitle: "Причина отказа",
+  courierRejectPh: "Напишите понятную причину",
+  courierRejectNeed: "Укажите понятную причину, хотя бы 8 символов",
+  courierRejectSend: "Отказать",
+  courierRejectSaved: "Причина",
   deliveryCourierBadge: "Курьер",
   deliveryAdminCouriers: "Курьеры",
   deliveryApprove: "Одобрить",
@@ -2525,7 +2530,8 @@ const ru = {
   notifOrderBlocked: "Заказы закрыты: два отказа. Администратор может открыть снова.",
   notifCourierApply: (name: string) => (name ? `Новая заявка курьера: ${name}` : "Новая заявка курьера"),
   notifCourierOn: "Вам назначена роль «Курьер»",
-  notifCourierOff: "Роль «Курьер» с вашего аккаунта снята",
+  notifCourierOff: (reason: string) =>
+    reason ? `Роль «Курьер» снята. Причина: ${reason}` : "Роль «Курьер» с вашего аккаунта снята",
   notifOrderOffer: (title: string) => (title ? `Вам предложен заказ ${title}. 45 секунд` : "Вам предложен заказ. 45 секунд"),
   notifDispute: (title: string) => (title ? `Спор по заказу ${title}` : "Новый спор по заказу"),
   deliveryOpenOrder: "Сначала завершите текущий заказ. Второй одновременно не оформляется.",
@@ -4852,6 +4858,11 @@ const ky: typeof ru = {
   courierRulePolite: "Кардарларга сылык болуңуз; буйрутмада жазылган сумманы гана алыңыз.",
   deliveryPending: "Өтүнмө текшерүүдө",
   deliveryRevokedHint: "Роль алынды. Кайра өтүнмө бере аласыз.",
+  courierRejectTitle: "Баш тартуунун себеби",
+  courierRejectPh: "Түшүнүктүү себебин жазыңыз",
+  courierRejectNeed: "Түшүнүктүү себебин жазыңыз, кеминде 8 белги",
+  courierRejectSend: "Баш тартуу",
+  courierRejectSaved: "Себеби",
   deliveryCourierBadge: "Курьер",
   deliveryAdminCouriers: "Курьерлер",
   deliveryApprove: "Бекитүү",
@@ -4921,7 +4932,8 @@ const ky: typeof ru = {
   notifOrderBlocked: "Буйрутма жабык: эки баш тартуу. Администратор кайра ача алат.",
   notifCourierApply: (name: string) => (name ? `Жаңы курьер өтүнмөсү: ${name}` : "Жаңы курьер өтүнмөсү"),
   notifCourierOn: "Сизге «Курьер» ролу берилди",
-  notifCourierOff: "Аккаунтуңуздан «Курьер» ролу алынды",
+  notifCourierOff: (reason: string) =>
+    reason ? `«Курьер» ролу алынды. Себеби: ${reason}` : "Аккаунтуңуздан «Курьер» ролу алынды",
   deskPickChat: "Жазышууну тандаңыз",
 };
 

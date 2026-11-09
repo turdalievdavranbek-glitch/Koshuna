@@ -782,6 +782,8 @@ export const courierApplications = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
     reviewedAt: ts("reviewed_at"),
     reviewerId: uuid("reviewer_id").references(() => users.id),
+    /** Owner's reason when the application is refused or the badge is revoked. */
+    rejectReason: text("reject_reason"),
   },
   (t) => [
     unique("courier_applications_user").on(t.userId),

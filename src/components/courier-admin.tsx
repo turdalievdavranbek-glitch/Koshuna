@@ -8,6 +8,7 @@ import { isAdminUser } from "@/lib/partners";
 import { useApp } from "@/lib/store";
 import { refreshCourierBadge } from "./courier-badge";
 import { CourierShot } from "./courier-shot";
+import { CourierReasonForm } from "./courier-reason-form";
 import { deliveryError } from "./delivery-ui";
 
 type CourierApp = {
@@ -21,6 +22,7 @@ type CourierApp = {
   email: string;
   city?: string | null;
   placeDistrict?: string | null;
+  rejectReason?: string | null;
 };
 
 type Blocked = { id: string; name: string; email: string; phone: string; refusals: number };
@@ -33,6 +35,7 @@ export function CourierReview() {
   const [rows, setRows] = useState<CourierApp[] | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [rejecting, setRejecting] = useState("");
 
   const load = useCallback(() => {
     void api<{ couriers?: CourierApp[] }>("/api/admin/couriers").then((res) => {
@@ -46,15 +49,16 @@ export function CourierReview() {
 
   if (!allowed) return null;
 
-  const review = (id: string, action: "approve" | "revoke") => {
+  const review = (id: string, action: "approve" | "revoke", reason?: string) => {
     setBusy(id);
     setError("");
-    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action } }).then((res) => {
+    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action, reason } }).then((res) => {
       setBusy("");
       if (!res.ok) {
         setError(deliveryError(res.error, t));
         return;
       }
+      setRejecting("");
       refreshCourierBadge();
       load();
     });
@@ -84,17 +88,31 @@ export function CourierReview() {
               <CourierShot id={row.id} kind="passport" label={t.deliveryPassport} />
               <CourierShot id={row.id} kind="selfie" label={t.deliverySelfie} />
             </div>
+            {row.rejectReason ? (
+              <p className="mt-1 text-[13px] text-ink">
+                {t.courierRejectSaved}: {row.rejectReason}
+              </p>
+            ) : null}
+            {rejecting === row.id ? (
+              <CourierReasonForm busy={busy === row.id} onCancel={() => setRejecting("")} onSubmit={(reason) => review(row.id, "revoke", reason)} />
+            ) : (
             <div className="mt-2 flex gap-2">
               {row.status === "pending" ? (
-                <button type="button" disabled={busy === row.id} onClick={() => review(row.id, "approve")} className="h-9 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">
+                <>
+                <button type="button" disabled={busy === row.id} onClick={() => review(row.id, "approve")} className="h-12 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen disabled:opacity-40">
                   {t.deliveryApprove}
                 </button>
+                <button type="button" disabled={busy === row.id} onClick={() => setRejecting(row.id)} className="h-12 flex-1 rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">
+                  {t.courierRejectSend}
+                </button>
+                </>
               ) : row.status === "approved" ? (
-                <button type="button" disabled={busy === row.id} onClick={() => review(row.id, "revoke")} className="h-9 flex-1 rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">
+                <button type="button" disabled={busy === row.id} onClick={() => setRejecting(row.id)} className="h-12 flex-1 rounded-xl border border-line text-[13px] font-semibold text-accent disabled:opacity-40">
                   {t.deliveryRevokeCourier}
                 </button>
               ) : null}
             </div>
+            )}
           </div>
         ))}
       </div>

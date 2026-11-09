@@ -218,6 +218,13 @@
       "when": 1794384000000,
       "tag": "0032_chat_voice",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794470400000,
+      "tag": "0033_courier_reject_reason",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import { CITIES, DISTRICTS } from "@/lib/data";
 import { courierFixPlace, inKonshuZone } from "@/lib/geo";
 import { isCourierTransport, type CourierTransport } from "@/lib/delivery";
 import { OWNER_EMAIL } from "@/lib/owner";
+import { courierRejectReason } from "@/lib/courier-reason";
 import { isDbUserId } from "@/lib/phone";
 import { getDb } from "./db";
 import { courierApplications, orders, users } from "./db/schema";
@@ -20,7 +21,14 @@ export type CourierMine = {
   blocked: boolean;
   city: string | null;
   district: string | null;
-  application: { status: "pending" | "approved" | "revoked"; name: string; phone: string; district: string; transport: CourierTransport } | null;
+  application: {
+    status: "pending" | "approved" | "revoked";
+    name: string;
+    phone: string;
+    district: string;
+    transport: CourierTransport;
+    rejectReason: string | null;
+  } | null;
 };
 
 function isDeliveryCity(value: string): boolean {
@@ -70,7 +78,14 @@ export async function myCourier(userId: string): Promise<CourierMine> {
     district: who[0]?.district ?? null,
     application:
       row && transport && status
-        ? { status, name: row.name, phone: row.phone, district: row.district, transport }
+        ? {
+            status,
+            name: row.name,
+            phone: row.phone,
+            district: row.district,
+            transport,
+            rejectReason: status === "revoked" ? row.rejectReason?.trim() || null : null,
+          }
         : null,
   };
 }
@@ -112,6 +127,7 @@ export async function saveCourierApplication(
     createdAt: new Date(),
     reviewedAt: null,
     reviewerId: null,
+    rejectReason: null,
   };
   const saved = await db.transaction(async (tx) => {
     const existing = await tx.select().from(courierApplications).where(eq(courierApplications.userId, userId)).limit(1);
@@ -188,6 +204,7 @@ export type CourierAdminRow = {
   placeDistrict: string | null;
   email: string;
   createdAt: string;
+  rejectReason: string | null;
 };
 
 export async function listCourierApplications(): Promise<CourierAdminRow[]> {
@@ -203,6 +220,7 @@ export async function listCourierApplications(): Promise<CourierAdminRow[]> {
       city: users.courierCity,
       placeDistrict: users.courierDistrict,
       email: users.email,
+      rejectReason: courierApplications.rejectReason,
       createdAt: courierApplications.createdAt,
     })
     .from(courierApplications)
@@ -210,7 +228,12 @@ export async function listCourierApplications(): Promise<CourierAdminRow[]> {
     .where(isNull(users.deletedAt))
     .orderBy(desc(courierApplications.createdAt))
     .limit(200);
-  return rows.map((row) => ({ ...row, email: row.email ?? "", createdAt: row.createdAt.toISOString() }));
+  return rows.map((row) => ({
+    ...row,
+    email: row.email ?? "",
+    rejectReason: row.status === "revoked" ? row.rejectReason?.trim() || null : null,
+    createdAt: row.createdAt.toISOString(),
+  }));
 }
 
 export type OwnerCourierRow = {
@@ -225,6 +248,7 @@ export type OwnerCourierRow = {
   delivered: number;
   reviewedAt: string | null;
   createdAt: string;
+  rejectReason: string | null;
 };
 
 /** Owner cabinet: every application, with the live badge, pause, and delivered count. */
@@ -242,6 +266,7 @@ export async function ownerCourierRoster(): Promise<OwnerCourierRow[]> {
       pausedUntil: users.courierPausedUntil,
       soft: users.courierSoftBanned,
       reviewedAt: courierApplications.reviewedAt,
+      rejectReason: courierApplications.rejectReason,
       createdAt: courierApplications.createdAt,
     })
     .from(courierApplications)
@@ -266,13 +291,20 @@ export async function ownerCourierRoster(): Promise<OwnerCourierRow[]> {
     paused: row.soft || (row.pausedUntil != null && row.pausedUntil.getTime() > Date.now()),
     delivered: delivered.get(row.userId) ?? 0,
     reviewedAt: row.reviewedAt ? row.reviewedAt.toISOString() : null,
+    rejectReason: row.status === "revoked" ? row.rejectReason?.trim() || null : null,
     createdAt: row.createdAt.toISOString(),
   }));
 }
 
-export async function reviewCourier(adminId: string, applicationId: string, approve: boolean): Promise<{ ok: true } | Fail> {
+export async function reviewCourier(
+  adminId: string,
+  applicationId: string,
+  approve: boolean,
+  reason = "",
+): Promise<{ ok: true } | Fail> {
   if (!(await sessionIsOwner(adminId))) return { error: "forbidden", status: 403 };
   if (!isDbUserId(applicationId)) return { error: "not-found", status: 404 };
+  const refusal = approve ? "" : courierRejectReason(reason) ?? "";
   const preview = await getDb().select({ userId: courierApplications.userId }).from(courierApplications).where(eq(courierApplications.id, applicationId)).limit(1);
   const result = await bindNoticePushes(() =>
     getDb().transaction(async (tx) => {
@@ -284,7 +316,7 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
         if (app.status !== "pending" || !app.acceptedRulesAt) return { error: "state", status: 409 };
         await tx
           .update(courierApplications)
-          .set({ status: "approved", reviewedAt: new Date(), reviewerId: adminId })
+          .set({ status: "approved", reviewedAt: new Date(), reviewerId: adminId, rejectReason: null })
           .where(eq(courierApplications.id, app.id));
         await tx.update(users).set({ isCourier: true, updatedAt: new Date() }).where(eq(users.id, app.userId));
         console.info("[audit] courier", JSON.stringify({ at: new Date().toISOString(), admin: adminId, user: app.userId, on: true }));
@@ -294,6 +326,7 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
         return { ok: true as const };
       }
       if (app.status === "revoked") return { ok: true as const };
+      if (!refusal) return { error: "reason", status: 400 };
       const busy = await tx
         .select({ id: orders.id })
         .from(orders)
@@ -302,12 +335,18 @@ export async function reviewCourier(adminId: string, applicationId: string, appr
       if (busy[0]) return { error: "active", status: 409 };
       await tx
         .update(courierApplications)
-        .set({ status: "revoked", reviewedAt: new Date(), reviewerId: adminId })
+        .set({ status: "revoked", reviewedAt: new Date(), reviewerId: adminId, rejectReason: refusal })
         .where(eq(courierApplications.id, app.id));
       await tx.update(users).set({ isCourier: false, courierOnline: false, updatedAt: new Date() }).where(eq(users.id, app.userId));
       console.info("[audit] courier", JSON.stringify({ at: new Date().toISOString(), admin: adminId, user: app.userId, on: false }));
       if (app.userId !== adminId) {
-        await saveNotice(tx, { userId: app.userId, type: "courier", textKey: "notifCourierOff", params: {}, actorId: null });
+        await saveNotice(tx, {
+          userId: app.userId,
+          type: "courier",
+          textKey: "notifCourierOff",
+          params: { title: refusal },
+          actorId: null,
+        });
       }
       return { ok: true as const };
     }),

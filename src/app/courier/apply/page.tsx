@@ -74,7 +74,7 @@ function PhotoTile({
 
 type Mine = {
   courier: boolean;
-  application: { status: string } | null;
+  application: { status: string; rejectReason?: string | null } | null;
 };
 
 export default function CourierApplyPage() {
@@ -206,7 +206,16 @@ export default function CourierApplyPage() {
           <p className="rounded-[18px] border border-line bg-white px-4 py-4 text-[15px] font-semibold">{t.deliveryPending}</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {mine?.application?.status === "revoked" ? <p className="text-[13px] text-muted">{t.deliveryRevokedHint}</p> : null}
+            {mine?.application?.status === "revoked" ? (
+              <div className="rounded-[18px] border border-line bg-white px-4 py-4">
+                <p className="text-[13px] text-muted">{t.deliveryRevokedHint}</p>
+                {mine.application.rejectReason ? (
+                  <p className="mt-2 text-[15px] font-semibold text-ink" data-testid="courier-reject-reason">
+                    {t.courierRejectSaved}: {mine.application.rejectReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <p className="text-[13px] leading-[1.4] text-muted">{t.deliveryBecomeHint}</p>
             <CourierRules />
             {agreed ? (

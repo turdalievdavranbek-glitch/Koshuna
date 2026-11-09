@@ -55,6 +55,7 @@ export function deliveryError(code: string | undefined, t: Dict): string {
   if (code === "busy") return t.deliveryBusy;
   if (code === "own") return t.deliveryOwn;
   if (code === "active") return t.deliveryActiveOrder;
+  if (code === "reason") return t.courierRejectNeed;
   if (code === "bad-phone") return t.deliveryBadPhone;
   if (code === "bad-address") return t.deliveryBadAddress;
   if (code === "shop-closed") return t.deliveryShopClosed;

@@ -8,6 +8,7 @@ import { PhoneShell } from "./shell";
 import { PageHead } from "./delivery-ui";
 import { refreshCourierBadge } from "./courier-badge";
 import { CourierShot } from "./courier-shot";
+import { CourierReasonForm } from "./courier-reason-form";
 
 type Row = {
   id: string;
@@ -19,6 +20,7 @@ type Row = {
   paused: boolean;
   delivered: number;
   reviewedAt: string | null;
+  rejectReason?: string | null;
 };
 
 type Tab = "pending" | "approved" | "revoked";
@@ -61,14 +63,14 @@ export function OwnerCouriersScreen() {
     { id: "revoked", label: t.ownerTabRevoked },
   ];
 
-  const revoke = (id: string) => {
+  const revoke = (id: string, reason: string) => {
     setBusy(id);
     setError("");
-    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action: "revoke" } }).then((res) => {
+    void api(`/api/admin/couriers/${encodeURIComponent(id)}`, { method: "POST", json: { action: "revoke", reason } }).then((res) => {
       setBusy("");
       setConfirm("");
       if (!res.ok) {
-        setError(t.deliveryFail);
+        setError(res.error === "reason" ? t.courierRejectNeed : res.error === "active" ? t.deliveryActiveOrder : t.deliveryFail);
         return;
       }
       refreshCourierBadge();
@@ -117,20 +119,18 @@ export function OwnerCouriersScreen() {
                     {t.ownerDelivered}: {row.delivered}
                   </div>
                   {confirm === row.id ? (
-                    <div className="mt-2 flex gap-2">
-                      <button type="button" disabled={busy === row.id} onClick={() => revoke(row.id)} className="h-9 flex-1 rounded-xl bg-accent text-[13px] font-semibold text-accent-on disabled:opacity-40">
-                        {t.ownerRemoveYes}
-                      </button>
-                      <button type="button" onClick={() => setConfirm("")} className="h-9 flex-1 rounded-xl border border-line text-[13px] font-semibold">
-                        {t.postCancel}
-                      </button>
-                    </div>
+                    <CourierReasonForm busy={busy === row.id} onCancel={() => setConfirm("")} onSubmit={(reason) => revoke(row.id, reason)} />
                   ) : (
                     <button type="button" onClick={() => setConfirm(row.id)} className="mt-2 h-9 w-full rounded-xl border border-line text-[13px] font-semibold text-accent">
                       {t.ownerRemove}
                     </button>
                   )}
                 </>
+              ) : null}
+              {tab === "revoked" && row.rejectReason ? (
+                <p className="mt-1 text-[13px] text-ink">
+                  {t.courierRejectSaved}: {row.rejectReason}
+                </p>
               ) : null}
               {tab === "pending" ? (
                 <button type="button" onClick={() => router.push("/courier/review")} className="mt-2 text-[13px] font-semibold text-accent">
