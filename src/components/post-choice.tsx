@@ -62,12 +62,14 @@ export function PostChoices({
   onPersonal,
   onBusiness,
   onRequest,
+  onCourier,
 }: {
   onPersonal: () => void;
   onBusiness: () => void;
   onRequest: () => void;
+  onCourier: () => void;
 }) {
-  const { t, draft, discardDraft } = useApp();
+  const { t, draft, discardDraft, user } = useApp();
   const [askNew, setAskNew] = useState(false);
   const editing = Boolean(draft.editing);
   useEffect(() => {
@@ -94,6 +96,10 @@ export function PostChoices({
       <button type="button" data-testid="post-choice-personal" onClick={startPersonal} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
         <div className="text-[16px] font-semibold text-ink">{t.postPersonal}</div>
         <div className="mt-1 text-[13px] text-muted">{t.postPersonalHint}</div>
+      </button>
+      <button type="button" data-testid="post-choice-courier" onClick={onCourier} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
+        <div className="text-[16px] font-semibold text-ink">{user?.courier ? t.deliveryCourierTitle : t.deliveryBecome}</div>
+        <div className="mt-1 text-[13px] text-muted">{user?.courier ? t.courierMenuHint : t.deliveryBecomeHint}</div>
       </button>
       <button type="button" data-testid="post-choice-business" onClick={onBusiness} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
         <div className="text-[16px] font-semibold text-ink">{t.postBusiness}</div>
@@ -130,7 +136,7 @@ export function PostChoices({
 }
 
 export function ChoicePage() {
-  const { t } = useApp();
+  const { t, user } = useApp();
   const router = useRouter();
   return (
     <div className="px-5 pb-8 pt-4">
@@ -141,6 +147,7 @@ export function ChoicePage() {
           onPersonal={() => router.push("/post?type=personal")}
           onBusiness={() => router.push("/post?type=business")}
           onRequest={() => router.push("/post?type=request")}
+          onCourier={() => router.push(user?.courier ? "/courier" : "/courier/apply")}
         />
       </div>
     </div>

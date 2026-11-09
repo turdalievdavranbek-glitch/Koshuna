@@ -151,6 +151,10 @@ export function TabBar({ hidden }: { hidden?: boolean }) {
                   setSheet(false);
                   router.push("/post?type=request");
                 }}
+                onCourier={() => {
+                  setSheet(false);
+                  router.push(user?.courier ? "/courier" : "/courier/apply");
+                }}
               />
             </div>
             <button type="button" className="mt-3 h-11 w-full text-[15px] font-semibold text-muted" onClick={() => setSheet(false)}>

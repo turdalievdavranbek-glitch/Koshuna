@@ -230,14 +230,16 @@ export default function ProfilePage() {
           <span className="text-[18px] text-muted-2">›</span>
         </button>
         {FEATURES.referrals ? <ReferralCard /> : null}
-        <button
-          type="button"
-          onClick={() => router.push(user.courier ? "/courier" : "/courier/apply")}
-          className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
-        >
-          <span className="text-[15px] font-semibold text-ink">{user.courier ? t.deliveryCourierTitle : t.deliveryBecome}</span>
-          <span className="text-[18px] text-muted-2">›</span>
-        </button>
+        {user.courier ? (
+          <button
+            type="button"
+            onClick={() => router.push("/courier")}
+            className="mt-2 flex w-full items-center justify-between rounded-[18px] border border-line bg-white px-4 py-3.5 text-left"
+          >
+            <span className="text-[15px] font-semibold text-ink">{t.deliveryCourierTitle}</span>
+            <span className="text-[18px] text-muted-2">›</span>
+          </button>
+        ) : null}
         {user.courier ? (
           <div className="mt-2">
             <CourierPlace />
