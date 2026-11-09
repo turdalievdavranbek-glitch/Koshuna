@@ -31,7 +31,7 @@ export function VoiceNote({ listing }: { listing: Listing }) {
     }
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(script);
-    u.lang = lang === "uz" ? "uz-UZ" : lang === "ky" ? "ky-KG" : "ru-RU";
+    u.lang = lang === "ky" ? "ky-KG" : "ru-RU";
     u.rate = 0.92;
     u.onend = () => setOn(false);
     setOn(true);
@@ -54,19 +54,19 @@ export function VoiceNote({ listing }: { listing: Listing }) {
         type="button"
         onClick={on ? stop : speak}
         className="mt-3 flex w-full items-center gap-3 rounded-[14px] px-3.5 py-3 text-left"
-        style={{ background: on ? "#17140F" : "#F7F3EC" }}
+        style={{ background: on ? "#18181B" : "#F5F5F7" }}
       >
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-          style={{ background: on ? "#B8452F" : "#17140F" }}
+          style={{ background: on ? "#E31E24" : "#18181B" }}
         >
           <span className="text-[13px] font-bold text-white">{on ? "■" : "▶"}</span>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold" style={{ color: on ? "#F7F3EC" : "#17140F" }}>
+          <span className="block text-[15px] font-semibold" style={{ color: on ? "#F5F5F7" : "#18181B" }}>
             {on ? t.voicePlaying : t.voicePlay}
           </span>
-          <span className="mt-0.5 block text-[12px]" style={{ color: on ? "rgba(247,243,236,.65)" : "#6E6558" }}>
+          <span className="mt-0.5 block text-[12px]" style={{ color: on ? "rgba(245,245,247,.65)" : "#61616B" }}>
             0:{String(on ? tick : sec).padStart(2, "0")} · {t.voiceOral}
           </span>
         </span>

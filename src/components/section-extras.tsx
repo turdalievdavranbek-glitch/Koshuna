@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CONSTRUCTION_CATEGORIES, SERVICE_CATEGORIES } from "@/lib/data";
+import { CONSTRUCTION_CATEGORIES, SERVICE_TOP } from "@/lib/data";
 import { patchForSection } from "@/lib/section";
 import { realtyIsLiving } from "@/lib/realty";
 import { useApp } from "@/lib/store";
@@ -33,7 +33,7 @@ export function SectionExtras() {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>
@@ -145,7 +145,7 @@ export function SectionExtras() {
     return (
       <SectionList
         title={t.category}
-          rows={SERVICE_CATEGORIES.map((c) => ({
+          rows={SERVICE_TOP.map((c) => ({
             id: c,
             label: t.cats[c],
             active: filters.category === c,
@@ -169,7 +169,7 @@ export function SectionExtras() {
           className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-3.5 py-3 text-left"
         >
           <span>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">2ГИС</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.mapEyebrow}</span>
             <span className="mt-0.5 block text-[13px] font-semibold text-ink">
               {filters.locLabel ?? t.pickOnMap}
             </span>

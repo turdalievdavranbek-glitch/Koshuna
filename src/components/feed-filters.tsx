@@ -1,5 +1,6 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { Chip } from "@/components/ui";
@@ -26,11 +27,11 @@ export function SharedFeedFilters({
     <FeedFilterBar>
       {kind ? (
         <SellerKindChips variant={kind} />
-      ) : (
+      ) : FEATURES.neighborFilter ? (
         <Chip active={filters.neighborOnly} onClick={() => setFilters({ neighborOnly: !filters.neighborOnly })}>
           {t.fromNeighbor}
         </Chip>
-      )}
+      ) : null}
       <Chip
         active={filters.priceDroppedOnly}
         onClick={() => setFilters({ priceDroppedOnly: !filters.priceDroppedOnly })}
@@ -42,7 +43,7 @@ export function SharedFeedFilters({
       </Chip>
       {extra}
       <Chip onClick={() => router.push("/filters")}>
-        {filters.sort === "new" ? t.newest : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
+        {filters.sort === "new" ? t.newest : filters.sort === "old" ? t.sortMenuOld : filters.sort === "price-asc" ? t.priceAsc : t.priceDesc}
         <span className="ml-1 text-[10px] text-muted-2">▾</span>
       </Chip>
       <button type="button" onClick={resetFilters} className="shrink-0 whitespace-nowrap px-[13px] py-[7px] text-[13px] font-semibold text-accent">

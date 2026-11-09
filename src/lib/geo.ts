@@ -1,5 +1,6 @@
 import type { Lang, MeetupSpot } from "./types";
-import { DISTRICTS, GIS_CITIES } from "./data";
+import { ADMIN_AREAS } from "./admin-areas";
+import { CITIES, DISTRICTS, GIS_CITIES, SETTLEMENTS } from "./data";
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -28,12 +29,116 @@ export function nearestCityId(lat: number, lng: number): string {
   return best;
 }
 
-export function nearestDistrict(lat: number, lng: number, city?: string) {
+export function nearestDistrict(lat: number, lng: number, city?: string, maxKm = Infinity) {
   const pool = city && city !== "all" ? DISTRICTS.filter((d) => d.city === city) : DISTRICTS;
   if (!pool.length) return null;
-  return pool.reduce((best, d) =>
+  const best = pool.reduce((best, d) =>
     haversineKm(lat, lng, d.lat, d.lng) < haversineKm(lat, lng, best.lat, best.lng) ? d : best,
   );
+  return haversineKm(lat, lng, best.lat, best.lng) <= maxKm ? best : null;
+}
+
+/** A GPS fix counts only within this distance of a known place (city, district, settlement, rayon). */
+export const KONSHU_ZONE_KM = 50;
+
+/** True when the point is near a place Коңшу knows (Kyrgyzstan). Moscow, Almaty, etc. are outside. */
+export function inKonshuZone(lat: number, lng: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  const points: { lat: number; lng: number }[] = [...Object.values(GIS_CITIES), ...DISTRICTS, ...SETTLEMENTS, ...ADMIN_AREAS];
+  return points.some((p) => haversineKm(lat, lng, p.lat, p.lng) <= KONSHU_ZONE_KM);
+}
+
+/**
+ * City and district for a GPS fix that is already in the zone.
+ * The district may be in another city than the draft: then the city follows the fix.
+ */
+export function spotForFix(lat: number, lng: number): { city: string | null; district: (typeof DISTRICTS)[number] | null } {
+  const district = nearestDistrict(lat, lng, undefined, 25);
+  if (district) return { city: district.city, district };
+  let city: string | null = null;
+  let best = KONSHU_ZONE_KM;
+  for (const [id, c] of Object.entries(GIS_CITIES)) {
+    const km = haversineKm(lat, lng, c.lat, c.lng);
+    if (km <= best) {
+      best = km;
+      city = id;
+    }
+  }
+  return { city, district: null };
+}
+
+function shortRayon(name: string): string {
+  return name.replace(/район/g, "р-н").replace(/району/g, "р-ну");
+}
+
+function deliveryCity(id: string | undefined | null): string | null {
+  if (!id || id === "all") return null;
+  return (CITIES as readonly string[]).includes(id) ? id : null;
+}
+
+/** Nearest known town plus rayon, for example «Сузак, Сузакский р-н». */
+export function courierFixPlace(
+  lat: number,
+  lng: number,
+  lang: Lang = "ru",
+): { city: string; districtId: string; label: string } | null {
+  if (!inKonshuZone(lat, lng)) return null;
+  type Hit = { km: number; name: string; city: string | null; districtId: string; rayon: boolean };
+  let town: Hit | null = null;
+  const consider = (km: number, name: string, city: string | null, districtId: string, withRayon: boolean) => {
+    if (km > 40 || !name) return;
+    if (!town || km < town.km) town = { km, name, city, districtId, rayon: withRayon };
+  };
+  for (const row of SETTLEMENTS) {
+    consider(haversineKm(lat, lng, row.lat, row.lng), lang === "ky" ? row.nameKy : row.name, deliveryCity(row.city), "", true);
+  }
+  for (const row of DISTRICTS) {
+    consider(haversineKm(lat, lng, row.lat, row.lng), lang === "ky" ? row.nameKy : row.name, deliveryCity(row.city), row.id, false);
+  }
+  for (const row of ADMIN_AREAS) {
+    if (row.kind !== "city") continue;
+    const viaSettlement = row.settlementId ? SETTLEMENTS.find((item) => item.id === row.settlementId)?.city : undefined;
+    consider(
+      haversineKm(lat, lng, row.lat, row.lng),
+      lang === "ky" ? row.nameKy : row.name,
+      deliveryCity(row.cityId) ?? deliveryCity(viaSettlement),
+      "",
+      false,
+    );
+  }
+  let rayon: (typeof ADMIN_AREAS)[number] | null = null;
+  let rayonKm = 60;
+  for (const row of ADMIN_AREAS) {
+    if (row.kind !== "district") continue;
+    const km = haversineKm(lat, lng, row.lat, row.lng);
+    if (km < rayonKm) {
+      rayonKm = km;
+      rayon = row;
+    }
+  }
+  if (!town && rayon) {
+    const via = rayon.settlementId ? SETTLEMENTS.find((item) => item.id === rayon.settlementId)?.city : undefined;
+    town = {
+      km: rayonKm,
+      name: lang === "ky" ? rayon.nameKy : rayon.name,
+      city: deliveryCity(rayon.cityId) ?? deliveryCity(via),
+      districtId: "",
+      rayon: false,
+    };
+  }
+  if (!town) return null;
+  const nearestId = nearestCityId(lat, lng);
+  const nearest = GIS_CITIES[nearestId];
+  const city =
+    town.city ??
+    (nearest && haversineKm(lat, lng, nearest.lat, nearest.lng) <= 80 ? deliveryCity(nearestId) : null);
+  if (!city) return null;
+  const micro = town.districtId ? null : nearestDistrict(lat, lng, city, 25);
+  const districtId = town.districtId || micro?.id || "";
+  const rayonName = rayon ? shortRayon(lang === "ky" ? rayon.nameKy : rayon.name) : "";
+  const namedRayon = /район|р-н|району/i.test(town.name);
+  const label = town.rayon && rayonName && !namedRayon ? `${town.name}, ${rayonName}` : town.name;
+  return { city, districtId, label: label.slice(0, 80) };
 }
 
 export function districtLabel(
@@ -95,4 +200,40 @@ export function mapPointPath(lat: number, lng: number, city?: string) {
   const q = new URLSearchParams({ lat: String(lat), lng: String(lng) });
   if (city) q.set("city", city);
   return `/map?${q.toString()}`;
+}
+
+/** «Рядом» radius. `NEXT_PUBLIC_NEAR_RADIUS_KM`, default 5, clamped to 1–50. */
+export function nearRadiusKm() {
+  const raw = Number(process.env.NEXT_PUBLIC_NEAR_RADIUS_KM) || 5;
+  return Math.min(50, Math.max(1, raw));
+}
+
+export const MAP_TILE_2GIS = "https://tile{s}.maps.2gis.com/tiles?x={x}&y={y}&z={z}";
+export const MAP_TILE_OSM = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+export type MapTileConfig = {
+  url: string;
+  subdomains?: string;
+  attribution: string;
+  maxZoom: number;
+};
+
+/** Build-time switch. Unset / unknown → 2GIS. `osm` → OpenStreetMap. URL and attribution env override either. */
+export function mapTileConfig(env?: {
+  tiles?: string;
+  url?: string;
+  attribution?: string;
+  subdomains?: string;
+}): MapTileConfig {
+  const src = env ?? {
+    tiles: process.env.NEXT_PUBLIC_MAP_TILES,
+    url: process.env.NEXT_PUBLIC_MAP_TILE_URL,
+    attribution: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION,
+    subdomains: process.env.NEXT_PUBLIC_MAP_TILE_SUBDOMAINS,
+  };
+  const osm = src.tiles === "osm";
+  const url = src.url || (osm ? MAP_TILE_OSM : MAP_TILE_2GIS);
+  const attribution = src.attribution || (osm ? "© OpenStreetMap contributors" : "© 2ГИС");
+  const subdomains = url.includes("{s}") ? src.subdomains || (osm ? "abc" : "0123") : undefined;
+  return { url, attribution, maxZoom: osm ? 19 : 18, subdomains };
 }

@@ -6,6 +6,7 @@ import { formatSom } from "@/lib/data";
 import { listingTitle } from "@/lib/i18n";
 import { hasRole } from "@/lib/partners";
 import { useApp } from "@/lib/store";
+import { ScreenBack } from "@/components/back-button";
 import { IconBack } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { Chip, Field, Input } from "@/components/ui";
@@ -43,8 +44,9 @@ export default function DealerCabinetPage() {
   if (!hasRole(user, "dealer") || !profile) {
     return (
       <PhoneShell>
-        <div className="p-5">
-          <p className="text-muted">{t.applyDealer}</p>
+        <div className="px-5 pt-1">
+          <ScreenBack fallback="/profile" />
+          <p className="mt-4 text-muted">{t.applyDealer}</p>
           <button type="button" onClick={() => router.push("/partner?kind=dealer")} className="mt-4 text-[15px] font-semibold text-accent">
             {t.partnerApplyTitle}
           </button>
@@ -57,8 +59,8 @@ export default function DealerCabinetPage() {
     <PhoneShell>
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => router.push("/selling")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#17140F" />
+          <button type="button" onClick={() => router.push("/profile")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.dealerCabinet}</h1>
           <span className="w-9" />

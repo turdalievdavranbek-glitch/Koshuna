@@ -25,7 +25,7 @@ export default function ComplexesPage() {
       <div className="px-5 pb-2 pt-1">
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => router.push("/section/rent")} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-            <IconBack size={16} color="#17140F" />
+            <IconBack size={16} color="#18181B" />
           </button>
           <h1 className="font-display text-[17px] font-bold text-ink">{t.complexesTitle}</h1>
           <span className="w-9" />

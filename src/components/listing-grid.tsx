@@ -1,16 +1,19 @@
 "use client";
 
+import { FEATURES } from "@/lib/features";
 import { useRouter } from "next/navigation";
 import { listingChipLabel, listingTitle, postedLabel } from "@/lib/i18n";
+import { listingsForSearch } from "@/lib/search-browse";
 import { formatSom, ownerById, settlementById, settlementLabel } from "@/lib/data";
 import { dropPercent, listingHasPrice } from "@/lib/deal";
 import { useApp } from "@/lib/store";
 import type { Listing, ListingLayout } from "@/lib/types";
-import { IconCols, IconHeart } from "./icons";
+import { IconBookmark, IconCols } from "./icons";
 import { NeighborMark } from "./neighbor-seal";
 import { ListingThumb, isVideoListing } from "./listing-media";
 import { ListingSocialMeta } from "./listing-social";
 import { Price } from "./ui";
+import { ServiceFacts } from "./service-facts";
 
 export function LayoutSwitch() {
   const { t, listingLayout, setListingLayout } = useApp();
@@ -20,7 +23,7 @@ export function LayoutSwitch() {
     { id: "small", count: 3, label: t.layoutSmall },
   ];
   return (
-    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5">
+    <div className="flex shrink-0 rounded-[10px] border border-line bg-white p-0.5 desk:hidden">
       {opts.map((o) => {
         const on = listingLayout === o.id;
         return (
@@ -31,9 +34,9 @@ export function LayoutSwitch() {
             title={o.label}
             onClick={() => setListingLayout(o.id)}
             className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-            style={{ background: on ? "#17140F" : "transparent" }}
+            style={{ background: on ? "#18181B" : "transparent" }}
           >
-            <IconCols size={16} count={o.count} color={on ? "#F7F3EC" : "#6E6558"} />
+            <IconCols size={16} count={o.count} color={on ? "#F5F5F7" : "#61616B"} />
           </button>
         );
       })}
@@ -50,10 +53,10 @@ function ListingCard({
   layout: ListingLayout;
   onFav?: (id: string) => void;
 }) {
-  const { t, lang, isFav, user, meetDeals } = useApp();
+  const { t, lang, isFav, meetDeals } = useApp();
   const router = useRouter();
   const title = listingTitle(listing, lang);
-  const saved = Boolean(user && isFav(listing.id));
+  const saved = isFav(listing.id);
   const video = isVideoListing(listing);
   const radius = layout === "small" ? "rounded-[12px]" : "rounded-[16px]";
   const pad = layout === "large" ? "px-[15px] pb-[15px] pt-[13px]" : layout === "medium" ? "px-2.5 pb-2.5 pt-2" : "px-1.5 pb-1.5 pt-1";
@@ -62,16 +65,16 @@ function ListingCard({
     <button
       type="button"
       onClick={() => router.push(`/listing/${listing.id}`)}
-      className={`text-left ${video ? "" : `overflow-hidden border border-line bg-surface ${radius}`}`}
+      className={`text-left ${video ? "" : `clay-card overflow-hidden border border-line bg-surface ${radius}`}`}
     >
       <div className={`relative ${video ? (layout === "large" ? "px-8 pt-3" : layout === "medium" ? "px-3 pt-2" : "px-1 pt-1") : ""}`}>
         <ListingThumb listing={listing} alt={title} compact={layout !== "large"} />
         {!video && layout !== "small" ? (
-          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(23,20,15,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
+          <span className="pointer-events-none absolute left-2 top-2 max-w-[80%] truncate rounded-full bg-[rgba(24,24,27,.72)] px-2 py-0.5 text-[10px] font-semibold text-screen">
             {listingChipLabel(listing, t)}
           </span>
         ) : null}
-        {dropPercent(listing) != null ? (
+        {listing.section !== "services" && dropPercent(listing) != null ? (
           <span
             data-testid="promo-badge"
             className="pointer-events-none absolute right-1.5 top-10 rounded-md bg-success px-1.5 py-0.5 text-[9px] font-bold text-screen"
@@ -84,7 +87,7 @@ function ListingCard({
             <NeighborMark listing={listing} compact={layout === "small"} />
           </span>
         ) : null}
-        {onFav && layout !== "small" && !video ? (
+        {FEATURES.cart && onFav && layout !== "small" && !video ? (
           <span
             role="button"
             onClick={(e) => {
@@ -93,13 +96,13 @@ function ListingCard({
             }}
             className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/92"
           >
-            <IconHeart size={15} color={saved ? "#B8452F" : "#17140F"} filled={saved} />
+            <IconBookmark size={15} color={saved ? "#E31E24" : "#18181B"} filled={saved} />
           </span>
         ) : null}
       </div>
       <div className={`${pad} ${video ? "flex flex-col items-center text-center" : ""}`}>
         {video && layout !== "small" ? (
-          <div className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-accent-dark">{t.videoListing}</div>
+          <div className="badge-yellow mb-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]">{t.videoListing}</div>
         ) : null}
         <Price listing={listing} compact={layout !== "large"} />
         <div
@@ -134,6 +137,7 @@ function ListingCard({
             {listing.area != null ? `${listing.area} м²` : null}
           </div>
         ) : null}
+        {layout !== "small" && listing.section === "services" ? <ServiceFacts listing={listing} compact /> : null}
         {layout !== "small" ? (
           <div className={`mt-1 text-[11px] text-muted-2 ${video ? "flex flex-col items-center gap-1" : ""}`}>
             {(listing.sellerName || (layout === "large" ? ownerById(listing.ownerId)?.name : undefined)) ? (
@@ -157,15 +161,22 @@ function ListingCard({
 export function ListingGrid({
   listings,
   onFav,
+  columns = "feed",
 }: {
   listings: Listing[];
   onFav?: (id: string) => void;
+  /** feed: 4 then 5 columns. browse: 3 then 4 beside the filter sidebar. */
+  columns?: "feed" | "browse";
 }) {
   const { listingLayout } = useApp();
   const cols = listingLayout === "large" ? "grid-cols-1" : listingLayout === "small" ? "grid-cols-3" : "grid-cols-2";
   const gap = listingLayout === "small" ? "gap-1.5" : "gap-2.5";
+  const deskCols =
+    columns === "browse"
+      ? "desk:grid-cols-3 min-[1280px]:desk:grid-cols-4"
+      : "desk:grid-cols-4 min-[1280px]:desk:grid-cols-5";
   return (
-    <div className={`mt-3 grid ${cols} ${gap}`}>
+    <div className={`mt-3 grid ${cols} ${gap} ${deskCols}`}>
       {listings.map((item) => (
         <ListingCard key={item.id} listing={item} layout={listingLayout} onFav={onFav} />
       ))}
@@ -174,11 +185,14 @@ export function ListingGrid({
 }
 
 export function RecentlyViewed() {
-  const { t, lang, viewedIds, allListings } = useApp();
+  const { t, lang, viewedIds, allListings, shops } = useApp();
   const router = useRouter();
-  const items = viewedIds
-    .map((id) => allListings.find((l) => l.id === id))
-    .filter((item): item is Listing => Boolean(item));
+  const items = listingsForSearch(
+    viewedIds
+      .map((id) => allListings.find((l) => l.id === id))
+      .filter((item): item is Listing => Boolean(item)),
+    shops,
+  );
   if (items.length < 1) return null;
   return (
     <div className="mt-[22px]">
@@ -196,7 +210,7 @@ export function RecentlyViewed() {
             <ListingThumb listing={item} alt={listingTitle(item, lang)} compact className={isVideoListing(item) ? "px-3 pt-2" : ""} />
             <div className={`px-2.5 pb-2.5 pt-2 ${isVideoListing(item) ? "text-center" : ""}`}>
               <div className="font-display text-[14px] font-bold text-ink">
-                {listingHasPrice(item) ? `${formatSom(item.price)} KGS` : t.shopAskPrice}
+                {listingHasPrice(item) ? `${formatSom(item.price)} сом` : t.shopAskPrice}
               </div>
               <div className="mt-0.5 line-clamp-2 text-[11px] leading-[1.3] text-muted">{listingTitle(item, lang)}</div>
               <ListingSocialMeta listingId={item.id} size="sm" align={isVideoListing(item) ? "center" : "start"} />

@@ -1,4 +1,5 @@
 import { isShopCategory, isShopKind, parentOfShopKind, SHOP_CATEGORIES, validPrice, validQuantity } from "./shops";
+import { hoursFromLegacy, hoursToStored } from "./shops";
 import type { ShopCategory, ShopDraft, ShopHours, ShopKind, ShopProductUnit } from "./types";
 
 export type ShopAiProductHint = {
@@ -104,7 +105,8 @@ function extractHours(text: string): { hours?: ShopHours; hoursNote?: string } {
     note.push(`саат ${ky[1]}–${ky[2]}`);
   }
   if (!weekdays && !note.length) return {};
-  return { hours: weekdays ? { weekdays } : undefined, hoursNote: note.join(", ") };
+  const legacy = weekdays ? { weekdays } : undefined;
+  return { hours: legacy ? hoursToStored(hoursFromLegacy(legacy)) : undefined, hoursNote: note.join(", ") };
 }
 
 function extractFulfillment(text: string): { pickup?: boolean; delivery?: boolean } {

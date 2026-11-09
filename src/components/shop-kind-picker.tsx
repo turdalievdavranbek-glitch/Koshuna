@@ -30,7 +30,7 @@ export function ShopKindPicker({
     <div className="flex min-h-0 flex-1 flex-col bg-screen">
       <div className="flex items-center justify-between px-5 pb-2 pt-1">
         <button type="button" onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface">
-          <IconBack size={16} color="#17140F" />
+          <IconBack size={16} color="#18181B" />
         </button>
         <h1 className="font-display text-[17px] font-bold text-ink">{t.shopCats[parent]}</h1>
         <span className="w-9" />
@@ -60,7 +60,7 @@ export function ShopKindPicker({
               >
                 <span className="text-[15px] font-semibold text-ink">{t.shopKinds[id]}</span>
                 {multiple ? (
-                  on ? <IconCheck size={16} color="#B8452F" /> : <span className="h-4 w-4 rounded-full border border-line" />
+                  on ? <IconCheck size={16} color="#E31E24" /> : <span className="h-4 w-4 rounded-full border border-line" />
                 ) : (
                   <span className="text-[18px] text-muted-2">›</span>
                 )}

@@ -27,6 +27,13 @@ export function hasPriceDrop(listing: Listing): boolean {
   return listingHasPrice(listing) && listing.previousPrice != null && listing.previousPrice > listing.price;
 }
 
+/** Акции: a percent badge, an old price, or a real price drop. */
+export function isPromoListing(listing: Listing): boolean {
+  if (hasPriceDrop(listing)) return true;
+  if (listing.promoPercent != null && listing.promoPercent > 0) return true;
+  return listing.previousPrice != null && listing.previousPrice > 0;
+}
+
 export function dropAmount(listing: Listing): number {
   if (!hasPriceDrop(listing) || listing.previousPrice == null) return 0;
   return listing.previousPrice - listing.price;
@@ -78,7 +85,7 @@ export function payAfterMethods(listing: Listing): PayAfter[] {
 
 export function similarListings(listing: Listing, all: Listing[], n = 4): Listing[] {
   return all
-    .filter((item) => item.id !== listing.id && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed")
+    .filter((item) => item.id !== listing.id && !item.underReview && item.status !== "draft" && item.status !== "withdrawn" && item.status !== "closed" && item.status !== "hidden")
     .map((item) => {
       let score = 0;
       if (item.section === listing.section) score += 6;

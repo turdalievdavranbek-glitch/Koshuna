@@ -4,9 +4,13 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DISTRICTS, formatSom } from "@/lib/data";
+import { clearMapPoint, mapPointFilters } from "@/lib/filter";
 import { districtLabel, gisCity, hasCoords, nearestCityId, nearestDistrict, twoGisUrl } from "@/lib/geo";
 import { listingTitle } from "@/lib/i18n";
+import { locate, type LocateError } from "@/lib/locate";
 import { useApp } from "@/lib/store";
+import { GeoError } from "@/components/geo-error";
+import { ScreenBack } from "@/components/back-button";
 import { IconLocate, IconSearch, IconSliders } from "@/components/icons";
 import { PhoneShell } from "@/components/shell";
 import { ListingRow, Photo, useFiltered } from "@/components/ui";
@@ -25,12 +29,14 @@ export default function MapPage() {
   const qLng = lngRaw != null && lngRaw !== "" ? Number(lngRaw) : Number.NaN;
   const qCity = params.get("city");
   const filtered = useFiltered();
-  const pin = pinId ? allListings.find((l) => l.id === pinId && l.status !== "draft" && l.status !== "withdrawn" && l.status !== "closed") : undefined;
+  const pin = pinId ? allListings.find((l) => l.id === pinId && !l.underReview && l.status !== "draft" && l.status !== "withdrawn" && l.status !== "closed" && l.status !== "hidden") : undefined;
   const listings = useMemo(() => {
     if (pin && !filtered.some((l) => l.id === pin.id)) return [pin, ...filtered];
     return filtered;
   }, [filtered, pin]);
   const [mode, setMode] = useState<"map" | "list">("map");
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoError, setGeoError] = useState<LocateError | null>(null);
   const [selected, setSelected] = useState(pin?.id ?? listings[0]?.id);
   const current = listings.find((l) => l.id === selected) ?? pin ?? listings[0];
   const focused = useRef<string | null>(null);
@@ -50,12 +56,12 @@ export default function MapPage() {
   const markers = useMemo(
     () =>
       listings
-        .filter((l) => l.lat != null && l.lng != null)
+        .filter((l) => l.lat != null && l.lng != null && l.serviceMode !== "mobile")
         .map((l) => ({
           id: l.id,
           lat: l.lat!,
           lng: l.lng!,
-          label: `${formatSom(l.price)} KGS`,
+          label: `${formatSom(l.price)} сом`,
           active: l.id === selected,
         })),
     [listings, selected],
@@ -67,12 +73,27 @@ export default function MapPage() {
     const nextCity = nearestCityId(lat, lng);
     const area = nearestDistrict(lat, lng, nextCity);
     setCity(nextCity);
-    setFilters({
-      section: filters.section ?? "rent",
-      locLat: lat,
-      locLng: lng,
-      locLabel: label ?? (area ? districtLabel(area, lang) : t.cities[nextCity]),
-    });
+    setFilters(
+      mapPointFilters({
+        section: filters.section ?? "rent",
+        locLat: lat,
+        locLng: lng,
+        locLabel: label ?? (area ? districtLabel(area, lang) : t.cities[nextCity]),
+      }),
+    );
+  };
+
+  const locateHere = async () => {
+    if (geoBusy) return;
+    setGeoBusy(true);
+    setGeoError(null);
+    const res = await locate();
+    setGeoBusy(false);
+    if (!res.ok) {
+      setGeoError(res.error);
+      return;
+    }
+    applyPoint(res.lat, res.lng);
   };
 
   useEffect(() => {
@@ -82,13 +103,15 @@ export default function MapPage() {
     if (pin && hasCoords(pin)) {
       setSelected(pin.id);
       setCity(pin.city);
-      setFilters({
-        section: pin.section === "car-rental" ? "cars" : pin.section,
-        autoType: pin.section === "car-rental" ? "rent" : pin.section === "cars" ? "sale" : filters.autoType,
-        locLat: pin.lat,
-        locLng: pin.lng,
-        locLabel: listingTitle(pin, lang),
-      });
+      setFilters(
+        mapPointFilters({
+          section: pin.section === "car-rental" ? "cars" : pin.section,
+          autoType: pin.section === "car-rental" ? "rent" : pin.section === "cars" ? "sale" : filters.autoType,
+          locLat: pin.lat ?? null,
+          locLng: pin.lng ?? null,
+          locLabel: listingTitle(pin, lang),
+        }),
+      );
       return;
     }
     if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
@@ -116,14 +139,15 @@ export default function MapPage() {
         ) : null}
 
         <div className="relative z-10 flex gap-2 px-4 pt-1">
+          <ScreenBack fallback="/" />
           <button
             type="button"
             onClick={() => router.push("/filters")}
             className="shadow-float flex h-12 flex-1 items-center gap-2.5 rounded-2xl bg-white px-4"
           >
-            <IconSearch size={17} color="#A79C8C" />
+            <IconSearch size={17} color="#A1A1AA" />
             <span className="truncate text-[15px] text-ink">
-              {filters.locLabel ?? `${t.cities[cityId]} · 2ГИС`}
+              {filters.locLabel ?? `${t.cities[cityId]} · ${t.mapEyebrow}`}
             </span>
           </button>
           <button
@@ -131,7 +155,7 @@ export default function MapPage() {
             onClick={() => router.push("/filters")}
             className="shadow-float flex h-12 w-12 items-center justify-center rounded-2xl bg-white"
           >
-            <IconSliders size={17} color="#17140F" />
+            <IconSliders size={17} color="#18181B" />
           </button>
         </div>
 
@@ -151,7 +175,7 @@ export default function MapPage() {
                 </button>
               </div>
             </div>
-            <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-[18px] bg-screen/90 p-2">
+            <div className="sc flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto rounded-[18px] bg-screen/90 p-2 desk:grid desk:grid-cols-2 desk:content-start">
               {listings.map((item) => (
                 <ListingRow key={item.id} listing={item} />
               ))}
@@ -170,9 +194,9 @@ export default function MapPage() {
                       onClick={() => applyPoint(d.lat, d.lng, districtLabel(d, lang))}
                       className="shrink-0 rounded-full px-3.5 py-2 text-[13px] font-semibold"
                       style={{
-                        background: active ? "#17140F" : "#FFFFFF",
-                        color: active ? "#F7F3EC" : "#17140F",
-                        border: active ? "none" : "1px solid #E4DCCE",
+                        background: active ? "#18181B" : "#FFFFFF",
+                        color: active ? "#F5F5F7" : "#18181B",
+                        border: active ? "none" : "1px solid #E4E4E9",
                       }}
                     >
                       {districtLabel(d, lang)}
@@ -183,23 +207,19 @@ export default function MapPage() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (!navigator.geolocation) return;
-                navigator.geolocation.getCurrentPosition((pos) => {
-                  applyPoint(pos.coords.latitude, pos.coords.longitude);
-                });
-              }}
-              className="shadow-float absolute right-4 top-[58px] z-10 flex h-11 w-11 items-center justify-center rounded-[14px] bg-white"
-              aria-label={t.pickOnMap}
+              onClick={() => void locateHere()}
+              disabled={geoBusy}
+              className="shadow-float absolute right-4 top-[58px] z-10 flex h-11 items-center justify-center rounded-[14px] bg-white px-3"
+              aria-label={geoBusy ? t.locationGeoBusy : t.pickOnMap}
             >
-              <IconLocate size={18} color="#17140F" />
+              {geoBusy ? <span className="text-[12px] font-semibold text-ink">{t.locationGeoBusy}</span> : <IconLocate size={18} color="#18181B" />}
             </button>
             <div className="absolute bottom-[168px] left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full bg-white p-1 shadow-float">
               <button
                 type="button"
                 onClick={() => setMode("map")}
                 className="rounded-full px-4 py-2 text-[13px] font-semibold"
-                style={{ background: "#17140F", color: "#F7F3EC" }}
+                style={{ background: "#18181B", color: "#F5F5F7" }}
               >
                 {t.mapMode}
               </button>
@@ -214,8 +234,16 @@ export default function MapPage() {
           </>
         )}
 
+        {mode === "map" && geoError ? (
+          <div className="absolute inset-x-4 bottom-[42%] z-20">
+            <div className="rounded-[16px] border border-line bg-white p-3 shadow-float">
+              <GeoError compact error={geoError} onRetry={() => void locateHere()} />
+            </div>
+          </div>
+        ) : null}
+
         {mode === "map" ? (
-          <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] bg-screen px-5 pb-3 pt-2.5 shadow-[0_-10px_30px_rgba(23,20,15,.14)]">
+          <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] bg-screen px-5 pb-3 pt-2.5 shadow-[0_-10px_30px_rgba(24,24,27,.14)]">
             <span className="mx-auto mb-3 block h-1 w-11 rounded-full bg-toggle-off" />
             <p className="mb-2 text-[12px] text-muted">{t.mapPickHint}</p>
             {pick ? (
@@ -230,7 +258,7 @@ export default function MapPage() {
                 <a
                   href={twoGisUrl(cityId, pick.lng, pick.lat)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="flex h-11 items-center justify-center rounded-2xl border border-line bg-white px-3 text-sm font-semibold text-ink"
                 >
                   {t.open2gis}
@@ -242,7 +270,7 @@ export default function MapPage() {
               {pick ? (
                 <button
                   type="button"
-                  onClick={() => setFilters({ locLat: null, locLng: null, locLabel: null })}
+                  onClick={() => setFilters(clearMapPoint(filters))}
                   className="text-[13px] font-semibold text-accent"
                 >
                   {t.clearLocation}

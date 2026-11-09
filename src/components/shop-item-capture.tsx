@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatSom } from "@/lib/data";
-import { recorderMime, sampleVideoStills, startSpeech } from "@/lib/blob-media";
-import { jpegDataUrl, makeDemoPriceTag, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
-import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes } from "@/lib/media-limits";
-import { DEMO_SHOP_COUNTER } from "@/lib/shop-ai";
+import { captureVideoPoster, keepBlob, recorderMime, recorderOptions, sampleVideoStills, startSpeech, videoFileDuration } from "@/lib/blob-media";
+import { jpegDataUrl, priceFromPhoto, stillFromVideo } from "@/lib/photo-price";
+import { shopVideoMaxSeconds, shopVideoMaxStills, videoMaxBytes, videoMaxSeconds } from "@/lib/media-limits";
 import { draftsFromShopSpeech, pairDraftsWithStills, kindParent, type ShopItemDraft } from "@/lib/shop-media";
-import { displayPhotoForProduct, isCompactPriceTagDataUrl, isGeneratedPriceTag, isStockShopPhoto, looksLikeRenderedPriceTag, photoForProductTitle } from "@/lib/shop-photos";
+import { isStockShopPhoto } from "@/lib/shop-photos";
 import { shopErrorText, shopKindLabel, shopQtyLabel } from "@/lib/shop-copy";
+import { GreetingTile } from "./greeting-tile";
 import {
   assortmentKey,
   assortmentUseCount,
@@ -22,26 +22,40 @@ import {
   validPrice,
   validQuantity,
   SHOP_CATEGORIES,
+  hasShopHours,
+  hoursToStored,
+  type HoursPickerState,
 } from "@/lib/shops";
-import { DEMO_VIDEO_URL } from "@/lib/video-ai";
 import { listingIdForProduct } from "@/lib/shop-listing";
+import { FEATURES } from "@/lib/features";
+import { locate } from "@/lib/locate";
 import { useApp } from "@/lib/store";
 import type { MediaKind, Shop, ShopCategory, ShopKind, ShopProduct } from "@/lib/types";
 import { IconCamera } from "./icons";
+import { isGalleryVideo, openFileInput, resetFileInput } from "./native-photo";
 import { GisOnMapCard } from "./gis-on-map";
-import { Chip, Field, Input, Toggle } from "./ui";
+import { HoursPicker } from "./hours-picker";
+import { Chip, Field, Input, Photo, Toggle } from "./ui";
 
 export function ShopItemCapture({
   parent,
   kind,
   card,
+  shopId,
+  onPublished,
 }: {
   parent?: ShopCategory;
   kind?: ShopKind;
   card?: "shop" | "stall";
+  shopId?: string;
+  /** Called after an item was saved (e.g. go back to the point page from its checklist). */
+  onPublished?: () => void;
 }) {
   const { t, user, shops, ready, upsertShopProduct, setPendingPath, startShopDraft, setShopDraft, publishShop } = useApp();
   const router = useRouter();
+  const search = useSearchParams();
+  const createdQuery = search.get("created");
+  const editProductId = search.get("product") || undefined;
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -52,6 +66,7 @@ export function ShopItemCapture({
   const recTimer = useRef(0);
   const spokenRef = useRef("");
   const priceTouched = useRef(false);
+  const editSeeded = useRef(false);
   const noPriceRef = useRef(false);
   const [mode, setMode] = useState<MediaKind>("photos");
   const [live, setLive] = useState(false);
@@ -70,11 +85,31 @@ export function ShopItemCapture({
   const [placeName, setPlaceName] = useState("");
   const [placeAddress, setPlaceAddress] = useState("");
   const [hoursNote, setHoursNote] = useState("");
+  const [hoursState, setHoursState] = useState<HoursPickerState>({ days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false });
+  const [pointVideo, setPointVideo] = useState("");
+  const [greetingVideo, setGreetingVideo] = useState("");
+  const [greetingPoster, setGreetingPoster] = useState("");
+  // A gallery video for a product: kept as the listing video (it used to be cut down to one still).
+  const [itemVideo, setItemVideo] = useState("");
+  const videoFileRef = useRef<HTMLInputElement>(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [doneId, setDoneId] = useState(createdQuery);
+  const [hoursAsk, setHoursAsk] = useState(false);
   const [cardCat, setCardCat] = useState<ShopCategory | undefined>(parent);
   const [placeLat, setPlaceLat] = useState<number | undefined>();
   const [placeLng, setPlaceLng] = useState<number | undefined>();
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoFail, setGeoFail] = useState<boolean | "outside">(false);
   const [drafts, setDrafts] = useState<ShopItemDraft[]>([]);
-  const shop = parent ? pickShopForKind(shops, user, parent, kind) : shopsOf(shops, user)[0];
+  const pointMode = Boolean(card) && !shopId;
+  const shop = shopId
+    ? shops.find((row) => row.id === shopId)
+    : pointMode
+      ? undefined
+      : parent
+        ? pickShopForKind(shops, user, parent, kind)
+        : shopsOf(shops, user)[0];
   noPriceRef.current = noPrice;
   const here = parent && kind ? `/shops/c/${parent}/${kind}` : "/shops/quick";
 
@@ -90,21 +125,24 @@ export function ShopItemCapture({
   }, []);
 
   useEffect(() => {
-    if (!photo) return;
-    const next = photoForProductTitle(title, kind);
-    if (!next || next === photo) return;
-    if (isStockShopPhoto(photo) || isGeneratedPriceTag(photo) || isCompactPriceTagDataUrl(photo, title)) {
-      setPhoto(next);
-      return;
-    }
-    let cancelled = false;
-    void looksLikeRenderedPriceTag(photo).then((tag) => {
-      if (!cancelled && tag) setPhoto(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [kind, photo, title]);
+    if (!FEATURES.ownerVoice && mode === "voice") setMode("photos");
+  }, [mode]);
+
+  useEffect(() => {
+    if (isStockShopPhoto(photo)) setPhoto("");
+  }, [photo]);
+
+  useEffect(() => {
+    if (editSeeded.current || !editProductId || !shop) return;
+    const item = shop.products.find((row) => row.id === editProductId);
+    if (!item) return;
+    editSeeded.current = true;
+    setTitle(item.title);
+    setPrice(item.price != null ? String(item.price) : "");
+    setQty(item.quantity != null ? String(item.quantity) : "");
+    setNoPrice(item.price == null);
+    if (item.photo && !isStockShopPhoto(item.photo)) setPhoto(item.photo);
+  }, [editProductId, shop]);
 
   const rememberSpeech = (text: string) => {
     spokenRef.current = text;
@@ -140,16 +178,15 @@ export function ShopItemCapture({
 
   const applyPhoto = async (dataUrl: string) => {
     setError("");
+    if (pointMode) {
+      const compact = await jpegDataUrl(dataUrl, 900);
+      setPhoto(compact);
+      setAi("");
+      return;
+    }
     setAi(t.shopItemAiBusy);
     const compact = await jpegDataUrl(dataUrl, 900);
-    const tag =
-      isGeneratedPriceTag(dataUrl) ||
-      isGeneratedPriceTag(compact) ||
-      isCompactPriceTagDataUrl(dataUrl, title) ||
-      isCompactPriceTagDataUrl(compact, title) ||
-      (await looksLikeRenderedPriceTag(dataUrl)) ||
-      (await looksLikeRenderedPriceTag(compact));
-    setPhoto(tag ? photoForProductTitle(title, kind) || photoForProductTitle("", kind) || compact : compact);
+    setPhoto(compact);
     try {
       const guess = await priceFromPhoto(dataUrl);
       if (noPriceRef.current) {
@@ -176,6 +213,7 @@ export function ShopItemCapture({
     const still = stillFromVideo(videoRef.current);
     if (!still) return;
     stopCam();
+    setItemVideo("");
     await applyPhoto(still);
   };
 
@@ -185,31 +223,46 @@ export function ShopItemCapture({
     reader.readAsDataURL(file);
   };
 
-  const demoTag = async () => {
-    priceTouched.current = false;
+  const onGallery = async (files: File[]) => {
     setError("");
-    setAi(t.shopItemAiBusy);
-    const itemPhoto = photoForProductTitle(title, kind) || photoForProductTitle("", kind);
-    if (itemPhoto) setPhoto(itemPhoto);
-    if (!title.trim()) setTitle(shopKindLabel(t, kind) || t.shopItemName);
-    try {
-      const guess = await priceFromPhoto(makeDemoPriceTag(85));
-      if (noPriceRef.current) {
-        setFromPhoto(false);
-        setAi("");
-      } else if (guess.price != null && !priceTouched.current) {
-        setPrice(String(guess.price));
-        setFromPhoto(true);
-        setAi(t.shopItemPriceAi);
-      } else if (guess.price != null) {
-        setAi(t.shopItemPriceAi);
-      } else {
-        setFromPhoto(false);
-        setAi(t.shopItemPriceNoAi);
+    setNote("");
+    const video = files.find((file) => isGalleryVideo(file));
+    if (video) {
+      if (video.size > videoMaxBytes()) {
+        setError(t.videoTooBig(Math.round(videoMaxBytes() / (1024 * 1024))));
+        return;
       }
-    } catch {
-      setFromPhoto(false);
-      setAi(t.shopItemPriceNoAi);
+      setMediaBusy(true);
+      setNote(t.videoPreparing);
+      try {
+        const duration = await videoFileDuration(video);
+        if (duration > videoMaxSeconds()) {
+          setNote("");
+          setError(t.videoTooLong(Math.round(videoMaxSeconds() / 60)));
+          return;
+        }
+        const url = keepBlob("video", video);
+        const poster = (await captureVideoPoster(url)) ?? "";
+        setNote("");
+        if (pointMode) {
+          setPointVideo(url);
+          if (poster) setPhoto(poster);
+          return;
+        }
+        setItemVideo(url);
+        if (poster) await applyPhoto(poster);
+      } catch {
+        setNote("");
+        setError(t.videoReadFail);
+      } finally {
+        setMediaBusy(false);
+      }
+      return;
+    }
+    const image = files.find((file) => !isGalleryVideo(file));
+    if (image) {
+      setItemVideo("");
+      await onFile(image);
     }
   };
 
@@ -217,7 +270,7 @@ export function ShopItemCapture({
     const raw = draftsFromShopSpeech(text, { category: parent, kind });
     const next = pairDraftsWithStills(raw, stills, source).map((row) => ({
       ...row,
-      photo: row.photo || photoForProductTitle(row.title, row.kind),
+      photo: row.photo && !isStockShopPhoto(row.photo) ? row.photo : undefined,
       kind: kind ?? row.kind,
       category: kindParent(kind ?? row.kind, parent ?? row.category),
       kindOptions: kind ? [kind] : row.kindOptions,
@@ -251,7 +304,7 @@ export function ShopItemCapture({
       const recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recStreamRef.current = recStream;
       const mime = recorderMime("audio");
-      const rec = mime ? new MediaRecorder(recStream, { mimeType: mime }) : new MediaRecorder(recStream);
+      const rec = new MediaRecorder(recStream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("audio") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };
@@ -296,7 +349,7 @@ export function ShopItemCapture({
       setLive(true);
       setRecording(true);
       const mime = recorderMime("video");
-      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), ...recorderOptions("video") });
       rec.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };
@@ -338,6 +391,13 @@ export function ShopItemCapture({
       setError(t.shopVideoSize);
       return;
     }
+    if (pointMode) {
+      const url = keepBlob("video", blob);
+      const poster = (await captureVideoPoster(url)) ?? "";
+      setPointVideo(url);
+      if (poster) setPhoto(poster);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     try {
       const stills = await sampleVideoStills(url, shopVideoMaxStills());
@@ -354,19 +414,6 @@ export function ShopItemCapture({
       else window.setTimeout(() => void startVoice(), 400);
     } finally {
       URL.revokeObjectURL(url);
-    }
-  };
-
-  const runDemo = async () => {
-    setError("");
-    setNote("");
-    setMapPin(null);
-    setMode("video");
-    try {
-      const stills = await sampleVideoStills(DEMO_VIDEO_URL, shopVideoMaxStills());
-      await applyTranscript(DEMO_SHOP_COUNTER, stills, "video");
-    } catch {
-      await applyTranscript(DEMO_SHOP_COUNTER, [], "video");
     }
   };
 
@@ -392,7 +439,7 @@ export function ShopItemCapture({
   const changeMode = (next: MediaKind) => {
     if (recording) return;
     stopCam();
-    setMode(next);
+    setMode(!FEATURES.ownerVoice && next === "voice" ? "photos" : next);
     setDrafts([]);
     rememberSpeech("");
     setError("");
@@ -400,7 +447,89 @@ export function ShopItemCapture({
     setMapPin(null);
   };
 
+  const registerPoint = async (skipHours = false) => {
+    setError("");
+    setNote("");
+    setMapPin(null);
+    if (!user) {
+      setPendingPath(here);
+      router.push("/login");
+      return;
+    }
+    if (!photo && !pointVideo) {
+      setError(t.shopItemNeedPhoto);
+      return;
+    }
+    if (!placeName.trim()) {
+      setError(t.shopNeedName);
+      return;
+    }
+    if (!placeAddress.trim() && placeLat == null) {
+      setError(t.shopNeedAddress);
+      return;
+    }
+    if (!cardCat) {
+      setError(t.shopNeedCategory);
+      return;
+    }
+    const stored = hoursToStored(hoursState);
+    if (!skipHours && !hasShopHours(stored)) {
+      setHoursAsk(true);
+      return;
+    }
+    setHoursAsk(false);
+    const draft = startShopDraft(undefined, { fresh: true });
+    if (!draft) {
+      setPendingPath(here);
+      router.push("/shops/new");
+      return;
+    }
+    const shopToSave: Shop = {
+      ...draft,
+      name: placeName.trim(),
+      address: placeAddress.trim() || t.cities[draft.city] || draft.city,
+      hours: stored,
+      hoursNote: "",
+      venueKind: card ?? "shop",
+      category: cardCat,
+      status: "draft",
+      lat: placeLat ?? draft.lat,
+      lng: placeLng ?? draft.lng,
+      coverUrl: photo || undefined,
+      videoUrl: pointVideo || undefined,
+      greetingVideo: greetingVideo || undefined,
+      greetingPoster: greetingPoster || undefined,
+      contacts: { ...draft.contacts, whatsapp: true },
+      products: [],
+    };
+    setShopDraft(shopToSave);
+    const saved = await publishShop(shopToSave);
+    if (saved.error || !saved.shop) {
+      setError(shopErrorText(t, saved.error));
+      return;
+    }
+    setDoneId(saved.shop.id);
+    router.replace(`/shops/quick?card=${card}&created=${saved.shop.id}`);
+  };
+
   const publish = async () => {
+    if (saving) return;
+    if (mediaBusy) {
+      setError(t.videoPreparing);
+      return;
+    }
+    setSaving(true);
+    try {
+      if (pointMode) await registerPoint();
+      else await publishItem();
+    } catch {
+      setError(t.postFailed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const publishItem = async () => {
     setError("");
     setNote("");
     setMapPin(null);
@@ -415,7 +544,7 @@ export function ShopItemCapture({
       router.push("/shops/new");
       return;
     }
-    if (!photo && mode !== "text") {
+    if (!photo && !itemVideo && mode !== "text") {
       setError(t.shopItemNeedPhoto);
       return;
     }
@@ -433,13 +562,18 @@ export function ShopItemCapture({
       setError(t.shopNeedQuantity);
       return;
     }
+    const editing = editProductId ? place.products.find((row) => row.id === editProductId) : undefined;
     const result = await upsertShopProduct(place.id, {
+      id: editing?.id,
+      listingId: editing?.listingId,
       title: title.trim(),
       price: n,
       quantity,
       photo: photo || undefined,
-      category: parent ?? cardCat,
-      kind,
+      videoUrl: itemVideo || editing?.videoUrl,
+      category: parent ?? cardCat ?? editing?.category,
+      kind: kind ?? editing?.kind,
+      unit: editing?.unit,
       priceFromPhoto: fromPhoto,
     });
     if (result.error) {
@@ -456,6 +590,7 @@ export function ShopItemCapture({
       });
     }
     setPhoto("");
+    setItemVideo("");
     setTitle("");
     setPrice("");
     setQty("");
@@ -463,6 +598,7 @@ export function ShopItemCapture({
     setFromPhoto(false);
     setAi("");
     priceTouched.current = false;
+    onPublished?.();
   };
 
   const reuse = async (item: ShopProduct) => {
@@ -548,6 +684,28 @@ export function ShopItemCapture({
   const confirming = drafts.length > 0;
   const selectedCount = drafts.filter((row) => row.selected).length;
 
+  if (doneId) {
+    return (
+      <div className="pb-5" data-testid="point-created">
+        <p className="font-display text-[22px] font-bold text-ink">{t.pointCreated}</p>
+        <button
+          type="button"
+          onClick={() => router.push(`/shops/quick?shop=${doneId}`)}
+          className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on"
+        >
+          {t.pointAddProduct}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/shops/${doneId}`)}
+          className="mt-2 h-12 w-full rounded-2xl border border-line bg-white text-[15px] font-semibold"
+        >
+          {t.pointOpen}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-5">
       {parent && kind ? (
@@ -565,15 +723,19 @@ export function ShopItemCapture({
         <Chip active={mode === "photos"} onClick={() => changeMode("photos")}>
           {t.mediaPhotos}
         </Chip>
-        <Chip active={mode === "voice"} accent={mode === "voice"} onClick={() => changeMode("voice")}>
-          {t.mediaVoice}
-        </Chip>
+        {pointMode || !FEATURES.ownerVoice ? null : (
+          <Chip active={mode === "voice"} accent={mode === "voice"} onClick={() => changeMode("voice")}>
+            {t.mediaVoice}
+          </Chip>
+        )}
         <Chip active={mode === "video"} accent={mode === "video"} onClick={() => changeMode("video")}>
           {t.mediaVideo}
         </Chip>
-        <Chip active={mode === "text"} onClick={() => changeMode("text")}>
-          {t.mediaText}
-        </Chip>
+        {pointMode ? null : (
+          <Chip active={mode === "text"} onClick={() => changeMode("text")}>
+            {t.mediaText}
+          </Chip>
+        )}
       </div>
 
       {confirming ? (
@@ -589,7 +751,7 @@ export function ShopItemCapture({
                     <img src={row.photo} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
                   ) : (
                     <div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-chip">
-                      <IconCamera size={18} color="#A79C8C" />
+                      <IconCamera size={18} color="#A1A1AA" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
@@ -644,17 +806,33 @@ export function ShopItemCapture({
         </div>
       ) : (
         <>
+          {pointMode ? (
+            <div className="mt-3 flex flex-col gap-3">
+              <p className="text-[13px] leading-[1.45] text-muted">{t.pointPhotoHint}</p>
+              <GreetingTile
+                videoUrl={greetingVideo || undefined}
+                poster={greetingPoster || undefined}
+                onChange={(next) => {
+                  setGreetingVideo(next.greetingVideo ?? "");
+                  setGreetingPoster(next.greetingPoster ?? "");
+                }}
+              />
+            </div>
+          ) : null}
           {mode !== "text" ? (
           <div className="mt-3 overflow-hidden rounded-[18px] bg-ink">
             <video ref={videoRef} muted playsInline className={live ? "aspect-[4/5] w-full object-cover" : "hidden"} />
-            {!live && photo && mode !== "video" ? (
+            {!live && itemVideo && mode === "photos" ? (
+              <video src={itemVideo} poster={photo || undefined} controls playsInline className="aspect-[4/5] w-full bg-ink object-contain" />
+            ) : null}
+            {!live && photo && mode !== "video" && !(itemVideo && mode === "photos") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photo} alt="" className="aspect-[4/5] w-full bg-[#f4efe6] object-contain" />
             ) : null}
-            {!live && (mode === "video" || !photo) ? (
+            {!live && (mode === "video" || (!photo && !itemVideo)) ? (
               <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 px-6 text-center">
-                <IconCamera size={28} color="#FFF7F0" />
-                <div className="text-[14px] font-semibold text-screen">{mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
+                <IconCamera size={28} color="#FFFFFF" />
+                <div className="text-[14px] font-semibold text-screen">{pointMode ? t.pointLive : mode === "video" ? t.mediaRecord : t.shopItemLive}</div>
               </div>
             ) : null}
           </div>
@@ -662,7 +840,8 @@ export function ShopItemCapture({
 
           {mode === "photos" ? (
             <>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              {photo || itemVideo ? <div className="mt-3 text-[13px] font-semibold text-ink">{t.pointPhotoReplace}</div> : null}
+              <div className={`grid grid-cols-2 gap-2 ${photo || itemVideo ? "" : "mt-3"}`}>
                 {live ? (
                   <button type="button" onClick={() => void shot()} className="h-11 rounded-2xl bg-accent text-[13px] font-semibold text-accent-on">
                     {t.shopItemShot}
@@ -674,19 +853,39 @@ export function ShopItemCapture({
                 )}
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  data-testid="product-gallery"
+                  onClick={() => openFileInput(fileRef.current)}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
-                  {t.gallery}
+                  {t.postGallery}
                 </button>
               </div>
-              <button type="button" onClick={() => void demoTag()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
-                {t.shopItemDemoTag}
+              <button
+                type="button"
+                data-testid="product-gallery-video"
+                disabled={mediaBusy}
+                onClick={() => openFileInput(videoFileRef.current)}
+                className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
+              >
+                {mediaBusy ? t.videoPreparing : t.videoFromGallery}
               </button>
+              {(photo || itemVideo) && !live ? (
+                <button
+                  type="button"
+                  data-testid="capture-photo-delete"
+                  onClick={() => {
+                    setPhoto("");
+                    setItemVideo("");
+                  }}
+                  className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-accent"
+                >
+                  {t.pointGreetingDelete}
+                </button>
+              ) : null}
             </>
           ) : null}
 
-          {mode === "voice" ? (
+          {FEATURES.ownerVoice && mode === "voice" ? (
             <>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {live ? (
@@ -700,17 +899,18 @@ export function ShopItemCapture({
                 )}
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  data-testid="product-gallery"
+                  onClick={() => openFileInput(fileRef.current)}
                   className="h-11 rounded-2xl border border-line bg-white text-[13px] font-semibold"
                 >
-                  {t.gallery}
+                  {t.postGallery}
                 </button>
               </div>
               <button
                 type="button"
                 onClick={() => (recording ? void stopVoice() : void startVoice())}
                 className="mt-2 h-11 w-full rounded-2xl text-[13px] font-semibold"
-                style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
+                style={{ background: recording ? "#E31E24" : "#18181B", color: "#F5F5F7" }}
               >
                 {recording ? t.mediaStop : t.mediaVoiceRec}
               </button>
@@ -724,10 +924,24 @@ export function ShopItemCapture({
                 type="button"
                 onClick={() => (recording ? void stopVideo() : void startVideo())}
                 className="mt-3 h-11 w-full rounded-2xl text-[13px] font-semibold"
-                style={{ background: recording ? "#B8452F" : "#17140F", color: "#F7F3EC" }}
+                style={{ background: recording ? "#E31E24" : "#18181B", color: "#F5F5F7" }}
               >
                 {recording ? t.mediaStop : t.mediaRecord}
               </button>
+              {!recording ? (
+                <button
+                  type="button"
+                  data-testid="product-gallery-video-2"
+                  disabled={mediaBusy}
+                  onClick={() => {
+                    changeMode("photos");
+                    openFileInput(videoFileRef.current);
+                  }}
+                  className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold disabled:opacity-60"
+                >
+                  {mediaBusy ? t.videoPreparing : t.videoFromGallery}
+                </button>
+              ) : null}
               {spoken ? <p className="mt-2 text-[12px] leading-[1.4] text-muted">{spoken}</p> : null}
               <button
                 type="button"
@@ -752,45 +966,64 @@ export function ShopItemCapture({
             </div>
           ) : null}
 
-          {mode !== "text" ? (
-          <button type="button" onClick={() => void runDemo()} className="mt-2 h-11 w-full rounded-2xl border border-line bg-white text-[13px] font-semibold text-muted">
-            {t.shopQuickDemo}
-          </button>
-          ) : null}
           <input
-            ref={fileRef}
+            ref={videoFileRef}
+            data-testid="product-video-file"
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="video/*,.mp4,.mov,.webm,.m4v,.3gp,.mkv"
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFile(file);
-              e.target.value = "";
+              const input = e.currentTarget;
+              const files = Array.from(input.files ?? []);
+              resetFileInput(input);
+              if (files.length) void onGallery(files);
+            }}
+          />
+          <input
+            ref={fileRef}
+            data-testid="point-photo"
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const input = e.currentTarget;
+              const files = Array.from(input.files ?? []);
+              resetFileInput(input);
+              if (files.length) void onGallery(files);
             }}
           />
 
           {card ? (
             <div className="mt-3 flex flex-col gap-3">
               <Field label={t.shopName}>
-                <Input value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
+                <Input testId="point-name" value={placeName} onChange={setPlaceName} placeholder={card === "stall" ? t.sellCardStall : t.sellCardShop} />
               </Field>
               <Field label={t.venueAddress}>
-                <Input value={placeAddress} onChange={setPlaceAddress} />
+                <Input testId="point-address" value={placeAddress} onChange={setPlaceAddress} />
               </Field>
               <button
                 type="button"
+                disabled={geoBusy}
                 onClick={() => {
-                  if (!navigator.geolocation) return;
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                    setPlaceLat(pos.coords.latitude);
-                    setPlaceLng(pos.coords.longitude);
+                  if (geoBusy) return;
+                  setGeoBusy(true);
+                  setGeoFail(false);
+                  void locate().then((res) => {
+                    setGeoBusy(false);
+                    if (!res.ok) {
+                      setGeoFail(res.error === "outside" ? "outside" : true);
+                      return;
+                    }
+                    setPlaceLat(res.lat);
+                    setPlaceLng(res.lng);
                   });
                 }}
-                className="h-10 rounded-xl border border-line text-[13px] font-semibold"
+                className="h-10 rounded-xl border border-line text-[13px] font-semibold disabled:opacity-60"
               >
-                {t.locationGeo}
+                {geoBusy ? t.locationGeoBusy : t.locationGeo}
               </button>
+              {geoFail ? <p className="text-[12px] leading-[1.4] text-muted">{geoFail === "outside" ? t.geoOutside : t.geoShopFail}</p> : null}
               <div className="flex flex-wrap gap-2">
                 {SHOP_CATEGORIES.map((id) => (
                   <Chip key={id} active={(cardCat ?? parent) === id} onClick={() => setCardCat(id)}>
@@ -798,13 +1031,25 @@ export function ShopItemCapture({
                   </Chip>
                 ))}
               </div>
+              {pointMode ? (
+                <HoursPicker
+                  onChange={(next) => {
+                    setHoursState(
+                      next
+                        ? { days: next.days ?? ["mon", "tue", "wed", "thu", "fri"], slot: next.allDay ? null : next.slot ?? null, allDay: Boolean(next.allDay) }
+                        : { days: ["mon", "tue", "wed", "thu", "fri"], slot: null, allDay: false },
+                    );
+                  }}
+                />
+              ) : (
               <Field label={t.shopHoursOptional}>
                 <Input value={hoursNote} onChange={setHoursNote} />
               </Field>
+              )}
             </div>
           ) : null}
 
-          {mode === "photos" ? (
+          {mode === "photos" && !pointMode ? (
             <div className="mt-4 flex flex-col gap-3">
               <Field label={t.shopItemName}>
                 <Input value={title} onChange={setTitle} />
@@ -852,6 +1097,32 @@ export function ShopItemCapture({
         </>
       )}
 
+      {hoursAsk && pointMode ? (
+        <div data-testid="hours-soft" className="mt-3 rounded-[14px] border border-line bg-white p-3">
+          <p className="text-[13px] leading-[1.45] text-ink">{t.hoursSoftAsk}</p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              data-testid="hours-soft-fill"
+              onClick={() => {
+                setHoursAsk(false);
+                document.getElementById("hours-block")?.scrollIntoView({ block: "center" });
+              }}
+              className="h-10 flex-1 rounded-xl bg-ink text-[13px] font-semibold text-screen"
+            >
+              {t.hoursSoftFill}
+            </button>
+            <button
+              type="button"
+              data-testid="hours-soft-skip"
+              onClick={() => void registerPoint(true)}
+              className="h-10 flex-1 rounded-xl border border-line text-[13px] font-semibold"
+            >
+              {t.hoursSoftSkip}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p className="mt-2 text-[13px] font-semibold text-accent">{error}</p> : null}
       {note ? <p className="mt-2 text-[13px] font-semibold text-success-ink">{note}</p> : null}
       {mapPin ? (
@@ -881,9 +1152,15 @@ export function ShopItemCapture({
         >
           {t.shopPublishSelected(selectedCount)}
         </button>
-      ) : mode === "photos" || mode === "text" ? (
-        <button type="button" onClick={() => void publish()} className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on">
-          {t.shopItemPublish}
+      ) : pointMode || mode === "photos" || mode === "text" ? (
+        <button
+          type="button"
+          data-testid="point-publish"
+          disabled={saving}
+          onClick={() => void publish()}
+          className="shadow-btn mt-4 h-12 w-full rounded-2xl bg-accent text-[15px] font-semibold text-accent-on disabled:opacity-60"
+        >
+          {saving ? (itemVideo || pointVideo ? t.videoUploading : t.postPublishing) : t.shopItemPublish}
         </button>
       ) : null}
       {!user ? (
@@ -919,12 +1196,13 @@ export function ShopItemCapture({
                 onClick={() => router.push(`/shops/${row.id}`)}
                 className="flex gap-3 rounded-[16px] border border-line bg-white p-3 text-left"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+                <span className="h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
+                  <Photo src={product.photo} alt="" />
+                </span>
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] font-semibold text-ink">{product.title}</span>
                   <span className="mt-0.5 block text-[13px] font-semibold text-accent">
-                    {product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}
+                    {product.price != null ? `${formatSom(product.price)} сом` : t.shopAskPrice}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-2">{row.name}</span>
                 </span>
@@ -952,12 +1230,13 @@ function ItemCard({
   const { t } = useApp();
   return (
     <div className="flex gap-3 rounded-[16px] border border-line bg-white p-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={displayPhotoForProduct(product)} alt="" className="h-16 w-16 rounded-[12px] object-cover" />
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[12px]">
+        <Photo src={product.photo} alt="" />
+      </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold text-ink">{product.title}</div>
         <div className="mt-0.5 text-[13px] font-semibold text-accent">
-          {product.price != null ? `${formatSom(product.price)} KGS` : t.shopAskPrice}
+          {product.price != null ? `${formatSom(product.price)} сом` : t.shopAskPrice}
         </div>
         {shopQtyLabel(t, product) ? <div className="mt-0.5 text-[11px] text-muted">{shopQtyLabel(t, product)}</div> : null}
         {product.priceFromPhoto ? <div className="mt-0.5 text-[11px] text-muted">{t.shopItemPriceAiShort}</div> : null}
