@@ -93,17 +93,13 @@ export function PostChoices({
           onPersonal();
         }}
       />
-      <button type="button" data-testid="post-choice-personal" onClick={startPersonal} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
-        <div className="text-[16px] font-semibold text-ink">{t.postPersonal}</div>
-        <div className="mt-1 text-[13px] text-muted">{t.postPersonalHint}</div>
-      </button>
-      <button type="button" data-testid="post-choice-courier" onClick={onCourier} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
-        <div className="text-[16px] font-semibold text-ink">{user?.courier ? t.deliveryCourierTitle : t.deliveryBecome}</div>
-        <div className="mt-1 text-[13px] text-muted">{user?.courier ? t.courierMenuHint : t.deliveryBecomeHint}</div>
-      </button>
       <button type="button" data-testid="post-choice-business" onClick={onBusiness} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
         <div className="text-[16px] font-semibold text-ink">{t.postBusiness}</div>
         <div className="mt-1 text-[13px] text-muted">{t.postBusinessHint}</div>
+      </button>
+      <button type="button" data-testid="post-choice-personal" onClick={startPersonal} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
+        <div className="text-[16px] font-semibold text-ink">{t.postPersonal}</div>
+        <div className="mt-1 text-[13px] text-muted">{t.postPersonalHint}</div>
       </button>
       {FEATURES.purchaseRequests && FEATURES.purchaseRequestsInPostMenu ? (
         <button type="button" data-testid="post-choice-request" onClick={onRequest} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
@@ -111,6 +107,10 @@ export function PostChoices({
           <div className="mt-1 text-[13px] text-muted">{t.postRequestHint}</div>
         </button>
       ) : null}
+      <button type="button" data-testid="post-choice-courier" onClick={onCourier} className="mt-2 w-full rounded-[16px] border border-line bg-white px-4 py-3 text-left">
+        <div className="text-[16px] font-semibold text-ink">{user?.courier ? t.deliveryCourierTitle : t.deliveryBecome}</div>
+        <div className="mt-1 text-[13px] text-muted">{user?.courier ? t.courierMenuHint : t.deliveryBecomeHint}</div>
+      </button>
       {askNew ? (
         <div className="mt-3 rounded-[14px] bg-chip p-3" data-testid="draft-start">
           <p className="text-[14px]">{t.draftStartNew}</p>
